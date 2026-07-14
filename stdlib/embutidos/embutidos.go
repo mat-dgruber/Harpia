@@ -1,9 +1,17 @@
+// Package embutidos reúne e expõe os tipos primitivos, constantes universais e funções essenciais
+// que compõem o escopo global implícito do Portuscript.
+//
+// Diferente de outros módulos da biblioteca padrão (como 'matematica' ou 'sistema'), os elementos
+// deste pacote não requerem uma declaração de importação explícita; eles são injetados diretamente
+// no escopo primordial de execução de qualquer script no momento de inicialização da máquina virtual.
 package embutidos
 
 import (
 	"github.com/natanfeitosa/portuscript/ptst"
 )
 
+// registrarTipos é um utilitário interno para automatizar o mapeamento de tipos estruturais
+// e classes do Portuscript diretamente no dicionário global de constantes do pacote.
 func registrarTipos(tipos []*ptst.Tipo, mapa ptst.Mapa) {
 	for _, tipo := range tipos {
 		mapa[tipo.Nome] = tipo
@@ -11,12 +19,14 @@ func registrarTipos(tipos []*ptst.Tipo, mapa ptst.Mapa) {
 }
 
 func init() {
+	// constantes define o escopo de constantes primordiais e classes de tipos mapeados globalmente.
 	constantes := ptst.Mapa{
-		"Verdadeiro": ptst.Verdadeiro,
-		"Falso":      ptst.Falso,
-		"Nulo":       ptst.Nulo,
+		"Verdadeiro": ptst.Verdadeiro, // O valor booleano positivo padrão
+		"Falso":      ptst.Falso,      // O valor booleano negativo padrão
+		"Nulo":       ptst.Nulo,       // A representação padrão de ausência de valor
 	}
 
+	// Registra todos os tipos primitivos básicos e classes de exceções padrão na tabela global de símbolos.
 	registrarTipos(
 		[]*ptst.Tipo{
 			ptst.TipoInteiro,
@@ -28,7 +38,7 @@ func init() {
 			ptst.TipoBooleano,
 			ptst.TipoBytes,
 
-			// Erros
+			// Erros e Exceções estruturadas da VM
 			ptst.TipoErro,
 			ptst.SintaxeErro,
 			ptst.AtributoErro,
@@ -48,8 +58,15 @@ func init() {
 		constantes,
 	)
 
+	// Cria e registra o alias "imprimir" direcionado para o mesmo ponteiro da função nativa "imprima",
+	// provendo maior flexibilidade léxica para os desenvolvedores.
+	_emb_imprimir := *_emb_imprima
+	_emb_imprimir.Nome = "imprimir"
+
+	// metodos é o catálogo de funções utilitárias que residem no ambiente de execução global.
 	metodos := []*ptst.Metodo{
 		_emb_imprima,
+		&_emb_imprimir,
 		_emb_leia,
 		_emb_doc,
 		_emb_int,
@@ -58,6 +75,7 @@ func init() {
 		_emb_instanciaDe,
 		_emb_sequencia,
 		_emb_mesmoTipo,
+		// tipo(objeto) retorna o ponteiro correspondente ao tipo de classe do objeto informado.
 		ptst.NewMetodoOuPanic(
 			"tipo",
 			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
@@ -71,6 +89,7 @@ func init() {
 		),
 	}
 
+	// Registra o escopo agregador de embutidos na lista central de inicializações do interpretador.
 	ptst.RegistraModuloImpl(
 		&ptst.ModuloImpl{
 			Info: ptst.ModuloInfo{

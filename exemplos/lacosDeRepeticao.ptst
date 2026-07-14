@@ -1,9 +1,16 @@
+# ============================================================================
+# EXEMPLO: LAÇOS DE REPETIÇÃO ANINHADOS
+# ============================================================================
+# Demonstração do laço de repetição condicional 'enquanto' e aninhamento de fluxos.
+# O programa calcula e exibe de forma tabular a tabuada de multiplicação e de adição.
+
 var parcela1 = 2;
 
 imprima("Vamos ver a tabuada de multiplicação do", parcela1)
 
 var parcela2 = 1;
 
+# Loop simples de tabuada
 enquanto(parcela2 < 11) {
     imprima(parcela1, "*", parcela2, "=", parcela1 * parcela2)
     parcela2 = parcela2 + 1;
@@ -14,6 +21,7 @@ imprima("Agora a tabuada de adição")
 
 parcela1 = 1;
 
+# Loops aninhados para gerar tabuadas completas de 1 a 10
 enquanto(parcela1 < 11) {
     imprima()
     imprima("Tabuada de:", parcela1)

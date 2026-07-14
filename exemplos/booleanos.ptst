@@ -1,8 +1,14 @@
+# ============================================================================
+# EXEMPLO: OPERAÇÕES BOOLEANAS E COMPARADORES
+# ============================================================================
+# Demonstração de conectivos lógicos e comparadores relacionais de valor.
+
+# 1. Conectores lógicos 'ou' / 'e' (disjunção e conjunção)
 imprima("A expressão `Verdadeiro ou Falso` é igual a:", Verdadeiro ou Falso)
 imprima("A expressão `Verdadeiro e Falso` é igual a:", Verdadeiro e Falso)
-
 imprima()
 
+# 2. Comparadores relacionais e de igualdade de valor
 imprima("A expressão `1 == 1` é igual a:", 1 == 1)
 imprima("A expressão `1 != 2` é igual a:", 1 != 2)
 imprima("A expressão `1 < 2` é igual a:", 1 < 2)

@@ -1,37 +1,53 @@
+# ============================================================================
+# EXEMPLO: SERVIDOR DE REDE TCP (ECHO SERVER)
+# ============================================================================
+# Este script implementa um servidor de eco (echo server) TCP não-bloqueante
+# de alto nível na porta 3000, demonstrando a robustez de conexões do Portuscript.
+
 de "soquete" importe Soquete;
 
-# AF_INET, SOCK_STREAM
+# 1. Aloca um novo socket TCP/IP IPv4 (AF_INET = 2, SOCK_STREAM = 1)
 const soq = nova Soquete(2, 1);
 
-# SOL_SOCKET, SO_REUSEADDR, 1
+# 2. Configura reuso de porta (SO_REUSEADDR) para evitar portas presas ao reiniciar o servidor
 soq.define_opcoes(1, 2, 1)
+
+# 3. Define o socket para modo operacional não-bloqueante
 soq.def_nao_bloqueante(Verdadeiro)
 
+# 4. Associa o socket ao endereço de escuta local na porta 3000
 soq.associa("127.0.0.1", 3000)
 
-
+# 5. Ativa a escuta de conexões entrantes
 soq.ouve()
 
 imprima("Parece que nosso soquete Portuscript está ouvindo em http://127.0.0.1:3000")
 
+# 6. Loop de aceitação contínua de novos clientes
 enquanto (Verdadeiro) {
+    # Aguarda assincronamente e aceita a nova conexão cliente
     var cliente = soq.aceita();
 
-    # cliente.envia(nova Bytes("Portuscript respondeu!!"))
-
+    # Loop de troca de mensagens dedicada com o cliente conectado
     enquanto(Verdadeiro) {
+        # Lê blocos (buffer) de até 1024 bytes enviados pelo cliente
         const dados = cliente.recebe(1024);
 
+        # Se o cliente desconectar ou não enviar nada, fecha a conexão local
         se(nao dados) {
             imprima("Conexão encerrada pelo cliente.")
             pare;
         }
-        
+
+        # Faz o eco: devolve (envia) de volta ao cliente os mesmos bytes recebidos
         cliente.envia(dados)
     }
+
+    # Encerra o soquete dedicado ao cliente
     cliente.fecha()
-    imprima("fechou")
+    imprima("fechou conexão")
 }
 
+# Encerra o soquete mestre de escuta do servidor
 soq.fecha()
 imprima("saindo")

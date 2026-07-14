@@ -1,11 +1,20 @@
-# Módulos externos
+# Módulos de Extensões Externas (.so)
 
-Define um módulo Portuscript em Go
+O Portuscript oferece suporte nativo e maduro para carregamento dinâmico de **Plugins de Extensões** compilados em Go, permitindo estender e expor recursos complexos com a performance bruta da linguagem Go.
 
-## Como compilar
+---
+
+## 🏗️ Como Compilar
+
+Para compilar o arquivo Go como uma biblioteca dinâmica compartilhada compatível com o interpretador, utilize o compilador do Go informando a flag de modo de construção de plugin `-buildmode=plugin`:
 
 ```bash
-$ go build -buildmode=plugin -o externos.so main.go
+# Compila main.go gerando o plug-in dinâmico externos.so
+go build -buildmode=plugin -o externos.so main.go
 
-# go build -buildmode=plugin -o <nomeDeSaida>.so <entrada>.go
+# Padrão genérico de compilação:
+# go build -buildmode=plugin -o <nome_do_modulo>.so <arquivo_entrada>.go
 ```
+
+> **Nota de Compatibilidade**:  
+> Os plug-ins dinâmicos em Go (extensões `.so`) são suportados nativamente em plataformas baseadas em Unix (como Linux e macOS), mas possuem limitações operacionais no Windows.

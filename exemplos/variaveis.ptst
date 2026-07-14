@@ -1,11 +1,23 @@
+# ============================================================================
+# EXEMPLO: VARIÁVEIS E CONSTANTES
+# ============================================================================
+# Este exemplo demonstra a distinção fundamental de mutabilidade:
+#   - 'var' declara variáveis mutáveis que podem ter seu valor reatribuído.
+#   - 'const' declara constantes imutáveis cujo valor é fixado e protegido.
+
+# Declaração inicial
 var nome = "Portuscript";
 const ano = 2023;
 
 imprima("nome:", nome)
 imprima("ano:", ano)
 
+# Reatribuição mutável (permitido para 'var')
 nome = nome + ", a melhor linguagem em portugues";
 
+# Exibição dos valores atualizados
 imprima()
 imprima("nome:", nome)
 imprima("ano:", ano)
+
+# Nota: Tentar fazer 'ano = 2024;' causará um erro de reatribuição (ReatribuicaoErro).

@@ -1,13 +1,22 @@
+# ============================================================================
+# EXEMPLO: ARITMÉTICA BÁSICA
+# ============================================================================
+# Demonstração de precedência e operadores aritméticos primitivos.
+# O Portuscript resolve expressões matemáticas respeitando as regras universais de álgebra.
+
 const ano = 2023;
 
+# 1. Adições lógicas e concatenadas
 imprima("2023 + 2023 =", ano + ano)
 imprima("2023 + 2023 + 10 =", ano + ano + 10)
 imprima()
 
+# 2. Multiplicações de termos
 imprima("2023 * 2023 =", ano * ano)
 imprima("2023 * 2023 * 10 =", ano * ano * 10)
 imprima()
 
+# 3. Subtrações aritméticas
 imprima("2023 - 2023 =", ano - ano)
 imprima("2023 - 2023 - 2023 =", ano - ano - ano)
 imprima()

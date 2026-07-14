@@ -6,6 +6,11 @@ import (
 	"github.com/natanfeitosa/portuscript/ptst"
 )
 
+// met_mat_potencia implementa a lógica nativa para a função 'potencia()'.
+//
+// Esta função recebe uma base e um expoente, valida se a quantidade de parâmetros está correta,
+// converte ambos os operandos para Decimal (ptst.Decimal)
+// e realiza a exponenciação real (base ^ expoente) por meio de math.Pow do Go.
 func met_mat_potencia(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	if err := ptst.VerificaNumeroArgumentos("potencia", false, args, 2, 2); err != nil {
 		return nil, err
@@ -32,6 +37,7 @@ func met_mat_potencia(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return ptst.Decimal(potencia), nil
 }
 
+// _mat_potencia cria e define a assinatura do método 'potencia' exposto na stdlib do Portuscript.
 var _mat_potencia = ptst.NewMetodoOuPanic(
 	"potencia",
 	met_mat_potencia,

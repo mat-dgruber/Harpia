@@ -1,8 +1,21 @@
+# ============================================================================
+# EXEMPLO: IMPORTAÇÃO RELATIVA E CONSTANTES DE MÓDULO
+# ============================================================================
+# Este exemplo demonstra a modularidade e o reuso de código local:
+#   - Carrega e importa uma função ('darCor') declarada em um arquivo físico
+#     vizinho de script ('./importacao.ptst') de forma relativa.
+#   - Exibe os metadados dinâmicos implícitos que a VM injeta em qualquer
+#     escopo de arquivo carregado ('__arquivo__' e '__nome__').
+
+# Importação relativa local
 de "./importacao" importe darCor;
 
 imprima()
 imprima("Algum teste:", darCor("OLA"))
 imprima()
 
-imprima(__arquivo__)
-imprima(__nome__)
+# Imprime o caminho do arquivo físico corrente
+imprima("Caminho do arquivo atual (__arquivo__):", __arquivo__)
+
+# Imprime o nome identificador do módulo (__nome__)
+imprima("Nome do módulo atual (__nome__):", __nome__)

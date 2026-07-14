@@ -1,7 +1,17 @@
+# ============================================================================
+# EXEMPLO: ACESSO A ATRIBUTOS E REFLEXÃO DINÂMICA
+# ============================================================================
+# Demonstração de acesso a metadados e documentação interna dos objetos.
+# O atributo mágico especial '__doc__' retorna o manual explicativo (Docstring) da classe.
+
 const num = 2023;
 
 imprima(num)
 imprima()
+
+# Imprime a documentação da classe do tipo do número (Inteiro)
 imprima(num.__doc__)
 imprima()
+
+# Imprime a documentação da classe do tipo de __doc__ (que é Texto)
 imprima(num.__doc__.__doc__)

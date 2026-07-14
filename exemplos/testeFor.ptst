@@ -1,3 +1,8 @@
+# ============================================================================
+# EXEMPLO: LAÇO ITERATIVO PARA (FOR-IN)
+# ============================================================================
+# Demonstração do laço de repetição iterador 'para-em' consumindo uma Tupla literal.
+
 para(num em (1, 2, 3, 4)) {
     imprima("numero:", num)
 }

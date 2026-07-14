@@ -8,10 +8,10 @@ import (
 )
 
 func assertPanic(t *testing.T, f func()) {
-    t.Helper()
-    defer func() { _ = recover() }()
-    f()
-    t.Errorf("Era esperado que houvesse um `panic`")
+	t.Helper()
+	defer func() { _ = recover() }()
+	f()
+	t.Errorf("Era esperado que houvesse um `panic`")
 }
 
 func TestMaquinarioImporteModulo(t *testing.T) {
@@ -38,7 +38,7 @@ func TestMultiImporteModulo(t *testing.T) {
 	ctx := ptst.NewContexto(ptst.OpcsContexto{})
 	defer ctx.Terminar()
 
-	if  err := ptst.MultiImporteModulo(ctx, "colorize", "embutidos"); err != nil {
+	if err := ptst.MultiImporteModulo(ctx, "colorize", "embutidos"); err != nil {
 		t.Error(err)
 	}
 
@@ -48,7 +48,7 @@ func TestMultiImporteModulo(t *testing.T) {
 }
 
 func TestImporteSemCriarContexto(t *testing.T) {
-	teste := func ()  {
+	teste := func() {
 		ptst.Importe("embutidos", nil)
 	}
 

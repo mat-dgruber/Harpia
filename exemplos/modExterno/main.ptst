@@ -1,4 +1,11 @@
-# Aqui, o nome "externos" é o nome que demos para o nosso arquivo de saída .so
+# ============================================================================
+# EXEMPLO: USO DE EXTENSÃO COMPILADA NATIVA (.SO / PLUG-IN)
+# ============================================================================
+# Este script demonstra como importar e utilizar um plugin dinâmico (.so)
+# compilado em Go, expandindo os limites e performance do interpretador.
+
+# O nome "externos" corresponde à biblioteca compartilhada 'externos.so' gerada.
 de "externos" importe exiba;
 
+# Invoca o método nativo compilado de alto desempenho
 exiba("Olá, tudo bem?")

@@ -7,10 +7,15 @@ import (
 	"strings"
 )
 
+// MesmoTipo compara as assinaturas de classe de dois objetos dinâmicos de forma extremamente rápida.
 func MesmoTipo(a, b Objeto) bool {
 	return a.Tipo() == b.Tipo()
 }
 
+// VerificaNumeroArgumentos é a rotina centralizada de verificação de aridade de parâmetros.
+//
+// Valida se a contagem de argumentos reais passados na tupla atende aos limites mínimo e máximo especificados,
+// lançando um erro amigável de Tipagem (TipagemErro) se a restrição for violada.
 func VerificaNumeroArgumentos(nome string, ehMetodo bool, args Objeto, min, max int) error {
 	numArgs := len(args.(Tupla))
 
@@ -25,9 +30,13 @@ func VerificaNumeroArgumentos(nome string, ehMetodo bool, args Objeto, min, max 
 	return nil
 }
 
-// Resolve por exemplo:
+// ResolveArquivoPtst localiza e calcula o caminho absoluto de arquivos físicos de scripts ou módulos no disco rígido.
 //
-//	`ResolveArquivoPtst("./atm.ptst", []string{"~/portuscript/exemplo"}, "")` -> ~/portuscript/exemplo/portuscript
+// Algoritmo de Resolução de Caminhos:
+//  - Varre sequencialmente as pastas bases de busca (incluindo o diretório de execução corrente 'curDir');
+//  - Se a pasta mapeada contiver um arquivo de entrada mestre 'inicio.ptst' dentro dela, resolve importando-o;
+//  - Se o caminho referenciado omitir a extensão física, tenta anexar e buscar arquivos compilados '.so'
+//    e, em caso de insucesso, busca arquivos com a extensão '.ptst' (extensão antiga) ou '.pt' de forma transparente.
 func ResolveArquivoPtst(caminhoArqOuMod string, bases []string, curDir string) (string, error) {
 	caminhoArqOuMod = strings.TrimSuffix(caminhoArqOuMod, "/")
 
@@ -66,16 +75,11 @@ func ResolveArquivoPtst(caminhoArqOuMod string, bases []string, curDir string) (
 
 		if err != nil {
 			if os.IsNotExist(err) {
-				// Talvez dê sorte no próximo ciclo do loop
 				continue
 			}
 
 			return "", NewErroF(ErroDeSistema, "Erro ao acessar '%s': %s", caminho, err)
 		}
-
-		// if !strings.HasSuffix(caminho, ".ptst") {
-		// 	LancarErro(Errorf("o arquivo '%s' pode não ser um arquivo Portuscript válido. Você errou a extensão '.ptst'?", caminho))
-		// }
 
 		return caminho, nil
 	}
@@ -84,10 +88,11 @@ func ResolveArquivoPtst(caminhoArqOuMod string, bases []string, curDir string) (
 		return "", NewErroF(ArquivoNaoEncontradoErro, "Não foi possível encontrar o arquivo '%s'", caminhoArqOuMod)
 	}
 
-	// FIXME: talvez isso não seja algo legal de fazer
 	return "", nil
 }
 
+// TalvezLanceErroDivisaoPorZero intercepta tentativas de realizar divisões reais, inteiras ou restos por zero.
+// Centraliza a prevenção de crash matemático lançando a exceção controlada DivisaoPorZeroErro.
 func TalvezLanceErroDivisaoPorZero(obj Objeto) error {
 	switch t := obj.(type) {
 	case Inteiro:
@@ -106,8 +111,10 @@ func TalvezLanceErroDivisaoPorZero(obj Objeto) error {
 	}
 }
 
+// FuncaoComErro é a assinatura genérica para closures de coerção/casting em Go.
 type FuncaoComErro[T any] func(T) (Objeto, error)
 
+// RetornaOuPanic executa o método com tratamento de pânico integrado em Go.
 func RetornaOuPanic[T any](f FuncaoComErro[T], arg T) Objeto {
 	result, err := f(arg)
 	if err != nil {

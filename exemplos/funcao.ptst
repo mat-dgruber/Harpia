@@ -1,3 +1,9 @@
+# ============================================================================
+# EXEMPLO: CALCULADORA FUNCIONAL
+# ============================================================================
+# Este exemplo demonstra a declaração de múltiplas funções que agem de forma
+# parametrizada e retornam resultados matemáticos para os chamadores.
+
 func soma(a, b) {
     retorne a + b;
 }
@@ -14,6 +20,7 @@ func multiplica(a, b) {
     retorne a * b;
 }
 
+# Invocações e exibições
 imprima("1 + 2 =", soma(1, 2))
 imprima("1 - 2 =", subtrai(1, 2))
 imprima("1 / 2 =", divide(1, 2))

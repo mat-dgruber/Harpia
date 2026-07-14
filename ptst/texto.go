@@ -8,8 +8,11 @@ import (
 	"unicode/utf8"
 )
 
+// Texto representa o tipo de dado textual (string) nativo do Portuscript.
+// É um apelido (alias) para o tipo básico 'string' (codificação UTF-8 por padrão) do Go.
 type Texto string
 
+// TipoTexto especifica as assinaturas e os metadados de classe do tipo Texto na VM.
 var TipoTexto = TipoObjeto.NewTipo(
 	"Texto",
 	`Texto(obj) -> Texto
@@ -18,6 +21,13 @@ Chama obj.__texto__() ou obj.__repr__(), se nenhum dos dois for encontrado, um e
 	`,
 )
 
+// NewTexto tenta forçar a coerção (casting) de qualquer objeto ou interface Go em um Texto (string) do Portuscript.
+//
+// Regras de Coerção:
+//   - nil ➔ Retorna Texto("").
+//   - string ➔ Realiza Unquote seguro através de 'strconv.Unquote' para resolver sequências de escape literais.
+//   - Objetos Customizados ➔ Tenta buscar e chamar o atributo e método dinâmico '__texto__' de forma polimórfica.
+//   - Caso contrário, lança erro de tipagem.
 func NewTexto(arg any) (Objeto, error) {
 	switch obj := arg.(type) {
 	case nil:
@@ -45,27 +55,33 @@ func NewTexto(arg any) (Objeto, error) {
 }
 
 func init() {
+	// Nova define o construtor do Texto na VM para chamadas explícitas de scripts.
 	TipoTexto.Nova = func(args Tupla) (Objeto, error) {
 		return NewTexto(args[0])
 	}
 }
 
+// Tipo retorna a representação de classe (Tipo de Texto) da struct.
 func (t Texto) Tipo() *Tipo {
 	return TipoTexto
 }
 
+// M__texto__ satisfaz a interface de coerção Texto, retornando a si mesmo.
 func (t Texto) M__texto__() (Objeto, error) {
 	return t, nil
 }
 
+// M__bytes__ converte a string local em uma representação do tipo de dados Bytes (raw byte array).
 func (t Texto) M__bytes__() (Objeto, error) {
 	return NewBytes(string(t))
 }
 
+// M__booleano__ avalia a verdade lógica. Retorna Falso se a string for vazia (""), e Verdadeiro do contrário.
 func (t Texto) M__booleano__() (Objeto, error) {
 	return NewBooleano(len(t) != 0)
 }
 
+// M__igual__ compara a igualdade lógica de duas strings.
 func (t Texto) M__igual__(outro Objeto) (Objeto, error) {
 	if !MesmoTipo(t, outro) {
 		return Falso, nil
@@ -74,6 +90,7 @@ func (t Texto) M__igual__(outro Objeto) (Objeto, error) {
 	return NewBooleano(t == outro.(Texto))
 }
 
+// M__adiciona__ executa a concatenação de duas strings. Lança erro de tipagem caso tente somar tipos distintos.
 func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 	if !MesmoTipo(t, outro) {
 		return nil, NewErroF(TipagemErro, "Não é possível concatenar o tipo '%s' com '%s'", t.Tipo().Nome, outro.Tipo().Nome)
@@ -88,12 +105,13 @@ func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 	return Texto(fmt.Sprintf("%s%s", t, outroTexto.(Texto))), nil
 }
 
+// M__multiplica__ repete a string atual N vezes, onde N é um número Inteiro positivo (ex: "A" * 3 ➔ "AAA").
 func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	switch obj := outro.(type) {
 	case Inteiro:
 		resultado := Texto(t)
 
-		for i := 0; i < int(obj); i++ {
+		for i := 0; i < int(obj)-1; i++ {
 			resultado += t
 		}
 
@@ -103,18 +121,18 @@ func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	}
 }
 
+// M__tamanho__ retorna o comprimento real de caracteres Unicode (runas) e não a quantidade de bytes raw de strings.
+// Garante o tratamento correto de strings multibyte em loops.
 func (t Texto) M__tamanho__() (Objeto, error) {
 	return Inteiro(utf8.RuneCountInString(string(t))), nil
 }
 
-// func (t Texto) M__subtrai__(outro Objeto) (Objeto, error) {}
-
-// func (t Texto) M__divide__(outro Objeto) (Objeto, error) {}
-
+// String devolve a representação de string nativa do Go.
 func (t Texto) String() string {
 	return string(t)
 }
 
+// M__contem__ verifica se uma substring existe contida na string atual utilizando strings.Contains do Go.
 func (t Texto) M__contem__(obj Objeto) (Objeto, error) {
 	if other, err := NewTexto(obj); err != nil {
 		return nil, err
@@ -127,6 +145,13 @@ func (t Texto) M__contem__(obj Objeto) (Objeto, error) {
 	return Falso, nil
 }
 
+// M__mod__ implementa a interpolação de strings no Portuscript usando o operador modulo % (semelhante ao Python).
+//
+// Suporta formatações:
+//   - %i: Formata valores de Inteiros.
+//   - %d: Formata valores Decimais.
+//   - %b: Formata valores Booleanos.
+//   - %s (default): Formata qualquer objeto chamando sua representação textual.
 func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 	copia := string(t)
 	var args Tupla
@@ -179,23 +204,19 @@ func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 	return
 }
 
+// Interfaces Go satisfeitas pela struct Texto.
 var _ I__texto__ = (*Texto)(nil)
 var _ I__bytes__ = (*Texto)(nil)
 var _ I__booleano__ = (*Texto)(nil)
 var _ I__igual__ = (*Texto)(nil)
-
-// var _ I__inteiro__ = (*Texto)(nil)
-// var _ I__decimal__ = (*Texto)(nil)
 var _ I__adiciona__ = (*Texto)(nil)
 var _ I__multiplica__ = (*Texto)(nil)
-
-// var _ I__subtrai__ = (*Texto)(nil)
-// var _ I__divide__ = (*Texto)(nil)
 var _ I__tamanho__ = (*Texto)(nil)
-
 var _ I__contem__ = (*Texto)(nil)
 
 func init() {
+	// Injeção de métodos de instância de Texto no mapa da classe.
+
 	TipoTexto.Mapa["junta"] = NewMetodoOuPanic("junta", func(inst Objeto, iter Objeto) (Objeto, error) {
 		saida := ""
 

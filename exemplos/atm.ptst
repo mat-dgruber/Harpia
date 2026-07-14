@@ -1,3 +1,14 @@
+# ============================================================================
+# EXEMPLO: CAIXA ELETRÔNICO INTERATIVO (ATM)
+# ============================================================================
+# Este exemplo consolida múltiplos recursos avançados do Portuscript:
+#   - Variáveis mutáveis e constantes de menu;
+#   - Loop infinito 'enquanto(Verdadeiro)';
+#   - Interações amigáveis via 'leia()' e 'imprima()';
+#   - Conversão de tipos de Texto para Inteiro via casting 'int()';
+#   - Condicionais se/senao se/senao aninhados;
+#   - Comando de interrupção imediata de loops 'pare'.
+
 imprima("Bem vindos ao seu ATM de sempre")
 imprima()
 
@@ -13,11 +24,12 @@ enquanto(Verdadeiro) {
     imprima()
 
     const entrada = leia("O que queres fazer agora? Indique a opção: ");
-    # imprima("Opção selecionada:", entrada)
     imprima()
 
+    # Opção de encerramento do console
     se (entrada == "s") {
         imprima("Saindo do sistema...")
+        # Interrompe o loop infinito 'enquanto' imediatamente
         pare
     } senao {
         se (entrada == "D") {
@@ -28,7 +40,7 @@ enquanto(Verdadeiro) {
             saldo = saldo - valor;
         } senao se (entrada == "V") {
             imprima("Seu saldo atualmente é de:", saldo)
-        }  senao {
+        } senao {
             const mensagem = leia("Qual sua mensagem? Digite aqui: ");
             imprima("Sua mensagem:", mensagem)
         }

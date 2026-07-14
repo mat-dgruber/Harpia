@@ -1,11 +1,22 @@
+# ============================================================================
+# EXEMPLO: IMPORTAÇÃO E MODULARIDADE NATIVA
+# ============================================================================
+# Este exemplo demonstra o carregamento qualificado de recursos nativos
+# da biblioteca padrão (stdlib) utilizando a sintaxe 'de ... importe ...'.
+
+# Importação parcial qualificada de constantes e funções do módulo 'matematica'
 de "matematica" importe PI, raiz;
+
+# Importação de métodos e instâncias de colorização de console de 'colorize'
 de "colorize" importe imprimac, FUNDO, TEXTO;
 
+# Função auxiliar para colorir textos
 func darCor(arg) {
+    # Altera a cor de fundo (FUNDO) para branco e primeiro plano (TEXTO) para preto
     retorne FUNDO.branco(TEXTO.preto(arg));
 }
 
+# Exibição dos resultados coloridos
 imprima("O valor de PI é:", darCor(PI))
 imprima("A raiz quadrada de 2 é:", darCor(raiz(2, 2)))
 imprima("A raiz cúbica de 2 é:", darCor(raiz(2, 3)))
-

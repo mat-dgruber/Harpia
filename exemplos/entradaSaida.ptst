@@ -1,6 +1,15 @@
-# a função leia sempre retorna um tipo Texto
-var ano = leia("Em ano estamos? ");
+# ============================================================================
+# EXEMPLO: ENTRADA E SAÍDA DE DADOS (INTERATIVO)
+# ============================================================================
+# Este exemplo demonstra o uso da função global de entrada 'leia'.
+#
+# Regra de Negócio:
+# A função 'leia()' pausa a VM, aguarda a digitação do usuário e SEMPRE retorna
+# um objeto do tipo Texto (string). Qualquer validação numérica exige casting posterior.
 
+var ano = leia("Em que ano estamos? ");
+
+# Comparação direta de strings
 se ("2023" == ano) {
     imprima("Wow, ainda estamos no ano de criação")
 }

@@ -1,31 +1,46 @@
+# ============================================================================
+# EXEMPLO: CLIENTE DE REDE TCP (SOQUETES)
+# ============================================================================
+# Este script demonstra como abrir uma conexão de rede cliente TCP,
+# enviar dados e receber de volta a resposta do servidor de forma assíncrona.
+
 de "soquete" importe Soquete;
 de "soquete" importe AF_INET, SOCK_STREAM;
 de "colorize" importe imprimac, TEXTO;
 
+# 1. Aloca e instancia um novo socket TCP/IP IPv4
 const soq = nova Soquete(AF_INET, SOCK_STREAM);
+
+# 2. Conecta ao host e porta correspondentes
 soq.conecta("localhost", 3000)
-# soq.conectar("www.google.com", 80)
 
-imprima("conectou")
+imprima("Conectou com sucesso!")
 
+# 3. Coleta dados textuais do usuário do console
 const entrada = leia("O que você pretende enviar? Digite: ");
-# const entrada = "Opa";
+
+# 4. Envia os bytes encapsulados ao servidor remoto
 soq.envia(nova Bytes(entrada))
-# soq.envia(nova Bytes("GET / HTTP/1.1\r\nHost: www.google.com\r\nConnection: close\r\n\r\n"))
 
 var dados = nova Bytes("");
 
+# 5. Loop iterativo de leitura de dados entrantes do servidor
 enquanto(Verdadeiro) {
+    # Lê blocos (buffer) de até 1024 bytes
     const temporario = soq.recebe(1024);
 
+    # Se a conexão for encerrada ou não houver mais dados, interrompe o loop
     se(nao temporario) {
-        imprimac(TEXTO.vermelho("não recebeu mais nada"))
+        imprimac(TEXTO.vermelho("não recebeu mais nada de dados do servidor remoto"))
         pare;
     }
 
+    # Acumula os bytes recebidos
     dados += temporario;
 }
 
+# Exibe a resposta final do servidor
 imprima("O servidor respondeu:", dados)
 
+# Encerra o soquete de forma segura
 soq.fecha()

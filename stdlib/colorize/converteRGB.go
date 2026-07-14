@@ -2,6 +2,11 @@ package colorize
 
 import "github.com/natanfeitosa/portuscript/ptst"
 
+// met_color_converteRGB implementa a lógica nativa para a função 'converteRGB()'.
+//
+// Esta função recebe três inteiros representando as cores Vermelho, Verde e Azul (RGB)
+// e opcionalmente um valor booleano para 'background'. Ela valida e converte esses
+// argumentos em uma sequência de escape ANSI de cores compatível com terminais.
 func met_color_converteRGB(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	if err := ptst.VerificaNumeroArgumentos("converteRGB", false, args, 3, 4); err != nil {
 		return nil, err
@@ -17,6 +22,7 @@ func met_color_converteRGB(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, erro
 	return ptst.Texto(RgbParaAnsi(vermelho.(ptst.Inteiro), verde.(ptst.Inteiro), azul.(ptst.Inteiro), background)), nil
 }
 
+// _color_converteRGB cria e define a assinatura do método 'converteRGB' exposto no módulo colorize.
 var _color_converteRGB = ptst.NewMetodoOuPanic(
 	"converteRGB",
 	met_color_converteRGB,

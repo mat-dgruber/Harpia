@@ -2,21 +2,29 @@ package ptst
 
 import "bytes"
 
+// Mapa representa a coleção do tipo dicionário ou mapa chave-valor associativo do Portuscript (ex: { "a": 1 }).
+//
+// É um apelido (alias) para o tipo nativo hashmap `map[string]Objeto` do Go.
+// No Portuscript, as chaves de mapas são restritas estritamente ao tipo Texto (string).
 type Mapa map[string]Objeto
 
+// TipoMapa especifica as assinaturas e metadados de classe do tipo Mapa na VM.
 var TipoMapa = NewTipo(
 	"Mapa",
 	"Objeto chave/valor",
 )
 
+// NewMapaVazio aloca e retorna uma nova instância de Mapa vazia.
 func NewMapaVazio() Mapa {
 	return make(Mapa)
 }
 
+// Tipo retorna a representação de classe (Tipo de Mapa).
 func (m Mapa) Tipo() *Tipo {
 	return TipoMapa
 }
 
+// M__texto__ converte os pares de chave-valor em sua representação string agregada, envolvida por chaves {}.
 func (m Mapa) M__texto__() (Objeto, error) {
 	var out bytes.Buffer
 	out.WriteString("{ ")
@@ -48,6 +56,11 @@ func (m Mapa) M__texto__() (Objeto, error) {
 	return NewTexto(out.String())
 }
 
+// M__iter__ satisfaz o protocolo de objetos iteráveis.
+//
+// Diferencial de Iteração:
+// A iteração sobre mapas do Portuscript varre e devolve consecutivamente uma Tupla
+// contendo o par [Chave, Valor] de cada elemento, permitindo desestruturação fluida.
 func (m Mapa) M__iter__() (Objeto, error) {
 	entradas := make(Tupla, 0, len(m))
 
@@ -58,10 +71,12 @@ func (m Mapa) M__iter__() (Objeto, error) {
 	return NewIterador(entradas)
 }
 
+// M__tamanho__ retorna a quantidade total de chaves registradas no dicionário.
 func (m Mapa) M__tamanho__() (Objeto, error) {
 	return NewInteiro(len(m))
 }
 
+// M__obtem_item__ lê e resolve o valor correspondente à chave fornecida. Lança ChaveErro se a chave não existir.
 func (m Mapa) M__obtem_item__(obj Objeto) (Objeto, error) {
 	chave, ok := obj.(Texto)
 
@@ -76,6 +91,7 @@ func (m Mapa) M__obtem_item__(obj Objeto) (Objeto, error) {
 	return nil, NewErroF(ChaveErro, "O Mapa não tem um elemento com a chave '%s'", chave)
 }
 
+// M__define_item__ registra ou sobrescreve uma associação chave-valor mutável no dicionário local.
 func (m Mapa) M__define_item__(obj, valor Objeto) (Objeto, error) {
 	chave, ok := obj.(Texto)
 
@@ -87,12 +103,14 @@ func (m Mapa) M__define_item__(obj, valor Objeto) (Objeto, error) {
 	return nil, nil
 }
 
+// Garantias de assinaturas estruturais em Go.
 var _ I__iter__ = (*Mapa)(nil)
 var _ I__texto__ = (*Mapa)(nil)
 var _ I__tamanho__ = (*Mapa)(nil)
 var _ I__obtem_item__ = (*Mapa)(nil)
 var _ I__define_item__ = (*Mapa)(nil)
 
+// Chaves retorna uma tupla imutável contendo todas as chaves (Texto) registradas no mapa.
 func (m Mapa) Chaves() (Tupla, error) {
 	if len(m) == 0 {
 		return Tupla(nil), nil
@@ -107,6 +125,7 @@ func (m Mapa) Chaves() (Tupla, error) {
 	return chaves, nil
 }
 
+// Valores retorna uma tupla contendo todos os valores dos objetos cadastrados no mapa.
 func (m Mapa) Valores() (Tupla, error) {
 	if len(m) == 0 {
 		return Tupla(nil), nil
@@ -121,6 +140,8 @@ func (m Mapa) Valores() (Tupla, error) {
 	return valores, nil
 }
 
+// Atualizar mescla os dados de outro mapa na instância corrente (operação merge mutável).
+// Se ignoreExistentes for Verdadeiro, chaves preexistentes repetidas não sofrerão sobreposição.
 func (m Mapa) Atualizar(outro Mapa, ignoreExistentes Booleano) (Mapa, error) {
 	for c, v := range outro {
 		if ignoreExistentes {
@@ -136,6 +157,8 @@ func (m Mapa) Atualizar(outro Mapa, ignoreExistentes Booleano) (Mapa, error) {
 }
 
 func init() {
+	// Injeção de métodos estáticos do tipo Mapa no interpretador.
+
 	TipoMapa.Mapa["chaves"] = NewMetodoOuPanic("chaves", func(inst Objeto) (Objeto, error) {
 		return inst.(Mapa).Chaves()
 	}, `Retorna uma tupla contendo todos as chaves do mapa`)

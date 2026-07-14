@@ -1,13 +1,21 @@
+# ============================================================================
+# EXEMPLO: ESTRUTURAS CONDICIONAIS
+# ============================================================================
+# Demonstração de controle de fluxo de decisão condicional utilizando 'se/senao'.
+
+# 1. Condicional Simples
 se (Verdadeiro) {
     imprima("Verdadeiro é definitivamente verdadeiro")
 }
 
+# 2. Condicional com Ramificação Única 'senao'
 se (Falso) {
     imprima("Pera, Falso é verdadeiro?")
 } senao {
     imprima("Falso é definitivamente falso")
 }
 
+# 3. Condicional com Múltiplas Ramificações 'senao se'
 se (Falso) {
     imprima("Pera, Falso é verdadeiro?")
 } senao se (Falso == Verdadeiro) {

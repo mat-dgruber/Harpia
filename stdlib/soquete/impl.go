@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// ultimoElemento é um utilitário genérico que retorna de forma segura a referência ao último item de um slice.
 func ultimoElemento[T any](slice []T) T {
 	if len(slice) == 0 {
 		var none T
@@ -18,14 +19,25 @@ func ultimoElemento[T any](slice []T) T {
 	return slice[len(slice)-1]
 }
 
+// Soquete representa o objeto encapsulador de um descritor de arquivo de socket de rede na VM do Portuscript.
 type Soquete struct {
+	// descritorDoSoquete armazena o manipulador de baixo nível (File Descriptor) gerenciado pelo kernel do SO.
 	descritorDoSoquete       int
+
+	// Metadados sobre a família de IPs, o tipo de transporte e o protocolo de controle da conexão.
 	familia, tipo, protocolo ptst.Inteiro
+
+	// fechado é uma flag que impede tentativas duplicadas de fechar descritores de sockets já encerrados.
 	fechado                  ptst.Booleano
+
+	// pollFd guarda as especificações de monitoramento de eventos de E/S assíncronas do socket.
 	pollFd                   []unix.PollFd
+
+	// p é um ponteiro de soquete pai (usado para encadeamento e rastreio de sockets filhos resultantes de aceita()).
 	p                        *Soquete
 }
 
+// TipoSoquete define as propriedades, o manual de inicialização e as assinaturas de classe para a classe Soquete.
 var TipoSoquete = ptst.TipoObjeto.NewTipo(
 	"Soquete",
 	`Soquete(familia, tipo) -> Soquete
@@ -34,10 +46,14 @@ Cria um novo soquete usando a família de endereços, o tipo de soquete e o núm
 
 var _ ptst.Objeto = (*Soquete)(nil)
 
+// Tipo retorna a assinatura de classe da estrutura Soquete para a VM.
 func (s *Soquete) Tipo() *ptst.Tipo {
 	return TipoSoquete
 }
 
+// NewSoquete aloca uma chamada de sistema (unix.Socket) e retorna a instância de objeto Soquete correspondente.
+//
+// Retorna um erro detalhado se a família de IP não for suportada ou se a chamada de sistema do kernel falhar.
 func NewSoquete(familia, tipo, protocolo ptst.Inteiro) (ptst.Objeto, error) {
 	fd, err := unix.Socket(int(familia), int(tipo), int(protocolo))
 	if err != nil {
@@ -49,11 +65,14 @@ func NewSoquete(familia, tipo, protocolo ptst.Inteiro) (ptst.Objeto, error) {
 	}
 
 	s := &Soquete{descritorDoSoquete: fd, familia: familia, tipo: tipo, protocolo: protocolo, fechado: ptst.Falso}
-	s.pollFd = []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}} // Inicializa o pollFd
+	s.pollFd = []unix.PollFd{{Fd: int32(fd), Events: unix.POLLIN}} // Inicializa o pollFd para eventos de leitura (leitura pendente).
 
 	return s, nil
 }
 
+// DefinirNaoBloqueante altera as propriedades de espera de E/S do socket.
+//
+// Se definido como verdadeiro, as operações de leitura e escrita retornam imediatamente em vez de bloquear o processo.
 func (s *Soquete) DefinirNaoBloqueante(naobloqueante ptst.Booleano) (ptst.Objeto, error) {
 	if err := unix.SetNonblock(s.descritorDoSoquete, bool(naobloqueante)); err != nil {
 		panic(err)
@@ -62,6 +81,7 @@ func (s *Soquete) DefinirNaoBloqueante(naobloqueante ptst.Booleano) (ptst.Objeto
 	return ptst.Nulo, nil
 }
 
+// DefineOpcoes configura opções do nível de soquete (via unix.SetsockoptInt, ex: reuso de portas com SO_REUSEADDR).
 func (s *Soquete) DefineOpcoes(nivel, opcao, valor ptst.Inteiro) (ptst.Objeto, error) {
 	if err := unix.SetsockoptInt(s.descritorDoSoquete, int(nivel), int(opcao), int(valor)); err != nil {
 		panic(fmt.Sprintf("Erro ao definir opções do socket: %s", err))
@@ -70,6 +90,7 @@ func (s *Soquete) DefineOpcoes(nivel, opcao, valor ptst.Inteiro) (ptst.Objeto, e
 	return ptst.Nulo, nil
 }
 
+// Fecha encerra o soquete e libera o File Descriptor do sistema de forma segura.
 func (s *Soquete) Fecha() (ptst.Objeto, error) {
 	if !s.fechado {
 		s.fechado = ptst.Verdadeiro
@@ -82,6 +103,7 @@ func (s *Soquete) Fecha() (ptst.Objeto, error) {
 	return ptst.Nulo, nil
 }
 
+// AssociaSoquete executa o bind (ligação) do soquete a uma interface de IP específica e porta no computador local.
 func (s *Soquete) AssociaSoquete(ip ptst.Texto, porta ptst.Inteiro) (ptst.Objeto, error) {
 	addr := &unix.SockaddrInet4{Port: int(porta)}
 	copy(addr.Addr[:], net.ParseIP(string(ip)).To16())
@@ -93,6 +115,7 @@ func (s *Soquete) AssociaSoquete(ip ptst.Texto, porta ptst.Inteiro) (ptst.Objeto
 	return ptst.Nulo, nil
 }
 
+// OuveSoquete ativa a escuta (listen) do soquete por conexões entrantes com uma fila de backlog definida.
 func (s *Soquete) OuveSoquete(backlog ptst.Inteiro) (ptst.Objeto, error) {
 	if err := unix.Listen(s.descritorDoSoquete, int(backlog)); err != nil {
 		return nil, ptst.NewErroF(ptst.ErroDeSistema, "Erro ao ouvir soquete: %s", err)
@@ -101,6 +124,9 @@ func (s *Soquete) OuveSoquete(backlog ptst.Inteiro) (ptst.Objeto, error) {
 	return ptst.Nulo, nil
 }
 
+// AceitaConexao aguarda (usando unix.Poll para evitar bloqueio estéril) e aceita uma nova conexão entrante no socket de escuta.
+//
+// Retorna um novo objeto de classe Soquete dedicado à troca de dados com o cliente conectado.
 func (s *Soquete) AceitaConexao() (*Soquete, error) {
 	for {
 		_, err := unix.Poll(s.pollFd, 1000)
@@ -131,20 +157,14 @@ func (s *Soquete) AceitaConexao() (*Soquete, error) {
 	}
 }
 
+// RecebeDados lê bytes de dados do socket ativo em um buffer do tamanho máximo especificado.
 func (s *Soquete) RecebeDados(tamanhoBuffer ptst.Inteiro) (*ptst.Bytes, error) {
 	buffer := make([]byte, int(tamanhoBuffer))
 
-	// loop := 0
 	for {
 		n, err := unix.Poll(s.pollFd, 1)
 		if err != nil {
 			if err == unix.EINTR {
-				// if loop > 0 {
-				// 	break
-				// }
-				// loop += 1
-				// // Se o poll for interrompido, continue o loop
-				// continue
 				break
 			}
 			return nil, ptst.NewErroF(ptst.ErroDeSistema, "Erro no poll: %s", err)
@@ -164,10 +184,10 @@ func (s *Soquete) RecebeDados(tamanhoBuffer ptst.Inteiro) (*ptst.Bytes, error) {
 		}
 	}
 
-	// Se não há dados prontos, retornar vazio
 	return &ptst.Bytes{}, nil
 }
 
+// EnviaDados escreve um array de bytes no socket de conexão de rede de forma a enviá-lo ao destinatário.
 func (s *Soquete) EnviaDados(dados *ptst.Bytes) (ptst.Objeto, error) {
 	_, err := unix.Write(s.descritorDoSoquete, dados.Itens)
 	if err != nil {
@@ -177,6 +197,7 @@ func (s *Soquete) EnviaDados(dados *ptst.Bytes) (ptst.Objeto, error) {
 	return ptst.Nulo, nil
 }
 
+// Conecta executa a conexão TCP a um host e porta remota fornecidos.
 func (s *Soquete) Conecta(endereco ptst.Texto, porta ptst.Inteiro) (ptst.Objeto, error) {
 	addr, err := s.resolveEndereco(string(endereco), int(porta))
 	if err != nil {
@@ -190,6 +211,7 @@ func (s *Soquete) Conecta(endereco ptst.Texto, porta ptst.Inteiro) (ptst.Objeto,
 	return ptst.Nulo, nil
 }
 
+// resolveEndereco traduz de forma inteligente endereços de hosts (ex: "google.com") para endereços IP.
 func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, error) {
 	ips, err := net.LookupIP(string(endereco))
 	if err != nil {
@@ -221,6 +243,7 @@ func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, er
 }
 
 func init() {
+	// Nova é a função construtora para instanciar Sockets a partir de scripts Portuscript.
 	TipoSoquete.Nova = func(args ptst.Tupla) (ptst.Objeto, error) {
 		if argsLen := len(args); argsLen != 3 {
 			if argsLen < 2 {
@@ -240,6 +263,8 @@ func init() {
 
 		return NewSoquete(familia, tipo, protocolo)
 	}
+
+	// Registro de todos os métodos de instância do Soquete no mapa de tipos da classe.
 
 	TipoSoquete.Mapa["associa"] = ptst.NewMetodoOuPanic("associa", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 		if err := ptst.VerificaNumeroArgumentos("associa", true, args, 2, 2); err != nil {

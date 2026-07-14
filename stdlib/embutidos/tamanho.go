@@ -2,6 +2,13 @@ package embutidos
 
 import "github.com/natanfeitosa/portuscript/ptst"
 
+// emb_tamanho_fn implementa a lógica nativa para a função global 'tamanho()'.
+//
+// Esta função recebe um único objeto e retorna a quantidade de elementos que ele abriga.
+//
+// Ela analisa se o argumento implementa a interface de protocolo '__tamanho__' (ptst.I__tamanho__).
+// Se implementada (como em Textos, Listas, Tuplas e Dicionários), chama o respectivo método nativo
+// 'M__tamanho__()' e retorna este valor inteiro. Caso contrário, lança um erro estruturado de Tipagem (TipagemErro).
 func emb_tamanho_fn(mod ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	if err := ptst.VerificaNumeroArgumentos("tamanho", false, args, 1, 1); err != nil {
 		return nil, err
@@ -14,6 +21,7 @@ func emb_tamanho_fn(mod ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return nil, ptst.NewErroF(ptst.TipagemErro, "Objeto do tipo '%s' não implementa a interface '__tamanho__'.", args[0].Tipo().Nome)
 }
 
+// _emb_tamanho cria e define a assinatura do método 'tamanho' exposto globalmente.
 var _emb_tamanho = ptst.NewMetodoOuPanic(
 	"tamanho",
 	emb_tamanho_fn,

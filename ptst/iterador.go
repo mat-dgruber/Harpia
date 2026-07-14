@@ -1,7 +1,7 @@
 package ptst
 
 type Iterador struct {
-	Posicao int
+	Posicao   int
 	Conteiner Objeto
 }
 
@@ -30,7 +30,7 @@ func (it *Iterador) M__proximo__() (Objeto, error) {
 		return item, nil
 	}
 
-// FIXME: implementar outros casos
+	// FIXME: implementar outros casos
 	return nil, nil
 }
 
