@@ -75,7 +75,7 @@ func TestLexer(t *testing.T) {
 		{Tipo: lexer.TokenPontoEVirgula, Valor: ";"},
 		{Tipo: lexer.TokenNovaLinha, Valor: "\n"},
 
-		{Tipo: lexer.TokenIdentificador, Valor: "funcao"},
+		{Tipo: lexer.TokenFunc, Valor: "funcao"},
 		{Tipo: lexer.TokenIdentificador, Valor: "soma"},
 		{Tipo: lexer.TokenAbreParenteses, Valor: "("},
 		{Tipo: lexer.TokenIdentificador, Valor: "a"},

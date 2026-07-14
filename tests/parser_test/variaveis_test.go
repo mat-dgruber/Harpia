@@ -28,14 +28,14 @@ func TestSimplesAtribuicaoVariavel(t *testing.T) {
 
 func TestSimplesAtribuicaoConstante(t *testing.T) {
 	esperada := &parser.Programa{}
-	decaracao1 := &parser.DeclVar{Constante: true, Nome: "const1", Tipo: "inteiro"}
+	decaracao1 := &parser.DeclVar{Constante: true, Nome: "const1", Tipo: "inteiro", Inicializador: &parser.InteiroLiteral{Valor: "42"}}
 	esperada.Declaracoes = append(esperada.Declaracoes, decaracao1)
 
 	decaracao2 := &parser.DeclVar{Constante: true, Nome: "const2", Inicializador: &parser.TextoLiteral{Valor: "\"inteiro?\""}}
 	esperada.Declaracoes = append(esperada.Declaracoes, decaracao2)
 
 	code := `
-	const const1: inteiro;
+	const const1: inteiro = 42;
 	const const2 = "inteiro?";
 	`
 

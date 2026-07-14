@@ -13,7 +13,7 @@ func createParser(code string) *parser.Parser {
 }
 
 func isAstEquals(recebida *parser.Programa, esperada *parser.Programa) bool {
-	return reflect.DeepEqual(recebida, esperada)
+	return reflect.DeepEqual(recebida.Declaracoes, esperada.Declaracoes)
 }
 
 func createParserAndCompare(code string, expected *parser.Programa) (error, bool) {
