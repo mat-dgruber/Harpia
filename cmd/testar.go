@@ -48,17 +48,34 @@ func comandoTestar() *cobra.Command {
 					continue
 				}
 
-				// Extrai os blocos 'testar' do programa
+				// Filtra declarações normais e de testes para evitar execuções duplicadas
 				var testes []*parser.DeclTeste
+				var declsNormais []parser.BaseNode
+
 				if prog, ok := ast.(*parser.Programa); ok {
 					for _, decl := range prog.Declaracoes {
 						if tNode, ok := decl.(*parser.DeclTeste); ok {
 							testes = append(testes, tNode)
+						} else {
+							declsNormais = append(declsNormais, decl)
 						}
 					}
 				}
 
 				if len(testes) == 0 {
+					ctx.Terminar()
+					continue
+				}
+
+				// Inicializa o módulo mestre avaliando apenas as importações e funções normais
+				modulo, err := ctx.InicializarModulo(&ptst.ModuloImpl{
+					Info: ptst.ModuloInfo{Arquivo: arq},
+					Ast:  &parser.Bloco{Declaracoes: declsNormais},
+				})
+
+				if err != nil {
+					fmt.Printf("Erro ao inicializar definições de %s: %v\n", arq, err)
+					ctx.Terminar()
 					continue
 				}
 
@@ -66,8 +83,8 @@ func comandoTestar() *cobra.Command {
 
 				for _, tNode := range testes {
 					totalTestes++
-					// Cria um escopo isolado para o teste
-					escopo := ctx.Modulos.Embutidos.Escopo.NewEscopo()
+					// Cria um escopo isolado que herda as variáveis e funções globais do módulo
+					escopo := modulo.Escopo.NewEscopo()
 
 					interpret := &ptst.Interpretador{
 						Ast:      tNode.Corpo,
@@ -85,7 +102,7 @@ func comandoTestar() *cobra.Command {
 					if err != nil {
 						testesFalhos++
 						fmt.Printf("  ❌ [FALHOU] %s\n", tNode.Nome)
-						ptst.LancarErro(err)
+						fmt.Fprintln(os.Stderr, err) // Exibe o erro de traceback sem interromper abruptamente a suite
 					} else {
 						fmt.Printf("  ✅ [PASSOU] %s\n", tNode.Nome)
 					}
