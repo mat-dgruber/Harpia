@@ -1,21 +1,13 @@
-# Metas Futuras
+# Metas e Direcionamento do Portuscript
 
-## Versão 1.0
+Todas as metas, planejamentos detalhados de curto/médio prazo e escolhas de design arquitetural foram unificados no nosso documento oficial de Roadmap.
 
-Para a versão 1.0 do projeto, planejamos incluir as seguintes funcionalidades:
+Consulte o arquivo completo de planejamento em:
+👉 **[ROADMAP.md](file:///Users/matheus.diniz_1/Documents/GitHub/portuscript/portuscript/ROADMAP.md)**
 
-1. **VM com suporte nativo a eventos**
-   - Desenvolver uma máquina virtual capaz de lidar eficientemente com eventos e oferecer suporte nativo.
-
-2. **Import/Export com verificação de ciclos**
-   - Implementar um sistema de importação/exportação que verifica e evita ciclos indesejados.
-
-## Versão 2.0 (a considerar)
-
-Para futuras versões, estamos explorando a possibilidade de incluir:
-
-- **[Sua ideia aqui]**
-  - [Descrição da funcionalidade que você está considerando.]
-
-- **[Outra meta]**
-  - [Detalhes adicionais, se necessário.]
+## Resumo das Fases do Roadmap
+*   **Fase 1 — Núcleo Sólido:** Classes com herança simples, sistema de tipos opcional, testes nativos, constantes, erros detalhados em português com IA e operador de canal (pipes `|>`).
+*   **Fase 2 — VM de Pilha + Bytecode:** Compilador AST para bytecode `.ptc`, modelo de valor eficiente NaN-boxing e Garbage Collector por contagem de referências.
+*   **Fase 3 — Stdlib Backend Real:** Módulo HTTP completo com middlewares e injeção de dependências, banco de dados (SQLite/Postgres) com Query Builder nativo e corotinas assíncronas.
+*   **Fase 4 — Frontend SPA:** Compilação para WebAssembly (substituição total de HTML/JS), reatividade via sinais/efeitos, estilização declarativa em português, roteamento de SPA baseado em arquivos e estado global nativo (`armazem`).
+*   **Fase 5 — Tooling & Ecossistema:** CLI com scaffolding de Clean Arch/DDD, console interativo TUI (Bubbletea), LSP oficial e gerador de diagramas de arquitetura.

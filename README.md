@@ -1,78 +1,53 @@
-# PortuScript
+/
+
+# 🇧🇷 PortuScript
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Open Source Helpers](https://www.codetriage.com/natanfeitosa/portuscript/badges/users.svg)](https://www.codetriage.com/natanfeitosa/portuscript)
 [![Documentation Status](https://readthedocs.org/projects/portudoc/badge/?version=latest)](https://portudoc.readthedocs.io/pt/latest/?badge=latest)
 
-## Sobre
+**PortuScript** é uma linguagem de programação brasileira, desenvolvida por brasileiros, totalmente em português. Mais do que uma simples linguagem para treino de lógica, o PortuScript visa proporcionar uma experiência de programação acessível, envolvente e extremamente poderosa para a comunidade de língua portuguesa.
 
-**PortuScript** é uma linguagem de programação brasileira, desenvolvida por brasileiros, totalmente em português. Mais do que uma simples linguagem para treino de lógica, o PortuScript visa proporcionar uma experiência de programação acessível e envolvente para a comunidade de língua portuguesa.
+A linguagem é projetada sob uma perspectiva de **Ponte de Aprendizado** (facilitando a migração posterior para linguagens como JavaScript, Python e Go) e ao mesmo tempo como um **Ecossistema Completo** capaz de criar aplicações web profissionais (Frontend SPA), servidores robustos (Backend com injeção e banco de dados) e execução local rápida através de sua própria VM.
 
-### Características Principais
+---
 
-- **Brasileira por Natureza**: Desenvolvida com o objetivo de ser inclusiva e acessível para falantes de português.
-- **Simples e Poderosa**: Projetada para facilitar o aprendizado de programação, mantendo a capacidade de lidar com tarefas complexas.
-- **Comunidade Ativa**: Contribua e faça parte de uma comunidade que apoia o crescimento e desenvolvimento do PortuScript.
+## ✨ Características Principais
 
-## Instalação
+- **Brasileira por Natureza:** Sintaxe e palavras-chave totalmente em português.
+- **Acessível e Moderna:** Sintaxe de blocos `{}` limpa, sem parênteses em condições.
+- **Erros Didáticos e IA:** Mensagens de erro visuais com sublinhado e um explicador interativo nativo (`portuscript erro explicar`) integrado a LLM local.
+- **Tratador de Canais (`|>`):** Operador nativo pipe para processamento sequencial de dados.
+- **Reatividade Nativa:** Sinais, efeitos e estado global (`armazem`) nativos no núcleo.
+- **Frontend SPA com WASM:** Compilação direta para WebAssembly com substituição de HTML/JS, estilização declarativa em português e roteador baseado em arquivos.
+- **Estrutura de Arquitetura Assistida:** CLI que gera esqueletos de projetos separados por Clean Architecture e DDD.
+- **Tradutor de Código:** CLI nativo (`portuscript traduzir`) para exportar o código PortuScript para JavaScript, Python ou Go.
 
-### Instalar versão mais recente
+---
 
-### Com Bash
-```bash
-curl -fsSL https://raw.githubusercontent.com/natanfeitosa/portuscript/main/instalar.sh | bash
-```
+## 🗺️ Roadmap de Desenvolvimento
 
-### Instalar versão específica
+O planejamento detalhado, justificativas técnicas e estratégias de evolução de cada fase estão documentados no nosso guia oficial:
+👉 **Consulte o [ROADMAP.md](file:///Users/matheus.diniz_1/Documents/GitHub/portuscript/portuscript/ROADMAP.md)**
 
-### Com Bash
-```bash
-curl -fsSL https://raw.githubusercontent.com/natanfeitosa/portuscript/main/instalar.sh | bash -s v0.1.0
-```
+---
 
-## CLI - Utilização Básica
+## 📦 Estrutura do CLI
 
-A CLI do PortuScript oferece as seguintes funcionalidades:
+A CLI do PortuScript foi desenhada em português brasileiro com atalhos fáceis:
 
-- **Abrir o Playground**: Se nenhum argumento for passado, a CLI abrirá o Playground interativo.
-```bash
-portuscript exec
-```
+- **`portuscript`**: Abre a TUI (Interface Gráfica de Terminal) com REPL, console de depuração e monitor de variáveis em tempo real.
+- **`portuscript executar [arquivo.ptst]`**: Executa um arquivo diretamente na VM.
+- **`portuscript testar [caminho]`**: Executa a suíte de testes nativa de forma automatizada.
+- **`portuscript checar`**: Executa o validador semântico estático (linter) no código.
+- **`portuscript novo-monolito [nome]`**: Inicializa um projeto Clean Arch/DDD completo.
+- **`portuscript novo-backend [nome]`**: Inicializa um projeto contendo apenas lógica de domínio e banco de dados.
+- **`portuscript novo-frontend [nome]`**: Inicializa um projeto contendo apenas componentes de página e estilos.
+- **`portuscript servir`**: Roda o servidor local de desenvolvimento com Hot-Reload.
+- **`portuscript traduzir [arquivo.ptst] --para=[javascript/python/go]`**: Traduz automaticamente o código.
+- **`portuscript diagramar`**: Gera um diagrama de arquitetura do projeto.
 
-- **Executar Arquivo `*.ptst`**: Se o caminho de um arquivo `.ptst` for fornecido como argumento, o PortuScript executará o script contido no arquivo.
+---
 
-```bash
-portuscript exec caminho/do/arquivo.ptst
-```
+## 🚀 Instalação e Contribuição
 
-- **Executar Código Inline**: Se a flag `-c` ou `--codigo` for usada, é possível executar código inline diretamente na linha de comando.
-
-```bash
-portuscript exec -c "seu código aqui"
-```
-
-- **Atualizar:** Também é possível atualizar para a versão mais recente (não funciona se tiver instalado a build local)
-
-```bash
-portuscript atualize
-```
-
-## Exemplos de Uso
-
-Explore o diretório [exemplos](/exemplos/) para encontrar uma variedade de scripts de exemplo que demonstram a versatilidade do PortuScript.
-
-## Gramática
-
-O diretório gramatica contém informações detalhadas sobre a gramática da linguagem. Consulte para uma compreensão mais profunda da estrutura da linguagem.
-
-## Contribuindo
-
-Sinta-se à vontade para contribuir para o desenvolvimento do PortuScript.
-
-Sua contribuição é super bem vinda. Caso não tenha ideias de melhorias nem perceba um bug, você ainda pode ajudar dando uma olhadinha nas nossas [metas](/metas.md) e vendo o que você pode fazer, ou talvez tendo alguma ideia a partir daí.
-
-Para mais informações, consulte o [Guia de Contribuição](/CONTRIBUTING.md).
-
-> Este projeto está em constante evolução. Se você encontrar problemas ou tiver sugestões, por favor, abra uma [issue](https://github.com/natanfeitosa/portuscript/issues).
-
-Agradecemos pela sua contribuição!
+Consulte o arquivo [CONTRIBUTING.md](/CONTRIBUTING.md) para saber como contribuir e ajudar na construção da nossa linguagem brasileira.
