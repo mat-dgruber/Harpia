@@ -243,6 +243,30 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 	// CASOS SINTÁTICOS DO FRONTEND (JSX & ESTILO)
 	// ============================================================================
 	case *parser.NoJSX:
+		if n.Tag == "Link" || n.Tag == "link" {
+			var para string = `"#"`
+			for _, attr := range n.Atributos {
+				if attr.Nome == "para" {
+					para = t.Transpile(attr.Valor)
+				}
+			}
+			var children []string
+			for _, filho := range n.Filhos {
+				if txt, ok := filho.(*parser.TextoLiteral); ok {
+					trimmed := strings.TrimSpace(txt.Valor)
+					if trimmed == "" {
+						continue
+					}
+				}
+				children = append(children, t.Transpile(filho))
+			}
+			childrenStr := "null"
+			if len(children) > 0 {
+				childrenStr = strings.Join(children, ", ")
+			}
+			return fmt.Sprintf("h('a', { href: %s, aoClicar: (e) => { e.preventDefault(); navegar(%s); } }, %s)", para, para, childrenStr)
+		}
+
 		var attrs []string
 		for _, attr := range n.Atributos {
 			val := "true"

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/natanfeitosa/portuscript/ptst"
 	"github.com/spf13/cobra"
@@ -54,6 +55,77 @@ func comandoCompilar() *cobra.Command {
 			transpiler := &TranspilerWeb{}
 			jsOutput := transpiler.Transpile(ast)
 
+			// Detecção de diretório de rotas para roteamento SPA baseado em arquivos
+			entryDir := filepath.Dir(entrada)
+			rotasDir := ""
+			rotasPaths := []string{
+				filepath.Join(entryDir, "rotas"),
+				filepath.Join(entryDir, "web", "rotas"),
+				filepath.Join(cur, "rotas"),
+				filepath.Join(cur, "web", "rotas"),
+			}
+			for _, p := range rotasPaths {
+				if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+					rotasDir = p
+					break
+				}
+			}
+
+			type RotaInfo struct {
+				Caminho string
+				Nome    string
+			}
+			var rotas []RotaInfo
+
+			if rotasDir != "" {
+				err = filepath.Walk(rotasDir, func(path string, info os.FileInfo, err error) error {
+					if err != nil || info.IsDir() || filepath.Ext(path) != ".ptst" {
+						return nil
+					}
+					// Carrega e transpila o arquivo de rota
+					_, routeAst, err := ctx.TransformarEmAst(path, false, cur)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Erro de sintaxe na rota %s: %v\n", path, err)
+						return nil
+					}
+					routeJs := transpiler.Transpile(routeAst)
+
+					rel, _ := filepath.Rel(rotasDir, path)
+					baseName := rel[:len(rel)-len(filepath.Ext(rel))]
+
+					// Gera nome de componente sanitizado
+					componentName := ""
+					parts := strings.Split(baseName, string(filepath.Separator))
+					for _, part := range parts {
+						if len(part) > 0 {
+							componentName += strings.ToUpper(part[:1]) + part[1:]
+						}
+					}
+
+					// Determina o caminho da rota do navegador
+					routePath := "/" + filepath.ToSlash(baseName)
+					if routePath == "/index" {
+						routePath = "/"
+					} else if strings.HasSuffix(routePath, "/index") {
+						routePath = routePath[:len(routePath)-6]
+					}
+
+					// Embrulha o código transpiliado em uma função reativa
+					jsOutput += fmt.Sprintf("\nfunction Rota_%s() {\n%s\n}\n", componentName, routeJs)
+					rotas = append(rotas, RotaInfo{Caminho: routePath, Nome: componentName})
+					return nil
+				})
+			}
+
+			// Se houver rotas configuradas, gera o mapeamento e componente MeuApp automaticamente
+			if len(rotas) > 0 {
+				var routeMappings []string
+				for _, r := range rotas {
+					routeMappings = append(routeMappings, fmt.Sprintf("'%s': Rota_%s", r.Caminho, r.Nome))
+				}
+				jsOutput += fmt.Sprintf("\nexport function MeuApp() {\n  return roteador({\n    %s\n  });\n}\n", strings.Join(routeMappings, ",\n    "))
+			}
+
 			// Garante a existência da pasta de saída
 			err = os.MkdirAll(saida, 0755)
 			if err != nil {
@@ -63,7 +135,7 @@ func comandoCompilar() *cobra.Command {
 
 			// 1. Escreve o app.js
 			appPath := filepath.Join(saida, "app.js")
-			err = os.WriteFile(appPath, []byte("import { h, sinal, efeito, derivado, armazem, montar } from './runtime-web.js';\n\n"+jsOutput), 0644)
+			err = os.WriteFile(appPath, []byte("import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador } from './runtime-web.js';\n\n"+jsOutput), 0644)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "erro ao gravar app.js: %v\n", err)
 				os.Exit(1)
@@ -93,7 +165,9 @@ func comandoCompilar() *cobra.Command {
 				fallbackRuntime := `// Runtime fallback enxuto
 export function h(t, p, ...c) { return { tag: t, props: p || {}, children: c.flat(Infinity) }; }
 export function sinal(v) { let s = new Set(); return [() => v, (n) => { v = n; s.forEach(fn => fn()); }]; }
-export function montar(app, el) { el.innerHTML = app().tag; }`
+export function montar(app, el) { el.innerHTML = app().tag; }
+export function navegar(d) { console.log('navegando para', d); }
+export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 				os.WriteFile(runtimeDestPath, []byte(fallbackRuntime), 0644)
 			}
 

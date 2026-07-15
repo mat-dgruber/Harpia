@@ -287,3 +287,39 @@ export function montar(appComponente, elementoAlvo) {
     velhoVNo = novoVNo;
   });
 }
+
+// ============================================================================
+// 3. ROTEAMENTO SPA BASEADO EM SINAIS (HISTORY API)
+// ============================================================================
+
+const [urlAtiva, setUrlAtiva] = sinal(typeof window !== 'undefined' ? window.location.pathname : '/');
+
+/**
+ * Navega dinamicamente para uma nova rota do SPA sem recarregar a página.
+ * @param {string} destino - O caminho de URL de destino (ex: "/sobre")
+ */
+export function navegar(destino) {
+  if (typeof window !== 'undefined' && window.location.pathname !== destino) {
+    window.history.pushState({}, '', destino);
+    setUrlAtiva(destino);
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    setUrlAtiva(window.location.pathname);
+  });
+}
+
+/**
+ * Cria um componente funcional de Roteador baseado em Sinais.
+ * @param {Object} rotas - Mapeamento de caminhos para componentes funcionais
+ * @returns {Function} Componente do roteador
+ */
+export function roteador(rotas) {
+  return () => {
+    const path = urlAtiva();
+    const componente = rotas[path] || rotas['/404'] || (() => h('div', {}, '404 - Página Não Encontrada'));
+    return h(componente, {});
+  };
+}
