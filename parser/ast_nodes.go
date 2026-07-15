@@ -46,10 +46,17 @@ type OpUnaria struct {
 
 // DeclFuncao representa a declaração formal de funções ('func') ou métodos de classe.
 type DeclFuncao struct {
-	Nome       string                 // Nome do método/função.
-	Parametros []*DeclFuncaoParametro // Lista ordenada de parâmetros formais aceitos.
-	Corpo      *Bloco                 // Escopo de bloco correspondente às instruções da função.
-	Estatico   bool                   // Verdadeiro se for um método estático de classe (ex: 'estatico func').
+	Nome        string                 // Nome do método/função.
+	Parametros  []*DeclFuncaoParametro // Lista ordenada de parâmetros formais aceitos.
+	Corpo       *Bloco                 // Escopo de bloco correspondente às instruções da função.
+	Estatico    bool                   // Verdadeiro se for um método estático de classe (ex: 'estatico func').
+	TipoRetorno string                 // Anotação opcional de tipo de retorno.
+	Assincrono  bool                   // Verdadeiro se a função for assíncrona ('assincrono funcao')
+}
+
+// AguardeNode representa a expressão 'aguarde <expr>'
+type AguardeNode struct {
+	Expressao BaseNode
 }
 
 // DeclFuncaoParametro representa a especificação individual de um parâmetro formal de função.
@@ -206,6 +213,17 @@ type DeclTeste struct {
 	Corpo *Bloco
 }
 
+type TenteCaptureFinalmente struct {
+	TenteBlock      *Bloco
+	NomeErro        string
+	CaptureBlock    *Bloco
+	FinalmenteBlock *Bloco
+}
+
+type DeclExportar struct {
+	Expressao BaseNode
+}
+
 func (*Programa) isExpr()            {}
 func (*DeclVar) isExpr()             {}
 func (*Reatribuicao) isExpr()        {}
@@ -225,17 +243,71 @@ func (*ConstanteLiteral) isExpr()    {}
 func (*Identificador) isExpr()       {}
 func (*Anotacao) isExpr()            {}
 func (*AcessoMembro) isExpr()        {}
-func (*BlocoPara) isExpr()           {}
-func (*PareNode) isExpr()            {}
-func (*ContinueNode) isExpr()        {}
-func (*TuplaLiteral) isExpr()        {}
-func (*ListaLiteral) isExpr()        {}
-func (*ImporteDe) isExpr()           {}
-func (*Indexacao) isExpr()           {}
-func (*MapaLiteral) isExpr()         {}
-func (*NovaNode) isExpr()            {}
-func (*AsseguraNode) isExpr()        {}
-func (*DeclClasse) isExpr()          {}
-func (*OpPipe) isExpr()              {}
-func (*ArgumentoNomeado) isExpr()    {}
-func (*DeclTeste) isExpr()           {}
+
+type TemplateLiteral struct {
+	Partes []BaseNode // Pode ser TextoLiteral ou TemplateExpr
+}
+
+type TemplateExpr struct {
+	Expressao BaseNode
+}
+
+func (*BlocoPara) isExpr()              {}
+func (*PareNode) isExpr()               {}
+func (*ContinueNode) isExpr()           {}
+func (*TuplaLiteral) isExpr()           {}
+func (*ListaLiteral) isExpr()           {}
+func (*ImporteDe) isExpr()              {}
+func (*Indexacao) isExpr()              {}
+func (*MapaLiteral) isExpr()            {}
+func (*NovaNode) isExpr()               {}
+func (*AsseguraNode) isExpr()           {}
+func (*DeclClasse) isExpr()             {}
+func (*OpPipe) isExpr()                 {}
+func (*ArgumentoNomeado) isExpr()       {}
+func (*DeclTeste) isExpr()              {}
+func (*TenteCaptureFinalmente) isExpr() {}
+func (*DeclExportar) isExpr()           {}
+func (*TemplateLiteral) isExpr()        {}
+func (*TemplateExpr) isExpr()           {}
+func (*AguardeNode) isExpr()            {}
+
+// AtributoJSX representa um atributo em uma tag JSX (ex: classe="p-4" ou aoClicar={clique})
+type AtributoJSX struct {
+	Nome  string
+	Valor BaseNode // Pode ser TextoLiteral, Identificador ou qualquer expressão embrulhada
+}
+
+// NoJSX representa uma tag JSX (ex: <div classe="app">...</div> ou <botao />)
+type NoJSX struct {
+	Tag         string
+	Atributos   []*AtributoJSX
+	Filhos      []BaseNode // Pode ser NoJSX, NoSeJSX, NoParaJSX, TextoLiteral ou Expressao
+	AutoFechado bool
+}
+
+// NoSeJSX representa a diretiva condicional no JSX: <se condicao={...}>...</se>
+type NoSeJSX struct {
+	Condicao BaseNode
+	Filhos   []BaseNode
+}
+
+// NoParaJSX representa a diretiva de loop no JSX: <para item em lista={...}>...</para>
+type NoParaJSX struct {
+	Item   string
+	Lista  BaseNode
+	Filhos []BaseNode
+}
+
+// DeclEstilo representa uma declaração de estilo: estilo MeuComponente { cor: "azul"; }
+type DeclEstilo struct {
+	Nome   string
+	Regras string // Guardamos as regras internas como texto simples para compilar para CSS
+}
+
+func (*AtributoJSX) isExpr() {}
+func (*NoJSX) isExpr()       {}
+func (*NoSeJSX) isExpr()     {}
+func (*NoParaJSX) isExpr()   {}
+func (*DeclEstilo) isExpr()  {}
+

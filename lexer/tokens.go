@@ -43,6 +43,10 @@ const (
 	TokenPare     // pare (break)
 	TokenContinue // continue (continue)
 
+	TokenTente      // tente (início do bloco try)
+	TokenCapture    // capture (captura de exceção)
+	TokenFinalmente // finalmente (bloco finally)
+
 	TokenDe      // de (from)
 	TokenImporte // importe (import)
 
@@ -130,6 +134,12 @@ const (
 
 	TokenPipe   // |> (operador pipe para encadeamento de chamadas)
 	TokenTestar // testar
+
+	TokenExportar // exportar
+
+	TokenAssincrono // assincrono
+	TokenAguarde    // aguarde
+	TokenEstilo     // estilo
 )
 
 // PosicaoToken armazena as coordenadas espaciais precisas de um caractere no arquivo fonte.

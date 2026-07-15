@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/natanfeitosa/portuscript/lexer"
 )
@@ -156,14 +157,38 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 		return p.parseImporteDe()
 	case lexer.TokenFunc:
 		return p.parseFuncao()
+	case lexer.TokenAssincrono:
+		p.avancar() // Consome 'assincrono'
+		if p.token.Tipo != lexer.TokenFunc {
+			return nil, fmt.Errorf("era esperado o token 'func' ou 'funcao' após 'assincrono', mas no lugar foi encontrado '%s'", p.token.Valor)
+		}
+		fn, err := p.parseFuncao()
+		if err != nil {
+			return nil, err
+		}
+		fn.Assincrono = true
+		return fn, nil
 	case lexer.TokenClasse:
 		return p.parseClasse()
+	case lexer.TokenEstilo:
+		return p.parseEstilo()
 	case lexer.TokenTestar:
 		return p.parseTeste()
+	case lexer.TokenTente:
+		return p.parseTenteCapture()
+	case lexer.TokenExportar:
+		return p.parseExportar()
 	case lexer.TokenSe:
 		return p.parseExpressaoSe()
 	case lexer.TokenEnquanto:
 		return p.parseEnquanto()
+	case lexer.TokenAguarde:
+		p.avancar()
+		expr, err := p.parseExpressao()
+		if err != nil {
+			return nil, err
+		}
+		return &AguardeNode{Expressao: expr}, nil
 	case lexer.TokenPare:
 		p.avancar()
 		return &PareNode{}, nil
@@ -395,8 +420,12 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 	funcao := &DeclFuncao{}
 
-	funcao.Nome = p.token.Valor
-	p.avancar()
+	if p.token.Tipo == lexer.TokenIdentificador {
+		funcao.Nome = p.token.Valor
+		p.avancar()
+	} else if p.token.Tipo != lexer.TokenAbreParenteses {
+		return nil, fmt.Errorf("era esperado o nome da função ou '(', mas no lugar foi encontrado '%s'", p.token.Valor)
+	}
 
 	if err := p.consome("("); err != nil {
 		return nil, err
@@ -422,6 +451,14 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 	if err := p.consome(")"); err != nil {
 		return nil, err
+	}
+
+	if p.token.Tipo == lexer.TokenDoisPontos {
+		if err := p.consome(":"); err != nil {
+			return nil, err
+		}
+		funcao.TipoRetorno = p.token.Valor
+		p.avancar()
 	}
 
 	corpo, err := p.parseBloco()
@@ -515,6 +552,82 @@ func (p *Parser) parseTeste() (*DeclTeste, error) {
 	teste.Corpo = corpo
 
 	return teste, nil
+}
+
+func (p *Parser) parseTenteCapture() (*TenteCaptureFinalmente, error) {
+	if err := p.consome("tente"); err != nil {
+		return nil, err
+	}
+
+	tenteNode := &TenteCaptureFinalmente{}
+	tenteBlock, err := p.parseBloco()
+	if err != nil {
+		return nil, err
+	}
+	tenteNode.TenteBlock = tenteBlock
+
+	// Verifica se há capture e/ou finalmente
+	if p.token.Tipo != lexer.TokenCapture && p.token.Tipo != lexer.TokenFinalmente {
+		return nil, fmt.Errorf("esperava 'capture' ou 'finalmente' após o bloco 'tente', mas recebi '%s'", p.token.Valor)
+	}
+
+	if p.token.Tipo == lexer.TokenCapture {
+		if err := p.consome("capture"); err != nil {
+			return nil, err
+		}
+
+		if err := p.consome("("); err != nil {
+			return nil, err
+		}
+
+		if p.token.Tipo != lexer.TokenIdentificador {
+			return nil, fmt.Errorf("esperava um identificador para o erro no bloco 'capture', mas recebi '%s'", p.token.Valor)
+		}
+		tenteNode.NomeErro = p.token.Valor
+		p.avancar()
+
+		if err := p.consome(")"); err != nil {
+			return nil, err
+		}
+
+		captureBlock, err := p.parseBloco()
+		if err != nil {
+			return nil, err
+		}
+		tenteNode.CaptureBlock = captureBlock
+	}
+
+	if p.token.Tipo == lexer.TokenFinalmente {
+		if err := p.consome("finalmente"); err != nil {
+			return nil, err
+		}
+
+		finalmenteBlock, err := p.parseBloco()
+		if err != nil {
+			return nil, err
+		}
+		tenteNode.FinalmenteBlock = finalmenteBlock
+	}
+
+	return tenteNode, nil
+}
+
+func (p *Parser) parseExportar() (*DeclExportar, error) {
+	if err := p.consome("exportar"); err != nil {
+		return nil, err
+	}
+
+	tok := p.token.Tipo
+	if tok != lexer.TokenVar && tok != lexer.TokenConst && tok != lexer.TokenFunc && tok != lexer.TokenClasse {
+		return nil, fmt.Errorf("esperava declaração de 'var', 'const', 'funcao' ou 'classe' após 'exportar', mas obtive '%s'", p.token.Valor)
+	}
+
+	expr, err := p.parseDeclaracaoInterno()
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeclExportar{Expressao: expr}, nil
 }
 
 // parseBloco analisa blocos de código delimitados por chaves '{}'.
@@ -635,6 +748,15 @@ func (p *Parser) parseExpressaoInterno() (BaseNode, error) {
 		}
 
 		return &NovaNode{obj}, nil
+	}
+
+	if p.token.Tipo == lexer.TokenAguarde {
+		p.avancar() // Consome 'aguarde'
+		expr, err := p.parseExpressao()
+		if err != nil {
+			return nil, err
+		}
+		return &AguardeNode{Expressao: expr}, nil
 	}
 
 	return p.parsePipe()
@@ -953,11 +1075,58 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 func (p *Parser) parseAtomo() (BaseNode, error) {
 	token := p.token
 	switch token.Tipo {
+	case lexer.TokenMenorQue:
+		return p.parseJSX()
 	case lexer.TokenVerdadeiro, lexer.TokenFalso, lexer.TokenNulo:
 		p.avancar()
 		return &Identificador{token.Valor}, nil
 	case lexer.TokenTexto:
+		val := token.Valor
 		p.avancar()
+
+		// Se tiver chaves de interpolação { ... } dentro da string (ex: "olá {nome}")
+		if strings.Contains(val, "{") && strings.Contains(val, "}") && len(val) >= 2 {
+			strContent := val[1 : len(val)-1]
+			templateNode := &TemplateLiteral{}
+
+			i := 0
+			for i < len(strContent) {
+				idxOpen := strings.Index(strContent[i:], "{")
+				if idxOpen == -1 {
+					// Adiciona o restante como texto literal
+					rest := strContent[i:]
+					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + rest + "\""})
+					break
+				}
+				idxOpen += i
+
+				// Adiciona a parte de texto antes de '{'
+				if idxOpen > i {
+					part := strContent[i:idxOpen]
+					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
+				}
+
+				idxClose := strings.Index(strContent[idxOpen:], "}")
+				if idxClose == -1 {
+					// Sem fechamento, trata o resto como texto literal
+					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + strContent[idxOpen:] + "\""})
+					break
+				}
+				idxClose += idxOpen
+
+				exprStr := strContent[idxOpen+1 : idxClose]
+				// ponytail: parser recursivo isolado por template. Evita implementar gramática de strings complexa com lookahead no parser principal.
+				subParser := NewParserFromString(exprStr, p.arquivo)
+				exprNode, err := subParser.parseExpressao()
+				if err != nil {
+					return nil, fmt.Errorf("erro ao analisar expressão de interpolação '%s': %v", exprStr, err)
+				}
+
+				templateNode.Partes = append(templateNode.Partes, &TemplateExpr{Expressao: exprNode})
+				i = idxClose + 1
+			}
+			return templateNode, nil
+		}
 		return &TextoLiteral{token.Valor}, nil
 	case lexer.TokenDecimal:
 		p.avancar()
@@ -1020,6 +1189,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		return literal, nil
 	case lexer.TokenAbreChaves:
 		return p.parseMapa()
+	case lexer.TokenFunc:
+		return p.parseFuncao()
 	}
 
 	return nil, fmt.Errorf("o token '%v' não é reconhecido", p.token.Valor)
@@ -1088,3 +1259,362 @@ func (p *Parser) parseChaveMapa() (BaseNode, error) {
 	}
 	return p.parseAtomo()
 }
+
+// parseEstilo analisa declarações de blocos de estilização: estilo MeuComponente { ... }
+func (p *Parser) parseEstilo() (*DeclEstilo, error) {
+	if err := p.consome("estilo"); err != nil {
+		return nil, err
+	}
+	if p.token.Tipo != lexer.TokenIdentificador {
+		return nil, fmt.Errorf("esperava um identificador após 'estilo', mas recebi '%s'", p.token.Valor)
+	}
+	nome := p.token.Valor
+	p.avancar()
+
+	if err := p.consome("{"); err != nil {
+		return nil, err
+	}
+
+	// Como a gramática de CSS/estilos é livre e aninhada, e não queremos reinventar o parser de CSS em Go (YAGNI),
+	// consumimos tudo até o fechamento correspondente de chaves '}' mantendo chaves aninhadas!
+	var regras strings.Builder
+	nivelChaves := 1
+
+	for nivelChaves > 0 && !p.fimDeArquivo() {
+		switch p.token.Valor {
+		case "{":
+			nivelChaves++
+			regras.WriteString("{")
+			p.avancar()
+		case "}":
+			nivelChaves--
+			if nivelChaves > 0 {
+				regras.WriteString("}")
+				p.avancar()
+			}
+		default:
+			regras.WriteString(p.token.Valor)
+			regras.WriteString(" ")
+			p.avancar()
+		}
+	}
+
+	if err := p.consome("}"); err != nil {
+		return nil, err
+	}
+
+	return &DeclEstilo{Nome: nome, Regras: strings.TrimSpace(regras.String())}, nil
+}
+
+// parseJSX analisa um elemento JSX ou uma tag de controle (se/para)
+func (p *Parser) parseJSX() (BaseNode, error) {
+	if err := p.consome("<"); err != nil {
+		return nil, err
+	}
+
+	tag := p.token.Valor
+	p.avancar()
+
+	if tag == "se" {
+		return p.parseSeJSX()
+	} else if tag == "para" {
+		return p.parseParaJSX()
+	}
+
+	node := &NoJSX{Tag: tag}
+
+	// Analisa atributos/propriedades da tag
+	for p.token.Tipo != lexer.TokenMaiorQue && !(p.token.Valor == "/" && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue) && !p.fimDeArquivo() {
+		if p.token.Tipo != lexer.TokenMaiorQue && p.token.Valor != "=" {
+			nomeAttr := p.token.Valor
+			p.avancar()
+
+			var valorAttr BaseNode
+			if p.token.Tipo == lexer.TokenIgual {
+				p.avancar()
+				if p.token.Tipo == lexer.TokenAbreChaves {
+					p.avancar() // consome '{'
+					expr, err := p.parseExpressao()
+					if err != nil {
+						return nil, err
+					}
+					if err := p.consome("}"); err != nil {
+						return nil, err
+					}
+					valorAttr = expr
+				} else if p.token.Tipo == lexer.TokenTexto {
+					valorAttr = &TextoLiteral{p.token.Valor}
+					p.avancar()
+				} else {
+					return nil, fmt.Errorf("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
+				}
+			} else {
+				// Atributo booleano implícito (ex: <input desabilitado />)
+				valorAttr = &Identificador{"Verdadeiro"}
+			}
+			node.Atributos = append(node.Atributos, &AtributoJSX{Nome: nomeAttr, Valor: valorAttr})
+		} else {
+			return nil, fmt.Errorf("esperava nome de atributo, mas recebi '%s'", p.token.Valor)
+		}
+	}
+
+	if p.token.Valor == "/" && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue {
+		p.avancar() // consome '/'
+		p.avancar() // consome '>'
+		node.AutoFechado = true
+		return node, nil
+	}
+
+	if err := p.consome(">"); err != nil {
+		return nil, err
+	}
+
+	fechouTag := false
+	for !p.fimDeArquivo() {
+		// Se encontrarmos "</", é o início do fechamento da tag
+		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+			p.avancar() // '<'
+			p.avancar() // '/'
+			if p.token.Valor != tag {
+				return nil, fmt.Errorf("tag de fechamento incorreta: esperava '</%s>', mas recebi '</%s>'", tag, p.token.Valor)
+			}
+			p.avancar() // tag
+			if err := p.consome(">"); err != nil {
+				return nil, err
+			}
+			fechouTag = true
+			break
+		}
+
+		// Se for outra tag filha
+		if p.token.Tipo == lexer.TokenMenorQue {
+			filho, err := p.parseJSX()
+			if err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, filho)
+			continue
+		}
+
+		// Se for uma expressão em chaves { ... }
+		if p.token.Tipo == lexer.TokenAbreChaves {
+			p.avancar() // '{'
+			expr, err := p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+			if err := p.consome("}"); err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, expr)
+			continue
+		}
+
+		// Caso contrário, é texto literal livre
+		var textoLivre strings.Builder
+		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
+			textoLivre.WriteString(p.token.Valor)
+			textoLivre.WriteString(" ")
+			p.avancar()
+		}
+		txtTrim := strings.TrimSpace(textoLivre.String())
+		if len(txtTrim) > 0 {
+			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+		}
+	}
+
+	if !fechouTag {
+		return nil, fmt.Errorf("tag '<%s>' não foi fechada correspondente", tag)
+	}
+
+	return node, nil
+}
+
+// parseSeJSX analisa <se condicao={...}>...</se>
+func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
+	var condicao BaseNode
+	var err error
+
+	if p.token.Valor == "condicao" {
+		p.avancar()
+		if err := p.consome("="); err != nil {
+			return nil, err
+		}
+		if err := p.consome("{"); err != nil {
+			return nil, err
+		}
+		condicao, err = p.parseExpressao()
+		if err != nil {
+			return nil, err
+		}
+		if err := p.consome("}"); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("esperava atributo 'condicao' na tag <se>, mas recebi '%s'", p.token.Valor)
+	}
+
+	if err := p.consome(">"); err != nil {
+		return nil, err
+	}
+
+	node := &NoSeJSX{Condicao: condicao}
+
+	fechouTag := false
+	for !p.fimDeArquivo() {
+		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+			p.avancar() // '<'
+			p.avancar() // '/'
+			if p.token.Valor != "se" {
+				return nil, fmt.Errorf("tag de fechamento incorreta para <se>: recebido '</%s>'", p.token.Valor)
+			}
+			p.avancar()
+			if err := p.consome(">"); err != nil {
+				return nil, err
+			}
+			fechouTag = true
+			break
+		}
+
+		if p.token.Tipo == lexer.TokenMenorQue {
+			filho, err := p.parseJSX()
+			if err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, filho)
+			continue
+		}
+
+		if p.token.Tipo == lexer.TokenAbreChaves {
+			p.avancar()
+			expr, err := p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+			if err := p.consome("}"); err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, expr)
+			continue
+		}
+
+		// Texto
+		var textoLivre strings.Builder
+		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
+			textoLivre.WriteString(p.token.Valor)
+			textoLivre.WriteString(" ")
+			p.avancar()
+		}
+		txtTrim := strings.TrimSpace(textoLivre.String())
+		if len(txtTrim) > 0 {
+			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+		}
+	}
+
+	if !fechouTag {
+		return nil, fmt.Errorf("tag '<se>' não foi fechada correspondente")
+	}
+
+	return node, nil
+}
+
+// parseParaJSX analisa <para item em lista={...}>...</para>
+func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
+	var item string
+	var lista BaseNode
+	var err error
+
+	if p.token.Tipo == lexer.TokenIdentificador {
+		item = p.token.Valor
+		p.avancar()
+	} else {
+		return nil, fmt.Errorf("esperava nome de variável após '<para', mas recebi '%s'", p.token.Valor)
+	}
+
+	if err := p.consome("em"); err != nil {
+		return nil, err
+	}
+
+	if p.token.Valor == "lista" {
+		p.avancar()
+		if err := p.consome("="); err != nil {
+			return nil, err
+		}
+		if err := p.consome("{"); err != nil {
+			return nil, err
+		}
+		lista, err = p.parseExpressao()
+		if err != nil {
+			return nil, err
+		}
+		if err := p.consome("}"); err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("esperava atributo 'lista' na tag <para>, mas recebi '%s'", p.token.Valor)
+	}
+
+	if err := p.consome(">"); err != nil {
+		return nil, err
+	}
+
+	node := &NoParaJSX{Item: item, Lista: lista}
+
+	fechouTag := false
+	for !p.fimDeArquivo() {
+		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+			p.avancar() // '<'
+			p.avancar() // '/'
+			if p.token.Valor != "para" {
+				return nil, fmt.Errorf("tag de fechamento incorreta para <para>: recebido '</%s>'", p.token.Valor)
+			}
+			p.avancar()
+			if err := p.consome(">"); err != nil {
+				return nil, err
+			}
+			fechouTag = true
+			break
+		}
+
+		if p.token.Tipo == lexer.TokenMenorQue {
+			filho, err := p.parseJSX()
+			if err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, filho)
+			continue
+		}
+
+		if p.token.Tipo == lexer.TokenAbreChaves {
+			p.avancar()
+			expr, err := p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+			if err := p.consome("}"); err != nil {
+				return nil, err
+			}
+			node.Filhos = append(node.Filhos, expr)
+			continue
+		}
+
+		// Texto
+		var textoLivre strings.Builder
+		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
+			textoLivre.WriteString(p.token.Valor)
+			textoLivre.WriteString(" ")
+			p.avancar()
+		}
+		txtTrim := strings.TrimSpace(textoLivre.String())
+		if len(txtTrim) > 0 {
+			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+		}
+	}
+
+	if !fechouTag {
+		return nil, fmt.Errorf("tag '<para>' não foi fechada correspondente")
+	}
+
+	return node, nil
+}
+

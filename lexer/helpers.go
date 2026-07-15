@@ -77,10 +77,11 @@ var tokensIdentificadores = map[string]TokenType{
 	"Falso":      TokenFalso,
 	"Nulo":       TokenNulo,
 
-	"var":    TokenVar,
-	"const":  TokenConst,
-	"func":   TokenFunc,
-	"funcao": TokenFunc,
+	"var":       TokenVar,
+	"const":     TokenConst,
+	"constante": TokenConst,
+	"func":      TokenFunc,
+	"funcao":    TokenFunc,
 
 	// Operadores lógicos
 	"ou":  TokenBoolOu,
@@ -97,5 +98,14 @@ var tokensIdentificadores = map[string]TokenType{
 	"assegura": TokenAssegura,
 	"testar":   TokenTestar,
 
+	"tente":      TokenTente,
+	"capture":    TokenCapture,
+	"finalmente": TokenFinalmente,
+	"exportar":   TokenExportar,
+
 	"em": TokenEm,
+
+	"assincrono": TokenAssincrono,
+	"aguarde":    TokenAguarde,
+	"estilo":     TokenEstilo,
 }
