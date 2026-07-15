@@ -48,6 +48,8 @@ var (
 // os comandos secundários disponíveis:
 //   - `atualize`: Busca e instala novas releases binárias a partir do GitHub.
 //   - `executar` (exec): Interpreta arquivos Portuscript (.pt) ou pequenos trechos passados diretamente via terminal.
+//   - `testar`: Varre o diretório em busca de arquivos `.ptst`/`.pt` e executa os blocos `teste`/blocos nativos.
+//   - `checar`: Linter estático — analisa a AST em busca de erros semânticos sem executar (escopo, redeclaração, constantes).
 //
 // Centralizar o registro de subcomandos nesta função simplifica consideravelmente a manutenção e legibilidade
 // do projeto, pois funciona como um índice declarativo dos comandos suportados pela CLI.
@@ -57,4 +59,7 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoAtualize())
 	raiz.AddCommand(comandoExecutar())
 	raiz.AddCommand(comandoTestar())
+	raiz.AddCommand(comandoChecar())
+	raiz.AddCommand(comandoErroCLI())
+	raiz.AddCommand(comandoCompilar())
 }
