@@ -62,4 +62,12 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoChecar())
 	raiz.AddCommand(comandoErroCLI())
 	raiz.AddCommand(comandoCompilar())
+	raiz.AddCommand(comandoServir())
+	raiz.AddCommand(comandoNovo())
+	raiz.AddCommand(comandoCrie())
+	raiz.AddCommand(comandoLsp())
+	raiz.AddCommand(comandoPlayground())
+	raiz.AddCommand(comandoFormatar())
+	raiz.AddCommand(comandoInstalar())
+	raiz.AddCommand(comandoDiagramar())
 }
