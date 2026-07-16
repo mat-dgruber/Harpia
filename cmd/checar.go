@@ -49,6 +49,22 @@ var globalsLinter = map[string]bool{
 	"efeito":   true,
 	"derivado": true,
 	"armazem":  true,
+
+	// Globais adicionais da Web/Browser para DX profissional (Fase 5-B)
+	"fetch":            true,
+	"JSON":             true,
+	"window":           true,
+	"document":         true,
+	"console":          true,
+	"localStorage":     true,
+	"importarHtml":     true,
+	"GradeDeDados":     true,
+	"FronteiraDeErro":  true,
+	"ListaVirtual":     true,
+	"Provedor":         true,
+	"injetar":          true,
+	"sinalPersistente": true,
+	"recurso":          true,
 }
 
 type EscopoLinter struct {

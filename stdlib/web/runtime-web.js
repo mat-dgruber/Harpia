@@ -6,6 +6,25 @@
 
 let efeitoAtivo = null;
 
+// ponytail: fila global e flag para agrupar e lotear execuções de efeitos síncronos na mesma microtask.
+// Isso impede múltiplas reconciliações de VDOM desnecessárias e repaints repetitivos.
+const filaEfeitos = new Set();
+let agendamentoLote = false;
+
+function agendarEfeito(ef) {
+  filaEfeitos.add(ef);
+  if (!agendamentoLote) {
+    agendamentoLote = true;
+    // queueMicrotask é um recurso nativo da plataforma web moderna
+    queueMicrotask(() => {
+      agendamentoLote = false;
+      const lote = Array.from(filaEfeitos);
+      filaEfeitos.clear();
+      lote.forEach(ef => ef.run());
+    });
+  }
+}
+
 // ============================================================================
 // 1. SISTEMA DE SINAIS E REATIVIDADE FINA
 // ============================================================================
@@ -31,10 +50,11 @@ export function sinal(valor) {
       valor = novoValor;
       // Clona para evitar recursão infinita se assinantes mutarem o sinal
       const paraDisparar = Array.from(assinantes);
-      paraDisparar.forEach(sub => sub.run());
+      paraDisparar.forEach(sub => agendarEfeito(sub));
     }
   };
 
+  ler.set = definir; // ponytail: expõe atualizador direto no getter para binding bidirecional
   return [ler, definir];
 }
 
@@ -176,6 +196,31 @@ function atualizarAtributos(el, velhosProps, novosProps) {
     const velhoValor = velhosProps[chave];
 
     if (valor !== velhoValor) {
+      if (chave === '_ligar') {
+        const lerSinal = valor;
+        efeito(() => {
+          const val = lerSinal();
+          if (el.type === 'checkbox') {
+            el.checked = !!val;
+          } else {
+            el.value = val === null || val === undefined ? '' : val;
+          }
+        });
+        const eventoTipo = el.type === 'checkbox' ? 'change' : 'input';
+        el.addEventListener(eventoTipo, (e) => {
+          const setter = lerSinal.set || lerSinal[1];
+          if (setter) {
+            setter(el.type === 'checkbox' ? e.target.checked : e.target.value);
+          }
+        });
+        continue;
+      }
+
+      if (chave === 'innerHTML') {
+        el.innerHTML = valor;
+        continue;
+      }
+
       if (chave.startsWith('ao')) {
         const evento = mapearEvento(chave);
         if (velhoValor) el.removeEventListener(evento, velhoValor);
@@ -258,9 +303,32 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
     atualizarAtributos(noFisico, velhoVNo.props, novoVNo.props);
     novoVNo.el = noFisico;
 
-    const max = Math.max(velhoVNo.children.length, novoVNo.children.length);
+    const velhosFilhos = velhoVNo.children || [];
+    const novosFilhos = novoVNo.children || [];
+    const max = Math.max(velhosFilhos.length, novosFilhos.length);
+
+    const chavesVelhas = {};
+    velhosFilhos.forEach((c, idx) => {
+      if (c && c.props && c.props.chave !== undefined) {
+        chavesVelhas[c.props.chave] = { no: c, idx };
+      }
+    });
+
     for (let i = 0; i < max; i++) {
-      reconciliar(noFisico, velhoVNo.children[i], novoVNo.children[i], i);
+      let velhoF = velhosFilhos[i];
+      let novoF = novosFilhos[i];
+
+      if (novoF && novoF.props && novoF.props.chave !== undefined) {
+        const achado = chavesVelhas[novoF.props.chave];
+        if (achado) {
+          velhoF = achado.no;
+          const noFis = noFisico.childNodes[achado.idx];
+          if (noFis && noFisico.childNodes[i] !== noFis) {
+            noFisico.insertBefore(noFis, noFisico.childNodes[i]);
+          }
+        }
+      }
+      reconciliar(noFisico, velhoF, novoF, i);
     }
   }
 }
@@ -276,16 +344,51 @@ function mudou(no1, no2) {
 
 /**
  * Inicializa a montagem reativa da aplicação em um container DOM físico.
+ * Suporta auto-hidratação transparente caso o elemento já contenha nós renderizados por SSR.
  * @param {Function} appComponente - Componente raiz
  * @param {HTMLElement} elementoAlvo - Elemento container no DOM
  */
 export function montar(appComponente, elementoAlvo) {
   let velhoVNo = null;
+
+  if (elementoAlvo && elementoAlvo.childNodes.length > 0) {
+    const vnoInicial = typeof appComponente === 'function' ? appComponente() : appComponente;
+    vincularNos(elementoAlvo.firstElementChild || elementoAlvo, vnoInicial);
+    velhoVNo = vnoInicial;
+  }
+
   efeito(() => {
     const novoVNo = typeof appComponente === 'function' ? appComponente() : appComponente;
     reconciliar(elementoAlvo, velhoVNo, novoVNo);
     velhoVNo = novoVNo;
   });
+}
+
+function vincularNos(elFisico, vno) {
+  if (!vno || !elFisico) return;
+  vno.el = elFisico;
+
+  if (typeof vno === 'object') {
+    if (typeof vno.tag === 'function') {
+      const vnodeRendido = vno.tag(vno.props);
+      vno._componenteInstancia = vnodeRendido;
+      vincularNos(elFisico, vnodeRendido);
+      return;
+    }
+
+    for (const chave in vno.props) {
+      if (chave.startsWith('ao')) {
+        const evento = mapearEvento(chave);
+        elFisico.addEventListener(evento, vno.props[chave]);
+      }
+    }
+
+    const filhosFisicos = elFisico.childNodes;
+    const max = Math.min(filhosFisicos.length, vno.children.length);
+    for (let i = 0; i < max; i++) {
+      vincularNos(filhosFisicos[i], vno.children[i]);
+    }
+  }
 }
 
 // ============================================================================
@@ -321,5 +424,196 @@ export function roteador(rotas) {
     const path = urlAtiva();
     const componente = rotas[path] || rotas['/404'] || (() => h('div', {}, '404 - Página Não Encontrada'));
     return h(componente, {});
+  };
+}
+
+// ============================================================================
+// 4. PRIMITIVAS DE ESTADO CORPORATIVAS E COMPONENTES DE UI NATIVOS (Fase 4-C)
+// ============================================================================
+
+/**
+ * Cria um sinal que é automaticamente persistido no localStorage do navegador.
+ * @param {string} chave - Chave para armazenar no localStorage
+ * @param {*} valorInicial - Valor padrão caso não exista nada persistido
+ */
+export function sinalPersistente(chave, valorInicial) {
+  let valorSalvo = valorInicial;
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    const item = localStorage.getItem(chave);
+    if (item !== null) {
+      try {
+        valorSalvo = JSON.parse(item);
+      } catch (e) {
+        valorSalvo = item;
+      }
+    }
+  }
+  const [ler, definir] = sinal(valorSalvo);
+  const definirPersistente = (novoValor) => {
+    definir(novoValor);
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.setItem(chave, JSON.stringify(novoValor));
+    }
+  };
+  ler.set = definirPersistente; // ponytail: expõe setter direto no getter para bind duplo
+  return [ler, definirPersistente];
+}
+
+/**
+ * Primitiva nativa de estado assíncrono para chamadas de rede/APIs.
+ * @param {Function} funcaoAsync - Função que retorna uma Promise
+ */
+export function recurso(funcaoAsync) {
+  const [dados, setDados] = sinal(null);
+  const [carregando, setCarregando] = sinal(true);
+  const [erro, setErro] = sinal(null);
+
+  const executar = async () => {
+    setCarregando(true);
+    setErro(null);
+    try {
+      const res = await funcaoAsync();
+      setDados(res);
+    } catch (e) {
+      setErro(e);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  executar();
+
+  const ler = () => dados();
+  ler.carregando = carregando;
+  ler.erro = erro;
+  ler.ok = () => !carregando() && !erro();
+  ler.recarregar = executar;
+  return [ler];
+}
+
+const mapaContextos = new Map();
+
+/**
+ * Provedor de contexto para injeção de dependências sem prop-drilling.
+ */
+export function Provedor(props) {
+  const anterior = mapaContextos.get(props.chave);
+  mapaContextos.set(props.chave, props.valor);
+  const res = props.children || null;
+  queueMicrotask(() => {
+    if (anterior !== undefined) {
+      mapaContextos.set(props.chave, anterior);
+    } else {
+      mapaContextos.delete(props.chave);
+    }
+  });
+  return h('div', { estilo: { display: 'contents' } }, res);
+}
+
+/**
+ * Injeta/recupera um serviço provido por um componente Provedor superior.
+ * @param {string} chave - Identificador do serviço
+ */
+export function injetar(chave) {
+  return mapaContextos.get(chave);
+}
+
+/**
+ * Fronteira de Erro nativa para capturar falhas em componentes filhos secundários.
+ */
+export function FronteiraDeErro(props) {
+  const [erro, setErro] = sinal(null);
+  try {
+    if (erro()) {
+      return props.fallback || h('p', {}, 'Erro ao carregar componente.');
+    }
+    return props.children || null;
+  } catch (e) {
+    setErro(e);
+    return props.fallback || h('p', {}, 'Erro ao carregar componente.');
+  }
+}
+
+/**
+ * Componente de lista virtualizada de alta performance para renderizar coleções massivas.
+ */
+export function ListaVirtual(props) {
+  const [inicio, setInicio] = sinal(0);
+  const total = props.itens ? props.itens.length : 0;
+  const alturaLinha = props.alturaLinha || 40;
+  const alturaContainer = props.alturaContainer || 400;
+  const visiveis = Math.ceil(alturaContainer / alturaLinha) + 2;
+
+  const aoRolar = (e) => {
+    const topo = e.target.scrollTop;
+    const idx = Math.floor(topo / alturaLinha);
+    setInicio(Math.max(0, Math.min(idx, total - visiveis)));
+  };
+
+  return () => {
+    const itensVisiveis = (props.itens || []).slice(inicio(), inicio() + visiveis);
+    const espacoSuperior = inicio() * alturaLinha;
+    const espacoInferior = Math.max(0, (total - inicio() - itensVisiveis.length) * alturaLinha);
+
+    return h('div', {
+      aoScroll: aoRolar,
+      estilo: { height: `${alturaContainer}px`, overflowY: 'auto', position: 'relative' }
+    },
+      h('div', { estilo: { height: `${espacoSuperior}px` } }),
+      ...itensVisiveis.map((item, idx) => props.children[0](item, inicio() + idx)),
+      h('div', { estilo: { height: `${espacoInferior}px` } })
+    );
+  };
+}
+
+/**
+ * Grade de dados (Data Table) avançada com pesquisa, paginação e design responsivo.
+ */
+export function GradeDeDados(props) {
+  const [pagina, setPagina] = sinal(1);
+  const [filtro, setFiltro] = sinal("");
+  const colunas = props.colunas || [];
+  const dadosOriginais = props.dados || [];
+  const limite = props.linhasPorPagina || 10;
+
+  return () => {
+    const dadosFiltrados = dadosOriginais.filter(item => {
+      const texto = filtro().toLowerCase();
+      if (!texto) return true;
+      return colunas.some(col => String(item[col] || "").toLowerCase().includes(texto));
+    });
+
+    const totalPaginas = Math.ceil(dadosFiltrados.length / limite) || 1;
+    const inicio = (pagina() - 1) * limite;
+    const dadosPaginados = dadosFiltrados.slice(inicio, inicio + limite);
+
+    return h('div', { classe: 'grade-dados-container' },
+      h('input', {
+        _ligar: filtro,
+        placeholder: 'Pesquisar...',
+        classe: 'grade-dados-pesquisa'
+      }),
+      h('table', { classe: 'grade-dados-tabela' },
+        h('thead', {},
+          h('tr', {}, ...colunas.map(col => h('th', {}, col)))
+        ),
+        h('tbody', {},
+          ...dadosPaginados.map(item =>
+            h('tr', {}, ...colunas.map(col => h('td', {}, String(item[col] || ""))))
+          )
+        )
+      ),
+      h('div', { classe: 'grade-dados-paginacao' },
+        h('button', {
+          aoClicar: () => setPagina(Math.max(1, pagina() - 1)),
+          disabled: pagina() === 1
+        }, 'Anterior'),
+        h('span', {}, ` Página ${pagina()} de ${totalPaginas} `),
+        h('button', {
+          aoClicar: () => setPagina(Math.min(totalPaginas, pagina() + 1)),
+          disabled: pagina() === totalPaginas
+        }, 'Próxima')
+      )
+    );
   };
 }

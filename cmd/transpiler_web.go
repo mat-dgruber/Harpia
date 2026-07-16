@@ -2,14 +2,20 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/natanfeitosa/portuscript/ptst"
 )
 
 // TranspilerWeb converte uma AST do Portuscript para código JavaScript ES6 correspondente.
 type TranspilerWeb struct {
-	Styles []string // Acumula blocos de estilo declarados para salvar no CSS
+	Styles        []string // Acumula blocos de estilo declarados para salvar no CSS
+	Estiro        bool     // ponytail: deprecating typo anterior
+	Estrito       bool     // ponytail: ativa tipagem estrita de JSDoc para DX
+	DiretorioBase string   // ponytail: diretório base do arquivo que está sendo compilado
 }
 
 func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
@@ -93,6 +99,45 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 
 	case *parser.DeclFuncao:
 		var params []string
+		var jsdoc strings.Builder
+
+		if t.Estrito {
+			jsdoc.WriteString("/**\n")
+			for _, p := range n.Parametros {
+				tipoJS := "any"
+				if p.Tipo != "" {
+					switch p.Tipo {
+					case "Inteiro", "Decimal":
+						tipoJS = "number"
+					case "Texto":
+						tipoJS = "string"
+					case "Booleano":
+						tipoJS = "boolean"
+					default:
+						tipoJS = p.Tipo
+					}
+				}
+				jsdoc.WriteString(fmt.Sprintf(" * @param {%s} %s\n", tipoJS, p.Nome))
+			}
+			if n.TipoRetorno != "" {
+				tipoRet := "any"
+				switch n.TipoRetorno {
+				case "Inteiro", "Decimal":
+					tipoRet = "number"
+				case "Texto":
+					tipoRet = "string"
+				case "Booleano":
+					tipoRet = "boolean"
+				default:
+					tipoRet = n.TipoRetorno
+				}
+				jsdoc.WriteString(fmt.Sprintf(" * @returns {%s}\n", tipoRet))
+			} else {
+				jsdoc.WriteString(" * @returns {any}\n")
+			}
+			jsdoc.WriteString(" */\n")
+		}
+
 		for _, p := range n.Parametros {
 			if p.Padrao != nil {
 				params = append(params, fmt.Sprintf("%s = %s", p.Nome, t.Transpile(p.Padrao)))
@@ -105,7 +150,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			asyncPrefix = "async "
 		}
 		body := t.Transpile(n.Corpo)
-		return fmt.Sprintf("%sfunction %s(%s) %s", asyncPrefix, n.Nome, strings.Join(params, ", "), body)
+		return fmt.Sprintf("%s%sfunction %s(%s) %s", jsdoc.String(), asyncPrefix, n.Nome, strings.Join(params, ", "), body)
 
 	case *parser.Bloco:
 		var sb strings.Builder
@@ -125,6 +170,27 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 
 	case *parser.ChamadaFuncao:
 		fn := t.Transpile(n.Identificador)
+		// ponytail: inline dinâmico de layouts HTML físicos externos
+		if fn == "importarHtml" && len(n.Argumentos) == 1 {
+			if txt, ok := n.Argumentos[0].(*parser.TextoLiteral); ok {
+				caminho := txt.Valor
+				if len(caminho) >= 2 {
+					caminho = caminho[1 : len(caminho)-1]
+				}
+				caminhoCompleto := filepath.Join(t.DiretorioBase, caminho)
+				conteudo, err := os.ReadFile(caminhoCompleto)
+				if err != nil {
+					return fmt.Sprintf("/* Erro ao carregar html de %s: %v */", caminho, err)
+				}
+				ctx := ptst.NewContexto(ptst.OpcsContexto{})
+				defer ctx.Terminar()
+				subAst, err := ctx.StringParaAst(string(conteudo), caminho)
+				if err != nil {
+					return fmt.Sprintf("/* Erro de sintaxe no template HTML de %s: %v */", caminho, err)
+				}
+				return t.Transpile(subAst)
+			}
+		}
 		var args []string
 		for _, arg := range n.Argumentos {
 			args = append(args, t.Transpile(arg))
@@ -273,8 +339,32 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			if attr.Valor != nil {
 				val = t.Transpile(attr.Valor)
 			}
-			// Mapeamento correto de palavras-chave reservadas em atributos JS/VDOM
 			nomeAttr := attr.Nome
+
+			// ponytail: mapeamento simples de binding bidirecional nativo
+			if nomeAttr == "ligar" {
+				nomeAttr = "_ligar"
+			}
+
+			// ponytail: açúcar sintático de modificadores de eventos (ex: aoEnviar_prevenir)
+			if strings.HasPrefix(nomeAttr, "ao") && strings.Contains(nomeAttr, "_") {
+				partes := strings.Split(nomeAttr, "_")
+				eventoPrincipal := partes[0]
+				modificadores := partes[1:]
+
+				embrulho := val
+				for _, mod := range modificadores {
+					switch mod {
+					case "prevenir":
+						embrulho = fmt.Sprintf("(e) => { e.preventDefault(); (%s)(e); }", embrulho)
+					case "parar":
+						embrulho = fmt.Sprintf("(e) => { e.stopPropagation(); (%s)(e); }", embrulho)
+					}
+				}
+				nomeAttr = eventoPrincipal
+				val = embrulho
+			}
+
 			if nomeAttr == "classe" {
 				nomeAttr = "classe" // O runtime cuida de mapear pra class
 			}
@@ -296,7 +386,11 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			attrsObj = fmt.Sprintf("{ %s }", strings.Join(attrs, ", "))
 		}
 		// Transpila para chamada h() do runtime VDOM
-		return fmt.Sprintf("h('%s', %s, %s)", n.Tag, attrsObj, strings.Join(children, ", "))
+		tagArg := fmt.Sprintf("'%s'", n.Tag)
+		if len(n.Tag) > 0 && n.Tag[0] >= 'A' && n.Tag[0] <= 'Z' {
+			tagArg = n.Tag
+		}
+		return fmt.Sprintf("h(%s, %s, %s)", tagArg, attrsObj, strings.Join(children, ", "))
 
 	case *parser.NoSeJSX:
 		cond := t.Transpile(n.Condicao)
@@ -322,11 +416,47 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return fmt.Sprintf("(%s).map(%s => %s)", list, n.Item, childVal)
 
+	case *parser.ImporteDe:
+		caminho := n.Caminho.Valor
+		if len(caminho) >= 2 {
+			caminho = caminho[1 : len(caminho)-1]
+		}
+		// ponytail: trata imports de estilos .estilo.ptst e os resolve para constantes locais
+		if strings.HasSuffix(caminho, ".estilo.ptst") {
+			caminhoCompleto := filepath.Join(t.DiretorioBase, caminho)
+			conteudo, err := os.ReadFile(caminhoCompleto)
+			if err == nil {
+				ctx := ptst.NewContexto(ptst.OpcsContexto{})
+				defer ctx.Terminar()
+				styleAst, err := ctx.StringParaAst(string(conteudo), caminho)
+				if err == nil {
+					t.Transpile(styleAst)
+				}
+			}
+			var sb strings.Builder
+			for _, nome := range n.Nomes {
+				sb.WriteString(fmt.Sprintf("const %s = \"%s\";\n", nome, nome))
+			}
+			return sb.String()
+		}
+
+		jsPath := caminho
+		if strings.HasSuffix(jsPath, ".ptst") {
+			jsPath = jsPath[:len(jsPath)-5] + ".js"
+		}
+		if !strings.HasPrefix(jsPath, ".") && !strings.HasPrefix(jsPath, "/") && !strings.Contains(jsPath, "://") {
+			if jsPath == "web" {
+				jsPath = "./runtime-web.js"
+			}
+		}
+		return fmt.Sprintf("import { %s } from \"%s\";", strings.Join(n.Nomes, ", "), jsPath)
+
 	case *parser.DeclEstilo:
-		// Limpa chaves extras e acumula a regra formatada
-		cssBlock := fmt.Sprintf(".%s {\n%s\n}", n.Nome, strings.TrimSpace(n.Regras))
+		// Enviar pelo pipeline CSS enxuto: mapa canônico PT→CSS,
+		// strip de aspas e suporte a nesting.
+		cssBlock := processaBlocoEstilo(n.Nome, n.Regras)
 		t.Styles = append(t.Styles, cssBlock)
-		return "" // Não gera JS diretamente no arquivo compilado, apenas alimenta estilos.css
+		return "" // Sai do .js; alimenta somente estilos.css
 	}
 
 	return fmt.Sprintf("/* Erro ao transpilar tipo %T */", node)

@@ -1,0 +1,98 @@
+de "web" importe sinal, GradeDeDados;
+
+# ponytail: aplicação do playground escrita 100% em Portuscript
+exportar funcao PlaygroundApp() {
+	var [codigo, setCodigo] = sinal("var a = 10;\nvar [contador, setContador] = sinal(5);\n\nfuncao dobrar(num) {\n    retorne num * 2;\n}\n\nimprimir(\"Dobro de 10: \" + dobrar(a));\nimprimir(\"Contador reativo: \" + contador());");
+	var [saida, setSaida] = sinal("");
+	var [erroHtml, setErroHtml] = sinal("");
+	var [variaveis, setVariaveis] = sinal([]);
+	var [executando, setExecutando] = sinal(Falso);
+
+	funcao executar() {
+		setExecutando(Verdadeiro);
+
+		# Faz a requisição para a API local usando o fetch do navegador
+		fetch("/api/executar", {
+			"method": "POST",
+			"headers": { "Content-Type": "application/json" },
+			"body": JSON.stringify({ "codigo": codigo() })
+		})
+		.then(funcao(res) {
+			retorne res.json();
+		})
+		.then(funcao(dados) {
+			setSaida(dados.saida ou "");
+			setErroHtml(dados.erroHtml ou "");
+			setVariaveis(dados.variaveis ou []);
+			setExecutando(Falso);
+		})
+		.catch(funcao(err) {
+			setSaida("Erro de conexão: " + err);
+			setExecutando(Falso);
+		});
+	}
+
+	funcao limparConsole() {
+		setSaida("");
+	}
+
+	funcao lidarTeclado(e) {
+		se (e.ctrlKey e e.key == "Enter") {
+			e.preventDefault();
+			executar();
+		}
+	}
+
+	retorne <div classe="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans">
+		<!-- Header -->
+		<header classe="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+			<div classe="flex items-center space-x-3">
+				<span classe="text-2xl font-black text-blue-500">Portuscript</span>
+				<span classe="text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 font-medium tracking-wide">Playground escrito em Portuscript</span>
+			</div>
+			<button aoClicar={executar} classe="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg transition duration-150 flex items-center space-x-2">
+				<span>{executando() ? "Executando..." : "Executar"}</span>
+				<span classe="text-xs opacity-75 font-normal">(Ctrl+Enter)</span>
+			</button>
+		</header>
+
+		<!-- Painéis -->
+		<main classe="flex-1 grid grid-cols-2 gap-px bg-slate-800 overflow-hidden">
+			<!-- Esquerda: Editor -->
+			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden">
+				<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
+					CÓDIGO FONTE (PORTUSCRIPT)
+				</div>
+				<textarea ligar={codigo} aoTeclar={lidarTeclado} classe="flex-1 w-full p-6 bg-slate-950 text-slate-100 editor-textarea focus:outline-none resize-none overflow-y-auto leading-relaxed" placeholder="# Escreva seu código..."></textarea>
+			</section>
+
+			<!-- Direita: Saída/Console e Variáveis -->
+			<section classe="grid grid-rows-2 gap-px bg-slate-800 h-full overflow-hidden">
+				<!-- Console -->
+				<div classe="flex flex-col bg-slate-950 overflow-hidden">
+					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider flex justify-between">
+						<span>SAÍDA DO CONSOLE</span>
+						<button aoClicar={limparConsole} classe="text-slate-500 hover:text-slate-300">Limpar</button>
+					</div>
+					<pre classe="flex-1 p-6 font-mono text-sm overflow-y-auto leading-relaxed whitespace-pre-wrap text-slate-300">{saida()}</pre>
+				</div>
+
+				<!-- Variáveis / Erros -->
+				<div classe="flex flex-col bg-slate-950 overflow-hidden">
+					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
+						INSPETOR DE VARIÁVEIS / DIAGNÓSTICOS
+					</div>
+					<div classe="flex-1 p-6 overflow-y-auto">
+						<se condicao={erroHtml() != ""}>
+							<div classe="p-4 border border-red-900 bg-red-950/40 rounded-lg font-mono text-sm leading-relaxed overflow-x-auto text-red-300 mb-4" innerHTML={erroHtml()}></div>
+						</se>
+
+						<se condicao={erroHtml() == ""}>
+							<GradeDeDados colunas={["nome", "tipo", "valor"]} dados={variaveis()} linhasPorPagina={10} />
+						</se>
+					</div>
+				</div>
+			</section>
+		</main>
+	</div>;
+}
