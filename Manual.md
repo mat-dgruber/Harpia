@@ -1166,6 +1166,12 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
 * **Testador de Estresse Concorrente (`portuscript stressar`)**: Permite executar baterias massivas de requisições concorrentes e benchmarks automáticos para testar a resiliência de servidores e scripts Portuscript.
 * **Protocolo de Adaptador de Depurador (`portuscript depurar`)**: Servidor TCP compatível com o protocolo oficial Debug Adapter Protocol (DAP). Permite a conexão e handshakes síncronos de IDEs modernas (como VS Code, Cursor) para depuração de nível profissional com breakpoints e inspeção de variáveis locais.
 * **Extensão VS Code Oficial (`vscode-portuscript`)**: Extensão oficial que habilita realce de sintaxe completo, preenchimento rápido (snippets) para front/back, e se conecta via stdio/sockets diretamente aos servidores `lsp` (Language Server) e `depurar` (DAP) integrados na CLI.
+  * **Formatação Síncrona On-Save via LSP**:
+    1. *No Servidor LSP (Go)*: Durante a inicialização, o servidor (`cmd/lsp.go`) declara suporte nativo de formatação síncrona via `"documentFormattingProvider": true`. Quando recebe a requisição síncrona `textDocument/formatting` enviada pela IDE, ele intercepta o comando e retorna as edições do código limpo processadas pela função nativa `FormatarCodigoPortuscript(codigo)` declarada em `cmd/formatar.go`.
+    2. *Na Extensão do VS Code (`vscode-portuscript`)*: No arquivo `vscode-portuscript/extension.js`, o cliente LSP é instanciado via classe `LanguageClient`. Ao inicializar, a biblioteca padrão `vscode-languageclient` detecta a capacidade `"documentFormattingProvider": true` fornecida pelo servidor e registra automaticamente a capacidade de formatação nativa na IDE.
+    3. *Como usar no VS Code*:
+       - **Atalho de Formatação**: Pressionar `Shift + Alt + F` (Windows/Linux) ou `Shift + Option + F` (macOS) com um arquivo `.ptst` aberto.
+       - **Formatação Automática ao Salvar**: Habilitar a configuração `"editor.formatOnSave": true` nas configurações do VS Code para disparar a formatação limpa automaticamente em todo `Cmd+S` ou `Ctrl+S`.
 
 ---
 

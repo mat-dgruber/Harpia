@@ -1,129 +1,137 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <title>Portuscript — Portal Oficial e Playground</title>
-  <style>
-    body {
-      background: #121212;
-      color: #e0e0e0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-    }
-    header {
-      background: #1e1e1e;
-      border-bottom: 1px solid #333;
-      padding: 15px 30px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 20px;
-      color: #fff;
-    }
-    .status-badge {
-      background: #3c1e1e;
-      color: #ff9999;
-      border: 1px solid #ff3333;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-    .status-carregado {
-      background: #1e3c1e;
-      color: #99ff99;
-      border: 1px solid #33ff33;
-    }
-    .conteudo {
-      flex: 1;
-      display: flex;
-      padding: 20px;
-      gap: 20px;
-      box-sizing: border-box;
-    }
-    .coluna {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    .titulo-coluna {
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-size: 16px;
-      color: #fff;
-      border-bottom: 1px solid #333;
-      padding-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    textarea {
-      flex: 1;
-      background: #161616;
-      color: #33ff33;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 15px;
-      font-family: "Courier New", Courier, monospace;
-      font-size: 14px;
-      resize: none;
-      outline: none;
-    }
-    .saida {
-      flex: 1;
-      background: #161616;
-      color: #e0e0e0;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 15px;
-      font-family: "Courier New", Courier, monospace;
-      font-size: 14px;
-      white-space: pre-wrap;
-      overflow-y: auto;
-    }
-    button {
-      background: #007acc;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-top: 15px;
-    }
-    button:hover {
-      background: #0062a3;
-    }
-    button:disabled {
-      background: #444;
-      cursor: not-allowed;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Portuscript — Portal Oficial</h1>
-    <div id="status" class="status-badge">Carregando compilador WebAssembly...</div>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <title>Portuscript — Portal Oficial e Playground</title>
+    <style>
+      body {
+        background: #121212;
+        color: #e0e0e0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      header {
+        background: #1e1e1e;
+        border-bottom: 1px solid #333;
+        padding: 15px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 20px;
+        color: #fff;
+      }
+      .status-badge {
+        background: #3c1e1e;
+        color: #ff9999;
+        border: 1px solid #ff3333;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      .status-carregado {
+        background: #1e3c1e;
+        color: #99ff99;
+        border: 1px solid #33ff33;
+      }
+      .conteudo {
+        flex: 1;
+        display: flex;
+        padding: 20px;
+        gap: 20px;
+        box-sizing: border-box;
+      }
+      .coluna {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #1e1e1e;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .titulo-coluna {
+        margin-top: 0;
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: #fff;
+        border-bottom: 1px solid #333;
+        padding-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      textarea {
+        flex: 1;
+        background: #161616;
+        color: #33ff33;
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+        padding: 15px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+        resize: none;
+        outline: none;
+      }
+      .saida {
+        flex: 1;
+        background: #161616;
+        color: #e0e0e0;
+        border: 1px solid #2a2a2a;
+        border-radius: 6px;
+        padding: 15px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+        white-space: pre-wrap;
+        overflow-y: auto;
+      }
+      button {
+        background: #007acc;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 15px;
+      }
+      button:hover {
+        background: #0062a3;
+      }
+      button:disabled {
+        background: #444;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Portuscript — Portal Oficial</h1>
+      <div id="status" class="status-badge">
+        Carregando compilador WebAssembly...
+      </div>
+    </header>
 
-  <div class="conteudo">
-    <div class="coluna">
-      <h2 class="titulo-coluna">Playground (Código Fonte)</h2>
-      <textarea id="codigo" placeholder="Escreva seu código Portuscript aqui..."># Escreva seu código em português
+    <div class="conteudo">
+      <div class="coluna">
+        <h2 class="titulo-coluna">Playground (Código Fonte)</h2>
+        <textarea
+          id="codigo"
+          placeholder="Escreva seu código Portuscript aqui..."
+        >
+# Escreva seu código em português
 var a = 10
 constante b = 20
 
@@ -133,68 +141,76 @@ funcao somar(x, y) {
 
 imprimir("Resultado da soma:")
 imprimir(somar(a, b))
-</textarea>
-      <button id="btn-rodar" disabled onclick="executarCodigo()">Executar Código</button>
+</textarea
+        >
+        <button id="btn-rodar" disabled onclick="executarCodigo()">
+          Executar Código
+        </button>
+      </div>
+
+      <div class="coluna">
+        <h2 class="titulo-coluna">Saída do Console</h2>
+        <div id="saida" class="saida">Aguardando execução...</div>
+      </div>
     </div>
 
-    <div class="coluna">
-      <h2 class="titulo-coluna">Saída do Console</h2>
-      <div id="saida" class="saida">Aguardando execução...</div>
-    </div>
-  </div>
+    <!-- Carregamento do WebAssembly de Go -->
+    <script src="wasm_exec.js"></script>
+    <script>
+      const go = new Go();
+      const statusEl = document.getElementById("status");
+      const btnRodar = document.getElementById("btn-rodar");
+      const saidaEl = document.getElementById("saida");
 
-  <!-- Carregamento do WebAssembly de Go -->
-  <script src="wasm_exec.js"></script>
-  <script>
-    const go = new Go();
-    const statusEl = document.getElementById('status');
-    const btnRodar = document.getElementById('btn-rodar');
-    const saidaEl = document.getElementById('saida');
+      // Sobrescreve as saídas de console globais para capturá-las na tela do playground
+      const logsOriginais = [];
+      const consoleLogOriginal = console.log;
+      console.log = function (...args) {
+        consoleLogOriginal.apply(console, args);
+        logsOriginais.push(args.join(" "));
+      };
 
-    // Sobrescreve as saídas de console globais para capturá-las na tela do playground
-    const logsOriginais = [];
-    const consoleLogOriginal = console.log;
-    console.log = function(...args) {
-      consoleLogOriginal.apply(console, args);
-      logsOriginais.push(args.join(' '));
-    };
+      WebAssembly.instantiateStreaming(
+        fetch("portuscript.wasm"),
+        go.importObject,
+      )
+        .then((result) => {
+          go.run(result.instance);
+          statusEl.textContent = "Compilador WASM Ativo ✓";
+          statusEl.className = "status-badge status-carregado";
+          btnRodar.disabled = false;
+        })
+        .catch((err) => {
+          console.error(err);
+          statusEl.textContent = "Erro ao carregar compilador";
+        });
 
-    WebAssembly.instantiateStreaming(fetch("portuscript.wasm"), go.importObject).then((result) => {
-      go.run(result.instance);
-      statusEl.textContent = "Compilador WASM Ativo ✓";
-      statusEl.className = "status-badge status-carregado";
-      btnRodar.disabled = false;
-    }).catch(err => {
-      console.error(err);
-      statusEl.textContent = "Erro ao carregar compilador";
-    });
+      function executarCodigo() {
+        if (typeof window.rodarPortuscript !== "function") {
+          alert("O compilador WASM não foi inicializado corretamente.");
+          return;
+        }
 
-    function executarCodigo() {
-      if (typeof window.rodarPortuscript !== 'function') {
-        alert("O compilador WASM não foi inicializado corretamente.");
-        return;
+        // Limpa os logs anteriores
+        logsOriginais.length = 0;
+        saidaEl.textContent = "Executando...";
+
+        const codigo = document.getElementById("codigo").value;
+        const resultado = window.rodarPortuscript(codigo);
+
+        // Renderiza as impressões capturadas do console
+        if (logsOriginais.length > 0) {
+          saidaEl.textContent = logsOriginais.join("\n");
+        } else {
+          saidaEl.textContent = resultado;
+        }
+
+        if (resultado.startsWith("erro:")) {
+          saidaEl.style.color = "#ff9999";
+        } else {
+          saidaEl.style.color = "#33ff33";
+        }
       }
-
-      // Limpa os logs anteriores
-      logsOriginais.length = 0;
-      saidaEl.textContent = "Executando...";
-
-      const codigo = document.getElementById('codigo').value;
-      const resultado = window.rodarPortuscript(codigo);
-
-      // Renderiza as impressões capturadas do console
-      if (logsOriginais.length > 0) {
-        saidaEl.textContent = logsOriginais.join('\n');
-      } else {
-        saidaEl.textContent = resultado;
-      }
-
-      if (resultado.startsWith("erro:")) {
-        saidaEl.style.color = "#ff9999";
-      } else {
-        saidaEl.style.color = "#33ff33";
-      }
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>
