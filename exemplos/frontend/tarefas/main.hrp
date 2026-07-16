@@ -1,0 +1,70 @@
+# Exemplo de Lista de Tarefas (Todo) usando Sinais, Loops JSX-like e Arrays no Portuscript.
+#
+# Para rodar este exemplo:
+#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#
+# Abra o arquivo dist/index.html gerado no seu navegador.
+
+var listaDeTarefas = sinal(["Estudar Portuscript", "Praticar Sinais e Virtual DOM", "Configurar SSR e Hidratação"]);
+var lerTarefas = listaDeTarefas[0];
+var definirTarefas = listaDeTarefas[1];
+
+var novaTarefa = sinal("");
+var lerNova = novaTarefa[0];
+var definirNova = novaTarefa[1];
+
+funcao adicionarTarefa() {
+	var tarefasAtuais = lerTarefas();
+	var conteudoDigitado = lerNova();
+	se (conteudoDigitado != "") {
+		definirTarefas(tarefasAtuais.adicionar(conteudoDigitado));
+		definirNova("");
+	}
+}
+
+funcao excluirTarefa(item) {
+	var tarefasAtuais = lerTarefas();
+	definirTarefas(tarefasAtuais.remover(item));
+}
+
+estilo ListaApp {
+	corDeFundo: "#ffffff";
+	padding: "1.5rem";
+	largura: "400px";
+}
+
+funcao MeuApp() {
+	retorne <div classe="ListaApp flex-coluna p-6 fundo-branco raio-grande borda">
+			<h2 classe="texto-azul"> Minhas Tarefas </h2>
+			<p classe="texto-cinza"> Gerenciador de tarefas nativo em Portuscript </p>
+
+			<div classe="flex-linha p-2">
+				<input
+					classe="flex-1 borda p-2 raio-medio"
+					placeholder="Nova tarefa..."
+					valor={lerNova()}
+					aoMudar={definirNova}
+				/>
+				<botao
+					classe="fundo-azul texto-branco px-4 py-2 raio-medio"
+					aoClicar={adicionarTarefa}
+				>
+					Adicionar
+				</botao>
+			</div>
+
+			<ul class="flex-coluna py-2">
+				<para item em lista={lerTarefas()}>
+					<li classe="flex-linha conteudo-espacado p-2 borda-abaixo">
+						<span> {item} </span>
+						<botao
+							classe="texto-vermelho px-1 py-1"
+							aoClicar={excluirTarefa}
+						>
+							Excluir
+						</botao>
+					</li>
+				</para>
+			</ul>
+		</div>;
+}

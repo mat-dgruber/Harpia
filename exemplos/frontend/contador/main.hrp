@@ -1,0 +1,30 @@
+# Exemplo de contador reativo usando Sinais e JSX no Portuscript.
+#
+# Para rodar este exemplo:
+#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#
+# Abra o arquivo dist/index.html gerado no seu navegador de preferência.
+
+var contadorSinal = sinal(0);
+var contador = contadorSinal[0];
+var setContador = contadorSinal[1];
+
+estilo MeuContador {
+	corDeFundo: "#f3f4f6";
+	padding: "2rem";
+	raio-grande: true;
+	textAlign: "center";
+}
+
+funcao MeuApp() {
+	retorne <div classe="MeuContador flex-coluna itens-centro p-8 fundo-cinza raio-grande">
+			<h1 classe="texto-azul"> Contador Reativo </h1>
+			<p classe="texto-cinza"> Clique no botão para incrementar o valor em tempo real </p>
+
+			<h2 classe="p-4 fundo-branco raio-medio borda"> Valor: {contador()} </h2>
+
+			<botao classe="fundo-azul texto-branco px-4 py-2 raio-medio" aoClicar={setContador(contador() + 1)}>
+				Incrementar
+			</botao>
+		</div>;
+}

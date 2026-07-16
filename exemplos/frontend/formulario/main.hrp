@@ -1,0 +1,69 @@
+# Exemplo de Formulário de Contato com Validações em Tempo Real e Sinais no Portuscript.
+#
+# Para rodar este exemplo:
+#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#
+# Abra o arquivo dist/index.html gerado no seu navegador.
+
+var nome = sinal("");
+var email = sinal("");
+var erroNome = derivado(funcao() {
+	se (tamanho(nome()) < 3) {
+		retorne "O nome deve ter pelo menos 3 caracteres";
+	};
+	retorne "";
+});
+
+var erroEmail = derivado(funcao() {
+	var valorEmail = email();
+	se (nao (valorEmail.contem("@"))) {
+		retorne "Endereço de email inválido";
+	};
+	retorne "";
+});
+
+estilo FormularioApp {
+	largura: "450px";
+	padding: "2rem";
+}
+
+funcao MeuApp() {
+	retorne <div classe="FormularioApp flex-coluna p-8 fundo-branco raio-grande borda">
+			<h2 classe="texto-azul m-0"> Fale Conosco </h2>
+			<p classe="texto-cinza mb-4"> Envie sua dúvida ou sugestão de melhoria </p>
+
+			<div classe="flex-coluna py-2">
+				<rotulo class="texto-cinza p-1"> Nome Completo: </rotulo>
+				<input
+					classe="borda p-2 raio-medio"
+					placeholder="Seu nome"
+					valor={nome()}
+					aoMudar={nome[1]}
+				/>
+				<se condicao={erroNome() != ""}>
+					<span classe="texto-vermelho p-1"> {erroNome()} </span>
+				</se>
+			</div>
+
+			<div classe="flex-coluna py-2">
+				<rotulo class="texto-cinza p-1"> Email Corporativo: </rotulo>
+				<input
+					classe="borda p-2 raio-medio"
+					type="email"
+					placeholder="exemplo@empresa.com"
+					valor={email()}
+					aoMudar={email[1]}
+				/>
+				<se condicao={erroEmail() != ""}>
+					<span classe="texto-vermelho p-1"> {erroEmail()} </span>
+				</se>
+			</div>
+
+			<botao
+				classe="fundo-azul texto-branco p-3 m-2 raio-medio"
+				desabilitado={erroNome() != "" ou erroEmail() != ""}
+			>
+				Enviar Mensagem
+			</botao>
+		</div>;
+}
