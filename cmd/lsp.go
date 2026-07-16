@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/natanfeitosa/portuscript/lexer"
 	"github.com/natanfeitosa/portuscript/parser"
 	"github.com/natanfeitosa/portuscript/ptst"
 	"github.com/spf13/cobra"
@@ -68,6 +69,14 @@ type PublishDiagnosticsParams struct {
 
 // ponytail: cache global em memória para formatação do documento reativo
 var cacheArquivosLSP = make(map[string]string)
+
+// ponytail: cache do último AST compilado por URI, evita refazer parse a cada hover/go-to-def
+type entradaAstLSP struct {
+	prog   *parser.Programa
+	codigo string
+}
+
+var cacheAstLSP = make(map[string]entradaAstLSP)
 
 // comandoLsp gerencia conexões de Language Server Protocol direto da IDE
 func comandoLsp() *cobra.Command {
@@ -147,6 +156,8 @@ func tratarRequisicaoLSP(req RequestMessage) {
 				"capabilities": map[string]interface{}{
 					"textDocumentSync":           1, // Full sync (didOpen, didChange, didClose, didSave)
 					"documentFormattingProvider": true, // ponytail: ativa suporte síncrono para 'On-Save' na IDE
+					"hoverProvider":              true, // ponytail: hover de palavras-chave e símbolos usando o Lexer
+					"definitionProvider":         true, // ponytail: F12 navega para a declaração via walk do AST
 					"completionProvider": map[string]interface{}{
 						"resolveProvider":   false,
 						"triggerCharacters": []string{".", " "},
@@ -250,6 +261,18 @@ func tratarRequisicaoLSP(req RequestMessage) {
 
 	case "exit":
 		os.Exit(0)
+
+	case "textDocument/hover":
+		var params TextDocumentPositionParams
+		if err := json.Unmarshal(req.Params, &params); err == nil {
+			responderHoverLSP(req.ID, params)
+		}
+
+	case "textDocument/definition":
+		var params TextDocumentPositionParams
+		if err := json.Unmarshal(req.Params, &params); err == nil {
+			responderDefinicaoLSP(req.ID, params)
+		}
 	}
 }
 
@@ -282,6 +305,11 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 			Message:  err.Error(),
 		})
 	} else {
+		// ponytail: alimenta o cache do AST para uso em hover/go-to-def sem reparsear
+		if prog, ok := ast.(*parser.Programa); ok {
+			cacheAstLSP[uriStr] = entradaAstLSP{prog: prog, codigo: codigo}
+		}
+
 		// Roda o linter no AST
 		linter := &Linter{}
 		linter.Checar(ast)
@@ -352,4 +380,288 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 		},
 	}
 	enviarMensagemLSP(notif)
+}
+
+// =============================================================================
+// PONYTAIL: hover + go-to-definition nativos do LSP do Portuscript
+// =============================================================================
+
+type TextDocumentPositionParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     DiagnosticPosition     `json:"position"`
+}
+
+type TextDocumentIdentifier struct {
+	URI string `json:"uri"`
+}
+
+type HoverResult struct {
+	Contents MarkupContent    `json:"contents"`
+	Range    *DiagnosticRange `json:"range,omitempty"`
+}
+
+type MarkupContent struct {
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
+type Location struct {
+	URI   string          `json:"uri"`
+	Range DiagnosticRange `json:"range"`
+}
+
+func palavraSobCursor(codigo string, linha, char int) string {
+	linhas := strings.Split(codigo, "\n")
+	if linha < 0 || linha >= len(linhas) {
+		return ""
+	}
+	linhaTexto := linhas[linha]
+	if char < 0 || char > len(linhaTexto) {
+		return ""
+	}
+
+	// Anda para a esquerda
+	inicio := char
+	for inicio > 0 {
+		r := linhaTexto[inicio-1]
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			inicio--
+		} else {
+			break
+		}
+	}
+
+	// Anda para a direita
+	fim := char
+	for fim < len(linhaTexto) {
+		r := linhaTexto[fim]
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			fim++
+		} else {
+			break
+		}
+	}
+
+	if inicio == fim {
+		return ""
+	}
+	return linhaTexto[inicio:fim]
+}
+
+func buscarDocInserida(codigo string, linhaDecl int) []string {
+	linhas := strings.Split(codigo, "\n")
+	idx := linhaDecl - 1 // Linha imediatamente anterior ao início do nó (já que linhaDecl é 0-based)
+	var docs []string
+
+	for idx >= 0 {
+		linha := strings.TrimSpace(linhas[idx])
+		if strings.HasPrefix(linha, "///") {
+			docs = append([]string{strings.TrimSpace(strings.TrimPrefix(linha, "///"))}, docs...)
+			idx--
+		} else {
+			break
+		}
+	}
+	return docs
+}
+
+func encontrarDeclNoAST(prog *parser.Programa, nome string) (parser.BaseNode, *lexer.Token) {
+	if prog == nil {
+		return nil, nil
+	}
+
+	for _, decl := range prog.Declaracoes {
+		switch d := decl.(type) {
+		case *parser.DeclFuncao:
+			if d.Nome == nome {
+				return d, prog.Posicoes[d]
+			}
+		case *parser.DeclClasse:
+			if d.Nome == nome {
+				return d, prog.Posicoes[d]
+			}
+			for _, m := range d.Metodos {
+				if m.Nome == nome {
+					return m, prog.Posicoes[m]
+				}
+			}
+		case *parser.DeclVar:
+			if d.Nome == nome {
+				return d, prog.Posicoes[d]
+			}
+		}
+	}
+	return nil, nil
+}
+
+func assinaturaFuncao(d *parser.DeclFuncao) string {
+	var sb strings.Builder
+	// Nota: Como não temos d.Assincrono no AST de forma evidente,
+	// podemos assumir formato padrão
+	sb.WriteString("funcao ")
+	sb.WriteString(d.Nome)
+	sb.WriteString("(")
+	var params []string
+	for _, p := range d.Parametros {
+		paramStr := p.Nome
+		if p.Tipo != "" {
+			paramStr += ": " + p.Tipo
+		}
+		params = append(params, paramStr)
+	}
+	sb.WriteString(strings.Join(params, ", "))
+	sb.WriteString(")")
+	return sb.String()
+}
+
+func assinaturaClasse(d *parser.DeclClasse) string {
+	sig := "classe " + d.Nome
+	if d.Heranca != "" {
+		sig += " estende " + d.Heranca
+	}
+	return sig
+}
+
+func assinaturaVar(d *parser.DeclVar) string {
+	prefix := "var "
+	if d.Constante {
+		prefix = "constante "
+	}
+	sig := prefix + d.Nome
+	if d.Tipo != "" {
+		sig += ": " + d.Tipo
+	}
+	return sig
+}
+
+func obterDescricaoBuiltin(palavra string) string {
+	switch palavra {
+	case "imprimir":
+		return "```portuscript\nimprimir(valor)\n```\n\nImprime um valor na saída padrão do console."
+	case "sinal":
+		return "```portuscript\nsinal(valorInicial)\n```\n\nCria um sinal reativo contendo um valor mutável."
+	case "efeito":
+		return "```portuscript\nefeito(funcao)\n```\n\nCria um efeito colateral que roda automaticamente sempre que os sinais dependentes mudam."
+	case "derivado":
+		return "```portuscript\nderivado(funcao)\n```\n\nCria um valor reativo derivado de outros sinais e memoizado."
+	case "armazem":
+		return "```portuscript\narmazem(estadoInicial)\n```\n\nCria um armazenamento de estado global reativo para componentes."
+	case "montar":
+		return "```portuscript\nmontar(componente, elementoAlvo)\n```\n\nInicializa e renderiza a montagem reativa da aplicação em um elemento alvo."
+	}
+	return ""
+}
+
+func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
+	uri := params.TextDocument.URI
+	cache, existe := cacheAstLSP[uri]
+	if !existe {
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	palavra := palavraSobCursor(cache.codigo, params.Position.Line, params.Position.Character)
+	if palavra == "" {
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	node, tok := encontrarDeclNoAST(cache.prog, palavra)
+	if node == nil {
+		descBuiltin := obterDescricaoBuiltin(palavra)
+		if descBuiltin != "" {
+			enviarMensagemLSP(ResponseMessage{
+				Jsonrpc: "2.0",
+				ID:      id,
+				Result: HoverResult{
+					Contents: MarkupContent{
+						Kind:  "markdown",
+						Value: descBuiltin,
+					},
+				},
+			})
+			return
+		}
+
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	var assinatura string
+	switch d := node.(type) {
+	case *parser.DeclFuncao:
+		assinatura = assinaturaFuncao(d)
+	case *parser.DeclClasse:
+		assinatura = assinaturaClasse(d)
+	case *parser.DeclVar:
+		assinatura = assinaturaVar(d)
+	}
+
+	var markdown strings.Builder
+	markdown.WriteString(fmt.Sprintf("```portuscript\n%s\n```\n", assinatura))
+
+	if tok != nil {
+		docs := buscarDocInserida(cache.codigo, tok.Inicio.Linha)
+		if len(docs) > 0 {
+			markdown.WriteString("\n---\n")
+			for _, doc := range docs {
+				markdown.WriteString(doc + "\n")
+			}
+		}
+	}
+
+	var lspRange *DiagnosticRange
+	if tok != nil {
+		lspRange = &DiagnosticRange{
+			Start: DiagnosticPosition{Line: tok.Inicio.Linha, Character: tok.Inicio.Coluna - 1},
+			End:   DiagnosticPosition{Line: tok.Fim.Linha, Character: tok.Fim.Coluna - 1},
+		}
+	}
+
+	enviarMensagemLSP(ResponseMessage{
+		Jsonrpc: "2.0",
+		ID:      id,
+		Result: HoverResult{
+			Contents: MarkupContent{
+				Kind:  "markdown",
+				Value: markdown.String(),
+			},
+			Range: lspRange,
+		},
+	})
+}
+
+func responderDefinicaoLSP(id interface{}, params TextDocumentPositionParams) {
+	uri := params.TextDocument.URI
+	cache, existe := cacheAstLSP[uri]
+	if !existe {
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	palavra := palavraSobCursor(cache.codigo, params.Position.Line, params.Position.Character)
+	if palavra == "" {
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	node, tok := encontrarDeclNoAST(cache.prog, palavra)
+	if node == nil || tok == nil {
+		enviarMensagemLSP(ResponseMessage{Jsonrpc: "2.0", ID: id, Result: nil})
+		return
+	}
+
+	loc := Location{
+		URI: uri,
+		Range: DiagnosticRange{
+			Start: DiagnosticPosition{Line: tok.Inicio.Linha, Character: tok.Inicio.Coluna - 1},
+			End:   DiagnosticPosition{Line: tok.Fim.Linha, Character: tok.Fim.Coluna - 1},
+		},
+	}
+
+	enviarMensagemLSP(ResponseMessage{
+		Jsonrpc: "2.0",
+		ID:      id,
+		Result:  loc,
+	})
 }

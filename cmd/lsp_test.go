@@ -163,3 +163,82 @@ func TestLSPCompletion(t *testing.T) {
 		t.Errorf("Esperava lista de termos do autocomplete contendo 'funcao' e 'sinalPersistente'. Obtido: %s", saida)
 	}
 }
+
+// TestLSPHover assevera que o hover em um símbolo declarado retorna a assinatura e a documentação especial '///'
+func TestLSPHover(t *testing.T) {
+	uri := "file:///teste_hover.ptst"
+	codigo := "/// Esta funcao soma dois valores\nfuncao somar(a, b) {\n    retorne a + b\n}"
+
+	// Alimenta o cache do AST processando diagnóstico
+	processarDiagnosticosLSP(uri, codigo)
+
+	// Monta os parâmetros de hover posicionados em cima de "somar" (linha 1, coluna 7)
+	params := TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     DiagnosticPosition{Line: 1, Character: 7},
+	}
+	paramsBytes, _ := json.Marshal(params)
+
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	tratarRequisicaoLSP(RequestMessage{
+		Jsonrpc: "2.0",
+		ID:      4,
+		Method:  "textDocument/hover",
+		Params:  json.RawMessage(paramsBytes),
+	})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	saida := buf.String()
+
+	if !strings.Contains(saida, "funcao somar(a, b)") {
+		t.Errorf("Esperava assinatura da funcao 'somar' no hover. Obtido: %s", saida)
+	}
+
+	if !strings.Contains(saida, "Esta funcao soma dois valores") {
+		t.Errorf("Esperava documentação '/// Esta funcao soma dois valores' no hover. Obtido: %s", saida)
+	}
+}
+
+// TestLSPDefinition assevera que a requisição de definição 'F12' retorna o range correto no arquivo
+func TestLSPDefinition(t *testing.T) {
+	uri := "file:///teste_def.ptst"
+	codigo := "\n\nfuncao sub(a, b) {\n    retorne a - b\n}"
+
+	processarDiagnosticosLSP(uri, codigo)
+
+	params := TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     DiagnosticPosition{Line: 2, Character: 8}, // Em cima do "sub"
+	}
+	paramsBytes, _ := json.Marshal(params)
+
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	tratarRequisicaoLSP(RequestMessage{
+		Jsonrpc: "2.0",
+		ID:      5,
+		Method:  "textDocument/definition",
+		Params:  json.RawMessage(paramsBytes),
+	})
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	saida := buf.String()
+
+	if !strings.Contains(saida, "\"line\":2") {
+		t.Errorf("Esperava que o range apontasse para a linha 2 (onde sub foi definida). Obtido: %s", saida)
+	}
+}
+
