@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"image"
+	_ "image/gif"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +19,8 @@ func comandoCompilar() *cobra.Command {
 	var alvo string
 	var entrada string
 	var saida string
+	var estrito bool
+	var otimizarAssets bool
 
 	compilar := &cobra.Command{
 		Use:   "compilar",
@@ -52,8 +58,21 @@ func comandoCompilar() *cobra.Command {
 			}
 
 			// Executa o transpiler
-			transpiler := &TranspilerWeb{}
+			transpiler := &TranspilerWeb{
+				Estrito:       estrito,
+				DiretorioBase: filepath.Dir(entrada),
+			}
 			jsOutput := transpiler.Transpile(ast)
+
+			// ponytail: garante visibilidade do componente raiz no bundle final.
+			// Caso o usuário tenha declarado `funcao MeuApp(...) { ... }` no main.ptst sem
+			// marcar como exportado, prefixamos a declaração com `export` para que o
+			// `<script>` de bootstrap no index.html consiga importá-lo.
+			// Deve rodar ANTES do bloco de rotas para que o `if len(rotas) > 0` abaixo
+			// possa sobrescrever com sua própria definição de export-rotas.
+			if !strings.Contains(jsOutput, "export function MeuApp") && strings.Contains(jsOutput, "function MeuApp(") {
+				jsOutput = stringsReplaceOnce(jsOutput, "function MeuApp(", "export function MeuApp(")
+			}
 
 			// Detecção de diretório de rotas para roteamento SPA baseado em arquivos
 			entryDir := filepath.Dir(entrada)
@@ -147,6 +166,13 @@ func comandoCompilar() *cobra.Command {
 			for _, styleBlock := range transpiler.Styles {
 				cssContent += styleBlock + "\n\n"
 			}
+
+			// ponytail: integra classes utilitárias PT sob demanda baseadas no que foi detectado no JS
+			utilCSS := extraiEGerarCssUtilitarios(jsOutput)
+			if utilCSS != "" {
+				cssContent += utilCSS + "\n"
+			}
+
 			err = os.WriteFile(estiloPath, []byte(cssContent), 0644)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "erro ao gravar estilos.css: %v\n", err)
@@ -202,6 +228,12 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 				os.Exit(1)
 			}
 
+			// ponytail: otimização e cópia estática síncrona de assets de imagens
+			err = otimizarECopiarAssets(entryDir, saida, otimizarAssets)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "aviso ao processar assets de imagens: %v\n", err)
+			}
+
 			fmt.Println("🚀 Compilação concluída com sucesso!")
 			fmt.Printf("Arquivos gerados em '%s/':\n", saida)
 			fmt.Println("  - index.html   (ponto de entrada web)")
@@ -214,6 +246,8 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 	compilar.Flags().StringVarP(&alvo, "alvo", "a", "web", "Alvo da compilação (web)")
 	compilar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .ptst principal de entrada")
 	compilar.Flags().StringVarP(&saida, "saida", "s", "dist", "Diretório de destino da compilação")
+	compilar.Flags().BoolVar(&estrito, "estrito", false, "Ativa anotações JSDoc para tipagem estática")
+	compilar.Flags().BoolVar(&otimizarAssets, "otimizar-assets", false, "Otimiza e comprime imagens de assets (PNG, JPG, JPEG) para a saída")
 	return compilar
 }
 
@@ -235,4 +269,97 @@ func copiarArquivo(origem, destino string) error {
 		return err
 	}
 	return out.Sync()
+}
+
+// ponytail: helper mínimo para fazer apenas a PRIMEIRA substituição (em vez de ReplaceAll) sem
+// precisar import a stdlib regexp. Substituir por strings.Replace com n=2 não tem a mesma semântica
+// pois trocaria todos os matches a partir do segundo. A função abaixo preserva o primeiro match
+// e mantém o resto intacto.
+func stringsReplaceOnce(s, old, newStr string) string {
+	i := strings.Index(s, old)
+	if i < 0 {
+		return s
+	}
+	return s[:i] + newStr + s[i+len(old):]
+}
+
+// ponytail: otimizador e copiador estático de assets de imagens nativo
+func otimizarECopiarAssets(srcDir, destDir string, otimizar bool) error {
+	if _, err := os.Stat(srcDir); err != nil {
+		return nil
+	}
+
+	extensions := map[string]bool{
+		".png":  true,
+		".jpg":  true,
+		".jpeg": true,
+		".gif":  true,
+		".svg":  true,
+		".webp": true,
+	}
+
+	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			name := info.Name()
+			if name == "dist" || name == "pt_modulos" || name == "node_modules" || strings.HasPrefix(name, ".") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if !extensions[ext] {
+			return nil
+		}
+
+		rel, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return nil
+		}
+
+		destPath := filepath.Join(destDir, rel)
+		err = os.MkdirAll(filepath.Dir(destPath), 0755)
+		if err != nil {
+			return err
+		}
+
+		if otimizar && (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
+			err = otimizarImagemFisica(path, destPath, ext)
+			if err == nil {
+				return nil
+			}
+		}
+
+		return copiarArquivo(path, destPath)
+	})
+}
+
+// ponytail: codificador/decodificador de imagens nativo com compressão síncrona
+func otimizarImagemFisica(origem, destino, ext string) error {
+	file, err := os.Open(origem)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return err
+	}
+
+	out, err := os.Create(destino)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	if ext == ".png" {
+		encoder := png.Encoder{CompressionLevel: png.BestCompression}
+		return encoder.Encode(out, img)
+	}
+
+	return jpeg.Encode(out, img, &jpeg.Options{Quality: 75})
 }
