@@ -353,8 +353,10 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 	codigo := `
 	de "./EstiloBotao.estilo.ptst" importe CaixaBotao;
 
+	<!-- Comentário HTML Nativo no topo do arquivo -->
 	funcao App() {
 		retorne <div classe="App">
+			<!-- Comentário HTML Nativo dentro do JSX-like -->
 			<input ligar={nome} />
 			<button aoEnviar_prevenir={submeter}>Enviar</button>
 			<se condicao={Verdadeiro}>

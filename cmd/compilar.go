@@ -98,7 +98,8 @@ func comandoCompilar() *cobra.Command {
 
 			if rotasDir != "" {
 				err = filepath.Walk(rotasDir, func(path string, info os.FileInfo, err error) error {
-					if err != nil || info.IsDir() || filepath.Ext(path) != ".ptst" {
+					ext := filepath.Ext(path)
+					if err != nil || info.IsDir() || (ext != ".hrp" && ext != ".ptst") {
 						return nil
 					}
 					// Carrega e transpila o arquivo de rota
@@ -244,7 +245,7 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 	}
 
 	compilar.Flags().StringVarP(&alvo, "alvo", "a", "web", "Alvo da compilação (web)")
-	compilar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .ptst principal de entrada")
+	compilar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .hrp principal de entrada")
 	compilar.Flags().StringVarP(&saida, "saida", "s", "dist", "Diretório de destino da compilação")
 	compilar.Flags().BoolVar(&estrito, "estrito", false, "Ativa anotações JSDoc para tipagem estática")
 	compilar.Flags().BoolVar(&otimizarAssets, "otimizar-assets", false, "Otimiza e comprime imagens de assets (PNG, JPG, JPEG) para a saída")

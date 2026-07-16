@@ -1,6 +1,6 @@
-# Pacote `ptst` (Núcleo e Runtime do Portuscript)
+# Pacote `ptst` (Núcleo e Runtime do Harpia)
 
-O pacote `ptst` é o **coração e a Máquina Virtual de runtime** do interpretador do **Portuscript**. Ele implementa toda a infraestrutura de modelagem de dados dinâmicos, tabelas de símbolos e escopo, sistema de tipos orientados a objetos (Classes/Metaclasses) e os protocolos operacionais que governam a execução lógica de qualquer script.
+O pacote `ptst` é o **coração e a Máquina Virtual de runtime** do interpretador do **Harpia**. Ele implementa toda a infraestrutura de modelagem de dados dinâmicos, tabelas de símbolos e escopo, sistema de tipos orientados a objetos (Classes/Metaclasses) e os protocolos operacionais que governam a execução lógica de qualquer script.
 
 ---
 
@@ -21,7 +21,7 @@ O pacote `ptst` é o **coração e a Máquina Virtual de runtime** do interpreta
 
 ## 🧩 O Modelo Primordial de Objetos (`Objeto`)
 
-Toda e qualquer variável, constante, lista, mapa, função ou instância de classe tratada pela VM do Portuscript deve obrigatoriamente implementar a interface primordial Go definida no arquivo `objeto.go`:
+Toda e qualquer variável, constante, lista, mapa, função ou instância de classe tratada pela VM do Harpia deve obrigatoriamente implementar a interface primordial Go definida no arquivo `objeto.go`:
 
 ```go
 type Objeto interface {
@@ -37,7 +37,7 @@ type Objeto interface {
 
 ## 🏗️ Sistema de Classes e Metaclasses (`Tipo`)
 
-O arquivo `tipo.go` implementa a struct `Tipo`, que atua como a representação física de uma classe ou metaclasse na VM do Portuscript:
+O arquivo `tipo.go` implementa a struct `Tipo`, que atua como a representação física de uma classe ou metaclasse na VM do Harpia:
 
 ```go
 type Tipo struct {
@@ -59,7 +59,7 @@ Para evitar vazamentos de memória ou heranças quebradas, o interpretador reali
 
 ## 🔌 Tabela de Protocolos e Métodos Mágicos
 
-No Portuscript, operadores e funções globais (como `+`, `==`, `tamanho()`) não são acoplados rigidamente a tipos estáticos. Eles funcionam de forma dinâmica por meio de **Protocolos** de interfaces Go (métodos mágicos, conceitualmente idênticos aos *dunder methods* do Python) declarados em `interfaces.go`.
+No Harpia, operadores e funções globais (como `+`, `==`, `tamanho()`) não são acoplados rigidamente a tipos estáticos. Eles funcionam de forma dinâmica por meio de **Protocolos** de interfaces Go (métodos mágicos, conceitualmente idênticos aos *dunder methods* do Python) declarados em `interfaces.go`.
 
 ### Convenção de Nomenclatura Estrita:
 - Interfaces de tipagem Go devem iniciar com o caractere **`I`**.
@@ -69,7 +69,7 @@ No Portuscript, operadores e funções globais (como `+`, `==`, `tamanho()`) nã
 
 ### Protocolo de Coerção e Tipos
 
-| Interface Go | Método Vinculado | Equivalente no Portuscript | Descrição Técnica |
+| Interface Go | Método Vinculado | Equivalente no Harpia | Descrição Técnica |
 | :--- | :--- | :--- | :--- |
 | `I__texto__` | `M__texto__()` | `texto(obj)` | Converte o objeto para sua representação de string (`Texto`). |
 | `I__bytes__` | `M__bytes__()` | `bytes(obj)` | Converte o objeto para sua sequência de bytes raw (`Bytes`). |
@@ -122,11 +122,14 @@ A iteração inteligente de laços de repetição `para x em colecao` é provida
 
 ## 📇 Tabela de Símbolos e Resolução de Nomes (`Escopo`)
 
-O arquivo `escopo.go` gerencia o encadeamento e o isolamento de variáveis de tempo de execução (tabelas de símbolos) em nível de blocos e funções.
+O arquivo `escopo.go` gerencia o encadeamento e o isolamento de variáveis de tempo de execução (tabelas de símbolos) em nível de blocos e funções de forma 100% thread-safe:
 
 - **Encadeamento Léxico**: Cada instância de `Escopo` possui um ponteiro opcional para um escopo pai (`Pai *Escopo`).
+- **Sincronização de Concorrência do Escopo**: Cada escopo individual conta com seu próprio `sync.RWMutex` que protege o mapa hash de símbolos de acessos concorrentes (reads/writes) por múltiplas goroutines Go rodando processos assíncronas do Event Loop.
+- **Locks de Grão Fino em Símbolos**: Símbolos individuais do runtime (`ptst.Simbolo`) possuem um mutex local (`sync.RWMutex`) próprio que envolve as operações de consulta e gravação do seu campo `Valor`, garantindo atualizações atômicas e seguras.
+- **Cópia Rasa Segura para o GC**: O escopo expõe o método `ObterSimbolosSeguro()`. Ele adquire um lock de leitura e devolve uma fatia estável de referências a símbolos para que o Garbage Collector faça varreduras cíclicas sem perigo de colisões de mapas Go em tempo de execução.
 - **Algoritmo de Resolução de Símbolo (`ObterValor`)**:
-  1. Tenta localizar a variável/constante no mapa hash do escopo local. Se encontrar, devolve o valor.
+  1. Tenta localizar a variável/constante no mapa hash do escopo local (sob lock de leitura seguro). Se encontrar, devolve o valor.
   2. Se não encontrar e o ponteiro `Pai` for diferente de `nil`, sobe recursivamente na hierarquia de escopos executando a busca no escopo superior.
   3. Se atingir o escopo primordial global sem sucesso, lança uma exceção estruturada de erro de nome (**`NomeErro`**).
 
@@ -142,12 +145,56 @@ O arquivo `contexto.go` é o orquestrador macro da Máquina Virtual, responsáve
 
 ---
 
+## ⚠️ Tratamento de Exceções (`tente / capture / finalmente`)
+
+O Runtime do Harpia expõe um protocolo estruturado de tratamento de exceções totalmente em português, implementado em `interpretador.go` na rotina `visiteTenteCapture`:
+
+| Componente | Arquivo | Responsabilidade |
+| :--- | :--- | :--- |
+| `Erro` struct | `erros.go` | Representa uma exceção rica com `mensagem`, `linha`, `coluna`, `arquivo`, `token`, `sugestao`, `codigo`. |
+| `AdicionarContexto` | `erros.go` | Injeta metadados geográficos do `Contexto` da VM no erro (linha, coluna, arquivo). |
+| `visiteTenteCapture` | `interpretador.go` | Despachante: executa `tente`, desvia para `capture`, garante `finalmente`. |
+| `parseTenteCapture` | `parser/parser.go` | Constrói o nó de AST `TenteCaptureFinalmente` a partir dos tokens `TokenTente`, `TokenCapture`, `TokenFinalmente`. |
+
+**Semântica implementada (ver `excecoes_test.go`):**
+
+1. `tente { ... } capture (erro) { ... }` – bloco `capture` recebe o erro em escopo léxico isolado.
+2. `tente { ... }` – erros sem `capture` propagam após `finalmente` (se houver).
+3. `finalmente` sempre roda via `defer` Go – mesmo em sucesso, captura ou propagação.
+4. Erros em `finalmente` substituem o erro original.
+
+**Importante**: `AdicionarContexto` propaga os metadados geográficos automaticamente, então o `erro.linha`/`erro.arquivo` deve ser totalmente funcional em qualquer bloco `capture`.
+
+---
+
+---
+
+## 🗑️ Coletor de Memória por Contagem de Referências (`ObjetoGC`)
+
+Adicionado no fechamento da **Fase 2.5**. O pacote `ptst` implementa gerenciamento determinístico de ciclo de vida de objetos complexos mutáveis (como `Lista` e `Mapa`) usando contagem de referências ativa:
+
+* **Interface `ObjetoGC`**:
+  ```go
+  type ObjetoGC interface {
+      Objeto
+      Reter()
+      Liberar()
+      ObterRefs() int
+      ObterFilhos() []Objeto
+  }
+  ```
+* **Mixin `GCMixin`**: Estrutura leve e embutível contendo `RefsCount int`. Fornece comportamentos reusáveis de retenção (`Reter()`), liberação (`Liberar()`) e contagem (`ObterRefs()`).
+* **Imunidade de Singletons**: Constantes fundamentais e tipos nativos (como `Nulo`, `Verdadeiro`, `Falso`) são inicializados com `RefsCount = -1` de forma permanente, tornando-os imunes a decrementos.
+* **Quebra Simétrica de Ciclos (`ColetarCiclos`)**: Algoritmo de varredura *Trial Deletion* baseado em alcance léxico. Ele detecta de forma recursiva grafos isolados circulares órfãos (ex: Lista A contendo Lista B, e Lista B contendo Lista A) e quebra a ciclicidade esvaziando seus filhos, permitindo que suas referências cheguem a zero e o Garbage Collector nativo do Go os libere da memória de forma definitiva.
+
+---
+
 ## ⚙️ Mecânica Geral de Avaliação de AST
 
 Durante a interpretação física de um script, as etapas operacionais de baixo nível em `ptst` ocorrem de forma fluída:
 
 ```
-[Código Fonte Portuscript]
+[Código Fonte Harpia]
            │
            ▼
 [Parser] ➔ Compila para nós de AST BaseNode

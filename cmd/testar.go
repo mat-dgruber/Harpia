@@ -291,7 +291,7 @@ func encontrarArquivosTeste(raiz string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && (strings.HasSuffix(caminho, ".ptst") || strings.HasSuffix(caminho, ".pt")) {
+		if !d.IsDir() && (strings.HasSuffix(caminho, ".hrp") || strings.HasSuffix(caminho, ".ptst") || strings.HasSuffix(caminho, ".pt")) {
 			arquivos = append(arquivos, caminho)
 		}
 		return nil

@@ -12,7 +12,7 @@ Obrigado por considerar contribuir para o projeto PortuScript! Sua contribuiçã
 4. **Clone o Repositório Forked:** Clone o repositório forked para sua máquina local usando o seguinte comando:
 
    ```bash
-   git clone https://github.com/seu-usuario/portuscript.git
+   git clone https://github.com/seu-usuario/harpia.git
    ```
 5. **Crie um Branch:** Antes de começar a trabalhar em uma nova funcionalidade ou correção, crie um branch para sua tarefa específica:
 
@@ -20,7 +20,7 @@ Obrigado por considerar contribuir para o projeto PortuScript! Sua contribuiçã
    git checkout -b nome-da-sua-tarefa
    ```
 6. **Faça as Alterações:** Faça as alterações necessárias no código. Certifique-se de seguir as diretrizes de estilo e manter o código limpo.
-7. **Teste suas Alterações:** Execute a suíte de testes com `go test ./...` e crie testes para o Portuscript usando a sintaxe nativa `testar` em `/tests` ou nos arquivos correspondentes.
+7. **Teste suas Alterações:** Execute a suíte de testes com `go test ./...` e crie testes para o Harpia usando a sintaxe nativa `testar` em `/tests` ou nos arquivos correspondentes.
 8. **Envie as Alterações:** Quando você estiver satisfeito com suas alterações, faça commit e envie o branch para o seu fork:
 
    ```bash
@@ -82,8 +82,8 @@ Por favor, siga este padrão ao fazer seus commits.
 
 ## Agradecimentos
 
-O projeto Portuscript agradece a todos os contribuidores pela ajuda e apoio. Suas contribuições fazem deste projeto algo especial.
+O projeto Harpia agradece a todos os contribuidores pela ajuda e apoio. Suas contribuições fazem deste projeto algo especial.
 
 Se você tiver alguma dúvida ou precisar de assistência, sinta-se à vontade para abrir uma issue ou entrar em contato com o [desenvolvedor](https://github.com/natanfeitosa/).
 
-Obrigado por contribuir para o Portuscript!
+Obrigado por contribuir para o Harpia!

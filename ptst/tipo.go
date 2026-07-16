@@ -155,7 +155,12 @@ func init() {
 	)
 }
 
+func (b *Tipo) M__chame__(args Tupla) (Objeto, error) {
+	return b.M__nova_instancia__(b, args)
+}
+
 // Garantias de assinaturas estruturais em tempo de compilação Go.
 var _ Objeto = (*Tipo)(nil)
 var _ I_ObtemMapa = (*Tipo)(nil)
 var _ I__nova_instancia__ = (*Tipo)(nil)
+var _ I__chame__ = (*Tipo)(nil)

@@ -1,6 +1,6 @@
-# Pacote `compartilhado` (Utilitários do Portuscript)
+# Pacote `compartilhado` (Utilitários do Harpia)
 
-O pacote `compartilhado` reúne funções utilitárias e rotinas auxiliares fundamentais para a correta manipulação de strings, tokens, identificadores e conversões numéricas em múltiplos subsistemas do compilador e máquina virtual do **Portuscript** (como lexer, parser, compilador e interpretador).
+O pacote `compartilhado` reúne funções utilitárias e rotinas auxiliares fundamentais para a correta manipulação de strings, tokens, identificadores e conversões numéricas em múltiplos subsistemas do compilador e máquina virtual do **Harpia** (como lexer, parser, compilador e interpretador).
 
 O foco central deste pacote é fornecer **alta eficiência** no processamento e tratamento seguro de caracteres Unicode (UTF-8), mitigando gargalos comuns na análise de strings em Go.
 
@@ -65,7 +65,7 @@ Retorna uma string contendo exatamente um único caractere Unicode válido na po
 
 ### Predicados de Validação de Caracteres
 
-Usados pelo Lexer do Portuscript para análise léxica em tempo de varredura.
+Usados pelo Lexer do Harpia para análise léxica em tempo de varredura.
 
 #### 5. `ContemApenasLetras(str string) bool`
 Inspeciona cada runa da string e verifica se ela é classificada como uma letra válida segundo a tabela Unicode.
@@ -81,13 +81,13 @@ Verifica se todas as runas são classificadas como dígitos decimais Unicode.
 
 ## 🔢 Utilitários de Conversão Numérica
 
-O arquivo `numeros.go` centraliza a conversão de literais numéricos reconhecidos pelo analisador sintático para os formatos nativos interpretados pela VM do Portuscript.
+O arquivo `numeros.go` centraliza a conversão de literais numéricos reconhecidos pelo analisador sintático para os formatos nativos interpretados pela VM do Harpia.
 
 #### 1. `StringParaInt(s string) (int64, error)`
 Faz o parsing de um literal numérico inteiro em formato de string para um inteiro com sinal de 64 bits (`int64`).
 - **Base utilizada**: Base 10 (decimal).
 - **Tratamento**: Retorna um erro caso contenha pontos decimais, letras ou caracteres especiais de formatação inválidos.
-- **Por que int64?** O Portuscript adota precisão de 64 bits para seus tipos numéricos internos para evitar estouro de limite (overflow) e garantir compatibilidade cruzada estável entre diferentes plataformas (como compilador Go rodando em x86 ou ARM).
+- **Por que int64?** O Harpia adota precisão de 64 bits para seus tipos numéricos internos para evitar estouro de limite (overflow) e garantir compatibilidade cruzada estável entre diferentes plataformas (como compilador Go rodando em x86 ou ARM).
 
 #### 2. `StringParaDec(s string) (float64, error)`
 Converte strings literais contendo ponto flutuante para a representação decimal nativa do Go de dupla precisão (`float64`).
@@ -113,10 +113,10 @@ Função de utilidade definida em `compartilhado.go` para verificar se uma cadei
 
 ## 🏗️ Arquitetura e Fluxo no Compilador
 
-Durante o processo de compilação de um script Portuscript, o pacote `compartilhado` é consumido principalmente no início da pipeline:
+Durante o processo de compilação de um script Harpia, o pacote `compartilhado` é consumido principalmente no início da pipeline:
 
 ```
-[Código Fonte .pt] ➔ [Lexer] 
+[Código Fonte .hrp] ➔ [Lexer] 
                         │
                         ├─► Usa IndiceBytePorCarater() para mapear o arquivo
                         │
@@ -143,7 +143,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/natanfeitosa/portuscript/compartilhado"
+	"github.com/natanfeitosa/harpia/compartilhado"
 )
 
 func main() {

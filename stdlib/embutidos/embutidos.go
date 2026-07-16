@@ -37,6 +37,7 @@ func init() {
 			// ptst.TipoMapa,
 			ptst.TipoBooleano,
 			ptst.TipoBytes,
+			ptst.TipoCanal, // Primitiva de Concorrência CSP por Canais (Fase B)
 
 			// Erros e Exceções estruturadas da VM
 			ptst.TipoErro,
@@ -86,6 +87,66 @@ func init() {
 				return args[0].Tipo(), nil
 			},
 			"Obtem o tipo de um objeto",
+		),
+		// sinal(valorInicial) cria um sinal síncrono estático no backend para SSR
+		ptst.NewMetodoOuPanic(
+			"sinal",
+			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+				if err := ptst.VerificaNumeroArgumentos("sinal", false, args, 1, 1); err != nil {
+					return nil, err
+				}
+				valor := args[0]
+				// getter apenas retorna o valor estático
+				getter := ptst.NewMetodoOuPanic("getter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
+					return valor, nil
+				}, "")
+				// setter é um stub vazio
+				setter := ptst.NewMetodoOuPanic("setter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
+					return ptst.Nulo, nil
+				}, "")
+				return ptst.Tupla{getter, setter}, nil
+			},
+			"Cria um sinal reativo estático para SSR no backend",
+		),
+		// efeito(funcao) executa imediatamente a função informada
+		ptst.NewMetodoOuPanic(
+			"efeito",
+			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+				if err := ptst.VerificaNumeroArgumentos("efeito", false, args, 1, 1); err != nil {
+					return nil, err
+				}
+				return ptst.Chamar(args[0], nil)
+			},
+			"Executa um efeito reativo imediatamente no backend",
+		),
+		// derivado(funcao) executa e retorna o valor memoizado estático para SSR
+		ptst.NewMetodoOuPanic(
+			"derivado",
+			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+				if err := ptst.VerificaNumeroArgumentos("derivado", false, args, 1, 1); err != nil {
+					return nil, err
+				}
+				res, err := ptst.Chamar(args[0], nil)
+				if err != nil {
+					return nil, err
+				}
+				getter := ptst.NewMetodoOuPanic("getter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
+					return res, nil
+				}, "")
+				return getter, nil
+			},
+			"Cria um valor derivado estático no backend",
+		),
+		// armazem(objeto) simplesmente retorna o objeto no backend
+		ptst.NewMetodoOuPanic(
+			"armazem",
+			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+				if err := ptst.VerificaNumeroArgumentos("armazem", false, args, 1, 1); err != nil {
+					return nil, err
+				}
+				return args[0], nil
+			},
+			"Cria um armazem de estado global no backend",
 		),
 	}
 

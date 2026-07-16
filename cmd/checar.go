@@ -168,9 +168,9 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.DeclVar:
 		if l.Escopo.DeclaradaLocal(n.Nome) {
-			l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", n.Nome), "PSC-0002", 1, n)
+			l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", n.Nome), "HRP-0002", 1, n)
 		} else if l.Escopo.Declarada(n.Nome) {
-			l.registrarErro(fmt.Sprintf("O identificador '%s' está sombreando (shadowing) uma variável externa", n.Nome), "PSC-0002", 2, n)
+			l.registrarErro(fmt.Sprintf("O identificador '%s' está sombreando (shadowing) uma variável externa", n.Nome), "HRP-0002", 2, n)
 		}
 		if n.Constante {
 			l.Escopo.Consts[n.Nome] = true
@@ -182,18 +182,18 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	case *parser.Reatribuicao:
 		if id, ok := n.Objeto.(*parser.Identificador); ok {
 			if !l.Escopo.Declarada(id.Nome) {
-				l.registrarErro(fmt.Sprintf("Variável '%s' não foi declarada", id.Nome), "PSC-0005", 1, n)
+				l.registrarErro(fmt.Sprintf("Variável '%s' não foi declarada", id.Nome), "HRP-0005", 1, n)
 			} else if l.Escopo.IsConst(id.Nome) {
-				l.registrarErro(fmt.Sprintf("Não é permitido reatribuir valor à constante '%s'", id.Nome), "PSC-0002", 1, n)
+				l.registrarErro(fmt.Sprintf("Não é permitido reatribuir valor à constante '%s'", id.Nome), "HRP-0002", 1, n)
 			}
 		}
 		l.Checar(n.Expressao)
 
 	case *parser.DeclFuncao:
 		if l.Escopo.DeclaradaLocal(n.Nome) {
-			l.registrarErro(fmt.Sprintf("Função '%s' conflita com declaração existente", n.Nome), "PSC-0002", 1, n)
+			l.registrarErro(fmt.Sprintf("Função '%s' conflita com declaração existente", n.Nome), "HRP-0002", 1, n)
 		} else if l.Escopo.Declarada(n.Nome) {
-			l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "PSC-0002", 2, n)
+			l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "HRP-0002", 2, n)
 		}
 		l.Escopo.Variaveis[n.Nome] = true
 
@@ -202,7 +202,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		parametrosVistos := make(map[string]bool, len(n.Parametros))
 		for _, param := range n.Parametros {
 			if parametrosVistos[param.Nome] {
-				l.registrarErro(fmt.Sprintf("Parâmetro '%s' declarado mais de uma vez em '%s'", param.Nome, n.Nome), "PSC-0002", 1, param)
+				l.registrarErro(fmt.Sprintf("Parâmetro '%s' declarado mais de uma vez em '%s'", param.Nome, n.Nome), "HRP-0002", 1, param)
 			}
 			parametrosVistos[param.Nome] = true
 
@@ -232,7 +232,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.Identificador:
 		if !l.Escopo.Declarada(n.Nome) {
-			l.registrarErro(fmt.Sprintf("Identificador '%s' não encontrado no escopo", n.Nome), "PSC-0005", 1, n)
+			l.registrarErro(fmt.Sprintf("Identificador '%s' não encontrado no escopo", n.Nome), "HRP-0005", 1, n)
 		}
 
 	case *parser.OpBinaria:
@@ -346,7 +346,7 @@ func comandoChecar() *cobra.Command {
 						diagnostics = append(diagnostics, LSPDiagnostic{
 							Range:    DiagnosticRange{Start: DiagnosticPosition{Line: 0, Character: 0}, End: DiagnosticPosition{Line: 0, Character: 1}},
 							Severity: 1,
-							Code:     "PSC-0001",
+							Code:     "HRP-0001",
 							Source:   "portuscript-parser",
 							Message:  err.Error(),
 						})

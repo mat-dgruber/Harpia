@@ -1,10 +1,10 @@
-# 🇧🇷 Manual de Referência Oficial do Portuscript
+# 🇧🇷 Manual de Referência Oficial do Harpia
 
-Bem-vindo ao **Manual de Referência Oficial do Portuscript**, uma especificação exaustiva, de nível de engenharia, que documenta todos os subsistemas, tipos primitivos, biblioteca padrão (stdlib), compilador, analisadores, runtime e filosofia de design da linguagem **Portuscript**.
+Bem-vindo ao **Manual de Referência Oficial do Harpia**, uma especificação exaustiva, de nível de engenharia, que documenta todos os subsistemas, tipos primitivos, biblioteca padrão (stdlib), compilador, analisadores, runtime e filosofia de design da linguagem **Harpia**.
 
 Este d
 
-ocumento foi elaborado para servir tanto como um guia definitivo para desenvolvedores que escrevem programas em Portuscript quanto para engenheiros de sistemas que contribuem com a evolução de sua máquina virtual e compilador.
+ocumento foi elaborado para servir tanto como um guia definitivo para desenvolvedores que escrevem programas em Harpia quanto para engenheiros de sistemas que contribuem com a evolução de sua máquina virtual e compilador.
 
 ---
 
@@ -27,7 +27,7 @@ ocumento foi elaborado para servir tanto como um guia definitivo para desenvolve
 
 ## 1. Filosofia de Design e Arquitetura
 
-O Portuscript foi construído sob uma **perspectiva de design dupla**:
+O Harpia foi construído sob uma **perspectiva de design dupla**:
 
 1. **Ponte de Aprendizado:** Facilitar a transição suave de estudantes de programação no Brasil para linguagens de mercado (como JavaScript, Python, Go e C++), utilizando sintaxes modernas (blocos por chaves `{}`, escopo léxico estrito, corotinas assíncronas e tipagem dinâmica opcional) inteiramente em português.
 2. **Poder e Identidade Própria:** Ser uma linguagem real de produção. Não é um mero tradutor de códigos ou interpretador didático lento. Oferece reatividade nativa de alto desempenho via **Sinais**, uma biblioteca de socket de baixo nível, suporte a componentes do tipo JSX, um gerador de diagramas de arquitetura e um interpretador robusto com suporte a plugins compartilhados binários em Go ou C/C++ (`.so`).
@@ -35,7 +35,7 @@ O Portuscript foi construído sob uma **perspectiva de design dupla**:
 ### Estrutura Geral do Workspace de Diretórios
 
 ```
-portuscript/
+harpia/
 ├── cmd/               -> Comandos de terminal da CLI (Cobra)
 ├── compartilhado/     -> Utilitários Unicode (UTF-8) e de casting de strings
 ├── gramatica/         -> Especificação formal da linguagem (ANTLR4 .g4)
@@ -51,7 +51,7 @@ portuscript/
 
 ## 2. Interface de Linha de Comando (CLI)
 
-O utilitário de terminal do Portuscript foi construído usando a biblioteca **Cobra** (`github.com/spf13/cobra`). Toda a interface se comunica em português de forma natural.
+O utilitário de terminal do Harpia foi construído usando a biblioteca **Cobra** (`github.com/spf13/cobra`). Toda a interface se comunica em português de forma natural.
 
 ### Variáveis Globais de Build (Injeção via Linker)
 
@@ -63,58 +63,58 @@ O pipeline de CI/CD (usando GoReleaser) injeta metadados na compilação do exec
 
 ### Comandos Suportados
 
-#### 1. `portuscript` (ou `portuscript executar` sem argumentos)
+#### 1. `harpia` (ou `harpia executar` sem argumentos)
 
 Abre o REPL interativo com realce de sintaxe e controle de buffers multilinha.
 
-#### 2. `portuscript executar [arquivo.pt] [flags]` (Alias: `exec`)
+#### 2. `harpia executar [arquivo.hrp] [flags]` (Alias: `exec`)
 
 Interpreta e executa um script físico.
 
 * **Ordem de Carregamento**: Se uma string for fornecida pela flag `-c "codigo"`, o interpretador prioriza a execução do arquivo posicional e, em seguida, avalia o fragmento de código inline no mesmo contexto de execução.
-* **Flag `-c`, `--codigo`**: Executa um código direto no terminal (ex: `portuscript executar -c "imprima('Olá!')"`).
+* **Flag `-c`, `--codigo`**: Executa um código direto no terminal (ex: `harpia executar -c "imprima('Olá!')"`).
 
-#### 3. `portuscript testar [caminho]`
+#### 3. `harpia testar [caminho]`
 
-Varre recursivamente o diretório em busca de arquivos com extensões `.pt` ou `.ptst` e executa de forma isolada todos os blocos `testar` nativos definidos nos scripts, apresentando um relatório consolidado com o total de sucessos e falhas.
+Varre recursivamente o diretório em busca de arquivos com extensões `.hrp` ou `.hrp` e executa de forma isolada todos os blocos `testar` nativos definidos nos scripts, apresentando um relatório consolidado com o total de sucessos e falhas.
 
-#### 4. `portuscript atualize`
+#### 4. `harpia atualize`
 
 Executa o auto-update do executável a partir do repositório no GitHub.
 
-* **Algoritmo de Resolução**: Monta o caminho de instalação sob o diretório do usuário (`~/.portuscript/bin/portuscript`). Compara a versão local (executando o binário com `-v`) com a última tag disponível via API do GitHub usando a biblioteca `semver/v3`. Se houver atualizações, usa o `curl` para baixar o binário comprimido adequado para a arquitetura do cliente (mapeando de forma inteligente arquiteturas como `amd64` para `x86_64` e SOs como `darwin` para `Darwin`) e o extrai. Se a versão local for `"dev"`, o processo de atualização automática é impedido para preservar builds de desenvolvimento.
+* **Algoritmo de Resolução**: Monta o caminho de instalação sob o diretório do usuário (`~/.harpia/bin/harpia`). Compara a versão local (executando o binário com `-v`) com a última tag disponível via API do GitHub usando a biblioteca `semver/v3`. Se houver atualizações, usa o `curl` para baixar o binário comprimido adequado para a arquitetura do cliente (mapeando de forma inteligente arquiteturas como `amd64` para `x86_64` e SOs como `darwin` para `Darwin`) e o extrai. Se a versão local for `"dev"`, o processo de atualização automática é impedido para preservar builds de desenvolvimento.
 
-#### 5. `portuscript doc [entrada] [flags]`
+#### 5. `harpia doc [entrada] [flags]`
 
 Varre um diretório ou arquivo extraindo comentários iniciados com três barras (`///`) de funções, classes e métodos, gerando documentação estruturada exportada em formato Markdown (`--formato=markdown`) ou HTML (`--formato=html`).
 
-#### 6. `portuscript empacotar --entrada=[arquivo] --saida=[binario] [flags]`
+#### 6. `harpia empacotar --entrada=[arquivo] --saida=[binario] [flags]`
 
-Empacota um script Portuscript e todos os seus recursos em um executável binário autônomo (Single Binary Bundle) sem dependências externas compilando dinamicamente o código Go subjacente via `go build` com suporte a cross-compilation (`--so` e `--arq`).
-* **Suporte a WebAssembly (WASM)**: Se `--so=js` e `--arq=wasm` forem especificados, o comando compila o interpretador completo para WebAssembly (`docs/portal/portuscript.wasm`) e extrai o carregador JavaScript portátil `wasm_exec.js` correspondente do GOROOT do sistema.
+Empacota um script Harpia e todos os seus recursos em um executável binário autônomo (Single Binary Bundle) sem dependências externas compilando dinamicamente o código Go subjacente via `go build` com suporte a cross-compilation (`--so` e `--arq`).
+* **Suporte a WebAssembly (WASM)**: Se `--so=js` e `--arq=wasm` forem especificados, o comando compila o interpretador completo para WebAssembly (`docs/portal/harpia.wasm`) e extrai o carregador JavaScript portátil `wasm_exec.js` correspondente do GOROOT do sistema.
 
-#### 6.1. `portuscript diagramar [diretorio] [flags]`
+#### 6.1. `harpia diagramar [diretorio] [flags]`
 
 Analisa recursivamente a estrutura física do projeto para mapear e validar a hierarquia de importações entre as camadas do Clean Architecture.
 * **Flags**: `--formato` ou `-f` (`mermaid`, `html`, `svg`), `--saida` ou `-s`.
 * **Diagrama Interativo**: Se o formato for `html` (ou `svg`), gera um arquivo HTML standalone contendo o visualizador interativo Mermaid.js que colore de verde as importações válidas, de **vermelho grossa as violações arquiteturais**, e emite um botão para exportar diretamente o arquivo `.svg` correspondente.
 
-#### 6.2. `portuscript instalar [nome-do-pacote] [versao-opcional]`
+#### 6.2. `harpia instalar [nome-do-pacote] [versao-opcional]`
 
-Gerenciador de pacotes e dependências assíncrono para o ecossistema Portuscript.
+Gerenciador de pacotes e dependências assíncrono para o ecossistema Harpia.
 * **Resolução Remota Semver**: Permite baixar pacotes públicos e resolver restrições de versão semver (ex: `banco-dados: 1.0.0`) diretamente de um registro JSON remoto central em português, gravando o módulo na pasta local `pt_modulos/`.
 
-#### 7. `portuscript stressar [arquivo] [flags]`
+#### 7. `harpia stressar [arquivo] [flags]`
 
-Utilitário CLI interno para benchmarking e testes de estresse concorrentes de aplicações locais ou remotas escritas em Portuscript, detalhando estatísticas de tempo médio, mínimo, máximo e taxa de sucesso.
+Utilitário CLI interno para benchmarking e testes de estresse concorrentes de aplicações locais ou remotas escritas em Harpia, detalhando estatísticas de tempo médio, mínimo, máximo e taxa de sucesso.
 
-#### 8. `portuscript depurar [flags]`
+#### 8. `harpia depurar [flags]`
 
 Inicializa o servidor TCP nativo compatível com o protocolo Debug Adapter Protocol (DAP) na porta `4711` (ou customizada via `--porta`), viabilizando a depuração interativa integrada com editores modernos (VS Code).
 
-#### 9. `portuscript crie [rota | componente | modelo] [nome]`
+#### 9. `harpia crie [rota | componente | modelo] [nome]`
 
-Assistente interativo de scaffolding que gera templates estruturados de arquivos seguindo os padrões de Clean Architecture e DDD definidos para o ecossistema Portuscript.
+Assistente interativo de scaffolding que gera templates estruturados de arquivos seguindo os padrões de Clean Architecture e DDD definidos para o ecossistema Harpia.
 
 ---
 
@@ -126,7 +126,7 @@ O pacote `lexer` foi escrito inteiramente à mão em Go. Ele evita o uso de expr
 
 Em Go, strings são slices de bytes UTF-8. Um único caractere Unicode (acentos ou emojis) pode ocupar entre 1 e 4 bytes. Acessos diretos por índice (ex: `str[i]`) podem quebrar runas ao meio.
 
-* **Solução do Portuscript**: O arquivo `compartilhado/strings.go` implementa a função `IndiceBytePorCarater(str string) []int`. Ela varre a string decodificando runas via `utf8.DecodeRuneInString` e pré-calcula uma tabela de mapeamento. Desse modo, o Lexer consegue fazer conversões e fatiamentos de caracteres de forma segura e rápida em tempo constante $O(1)$.
+* **Solução do Harpia**: O arquivo `compartilhado/strings.go` implementa a função `IndiceBytePorCarater(str string) []int`. Ela varre a string decodificando runas via `utf8.DecodeRuneInString` e pré-calcula uma tabela de mapeamento. Desse modo, o Lexer consegue fazer conversões e fatiamentos de caracteres de forma segura e rápida em tempo constante $O(1)$.
 * **Cache Estático Thread-Safe Global**: Para suportar múltiplos interpretadores independentes rodando em paralelo sem colisões, o pacote `compartilhado` adota uma tabela de cache global protegida por um `sync.RWMutex`. Entradas são restritas a tamanhos menores que 4KB para evitar consumo excessivo de heap, e o cache inteiro é reciclado se ultrapassar 2048 registros, prevenindo estouros de memória.
 
 ### Estrutura Física de Coordenadas de Tokens
@@ -204,7 +204,7 @@ func (p *Parser) parseEsqLst(proximo func() (BaseNode, error), proxOp func() (st
 
 ### Flexibilidade da Regra de Ponto e Vírgula (`;`)
 
-O Portuscript permite omitir o uso de ponto e vírgula. O analisador trata `\n` (quebras de linha) e `EOF` (fim de arquivo) como delimitadores implícitos de instrução. A verificação é unificada em `consome(";")`:
+O Harpia permite omitir o uso de ponto e vírgula. O analisador trata `\n` (quebras de linha) e `EOF` (fim de arquivo) como delimitadores implícitos de instrução. A verificação é unificada em `consome(";")`:
 
 * Se o token corrente for de fato `";"`, consome-o e avança.
 * Se for uma nova linha ou término de arquivo, valida a instrução como completa sem reclamar, garantindo um código limpo estilo Python ou Go.
@@ -217,7 +217,7 @@ O pacote `ptst` gerencia a infraestrutura matemática, lógica, as tabelas de s�
 
 ### Interface Primordial `Objeto`
 
-Toda variável ou estrutura na VM do Portuscript satisfaz a interface polimórfica:
+Toda variável ou estrutura na VM do Harpia satisfaz a interface polimórfica:
 
 ```go
 type Objeto interface {
@@ -246,7 +246,7 @@ type Tipo struct {
 
 ### Resolução de Métodos Mágicos via Reflexão (Reflection)
 
-O Portuscript adota uma convenção estrita de nomenclatura: interfaces Go de protocolos mágicos iniciam com **`I`** e seus métodos com **`M`** (ex: `I__texto__` com `M__texto__()`).
+O Harpia adota uma convenção estrita de nomenclatura: interfaces Go de protocolos mágicos iniciam com **`I`** e seus métodos com **`M`** (ex: `I__texto__` com `M__texto__()`).
 
 Durante o acesso a atributos (`ObtemAtributoS`), se o atributo solicitado iniciar e terminar com duas sublinhas (método mágico, ex: `__texto__`), a VM usa reflexão de pacotes em Go:
 
@@ -275,7 +275,7 @@ As variáveis ativas e constantes são mantidas em estruturas `Escopo`:
 
 ## 6. Tipos de Dados Primitivos
 
-Todos os tipos de dados nativos no Portuscript possuem comportamentos específicos sob a VM:
+Todos os tipos de dados nativos no Harpia possuem comportamentos específicos sob a VM:
 
 ### 1. `Inteiro` (int64)
 
@@ -408,24 +408,24 @@ Recursos e controle de sistema de arquivos e caminhos. Requer `de "arquivos" imp
 Serialização e desserialização de formato de dados JSON. Requer `de "json" importe ...`.
 
 * **Métodos**:
-  * `analisar(textoJson)`: Desserializa uma string JSON em estruturas nativas de dados do Portuscript (Lista, Mapa, Inteiro, Decimal, Booleano, Nulo).
-  * `serializar(objeto)`: Converte estruturas de dados recursivas do Portuscript em string JSON representativa.
+  * `analisar(textoJson)`: Desserializa uma string JSON em estruturas nativas de dados do Harpia (Lista, Mapa, Inteiro, Decimal, Booleano, Nulo).
+  * `serializar(objeto)`: Converte estruturas de dados recursivas do Harpia em string JSON representativa.
 
 ### Módulo: `yaml`
 
 Serialização e desserialização de formato de dados YAML. Requer `de "yaml" importe ...`.
 
 * **Métodos**:
-  * `analisar(textoYaml)`: Desserializa uma string YAML em estruturas nativas de dados do Portuscript.
-  * `serializar(objeto)`: Converte estruturas de dados do Portuscript em string YAML.
+  * `analisar(textoYaml)`: Desserializa uma string YAML em estruturas nativas de dados do Harpia.
+  * `serializar(objeto)`: Converte estruturas de dados do Harpia em string YAML.
 
 ### Módulo: `xml`
 
 Serialização e desserialização de formato de dados XML. Requer `de "xml" importe ...`.
 
 * **Métodos**:
-  * `analisar(textoXml)`: Desserializa uma string XML em estruturas nativas de dados do Portuscript.
-  * `serializar(mapa, tagRaiz?)`: Converte um Mapa do Portuscript em string XML com a tag raiz opcional informada (padrão: "raiz").
+  * `analisar(textoXml)`: Desserializa uma string XML em estruturas nativas de dados do Harpia.
+  * `serializar(mapa, tagRaiz?)`: Converte um Mapa do Harpia em string XML com a tag raiz opcional informada (padrão: "raiz").
 
 ### Módulo: `cripto`
 
@@ -452,7 +452,7 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
   * **`Requisicao`**:
     * Representa os metadados da requisição HTTP recebida. Atributos:
       * `metodo`: String que descreve o método HTTP usado (ex: `"GET"`, `"POST"`).
-      * `caminho`: String contendo o caminho da rota requisitada (ex: `"/ola/portuscript"`).
+      * `caminho`: String contendo o caminho da rota requisitada (ex: `"/ola/harpia"`).
       * `cabecalho`: Mapa contendo os cabeçalhos recebidos.
       * `corpo`: Texto do corpo da mensagem HTTP.
       * `parametros`: Mapa dinâmico contendo as variáveis injetadas por rotas dinâmicas (ex: `req.parametros["nome"]` para a rota `/ola/:nome`).
@@ -517,7 +517,7 @@ Controle de sockets de baixo nível (TCP/IP). Requer `importar soquete`.
 
 ## 8. Recursos Avançados da Linguagem
 
-O Portuscript possui recursos modernos e engenhosos integrados nativamente em sua especificação gramatical e de runtime:
+O Harpia possui recursos modernos e engenhosos integrados nativamente em sua especificação gramatical e de runtime:
 
 ### 1. O Operador Pipe (`|>`)
 
@@ -531,7 +531,7 @@ Permite encadear transformações e chamadas consecutivas de dados de forma alta
 
 ### 1.1 Interpolação de Strings (Templates e Chaves `{}`)
 
-Adicionada no **Sprint 8**, permite embutir expressões lógicas de Portuscript diretamente em strings textuais (`TemplateLiteral`) e componentes delimitados por chaves `{ ... }`.
+Adicionada no **Sprint 8**, permite embutir expressões lógicas de Harpia diretamente em strings textuais (`TemplateLiteral`) e componentes delimitados por chaves `{ ... }`.
 
 * **Sintaxe**: `"Olá, { nome }!"` ou `"Dobro: { valor |> duplicar }"`
 * **Mecânica de Parsing**: O analisador sintático intercepta strings literais do tipo `lexer.TokenTexto` no parser (`parseAtomo`). Se detectar o padrão de chaves `{ ... }`, o parser segmenta a string em partes literais e expressões dinâmicas (`TemplateExpr`), parseando recursivamente com instâncias isoladas de Parser.
@@ -549,7 +549,7 @@ As funções aceitam declarações de valores padrão e chamadas referenciando p
 
 Parâmetros, retorno de função e variáveis podem receber anotações de tipo estáticas:
 
-```portuscript
+```harpia
 var idade: Inteiro = 18
 const PI: Decimal = 3.14
 
@@ -559,18 +559,18 @@ funcao soma(a: Inteiro, b: Inteiro = 0): Inteiro {
 ```
 
 * **Os tipos ficam registrados na AST** (`DeclVar.Tipo`, `DeclFuncaoParametro.Tipo`, `DeclFuncao.TipoRetorno`) e são validados ativamente se a flag `--estrito` estiver presente.
-* **Validação em tempo de execução**: Ao executar o script com a flag `--estrito` (`portuscript executar arquivo.ptst --estrito`), a VM valida se o valor atribuído a uma variável ou o retorno/parâmetros de uma chamada de função são compatíveis com os tipos anotados. Violações lançam erro do tipo `TipagemErro` (PSC-0004).
+* **Validação em tempo de execução**: Ao executar o script com a flag `--estrito` (`harpia executar arquivo.hrp --estrito`), a VM valida se o valor atribuído a uma variável ou o retorno/parâmetros de uma chamada de função são compatíveis com os tipos anotados. Violações lançam erro do tipo `TipagemErro` (PSC-0004).
 * **Tipos suportados**:
   * Primitivos: `Inteiro`, `Decimal`, `Texto`, `Booleano` (ou `Logico`), `Nulo`
   * Compostos: `Lista<T>`, `Mapa<C, V>`, `Tupla` (com validação profunda recursiva de elementos)
   * Assinaturas: `funcao` (ou `Funcao`) para qualquer objeto chamável.
 
-### 2.2. Linter Estático — `portuscript checar`
+### 2.2. Linter Estático — `harpia checar`
 
-Comando que varre diretórios recursivamente em busca de arquivos `.ptst`/`.pt` e os analisa sem executar.
+Comando que varre diretórios recursivamente em busca de arquivos `.hrp`/`.hrp` e os analisa sem executar.
 
 ```bash
-$ portuscript checar ./src --formato=json --estrito
+$ harpia checar ./src --formato=json --estrito
 ```
 
 #### Flags Suportadas
@@ -594,7 +594,7 @@ Para detalhes de implementação, ver `cmd/checar.go`.
 
 Fluxo clássico de tratamento de erros nativo em português:
 
-```portuscript
+```harpia
 tente {
     var resultado = 10 / 0
 } capture (erro) {
@@ -620,25 +620,25 @@ Permite carregar dinamicamente bibliotecas compiladas na linguagem Go como exten
 
 ## 9. Arcabouço de Testes Nativos (TDD)
 
-O Portuscript estimula a escrita de testes de qualidade integrando as asserções e as suítes diretamente na sintaxe da linguagem.
+O Harpia estimula a escrita de testes de qualidade integrando as asserções e as suítes diretamente na sintaxe da linguagem.
 
 ### A Palavra-Chave `testar`
 
 Permite declarar um bloco de teste nomeado no próprio script:
 
-```portuscript
+```harpia
 testar "deve somar dois numeros corretamente" {
     assegura(soma(2, 2) == 4, "A soma deve ser quatro!")
 }
 ```
 
-* **Isolamento de Estado**: Ao rodar a suíte de testes (`portuscript testar`), o compilador cria um escopo temporário para cada bloco `testar` que herda as variáveis, constantes e importações globais do arquivo original, mas previne colisões e vazamentos de estado de um teste para o outro.
+* **Isolamento de Estado**: Ao rodar a suíte de testes (`harpia testar`), o compilador cria um escopo temporário para cada bloco `testar` que herda as variáveis, constantes e importações globais do arquivo original, mas previne colisões e vazamentos de estado de um teste para o outro.
 
 ### A Diretiva `assegura` (ou `assegure`)
 
 Atua como a asserção padrão do TDD. Recebe uma expressão de verificação e uma mensagem textual opcional de erro:
 
-```portuscript
+```harpia
 assegura condicao, "Mensagem caso falhe";
 ```
 
@@ -648,7 +648,7 @@ assegura condicao, "Mensagem caso falhe";
 
 ## 10. Diagnósticos e Tratamento de Erros Ricos
 
-Um dos recursos mais inovadores do Portuscript é o seu sistema visual de diagnósticos educativos voltados ao ensino de programação.
+Um dos recursos mais inovadores do Harpia é o seu sistema visual de diagnósticos educativos voltados ao ensino de programação.
 
 ### Estrutura Geral do Objeto `Erro`
 
@@ -692,7 +692,7 @@ Para facilitar pesquisas em fóruns e documentações de suporte, cada erro é a
 O interpretador analisa heuristicamente as palavras causadoras do erro no momento de formatar a saída. Se o programador tiver cometido erros de digitação comuns, o compilador fornece a correção amigável em português:
 
 * Se `NomeErro` for disparado e o lexema de falha for `"imrpimir"` ou `"imprimi"`, sugere: `Você quis dizer 'imprimir'?`.
-* Se `SintaxeErro` for disparado com a palavra `"retornar"`, sugere: `Em Portuscript, use a palavra-chave 'retorne' para retornar valores.`.
+* Se `SintaxeErro` for disparado com a palavra `"retornar"`, sugere: `Em Harpia, use a palavra-chave 'retorne' para retornar valores.`.
 * Se `DivisaoPorZeroErro` for disparado, sugere: `Não é possível dividir um número por zero.`.
 
 ### O Renderizador de Traceback com Cores ANSI
@@ -704,10 +704,10 @@ O método `Error()` da struct `Erro` implementa um dos melhores formatadores vis
 
 ### Integração com IA Local (Ollama) para Explicação de Erros
 
-A partir do fechamento da **Fase 1**, o comando `portuscript erro` conta com o subcomando `explicar` para fornecer ajuda inteligente utilizando inteligência artificial local:
+A partir do fechamento da **Fase 1**, o comando `harpia erro` conta com o subcomando `explicar` para fornecer ajuda inteligente utilizando inteligência artificial local:
 
 ```bash
-$ portuscript erro explicar PSC-0005
+$ harpia erro explicar PSC-0005
 ```
 
 * **Fluxo de Integração**: O comando realiza uma conexão HTTP local segura com a instância do Ollama (`127.0.0.1:11434/api/generate`) requisitando ao modelo `gemma` uma explicação didática do erro.
@@ -717,7 +717,7 @@ $ portuscript erro explicar PSC-0005
 
 ## 11. Console Interativo (REPL / Playground)
 
-O playground do Portuscript é acessado digitando apenas `portuscript` no terminal. Ele utiliza a biblioteca **Liner** para gerenciar entradas e manter um histórico persistente e inteligente.
+O playground do Harpia é acessado digitando apenas `harpia` no terminal. Ele utiliza a biblioteca **Liner** para gerenciar entradas e manter um histórico persistente e inteligente.
 
 ### Máquina de Estados e Prompt Multilinha (Controle em `estado.go`)
 
@@ -734,7 +734,7 @@ strings.Count(codigo, "{") > strings.Count(codigo, "}")
 
 ### Persistência de Histórico de Comandos em Disco
 
-O histórico de comandos não é perdido ao fechar a sessão. Na inicialização do playground, a VM localiza o diretório Home do usuário e abre/cria o arquivo oculto **`~/.historico_portuscript`**, lendo e carregando os comandos anteriores. Ao fechar (via Ctrl+D ou comando `sair()`), o REPL atualiza e grava a lista de comandos de volta ao disco de forma persistente.
+O histórico de comandos não é perdido ao fechar a sessão. Na inicialização do playground, a VM localiza o diretório Home do usuário e abre/cria o arquivo oculto **`~/.historico_harpia`**, lendo e carregando os comandos anteriores. Ao fechar (via Ctrl+D ou comando `sair()`), o REPL atualiza e grava a lista de comandos de volta ao disco de forma persistente.
 
 ### O Arquivo Virtual `<playground>` e Persistência de Escopo
 
@@ -752,11 +752,11 @@ Todas as expressões avaliadas utilizam o mesmo escopo persistente deste módulo
 
 ## 11.1 Máquina Virtual de Pilha (Fase 2)
 
-A partir da **Fase 2** (Fase de Otimização e Bytecode), o Portuscript conta com uma máquina virtual de pilha altamente eficiente escrita em Go, substituindo a execução clássica de árvore (tree-walk).
+A partir da **Fase 2** (Fase de Otimização e Bytecode), o Harpia conta com uma máquina virtual de pilha altamente eficiente escrita em Go, substituindo a execução clássica de árvore (tree-walk).
 
 ### O Compilador de Bytecode
 
-A AST do programa é compilada estaticamente para bytecode compacto (`.ptc`) de passagem única:
+A AST do programa é compilada estaticamente para bytecode compacto (`.hrpc`) de passagem única:
 
 * **Pool de Constantes**: Literais do programa (textos, números inteiros, decimais, booleanos, nulos) são internados de forma deduplicada no pool de constantes, otimizando alocações.
 * **Opcodes de 1 Byte**: Instruções compactas que controlam a pilha (`OP_PUSH_CONST`, `OP_POP`, `OP_DUP`), execução aritmética (`OP_ADD`, `OP_SUB`), controle de fluxo (`OP_JMP`, `OP_JMP_FALSO`, `OP_RETORNE`) e escopo (`OP_CARREGAR_VAR`, `OP_ARMAZENAR_VAR`).
@@ -771,12 +771,12 @@ A AST do programa é compilada estaticamente para bytecode compacto (`.ptc`) de 
 Para rodar qualquer script na nova VM de bytecode, basta passar a flag `--vm` ao comando de execução:
 
 ```bash
-$ portuscript executar script.ptst --vm
+$ harpia executar script.hrp --vm
 ```
 
 ### Motor JIT de Traço por Threaded Callbacks (Fase F)
 
-Para atingir o limite máximo de velocidade de execução e aniquilar o custo clássico de decodificação de instruções de interpretadores virtuais (gargalos de loops de `switch/case`), o Portuscript incorpora uma inovadora tecnologia de **Direct-Threaded Code JIT**:
+Para atingir o limite máximo de velocidade de execução e aniquilar o custo clássico de decodificação de instruções de interpretadores virtuais (gargalos de loops de `switch/case`), o Harpia incorpora uma inovadora tecnologia de **Direct-Threaded Code JIT**:
 
 * **Compilação Dinâmica "Just-In-Time"**: Ao carregar um frame de bytecode para execução, a VM de pilha realiza de forma transparente uma passagem de compilação threaded de passagem única, traduzindo o array plano de bytecodes em um array estável de ponteiros de funções Go (`[]InstrucaoThreaded`).
 * **Currying de Operandos e Constantes**: Os operandos e constantes são pré-capturados no encerramento (closure) de cada callback Go em tempo de JIT. Isso elimina buscas de memória e incrementos de IP em tempo de execução, resolvendo os valores diretamente de referências estáticas.
@@ -793,7 +793,7 @@ Os testes de benchmark mostram ganhos espetaculares de performance medidos local
 
 ### Gerenciamento de Memória por Contagem de Referências (Fase 2.5)
 
-A VM de pilha do Portuscript conta com gerenciamento de memória explícito e determinístico:
+A VM de pilha do Harpia conta com gerenciamento de memória explícito e determinístico:
 
 * **Protocolo de Referências Ativo**: Utiliza as interfaces `ObjetoGC` e `GCMixin` (`ptst/gc.go`) para controlar as referências de forma ativa nas instruções de empilhamento (`push`), desempilhamento (`pop`) e armazenamento de variáveis (`OP_ARMAZENAR_VAR`).
 * **Imunidade de Singletons**: Globais, classes nativas e constantes singleton (`Nulo`, `Verdadeiro`, `Falso`) são inicializadas com `-1` referências de forma imune, garantindo no-ops em retenções e prevenindo coletas acidentais.
@@ -803,7 +803,7 @@ A VM de pilha do Portuscript conta com gerenciamento de memória explícito e de
 
 ### 11.2. Primitivas de Concorrência & Event Loop Cooperativo (Sprints 9 e 10)
 
-A VM de pilha do Portuscript integra suporte nativo a concorrência assíncrona baseada em corotinas de suspensão cooperativa:
+A VM de pilha do Harpia integra suporte nativo a concorrência assíncrona baseada em corotinas de suspensão cooperativa:
 
 * **Palavras-Chave**: `assincrono` e `aguarde`.
 * **Mapeamento de Funções Assíncronas**: Funções marcadas com o modificador `assincrono funcao` têm seu flag `Assincrono` ativado pelo compilador de bytecode.
@@ -816,9 +816,9 @@ A VM de pilha do Portuscript integra suporte nativo a concorrência assíncrona 
 
 ### 11.3. Robustez & Modo Sandbox de Segurança (Fase A)
 
-Para garantir que o Portuscript opere como um motor de backend profissional, seguro e de nível industrial, foram integradas proteções nativas no runtime e na biblioteca padrão:
+Para garantir que o Harpia opere como um motor de backend profissional, seguro e de nível industrial, foram integradas proteções nativas no runtime e na biblioteca padrão:
 
-* **Recovery Middleware (Prevenção de Pânicos em Goroutines)**: Todas as requisições tratadas pelo servidor HTTP em background são envelopadas por um tratador `defer recover()`. Se houver pânico lógico inesperado, ele é interceptado de forma segura, respondendo com HTTP 500 sem derrubar o processo e a execução global do interpretador Portuscript.
+* **Recovery Middleware (Prevenção de Pânicos em Goroutines)**: Todas as requisições tratadas pelo servidor HTTP em background são envelopadas por um tratador `defer recover()`. Se houver pânico lógico inesperado, ele é interceptado de forma segura, respondendo com HTTP 500 sem derrubar o processo e a execução global do interpretador Harpia.
 * **Defesa contra Ataques Slowloris**: Configuração nativa de tempos de limite rígidos (`ReadTimeout: 5s`, `WriteTimeout: 10s`, `IdleTimeout: 120s`) no servidor HTTP para encerrar conexões obsoletas ou propositalmente lentas.
 * **Modo Sandbox por Bloqueio de Acesso**: Adição das flags estruturais de restrição de segurança no contexto de execução do interpretador:
   * `BloquearArquivos`: Impede de forma física qualquer leitura, escrita, deleção ou modificação de arquivos do sistema operacional pelo módulo de `arquivos`.
@@ -829,11 +829,11 @@ Para garantir que o Portuscript opere como um motor de backend profissional, seg
 
 ## 12. Guia de Sintaxe Rápida e Exemplos de Produção
 
-Abaixo estão descritos snippets estruturados que consolidam as peculiaridades e a sintaxe operacional da linguagem Portuscript.
+Abaixo estão descritos snippets estruturados que consolidam as peculiaridades e a sintaxe operacional da linguagem Harpia.
 
 ### 1. Declaração de Variáveis, Constantes e Tipagem Opcional
 
-```portuscript
+```harpia
 # Variável mutável com tipo inferido
 var nome = "Carlos"
 
@@ -849,7 +849,7 @@ const PI = 3.14159
 
 ### 2. Condicionais Limpas (Sem Parênteses)
 
-```portuscript
+```harpia
 se idade >= 18 {
     imprimir("Maior de idade")
 } senao se idade == 17 {
@@ -861,7 +861,7 @@ se idade >= 18 {
 
 ### 3. Laços de Repetição (enquanto e para-em)
 
-```portuscript
+```harpia
 # 1. Loop condicional 'enquanto'
 var contador = 1
 enquanto contador <= 5 {
@@ -882,7 +882,7 @@ para num em sequencia(1, 10, 2) {
 
 ### 4. Classes, Herança Simples e Enlace de 'self'
 
-```portuscript
+```harpia
 classe Animal {
     # Construtor inicializador padrão
     func inicializar(self, nome) {
@@ -918,7 +918,7 @@ imprimir(pet instancia de Animal)   # Saída: Verdadeiro
 
 ### 5. Encadeamentos Fluídos com Operador Pipe (`|>`)
 
-```portuscript
+```harpia
 func duplicar(x) {
     retorne x * 2
 }
@@ -935,7 +935,7 @@ imprimir(resultado) # Saída: 25
 
 ### 6. Servidor de Redes Assíncrono TCP Não-Bloqueante Completo
 
-```portuscript
+```harpia
 # Implementação de um Servidor de Eco (Echo Server) rodando localmente na porta 3000
 de "soquete" importe Soquete;
 
@@ -950,7 +950,7 @@ servidor.def_nao_bloqueante(Verdadeiro)
 servidor.associa("127.0.0.1", 3000)
 servidor.ouve()
 
-imprimir("Servidor Portuscript rodando com sucesso em 127.0.0.1:3000")
+imprimir("Servidor Harpia rodando com sucesso em 127.0.0.1:3000")
 
 enquanto Verdadeiro {
     # Aceita conexões entrantes sem travar o thread principal
@@ -977,7 +977,7 @@ enquanto Verdadeiro {
 
 ### 7. Integração e Contratos RPC Decoupled Nativos (`@backend/`)
 
-O Portuscript suporta a geração automática de contratos de API a partir de manifestos `dependencias.json` no ecossistema local do projeto.
+O Harpia suporta a geração automática de contratos de API a partir de manifestos `dependencias.json` no ecossistema local do projeto.
 
 #### O Manifesto `dependencias.json`
 
@@ -994,10 +994,10 @@ O arquivo `dependencias.json` deve ser colocado na raiz do projeto e mapeia o en
 
 Ao carregar scripts, o compilador intercepta importações iniciadas com o prefixo `@backend/`.
 
-* **Análise Estática por AST (Fase C)**: O sistema de importações carrega o arquivo `.ptst` do backend correspondente e invoca o parser nativo do Portuscript para gerar a sua árvore sintática abstrata (AST). Ele percorre as declarações de forma estática procurando nós reais de exportação (`DeclExportar` contendo `DeclFuncao`). Isso garante um mapeamento de contratos 100% preciso, imune a espaços, comentários ou quebras de linhas no arquivo original.
-* **Geração Estática de Proxies**: Com base nas funções extraídas, o Portuscript gera em tempo de execução um objeto de módulo proxy cujas propriedades são funções dinâmicas do Go. Ao serem executadas, elas realizam automaticamente uma requisição POST HTTP serializada para a URL mapeada em `dependencias.json`.
+* **Análise Estática por AST (Fase C)**: O sistema de importações carrega o arquivo `.hrp` do backend correspondente e invoca o parser nativo do Harpia para gerar a sua árvore sintática abstrata (AST). Ele percorre as declarações de forma estática procurando nós reais de exportação (`DeclExportar` contendo `DeclFuncao`). Isso garante um mapeamento de contratos 100% preciso, imune a espaços, comentários ou quebras de linhas no arquivo original.
+* **Geração Estática de Proxies**: Com base nas funções extraídas, o Harpia gera em tempo de execução um objeto de módulo proxy cujas propriedades são funções dinâmicas do Go. Ao serem executadas, elas realizam automaticamente uma requisição POST HTTP serializada para a URL mapeada em `dependencias.json`.
 
-```portuscript
+```harpia
 # Importa de forma remota a função 'obterUsuario' definida no backend
 de "@backend/usuarios" importe obterUsuario
 
@@ -1009,18 +1009,18 @@ imprimir(dados) # Realiza uma chamada HTTP POST de forma totalmente transparente
 
 ## 13. Desenvolvimento Frontend Reativo e SPA (Sinais, JSX, Estilos e SSR)
 
-A partir da **Fase 4**, o Portuscript suporta de forma unificada o desenvolvimento de interfaces reativas e de alta performance que rodam diretamente no navegador do usuário final. O compilador transpila o código Portuscript para JavaScript (ES6) otimizado e de tamanho mínimo acompanhado de um motor de Virtual DOM com reatividade baseada em Sinais (~2.2KB final).
+A partir da **Fase 4**, o Harpia suporta de forma unificada o desenvolvimento de interfaces reativas e de alta performance que rodam diretamente no navegador do usuário final. O compilador transpila o código Harpia para JavaScript (ES6) otimizado e de tamanho mínimo acompanhado de um motor de Virtual DOM com reatividade baseada em Sinais (~2.2KB final).
 
 ### 13.1. Reatividade por Sinais (Fine-Grained)
 
-A reatividade do Portuscript atualiza de forma fina e cirúrgica apenas os nós do DOM que mudaram, prevenindo re-renderizações totais de página:
+A reatividade do Harpia atualiza de forma fina e cirúrgica apenas os nós do DOM que mudaram, prevenindo re-renderizações totais de página:
 
 * **`sinal(valor)`**: Cria um estado reativo. Retorna um array `[ler, definir]`.
 * **`efeito(funcao)`**: Re-executa de forma automática sempre que os sinais dependentes sofrerem alteração.
 * **`derivado(funcao)`**: Cria um sinal computado e memoizado.
 * **`armazem(objeto)`**: Gerenciador de estado global sincronizado entre múltiplos componentes.
 
-```portuscript
+```harpia
 var contadorSinal = sinal(0);
 var contador = contadorSinal[0];
 var setContador = contadorSinal[1];
@@ -1040,7 +1040,7 @@ Permite mesclar tags HTML e códigos de forma nativa e semantica:
   * `<se condicao={...}>...</se>`: Condicional dinâmico.
   * `<para item em lista={...}>...</para>`: Loops reativos eficientes.
 
-```portuscript
+```harpia
 funcao App() {
     retorne <div classe="p-4">
         <h1>Contador: {contador()}</h1>
@@ -1062,11 +1062,11 @@ A CLI detecta de forma automática pastas de rotas (`/web/rotas/` ou `/rotas/`) 
 
 ### 13.5. SSR (Server-Side Rendering) e Hidratação
 
-O servidor de backend do Portuscript (`stdlib/http/http.go`) pode renderizar as páginas em HTML estático inicial instantâneo contendo metadados ricos de JSON-LD Schema.org (AEO) e OpenGraph. No navegador, o runtime web liga de forma invisível os Sinais existentes na estrutura física (Processo de Hidratação), ligando os fios de reatividade sem piscar ou destruir o DOM estático inicial.
+O servidor de backend do Harpia (`stdlib/http/http.go`) pode renderizar as páginas em HTML estático inicial instantâneo contendo metadados ricos de JSON-LD Schema.org (AEO) e OpenGraph. No navegador, o runtime web liga de forma invisível os Sinais existentes na estrutura física (Processo de Hidratação), ligando os fios de reatividade sem piscar ou destruir o DOM estático inicial.
 
 ### 13.6. Arquitetura SPA comparada ao Angular
 
-Para desenvolvedores com experiência em Angular, o Portuscript Web oferece equivalências diretas e simplificadas de design:
+Para desenvolvedores com experiência em Angular, o Harpia Web oferece equivalências diretas e simplificadas de design:
 
 * **Pipes** ➔ Operador Pipe nativo (`|>`) para formatações visuais limpas em templates.
 * **Directives** ➔ Tags de controle JSX (`<se>` para `*ngIf`, `<para>` para `*ngFor`).
@@ -1075,15 +1075,15 @@ Para desenvolvedores com experiência em Angular, o Portuscript Web oferece equi
 
 ### 13.7. Modelo Híbrido de Desenvolvimento (Arquivos Separados)
 
-Para suportar o desenvolvimento de sistemas complexos e evitar arquivos gigantescos, o Portuscript permite separar de forma limpa as responsabilidades visuais, de estilo e de comportamento lógico:
+Para suportar o desenvolvimento de sistemas complexos e evitar arquivos gigantescos, o Harpia permite separar de forma limpa as responsabilidades visuais, de estilo e de comportamento lógico:
 
-1. **Estilos em Português (`.estilo.ptst`)**: Arquivos com extensão `.estilo.ptst` contêm exclusivamente blocos de estilo declarados em português (ex: `estilo Caixa { ... }`). Eles podem ser importados normalmente no seu arquivo de lógica.
+1. **Estilos em Português (`.estilo.hrp`)**: Arquivos com extensão `.estilo.hrp` contêm exclusivamente blocos de estilo declarados em português (ex: `estilo Caixa { ... }`). Eles podem ser importados normalmente no seu arquivo de lógica.
 2. **Layouts HTML Separados (`.html`)**: Você pode extrair a marcação JSX para arquivos `.html` separados e carregá-los de dentro da lógica do componente usando a chamada nativa `importarHtml("./template.html")`. O compilador em Go lê o arquivo e faz o inline dinâmico do HTML traduzido em tempo de compilação.
 
-```portuscript
-# Exemplo de arquivo lógico: BotaoPersonalizado.ptst
+```harpia
+# Exemplo de arquivo lógico: BotaoPersonalizado.hrp
 de "web" importe sinal, importarHtml;
-de "./BotaoPersonalizado.estilo.ptst" importe CaixaDeBotao; # Importa estilo do .estilo.ptst
+de "./BotaoPersonalizado.estilo.hrp" importe CaixaDeBotao; # Importa estilo do .estilo.hrp
 
 funcao BotaoPersonalizado() {
     var [contador, setContador] = sinal(0);
@@ -1094,7 +1094,7 @@ funcao BotaoPersonalizado() {
 
 ### 13.8. Recursos e Primitivas de Nível de Produção
 
-O ecossistema frontend do Portuscript inclui inovações de performance e facilidade de desenvolvimento para sustentar sistemas corporativos de grande porte:
+O ecossistema frontend do Harpia inclui inovações de performance e facilidade de desenvolvimento para sustentar sistemas corporativos de grande porte:
 
 * **Two-Way Data Binding (`ligar={sinal}`)**: Elimina o código repetitivo em formulários. Ao usar `<input ligar={nome} />`, o compilador e o runtime criam o vínculo bidirecional reativo automático entre o sinal de estado e o elemento físico de entrada do browser.
 * **Modificadores de Eventos Declarativos**: Encadeamento direto na propriedade de eventos para manipulação do comportamento físico (ex: `aoEnviar_prevenir={submeter}` intercepta e executa `e.preventDefault()` de forma transparente antes do callback, e `aoClicar_parar` executa `e.stopPropagation()`).
@@ -1112,28 +1112,28 @@ O ecossistema frontend do Portuscript inclui inovações de performance e facili
 Você pode inicializar uma estrutura padrão de projeto completa com suporte híbrido de forma automática utilizando a CLI Cobra:
 
 ```bash
-portuscript iniciar meu_app
+harpia iniciar meu_app
 ```
 
 O comando gerará os seguintes diretórios e arquivos de exemplo pré-configurados no disco:
 
-* `/main.ptst` (ponto de entrada que monta a aplicação)
-* `/web/rotas/index.ptst` (página de início demonstrando importações de arquivos)
-* `/web/componentes/Botao.ptst` (componente visual lógico)
-* `/web/componentes/Botao.estilo.ptst` (folha de estilo separada inteiramente em português)
+* `/main.hrp` (ponto de entrada que monta a aplicação)
+* `/web/rotas/index.hrp` (página de início demonstrando importações de arquivos)
+* `/web/componentes/Botao.hrp` (componente visual lógico)
+* `/web/componentes/Botao.estilo.hrp` (folha de estilo separada inteiramente em português)
 * `/web/componentes/Layout.html` (layout HTML separado demonstrando o uso de `importarHtml`)
 
 ### 13.10. Novas Primitivas Avançadas e Sinais de Tempo
 
-* **Sinais com Debounce (`sinalDebounce`)**: O Portuscript fornece a primitiva `sinalDebounce(valorInicial, tempoEmMs)` em seu runtime web. Ela atrasa de forma inteligente a atualização de estados reativos e expõe seu atualizador direto no getter (`ler.set`), integrando-se nativamente e sem boilerplates com o binding bidirecional `_ligar` em formulários de pesquisa.
+* **Sinais com Debounce (`sinalDebounce`)**: O Harpia fornece a primitiva `sinalDebounce(valorInicial, tempoEmMs)` em seu runtime web. Ela atrasa de forma inteligente a atualização de estados reativos e expõe seu atualizador direto no getter (`ler.set`), integrando-se nativamente e sem boilerplates com o binding bidirecional `_ligar` em formulários de pesquisa.
 
 ---
 
 ## Capítulo 14 — Segurança e Blindagem Corporativa (Security Audit)
 
-As ferramentas e a CLI do Portuscript foram submetidas a uma auditoria rigorosa de segurança de nível de produção, contando com defesas contra as vulnerabilidades mais críticas do mercado de software:
+As ferramentas e a CLI do Harpia foram submetidas a uma auditoria rigorosa de segurança de nível de produção, contando com defesas contra as vulnerabilidades mais críticas do mercado de software:
 
-* **Prevenção de Zip Slip (Path Traversal)**: O comando de instalação de pacotes `portuscript instalar` valida estaticamente todos os caminhos do arquivo ZIP extraídos no disco com `filepath.Clean` e `strings.HasPrefix(caminhoLimpo, pastaAlvo)`. Caso uma travessia ilegal com caminhos relativos (`..`) seja detectada, a extração é abortada com segurança na hora, impedindo corrupção física do sistema de arquivos.
+* **Prevenção de Zip Slip (Path Traversal)**: O comando de instalação de pacotes `harpia instalar` valida estaticamente todos os caminhos do arquivo ZIP extraídos no disco com `filepath.Clean` e `strings.HasPrefix(caminhoLimpo, pastaAlvo)`. Caso uma travessia ilegal com caminhos relativos (`..`) seja detectada, a extração é abortada com segurança na hora, impedindo corrupção física do sistema de arquivos.
 * **Prevenção de Corridas de Dados (Anti-Race Condition)**: O interpretador web do playground local serializa de forma síncrona as execuções de código utilizando bloqueio de exclusão mútua (`sync.Mutex`). Isso garante que múltiplas requisições simultâneas não causem corridas de dados ao interceptar a saída padrão global de console (`os.Stdout`), isolando totalmente a saída de logs de cada usuário de forma segura.
 * **Resiliência contra DoS de Rede**: O servidor web do playground limita síncronamente o tamanho do payload do editor de código para no máximo 1MB via `http.MaxBytesReader` e configura limites estritos de `ReadTimeout` e `WriteTimeout` no servidor HTTP Go.
 
@@ -1141,12 +1141,12 @@ As ferramentas e a CLI do Portuscript foram submetidas a uma auditoria rigorosa 
 
 ## Capítulo 15 — Otimizações Avançadas e Desempenho da Máquina Virtual
 
-A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram aprimorados com otimizações de baixo nível de classe mundial para sustentar aplicações de altíssima performance:
+A Máquina Virtual de bytecode e o runtime de execução do Harpia foram aprimorados com otimizações de baixo nível de classe mundial para sustentar aplicações de altíssima performance:
 
 * **Recursion Guard (PSC-0015)**: Implementação de proteção ativa contra estouros físicos de pilha da VM. O interpretador rastreia a profundidade de execução das chamadas e interrompe loops recursivos infinitos ao ultrapassar o limite seguro de 1000 chamadas, lançando o erro estruturado `ErroDePilha` (PSC-0015).
 * **Operand Stack Pre-allocation Pool**: Reaproveitamento agressivo de memória na VM. Utiliza um pool global sincronizado (`sync.Pool` em Go) para fornecer fatias pré-alocadas de operandos com capacidade fixa de 128 elementos. Ao fim da execução de cada bloco/função, os operandos são zerados e devolvidos ao pool, reduzindo a pressão do coletor de lixo (GC) de Go a zero para frames normais.
 * **Morphic Inline Caching (MIC)**: Otimização em tempo de execução para a instrução de carregamento de variáveis (`OP_CARREGAR_VAR`). Símbolos resolvidos em loops quentes são cacheados de forma monomórfica em closures JIT. Se o escopo ou objeto de destino for idêntico ao do ciclo anterior, a VM extrai o valor diretamente em tempo constante $O(1)$ sem realizar buscas complexas de tabelas hash.
-* **Profiler Embutido (`--perfil`)**: O comando `portuscript executar --perfil` ativa a coleta síncrona de estatísticas e carimbos de tempo para cada instrução de bytecode (Opcode). Ao fim do programa, é exibida uma tabela de desempenho contendo a contagem exata de chamadas e hotspots lógicos de execução.
+* **Profiler Embutido (`--perfil`)**: O comando `harpia executar --perfil` ativa a coleta síncrona de estatísticas e carimbos de tempo para cada instrução de bytecode (Opcode). Ao fim do programa, é exibida uma tabela de desempenho contendo a contagem exata de chamadas e hotspots lógicos de execução.
 
 ---
 
@@ -1156,16 +1156,16 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
 * **Métricas de Observabilidade (`de "metricas"`)**: Permite criar e registrar contadores e medidores (Gauges) dinâmicos compatíveis com o formato do Prometheus na rota `/metricas` para observabilidade de microsserviços.
 * **Validador de Esquemas de Dados (`de "esquema"`)**: Permite declarar restrições de esquemas de dados complexos com validação em tempo de execução (Ex: `esquema.NovoEsquema({ "nome": esquema.Texto, "idade": esquema.Inteiro })`).
 * **Agendador de Tarefas e Filas (`de "tarefas"`)**: Expõe o controle de filas concorrentes em memória e agendamento periódico baseado em Cron (Ex: `tarefas.agendar("*/5 * * * * *", funcao() { ... })`).
-* **Foreign Function Interface (`ffi`)**: Ponte nativa bidirecional de baixo nível que permite carregar bibliotecas binárias compartilhadas C-compatíveis (`.so`, `.dll`, `.dylib`) e executar assinaturas externas diretamente no Portuscript de forma síncrona e performática.
+* **Foreign Function Interface (`ffi`)**: Ponte nativa bidirecional de baixo nível que permite carregar bibliotecas binárias compartilhadas C-compatíveis (`.so`, `.dll`, `.dylib`) e executar assinaturas externas diretamente no Harpia de forma síncrona e performática.
 
 ---
 
 ## Capítulo 17 — Extensões de CLI, DevOps e DevOps DX
 
-* **Empacotamento Autônomo (`portuscript empacotar`)**: Subcomando de compilação avançada de binários autônomos puros. O Portuscript compila o código do usuário para bytecode `.ptc` e o funde a um executável Go do interpretador, gerando um único executável nativo livre de dependências para o usuário final com suporte nativo a cross-compilation (via `--so` e `--arq`).
-* **Testador de Estresse Concorrente (`portuscript stressar`)**: Permite executar baterias massivas de requisições concorrentes e benchmarks automáticos para testar a resiliência de servidores e scripts Portuscript.
-* **Protocolo de Adaptador de Depurador (`portuscript depurar`)**: Servidor TCP compatível com o protocolo oficial Debug Adapter Protocol (DAP). Permite a conexão e handshakes síncronos de IDEs modernas (como VS Code, Cursor) para depuração de nível profissional com breakpoints e inspeção de variáveis locais.
-* **Extensão VS Code Oficial (`vscode-portuscript`)**: Extensão oficial que habilita realce de sintaxe completo de alto nível, preenchimento rápido (snippets) para front/back, e se conecta via stdio/sockets diretamente aos servidores `lsp` (Language Server) e `depurar` (DAP) integrados na CLI.
+* **Empacotamento Autônomo (`harpia empacotar`)**: Subcomando de compilação avançada de binários autônomos puros. O Harpia compila o código do usuário para bytecode `.hrpc` e o funde a um executável Go do interpretador, gerando um único executável nativo livre de dependências para o usuário final com suporte nativo a cross-compilation (via `--so` e `--arq`).
+* **Testador de Estresse Concorrente (`harpia stressar`)**: Permite executar baterias massivas de requisições concorrentes e benchmarks automáticos para testar a resiliência de servidores e scripts Harpia.
+* **Protocolo de Adaptador de Depurador (`harpia depurar`)**: Servidor TCP compatível com o protocolo oficial Debug Adapter Protocol (DAP). Permite a conexão e handshakes síncronos de IDEs modernas (como VS Code, Cursor) para depuração de nível profissional com breakpoints e inspeção de variáveis locais.
+* **Extensão VS Code Oficial (`vscode-harpia`)**: Extensão oficial que habilita realce de sintaxe completo de alto nível, preenchimento rápido (snippets) para front/back, e se conecta via stdio/sockets diretamente aos servidores `lsp` (Language Server) e `depurar` (DAP) integrados na CLI.
   * **Gramática Multicores Enriquecida (TextMate)**:
     1. *Comentários Suaves*: Comentários iniciados por `#` (linha única) ou `<!-- -->` (bloco JSX/HTML) são renderizados de forma cinza suave. A regra de comentários foi movida para o topo da lista de prioridade, impedindo que palavras-chave como `funcao` ou `sinal` recebam cores indesejadas dentro de textos documentados.
     2. *Tags XML e JSX*: Elementos como `<div>`, `<section>`, `<main>`, `<button>` e os seus respectivos delimitadores (`<`, `/>`, `</`) são coloridos nativamente na IDE com o escopo oficial `entity.name.tag`.
@@ -1176,12 +1176,12 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
   * **Recomendação Automática de Ferramentas de DX**:
     A pasta `.vscode/` do plugin inclui o arquivo `extensions.json` recomendando a instalação do **Error Lens** e do **GitHub Copilot** de forma nativa para habilitar a exibição inline de erros estáticos LSP na própria linha de código físico do desenvolvedor.
   * **Formatação Síncrona On-Save via LSP**:
-    1. *No Servidor LSP (Go)*: Durante a inicialização, o servidor (`cmd/lsp.go`) declara suporte nativo de formatação síncrona via `"documentFormattingProvider": true`. Quando recebe a requisição síncrona `textDocument/formatting` enviada pela IDE, ele intercepta o comando e retorna as edições do código limpo processadas pela função nativa `FormatarCodigoPortuscript(codigo)` declarada em `cmd/formatar.go`.
-    2. *Na Extensão do VS Code (`vscode-portuscript`)*: No arquivo `vscode-portuscript/extension.js`, o cliente LSP é instanciado via classe `LanguageClient`. Ao inicializar, a biblioteca padrão `vscode-languageclient` detecta a capacidade `"documentFormattingProvider": true` fornecida pelo servidor e registra automaticamente a capacidade de formatação nativa na IDE.
+    1. *No Servidor LSP (Go)*: Durante a inicialização, o servidor (`cmd/lsp.go`) declara suporte nativo de formatação síncrona via `"documentFormattingProvider": true`. Quando recebe a requisição síncrona `textDocument/formatting` enviada pela IDE, ele intercepta o comando e retorna as edições do código limpo processadas pela função nativa `FormatarCodigoHarpia(codigo)` declarada em `cmd/formatar.go`.
+    2. *Na Extensão do VS Code (`vscode-harpia`)*: No arquivo `vscode-harpia/extension.js`, o cliente LSP é instanciado via classe `LanguageClient`. Ao inicializar, a biblioteca padrão `vscode-languageclient` detecta a capacidade `"documentFormattingProvider": true` fornecida pelo servidor e registra automaticamente a capacidade de formatação nativa na IDE.
     3. *Como usar no VS Code*:
-       - **Atalho de Formatação**: Pressionar `Shift + Alt + F` (Windows/Linux) ou `Shift + Option + F` (macOS) com um arquivo `.ptst` aberto.
+       - **Atalho de Formatação**: Pressionar `Shift + Alt + F` (Windows/Linux) ou `Shift + Option + F` (macOS) com um arquivo `.hrp` aberto.
        - **Formatação Automática ao Salvar**: Habilitar a configuração `"editor.formatOnSave": true` nas configurações do VS Code para disparar a formatação limpa automaticamente em todo `Cmd+S` or `Ctrl+S`.
-  * **Publicação da Extensão no VS Code Marketplace (`vscode-portuscript`)**:
+  * **Publicação da Extensão no VS Code Marketplace (`vscode-harpia`)**:
     Caso você queira gerar e publicar atualizações da extensão oficial para a comunidade global de desenvolvedores do VS Code, siga os passos abaixo usando o utilitário oficial `vsce` (VS Code Extension Manager):
     1. **Instalação do CLI**: Instale o gerenciador de extensões da Microsoft de forma global via npm:
        ```bash
@@ -1189,8 +1189,8 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
        ```
     2. **Criação do Publicador (Publisher)**:
        - Crie uma conta de desenvolvedor no [Visual Studio Marketplace](https://marketplace.visualstudio.com/).
-       - Crie um ID de Publicador exclusivo (ex: `portuscript`).
-       - Insira esse ID no campo `"publisher"` do arquivo `package.json` localizado dentro da pasta `vscode-portuscript/`.
+       - Crie um ID de Publicador exclusivo (ex: `harpia`).
+       - Insira esse ID no campo `"publisher"` do arquivo `package.json` localizado dentro da pasta `vscode-harpia/`.
     3. **Token de Acesso Pessoal (PAT)**:
        - Crie uma conta no Azure DevOps (`dev.azure.com`) sob a mesma organização ou e-mail.
        - No painel superior direito do Azure DevOps, vá em **Personal Access Tokens**.
@@ -1201,7 +1201,7 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
        ```
        (Cole o PAT gerado no Azure DevOps quando solicitado).
     5. **Empacotamento e Publicação**:
-       - Entre no diretório da extensão: `cd vscode-portuscript`
+       - Entre no diretório da extensão: `cd vscode-harpia`
        - Instale as dependências locais de desenvolvimento: `npm install`
        - **Publicar diretamente**: Execute `vsce publish` (ou incremente versões via `vsce publish patch` / `vsce publish minor`).
        - **Apenas empacotar localmente (offline)**: Para gerar um arquivo instalável `.vsix` localmente sem enviar para o Marketplace público, execute `vsce package`. O arquivo `.vsix` gerado pode ser compartilhado com qualquer desenvolvedor para instalação manual arrastando-o para a aba de extensões do VS Code.
@@ -1210,10 +1210,10 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
 
 ## Capítulo 18 — Pacote de Inteligência Artificial e IA Generativa (`de "ia"`)
 
-A Fase 6 introduz o pacote de IA padrão do Portuscript, oferecendo uma interface declarativa e humana em português para interação com modelos de linguagem:
+A Fase 6 introduz o pacote de IA padrão do Harpia, oferecendo uma interface declarativa e humana em português para interação com modelos de linguagem:
 
 * **Conector Local com Ollama**: A função `ia.conectarLocal("llama3")` estabelece um cliente nativo apontando para uma instância local do Ollama, abstraindo requisições HTTP e gestão de tokens em chamadas simples:
-    ```portuscript
+    ```harpia
     de "ia" importe conectarLocal, completar, transcreverAudio;
 
     var modelo = conectarLocal("llama3");
@@ -1242,17 +1242,17 @@ Drivers de persistência robustos prontos para escalar em ambientes de alta conc
 
 A camada de execução WASM eleva o limite de processamento matemático pesado no navegador, com interoperabilidade síncrona e tipada com a plataforma host:
 
-* **Alvo de Compilação `--alvo=wasm`**: O comando `portuscript compilar --alvo=wasm` gera arquivos binários `.wasm` autônomos com tamanho mínimo.
-* **Interoperabilidade Síncrona**: Bridge tipada em TypeScript (`portuscript/exporta.ts`) para expor funções da VM (rotas de filtro, ordenação pesada, parser JSON) e consumi-las via `WebAssembly.instantiate` na thread principal sem gargalos de marshalling.
-* **Stone of Dedicatória**: A Fase 6 fecha o Portuscript como um ecossistema de linguagem corporativa de ponta, contando com compilador, IDE nativa, ferramenta de empacotamento de binários, runtime WASM, IA integrada e drivers de banco escaláveis.
+* **Alvo de Compilação `--alvo=wasm`**: O comando `harpia compilar --alvo=wasm` gera arquivos binários `.wasm` autônomos com tamanho mínimo.
+* **Interoperabilidade Síncrona**: Bridge tipada em TypeScript (`harpia/exporta.ts`) para expor funções da VM (rotas de filtro, ordenação pesada, parser JSON) e consumi-las via `WebAssembly.instantiate` na thread principal sem gargalos de marshalling.
+* **Stone of Dedicatória**: A Fase 6 fecha o Harpia como um ecossistema de linguagem corporativa de ponta, contando com compilador, IDE nativa, ferramenta de empacotamento de binários, runtime WASM, IA integrada e drivers de banco escaláveis.
 
 ---
 
 ## Capítulo 21 — Documentação Ininterrupta e Estilo de Contribuição
 
-A linha mestra de desenvolvimento do Portuscript se mantém desde a sua concepção:
+A linha mestra de desenvolvimento do Harpia se mantém desde a sua concepção:
 
 * **Sintaxe Humana**: Construída sob medida para falantes nativos de português, com palavras-chave fonéticas sem ambiguidade (`funcao`, `retorne`, `classe`, `estende`).
-* **DX como prioridade**: Erros didáticos, mensagens contextuais e o comando `portuscript erro explicar` integrado com LLMs locais.
+* **DX como prioridade**: Erros didáticos, mensagens contextuais e o comando `harpia erro explicar` integrado com LLMs locais.
 * **CLI consistente**: Nomes de comandos, flags e cláusulas escritos exclusivamente em português brasileiro (`--alvo`, `--estrito`, `--otimizar-assets`).
 * **Segurança por padrão**: Toda nova feature é auditada contra *path traversal*, condicional de corrida, DoS de payload e *race conditions* em pipes assíncronos durante os testes de aceitação.

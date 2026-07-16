@@ -15,7 +15,7 @@ func benchSource(n int) string {
 func BenchmarkLexer1k(b *testing.B) {
 	src := benchSource(20) // ~1k
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		lex := lexer.NewLexer(src)
 		for {
 			tk := lex.ProximoToken()
@@ -29,7 +29,7 @@ func BenchmarkLexer1k(b *testing.B) {
 func BenchmarkLexer10k(b *testing.B) {
 	src := benchSource(200) // ~10k
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		lex := lexer.NewLexer(src)
 		for {
 			tk := lex.ProximoToken()

@@ -1,12 +1,48 @@
 package ptst
 
-import "bytes"
+import (
+	"bytes"
+	"reflect"
+)
+
+// refsMapas gerencia de forma global as contagens de referências das instâncias do tipo Mapa (ponteiros implícitos).
+var refsMapas = make(map[uintptr]int)
 
 // Mapa representa a coleção do tipo dicionário ou mapa chave-valor associativo do Portuscript (ex: { "a": 1 }).
 //
 // É um apelido (alias) para o tipo nativo hashmap `map[string]Objeto` do Go.
 // No Portuscript, as chaves de mapas são restritas estritamente ao tipo Texto (string).
 type Mapa map[string]Objeto
+
+// Métodos de gerenciamento explícito de memória (ObjetoGC) para o tipo Mapa.
+
+func (m Mapa) Reter() {
+	addr := reflect.ValueOf(m).Pointer()
+	refsMapas[addr]++
+}
+
+func (m Mapa) Liberar() {
+	addr := reflect.ValueOf(m).Pointer()
+	if refsMapas[addr] > 0 {
+		refsMapas[addr]--
+		if refsMapas[addr] == 0 {
+			delete(refsMapas, addr) // Limpa registro do cache
+		}
+	}
+}
+
+func (m Mapa) ObterRefs() int {
+	addr := reflect.ValueOf(m).Pointer()
+	return refsMapas[addr]
+}
+
+func (m Mapa) ObterFilhos() []Objeto {
+	filhos := make([]Objeto, 0, len(m))
+	for _, valor := range m {
+		filhos = append(filhos, valor)
+	}
+	return filhos
+}
 
 // TipoMapa especifica as assinaturas e metadados de classe do tipo Mapa na VM.
 var TipoMapa = NewTipo(

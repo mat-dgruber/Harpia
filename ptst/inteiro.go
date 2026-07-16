@@ -10,6 +10,23 @@ import (
 // É um apelido (alias) para o tipo básico 'int64' do Go.
 type Inteiro int64
 
+var (
+	cacheInteirosMin = -100
+	cacheInteirosMax = 2000
+	cacheInteiros    [2101]Objeto // ponytail: pool de alocação rápida Eden Space para inteiros curtos
+)
+
+func init() {
+	for i := cacheInteirosMin; i <= cacheInteirosMax; i++ {
+		cacheInteiros[i-cacheInteirosMin] = Inteiro(i)
+	}
+
+	// Nova define o construtor do Inteiro na VM para chamadas explícitas de scripts.
+	TipoInteiro.Nova = func(args Tupla) (Objeto, error) {
+		return NewInteiro(args[0])
+	}
+}
+
 // TipoInteiro especifica as assinaturas e metadados de classe do tipo Inteiro na VM.
 var TipoInteiro = TipoObjeto.NewTipo(
 	"Inteiro",
@@ -30,8 +47,16 @@ Chama obj.__inteiro__() ou se esse não for encontrado, um erro pode ser lançad
 func NewInteiro(obj any) (Objeto, error) {
 	switch b := obj.(type) {
 	case nil:
-		return Inteiro(0), nil
+		return cacheInteiros[0-cacheInteirosMin], nil
 	case int:
+		if b >= cacheInteirosMin && b <= cacheInteirosMax {
+			return cacheInteiros[b-cacheInteirosMin], nil
+		}
+		return Inteiro(b), nil
+	case int64:
+		if b >= int64(cacheInteirosMin) && b <= int64(cacheInteirosMax) {
+			return cacheInteiros[int(b)-cacheInteirosMin], nil
+		}
 		return Inteiro(b), nil
 	case Inteiro:
 		return b, nil

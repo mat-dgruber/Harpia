@@ -168,6 +168,18 @@ func (d Decimal) M__pos__() (Objeto, error) {
 	return +d, nil
 }
 
+// M__igual__ compara a igualdade lógica de dois valores Decimais.
+func (d Decimal) M__igual__(outro Objeto) (Objeto, error) {
+	outroDec, err := NewDecimal(outro)
+	if err != nil {
+		return Falso, nil
+	}
+
+	return NewBooleano(d == outroDec.(Decimal))
+}
+
 // Garantias de conformidade com as interfaces nativas Go.
 var _ I_conversaoEntreTipos = (*Decimal)(nil)
 var _ I_aritmeticaMatematica = (*Decimal)(nil)
+var _ I__igual__ = (*Decimal)(nil)
+

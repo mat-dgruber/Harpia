@@ -92,7 +92,7 @@ func analisarDependencias(raizDir string) ([]ImportRel, []string) {
 		if err != nil {
 			return nil
 		}
-		if info.IsDir() || !strings.HasSuffix(info.Name(), ".ptst") {
+		if info.IsDir() || (!strings.HasSuffix(info.Name(), ".hrp") && !strings.HasSuffix(info.Name(), ".ptst")) {
 			return nil
 		}
 

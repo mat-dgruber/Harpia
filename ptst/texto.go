@@ -33,11 +33,15 @@ func NewTexto(arg any) (Objeto, error) {
 	case nil:
 		return Texto(""), nil
 	case string:
-		obj, err := strconv.Unquote(`"` + obj + `"`)
-		if err != nil {
-			return nil, err
+		unquoted, err := strconv.Unquote(obj)
+		if err == nil {
+			return Texto(unquoted), nil
 		}
-
+		// Se falhar ou não estiver cotada, tenta embrulhar em aspas e dar unquote
+		unquoted, err = strconv.Unquote(`"` + obj + `"`)
+		if err == nil {
+			return Texto(unquoted), nil
+		}
 		return Texto(obj), nil
 	case Texto:
 		return obj, nil
@@ -205,14 +209,14 @@ func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 }
 
 // Interfaces Go satisfeitas pela struct Texto.
-var _ I__texto__ = (*Texto)(nil)
-var _ I__bytes__ = (*Texto)(nil)
-var _ I__booleano__ = (*Texto)(nil)
-var _ I__igual__ = (*Texto)(nil)
-var _ I__adiciona__ = (*Texto)(nil)
-var _ I__multiplica__ = (*Texto)(nil)
-var _ I__tamanho__ = (*Texto)(nil)
-var _ I__contem__ = (*Texto)(nil)
+var _ I__texto__ = Texto("")
+var _ I__bytes__ = Texto("")
+var _ I__booleano__ = Texto("")
+var _ I__igual__ = Texto("")
+var _ I__adiciona__ = Texto("")
+var _ I__multiplica__ = Texto("")
+var _ I__tamanho__ = Texto("")
+var _ I__contem__ = Texto("")
 
 func init() {
 	// Injeção de métodos de instância de Texto no mapa da classe.

@@ -20,8 +20,8 @@ import (
 //     '__arquivo__' no escopo léxico ativo para extrair a pasta base ('path.Dir');
 //  5. Dispara 'ExecutarArquivo' para compilar e interpretar o arquivo físico, gerando a instância do Módulo.
 func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto, error) {
-	if modulo, err := ctx.ObterModulo(nome); err == nil {
-		return modulo, nil
+	if strings.HasPrefix(nome, "@backend/") {
+		return CarregarModuloRPC(ctx, nome)
 	}
 
 	if impl := ObtemImplModulo(nome); impl != nil {
@@ -32,12 +32,9 @@ func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto
 		return nil, NewErroF(ImportacaoErro, "Importações não relativas só estão disponíveis para módulos embutidos, corrija para './%s'", nome)
 	}
 
-	// FIXME: prevenir importação circular
-	// FIXME: adicionar operador para definir quem deve ser público para importar
 	curDir := ""
 
 	if strings.HasPrefix(nome, "/") {
-		// FIXME: vamos apenas ignorar o erro?
 		curDir, _ = os.Getwd()
 	} else if strings.HasPrefix(nome, "./") {
 		if escopo == nil {
@@ -50,6 +47,32 @@ func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto
 			curDir = path.Dir(string(arqAtual.(Texto)))
 		}
 	}
+
+	caminhos := ctx.Opcs.CaminhosPadrao
+	caminhoAbsoluto, err := ResolveArquivoPtst(nome, caminhos, curDir)
+	if err != nil {
+		return nil, NewErroF(ImportacaoErro, "Não foi possível resolver o caminho do módulo '%s': %v", nome, err)
+	}
+
+	for _, res := range ctx.ResolvendoModulos {
+		if res == caminhoAbsoluto {
+			return nil, NewErroF(ImportacaoErro, "Importação cíclica detectada: o módulo '%s' já está em processo de resolução na árvore de dependências", nome)
+		}
+	}
+
+	if modulo, err := ctx.Modulos.ObterModulo(caminhoAbsoluto); err == nil {
+		return modulo, nil
+	}
+	if modulo, err := ctx.Modulos.ObterModulo(nome); err == nil {
+		return modulo, nil
+	}
+
+	ctx.ResolvendoModulos = append(ctx.ResolvendoModulos, caminhoAbsoluto)
+	defer func() {
+		if len(ctx.ResolvendoModulos) > 0 {
+			ctx.ResolvendoModulos = ctx.ResolvendoModulos[:len(ctx.ResolvendoModulos)-1]
+		}
+	}()
 
 	mod, err := ExecutarArquivo(ctx, nome, nome, curDir, true)
 	if err != nil {

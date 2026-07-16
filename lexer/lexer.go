@@ -59,6 +59,36 @@ func (l *Lexer) proximoCarater() string {
 	return compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice+1, l.byteCache)
 }
 
+// caraterRelativo espreita um caractere em uma posição relativa ao cursor atual de forma segura
+func (l *Lexer) caraterRelativo(offset int) string {
+	if l.indice+offset >= l.tamanho || l.indice+offset < 0 {
+		return ""
+	}
+	return compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice+offset, l.byteCache)
+}
+
+// ignorarComentarioHTML pula todos os caracteres até encontrar a sequência de fechamento de comentário HTML '-->'
+func (l *Lexer) ignorarComentarioHTML() {
+	// Avança os 4 caracteres iniciais '<!--'
+	l.avancar() // consome '<'
+	l.avancar() // consome '!'
+	l.avancar() // consome '-'
+	l.avancar() // consome '-'
+
+	for !l.fimDeArquivo() {
+		if l.carater == "-" && l.proximoCarater() == "-" {
+			l.avancar() // consome o primeiro '-'
+			l.avancar() // consome o segundo '-'
+			if l.carater == ">" {
+				l.avancar() // consome o '>'
+				break
+			}
+			continue
+		}
+		l.avancar()
+	}
+}
+
 // avancar incrementa a posição do cursor em um caractere e carrega a nova runa correspondente.
 //
 // Se o caractere recém-carregado for uma quebra de linha ('\n'), o Lexer atualiza as coordenadas
@@ -204,6 +234,20 @@ func (l *Lexer) ProximoToken() *Token {
 	carater := l.carater
 	inicio := l.posicaoAtual()
 
+	// Trata comentários de linha única '#' ou '//' (deve rodar antes de operadores simples para evitar colisão com '/')
+	if carater == "#" || (carater == "/" && l.proximoCarater() == "/") {
+		l.ignorarComentario()
+		return l.ProximoToken()
+	}
+
+	// ponytail: trata comentários HTML '<!-- ... -->' de forma nativa para excelente DX no JSX
+	if carater == "<" && l.proximoCarater() == "!" {
+		if l.caraterRelativo(2) == "-" && l.caraterRelativo(3) == "-" {
+			l.ignorarComentarioHTML()
+			return l.ProximoToken()
+		}
+	}
+
 	// Se for um caractere operador catalogado ou operador de negação '!'
 	if tipo, ok := tokensSimples[carater]; ok || carater == "!" {
 		for {
@@ -222,12 +266,6 @@ func (l *Lexer) ProximoToken() *Token {
 		}
 
 		return newToken(tipo, carater, inicio, l.posicaoAtual())
-	}
-
-	// Trata comentários de linha única '#'
-	if carater == "#" {
-		l.ignorarComentario()
-		return l.ProximoToken()
 	}
 
 	switch carater {

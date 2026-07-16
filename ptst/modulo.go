@@ -152,6 +152,9 @@ func (tabela *TabelaModulos) NewModulo(ctx *Contexto, impl *ModuloImpl) (*Modulo
 	}
 
 	tabela.modulos[nome] = modulo
+	if impl.Info.Arquivo != "" {
+		tabela.modulos[impl.Info.Arquivo] = modulo
+	}
 	if nome == "embutidos" {
 		tabela.Embutidos = modulo
 	}

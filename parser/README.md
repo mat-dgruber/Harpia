@@ -1,6 +1,6 @@
-# Pacote `parser` (Analisador Sintático do Portuscript)
+# Pacote `parser` (Analisador Sintático do Harpia)
 
-O pacote `parser` implementa o **Analisador Sintático** (Parser) do **Portuscript**. Utilizando o consagrado algoritmo de **Parser de Descida Recursiva Manual** (*Manual Recursive Descent Parser*), ele traduz a torrente de tokens lineares produzida pelo Lexer e constrói a **Árvore de Sintaxe Abstrata** (AST) hierárquica e tipada do script.
+O pacote `parser` implementa o **Analisador Sintático** (Parser) do **Harpia**. Utilizando o consagrado algoritmo de **Parser de Descida Recursiva Manual** (_Manual Recursive Descent Parser_), ele traduz a torrente de tokens lineares produzida pelo Lexer e constrói a **Árvore de Sintaxe Abstrata** (AST) hierárquica e tipada do script.
 
 Diferente de geradores automáticos, a escrita manual deste parser garante máxima velocidade de compilação, flexibilidade sintática na omissão opcional de delimitadores e mapeamentos detalhados de tokens físicos para tracebacks de erros ricos inteiramente em Português.
 
@@ -22,7 +22,7 @@ Diferente de geradores automáticos, a escrita manual deste parser garante máxi
 
 O arquivo `ast_nodes.go` unifica toda a modelagem da AST usando os recursos nativos de polimorfismo estrutural do Go:
 
-- **A Interface `BaseNode`**: 
+- **A Interface `BaseNode`**:
   ```go
   type BaseNode interface { isExpr() }
   ```
@@ -35,19 +35,23 @@ O arquivo `ast_nodes.go` unifica toda a modelagem da AST usando os recursos nati
 Os nós da AST representam as estruturas semânticas da linguagem. Eles são divididos por categorias:
 
 ### 1. Estruturas Raiz e Blocos:
+
 - **`Programa`**: O nó raiz de toda a AST, encapsulando a lista de instruções, o arquivo de origem e as posições de depuração.
 - **`Bloco`**: Uma lista de instruções pertencentes a um escopo físico (delimitado por chaves `{}`).
 
 ### 2. Declarações e Atribuições:
-- **`DeclVar`**: Representa declarações de variáveis mutáveis (`var x`) ou constantes imutáveis (`const y`), suportando anotações estáticas de tipo (ex: `var x: Inteiro`).
+
+- **`DeclVar`**: Representa declarações de variáveis mutáveis (`var x`) ou constantes imutáveis (`const y`), suportando anotações estáticas de tipo (ex: `var x: Inteiro`). O tipo é armazenado no campo `Tipo string` (vazio se nenhuma anotação for informada).
 - **`Reatribuicao`**: Modificações de variáveis ou reatribuições com acumuladores aritméticos (ex: `x += 1`, `y //= 2`).
 
 ### 3. Operações lógicas, de bit e matemáticas:
+
 - **`OpBinaria`**: Cálculos aritméticos ou lógicos envolvendo dois operandos (esquerda e direita).
 - **`OpUnaria`**: Inversões lógicas (`nao x`), bitwise (`~x`) ou aritméticas (`-x`).
 - **`OpPipe`**: Encadeamentos expressivos utilizando o operador pipe (`|>`).
 
 ### 4. Coleções Literais Primitivas:
+
 - **`ListaLiteral`**: Vetores ordenados mutáveis (ex: `[1, 2]`).
 - **`TuplaLiteral`**: Vetores ordenados imutáveis (ex: `(1, 2)`).
 - **`MapaLiteral` / `MapaPar`**: Estruturas de chaves e valores (dicionários), aceitando chaves estáticas ou expressões dinâmicas (ex: `{[expressao]: valor}`).
@@ -56,7 +60,7 @@ Os nós da AST representam as estruturas semânticas da linguagem. Eles são div
 
 ## ⚙️ Mecânica de Análise e Precedência de Operadores
 
-O parser do Portuscript analisa os tokens em descida recursiva, onde a ordem em que as funções chamam umas às outras dita a precedência matemática e lógica.
+O parser do Harpia analisa os tokens em descida recursiva, onde a ordem em que as funções chamam umas às outras dita a precedência matemática e lógica.
 
 ```
        [Expressão]
@@ -113,7 +117,7 @@ Para reduzir centenas de linhas redundantes e loops repetitivos de precedência 
 
 ```go
 func (p *Parser) parseEsqLst(
-    proximo func() (BaseNode, error), 
+    proximo func() (BaseNode, error),
     proxOp func() (string, bool),
 ) (BaseNode, error) {
     esq, err := proximo()
@@ -129,18 +133,44 @@ func (p *Parser) parseEsqLst(
 ```
 
 Cada nível de precedência (como soma, multiplicação e operações bitwise) simplesmente invoca `parseEsqLst` passando como parâmetros:
+
 1. O método correspondente ao nível de precedência superior subsequente.
 2. Uma closure rápida que valida e consome o operador do nível atual.
 
 ### Delimitação Flexível de Instruções
 
-O método `consome(";")` implementa a flexibilidade sintática do Portuscript. Ele aceita o caractere `;` se estiver explícito, mas aceita de forma transparente o token `TokenNovaLinha` (\n) ou o fim do arquivo (EOF) como divisores e terminadores lógicos automáticos de comandos, permitindo uma escrita limpa e livre de ponto-e-vírgula obrigatório.
+O método `consome(";")` implementa a flexibilidade sintática do Harpia. Ele aceita o caractere `;` se estiver explícito, mas aceita de forma transparente o token `TokenNovaLinha` (\n) ou o fim do arquivo (EOF) como divisores e terminadores lógicos automáticos de comandos, permitindo uma escrita limpa e livre de ponto-e-vírgula obrigatório.
+
+---
+
+## ⚠️ Nó de Tratamento de Exceções (Sprint 5)
+
+A partir do Sprint 5, o parser constrói o nó composto `TenteCaptureFinalmente` para suportar `tente { ... } capture (erro) { ... } finalmente { ... }`:
+
+```go
+type TenteCaptureFinalmente struct {
+    TenteBlock      *Bloco
+    CaptureBlock    *Bloco  // opcional
+    FinalmenteBlock *Bloco  // opcional
+    NomeErro        string // identificador exposto pelo capture
+}
+```
+
+`Capture`/`Finalmente` são opcionais e independentes: as três variantes sintáticas abaixo são aceitas via `parseTenteCapture`:
+
+| Forma                                                     | Captura erro? | Finally roda sempre? |
+| :-------------------------------------------------------- | :-----------: | :------------------: |
+| `tente { ... } capture (erro) { ... }`                    |      sim      |         não          |
+| `tente { ... } finalmente { ... }`                        | não, propaga  |         sim          |
+| `tente { ... } capture (erro) { ... } finalmente { ... }` |      sim      |         sim          |
+
+> ⚠️ O lexer promove os identificadores curtos `e`, `ou`, `nao`, `de`, `em` a palavras-chave (operadores lógicos). Por isso, **evite** usar esses nomes para a binding do erro em `capture (...)` — prefira nomes compostos como `erro`.
 
 ---
 
 ## 🎯 Associação e Rastreamento de Erros (Traceback)
 
-Um dos maiores diferenciais do parser escrito à mão do Portuscript é o registrador geográfico de coordenadas.
+Um dos maiores diferenciais do parser escrito à mão do Harpia é o registrador geográfico de coordenadas.
 
 ### `registrar(node BaseNode, tok *lexer.Token)`
 
@@ -160,19 +190,20 @@ Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de d
 
 ```json
 {
+  "Esq": {
+    "Valor": "10"
+  },
+  "Operador": "+",
+  "Dir": {
     "Esq": {
-        "Valor": "10"
+      "Valor": "20"
     },
-    "Operador": "+",
+    "Operador": "*",
     "Dir": {
-        "Esq": {
-            "Valor": "20"
-        },
-        "Operador": "*",
-        "Dir": {
-            "Valor": "3"
-        }
+      "Valor": "3"
     }
+  }
 }
 ```
-Como observado no JSON acima, o nó de multiplicação `*` foi corretamente aninhado como filho direito do nó de soma `+`. Isso prova que a ordem de precedência gramatical do Portuscript foi perfeitamente executada, garantindo que `20 * 3` seja avaliado prioritariamente antes da adição de `10`.
+
+Como observado no JSON acima, o nó de multiplicação `*` foi corretamente aninhado como filho direito do nó de soma `+`. Isso prova que a ordem de precedência gramatical do Harpia foi perfeitamente executada, garantindo que `20 * 3` seja avaliado prioritariamente antes da adição de `10`.

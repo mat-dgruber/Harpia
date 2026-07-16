@@ -70,4 +70,9 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoFormatar())
 	raiz.AddCommand(comandoInstalar())
 	raiz.AddCommand(comandoDiagramar())
+	raiz.AddCommand(comandoTui())
+	raiz.AddCommand(comandoDoc())
+	raiz.AddCommand(comandoEmpacotar())
+	raiz.AddCommand(comandoStressar())
+	raiz.AddCommand(comandoDepurar())
 }

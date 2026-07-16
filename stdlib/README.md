@@ -1,6 +1,6 @@
-# Biblioteca Padrão (`stdlib` do Portuscript)
+# Biblioteca Padrão (`stdlib` do Harpia)
 
-A **Biblioteca Padrão** (do inglês, *Standard Library* ou simplesmente `stdlib`) do **Portuscript** é um conjunto de módulos utilitários robustos implementados diretamente em Go. Eles são expostos nativamente para os scripts Portuscript de forma embutida ou via importação explícita.
+A **Biblioteca Padrão** (do inglês, *Standard Library* ou simplesmente `stdlib`) do **Harpia** é um conjunto de módulos utilitários robustos implementados diretamente em Go. Eles são expostos nativamente para os scripts Harpia de forma embutida ou via importação explícita.
 
 Estes módulos estendem as capacidades básicas da linguagem, permitindo que os programadores realizem operações matemáticas avançadas, coletem dados do sistema operacional hospedeiro, estilizem saídas de terminal com cores e até gerenciem conectividade básica de redes de computadores.
 
@@ -20,7 +20,7 @@ Estes módulos estendem as capacidades básicas da linguagem, permitindo que os 
 
 ## 🏗️ Arquitetura de Registro Automático
 
-A integração de novos pacotes em Go com a VM do Portuscript foi desenhada para ser o mais modular e desacoplada possível. 
+A integração de novos pacotes em Go com a VM do Harpia foi desenhada para ser o mais modular e desacoplada possível. 
 
 No arquivo agregador central `stdlib.go`, é feito o uso do mecanismo de **importação anônima** (ou blank import `_`):
 
@@ -28,18 +28,18 @@ No arquivo agregador central `stdlib.go`, é feito o uso do mecanismo de **impor
 package stdlib
 
 import (
-    _ "github.com/natanfeitosa/portuscript/stdlib/colorize"
-    _ "github.com/natanfeitosa/portuscript/stdlib/embutidos"
-    _ "github.com/natanfeitosa/portuscript/stdlib/matematica"
-    _ "github.com/natanfeitosa/portuscript/stdlib/sistema"
-    _ "github.com/natanfeitosa/portuscript/stdlib/soquete"
+    _ "github.com/natanfeitosa/harpia/stdlib/colorize"
+    _ "github.com/natanfeitosa/harpia/stdlib/embutidos"
+    _ "github.com/natanfeitosa/harpia/stdlib/matematica"
+    _ "github.com/natanfeitosa/harpia/stdlib/sistema"
+    _ "github.com/natanfeitosa/harpia/stdlib/soquete"
 )
 ```
 
 ### Como e Por que Funciona:
 - **Funções `init()`**: Cada subpacote declara uma função especial `init()` em seu código Go. Esta função é executada uma única vez, de forma prioritária, assim que o interpretador carrega o pacote correspondente.
 - **Tabela de Módulos Globais**: Dentro do `init()`, cada módulo se autopopula com suas funções nativas e constantes, e se registra na máquina virtual chamando a função centralizada `ptst.RegistraModuloImpl()`.
-- **Desacoplamento Máximo**: Adicionar ou remover um módulo nativo na distribuição oficial do Portuscript não exige alterações estruturais na VM ou no parser. Basta criar a pasta e declarar seu blank import em `stdlib.go`.
+- **Desacoplamento Máximo**: Adicionar ou remover um módulo nativo na distribuição oficial do Harpia não exige alterações estruturais na VM ou no parser. Basta criar a pasta e declarar seu blank import em `stdlib.go`.
 
 ---
 
@@ -109,11 +109,56 @@ O módulo `soquete` fornece uma interface direta de controle de sockets de rede 
 
 ---
 
+## 📦 Novos Módulos de Backend (v1.x)
+
+Para complementar o ecossistema profissional de backend (Fase 3), a biblioteca padrão do Harpia incorpora módulos nativos adicionais extremamente poderosos e integrados:
+
+### 1. Módulo: `arquivos`
+Permite a manipulação direta e segura do sistema de arquivos físico (I/O). Conta com proteção nativa contra acessos não autorizados por meio do Sandbox de Segurança (`BloquearArquivos`).
+* **Funções**: `ler()`, `escrever()`, `acrescentar()`, `remover()`, `renomear()`, `caminhar()`, `resolver()`.
+
+### 2. Módulo: `http`
+Protocolo completo HTTP para cliente e servidor de alto desempenho. Conta com proteção nativa contra pânicos de execução (Recovery), timeouts slowloris e Sandbox de Rede (`BloquearRede`).
+* **Classes**: `Servidor` (suporta `obter()`, `postar()`, `deletar()`, `usar()`, `escutar()`, `fechar()`), `Requisicao`, `Resposta`.
+* **Funções**: `requisitar(metodo, url, ...)` para chamadas HTTPS seguras.
+
+### 3. Módulo: `bd`
+Interface unificada e query builder para bancos de dados relacionais e não-relacionais (NoSQL) de alto rendimento.
+* **SQL**: Driver embarcado nativo `SQLite` e conector para `PostgreSQL`. Suporta pool de conexões e o Query Builder fluído `bd.tabela("usuarios").onde(...).obterMuitos()`.
+* **NoSQL**: Conectores e mapeadores para coleções de documentos no `MongoDB` e chaves-valores/cache rápido no `Redis`.
+
+### 4. Módulo: `json`, `yaml` e `xml`
+Módulos de serialização e desserialização ultra-velozes para tráfego e formatação estruturada de dados.
+* **`json`**: `analisar(string)` (parse de JSON para objetos e dicionários nativos) e `serializar(objeto)` (gera string JSON compacta).
+* **`yaml`**: Manipulação de manifestos e configurações estruturadas.
+* **`xml`**: Conversão bidirecional entre textos XML e dicionários nativos.
+
+### 5. Módulo: `cripto`
+Suporte nativo a assinaturas criptográficas, hashes de integridade e geração de identificadores únicos seguros.
+* **Funções**: `sha256()`, `codificarBase64()`, `decodificarBase64()`, `uuid()`.
+
+### 6. Módulo: `logs`
+Logging estruturado com suporte a níveis (`info`, `alerta`, `erro`, `depurar`), metadados e formatação de texto colorido ou JSON industrial.
+
+### 7. Módulo: `metricas`
+Criação dinâmica de contadores e medidores (Gauges) no padrão Prometheus para observabilidade.
+
+### 8. Módulo: `esquema`
+Mecanismo de validação declarativa de dados baseado em esquemas e tipagens (estilo Zod).
+
+### 9. Módulo: `tarefas`
+Agendador de tarefas periódicas via Cron e filas assíncronas concorrentes em memória.
+
+### 10. Módulo: `ffi`
+FFI portátil para carregar dinamicamente bibliotecas C (.so, .dll, .dylib) e chamar assinaturas de forma síncrona.
+
+---
+
 ## 📝 Exemplo Completo de Uso de Módulos
 
-Abaixo está um exemplo completo de um arquivo em Portuscript (`.pt`) ilustrando a sintaxe de carregamento e o uso conjunto de múltiplos recursos da `stdlib`:
+Abaixo está um exemplo completo de um arquivo em Harpia (`.hrp`) ilustrando a sintaxe de carregamento e o uso conjunto de múltiplos recursos da `stdlib`:
 
-```portuscript
+```harpia
 # Exemplo de uso conjunto da biblioteca padrão
 
 importar matematica

@@ -5,7 +5,12 @@ package ptst
 // Ela atua encapsulando uma estrutura interna do tipo Tupla, estendendo-a com capacidades de mutabilidade,
 // inserção, deleção e redimensionamento dinâmico.
 type Lista struct {
+	GCMixin
 	Itens Tupla // O slice físico de dados subjacentes representados por Tupla.
+}
+
+func (l *Lista) ObterFilhos() []Objeto {
+	return l.Itens
 }
 
 // TipoLista especifica as assinaturas e metadados de classe do tipo Lista na VM.

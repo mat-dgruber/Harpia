@@ -53,6 +53,28 @@ func Chamar(obj Objeto, args Objeto) (Objeto, error) {
 		argsTupla = Tupla{args}
 	}
 
+	// Se o invocável for uma função assíncrona, interceptamos e rodamos concorrentemente em uma goroutine Go
+	if fn, ok := obj.(*Funcao); ok && fn.Assincrono {
+		prom := NewPromessa()
+		if fn.contexto != nil {
+			fn.contexto.AdicionarTrabalho()
+		}
+		go func() {
+			defer func() {
+				if fn.contexto != nil {
+					fn.contexto.EncerrarTrabalho()
+				}
+			}()
+			res, err := fn.M__chame__(argsTupla)
+			if err != nil {
+				prom.Rejeitar(err)
+			} else {
+				prom.Resolver(res)
+			}
+		}()
+		return prom, nil
+	}
+
 	if I, ok := obj.(I__chame__); ok {
 		return I.M__chame__(argsTupla)
 	}
@@ -206,7 +228,12 @@ func DefineAtributo(obj Objeto, nome string, valor Objeto) error {
 func NovaInstancia(obj Objeto, args Tupla) (Objeto, error) {
 	nova, err := ObtemAtributoS(obj, "__nova_instancia__")
 	if err == nil {
-		if _, ok := args[0].(*Tipo); !ok {
+		var isTipo bool
+		if len(args) > 0 {
+			_, isTipo = args[0].(*Tipo)
+		}
+
+		if !isTipo {
 			args = append(Tupla{obj}, args...)
 		}
 

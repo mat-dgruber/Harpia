@@ -1,4 +1,4 @@
-# Anotações e Especificações de Sintaxe do Portuscript
+# Anotações e Especificações de Sintaxe do Harpia
 
 Este arquivo serve como referência rápida para o design de sintaxe da linguagem.
 
@@ -10,14 +10,14 @@ Sintaxe baseada em C/JavaScript/Go (blocos delimitados por chaves `{}`), mas com
 
 ## 1. Variáveis e Constantes
 
-```portuscript
-var nome: Texto = "Portuscript"  // Var com tipo opcional
+```harpia
+var nome: Texto = "Harpia"  // Var com tipo opcional
 constante VERSAO = "1.0.0"       // Constante obrigatória e imutável
 ```
 
 ## 2. Estruturas de Controle (Sem parênteses nas condições)
 
-```portuscript
+```harpia
 se idade >= 18 {
     imprimir("Maior de idade")
 } senao {
@@ -31,7 +31,7 @@ enquanto condicao {
 
 ## 3. Funções e Parâmetros Avançados
 
-```portuscript
+```harpia
 funcao soma(a: Inteiro, b: Inteiro = 0) -> Inteiro {
     retorne a + b
 }
@@ -42,7 +42,7 @@ var resultado = soma(a = 10, b = 5)
 
 ## 4. Classes e Orientação a Objetos (Herança Simples)
 
-```portuscript
+```harpia
 classe Animal {
     inicializar(self, nome: Texto) {
         self.nome = nome
@@ -65,7 +65,7 @@ imprimir(pet.falar()) // "Au! Rex"
 
 ## 5. Operador de Canal (Pipes `|>`)
 
-```portuscript
+```harpia
 // Sintaxe fluída para manipulação em cadeia
 var textoFormatado = "  ola mundo  " |> removerEspacos |> maiusculo
 // Equivalente a: maiusculo(removerEspacos("  ola mundo  "))
@@ -73,7 +73,7 @@ var textoFormatado = "  ola mundo  " |> removerEspacos |> maiusculo
 
 ## 6. Tratamento de Erros
 
-```portuscript
+```harpia
 tente {
     var resultado = 10 / 0
 } capture (erro: ErroDivisao) {
@@ -85,7 +85,7 @@ tente {
 
 ## 7. Reatividade (Sinais e Estado Global)
 
-```portuscript
+```harpia
 // Sinais locais
 var [contador, definirContador] = sinal(0)
 
@@ -103,7 +103,7 @@ var estadoGlobal = armazem({
 
 ## 8. Testes Nativos na Linguagem (TDD/SDD)
 
-```portuscript
+```harpia
 testar "deve somar dois numeros corretamente" {
     assegura(soma(2, 2) == 4)
 }

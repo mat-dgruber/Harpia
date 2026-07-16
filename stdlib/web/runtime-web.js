@@ -639,3 +639,30 @@ export function GradeDeDados(props) {
     );
   };
 }
+
+/**
+ * Carregador preguiçoso para Code Splitting e Lazy Loading de componentes.
+ */
+export function preguicoso(importarComponente) {
+  return function ComponentePreguicoso(props) {
+    const [comp, setComp] = sinal(null);
+    importarComponente().then(Modulo => {
+      setComp(() => Modulo.default || Modulo);
+    });
+    return () => {
+      const C = comp();
+      return C ? h(C, props) : h('div', { classe: 'carregando-lazy' }, 'Carregando...');
+    };
+  };
+}
+
+/**
+ * Componente Suspense reativo simples.
+ */
+export function Suspense(props) {
+  return () => {
+    const pronto = typeof props.pronto === 'function' ? props.pronto() : props.pronto;
+    return pronto ? props.children : (props.fallback || h('div', {}, 'Carregando...'));
+  };
+}
+

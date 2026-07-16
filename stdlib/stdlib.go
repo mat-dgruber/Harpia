@@ -26,4 +26,18 @@ import (
 	// A importação blank (_) do pacote soquete expõe facilidades de rede de baixo nível, permitindo que scripts
 	// Portuscript abram conexões de rede TCP/IP e criem servidores/clientes básicos diretamente no terminal.
 	_ "github.com/natanfeitosa/portuscript/stdlib/soquete"
+
+	// Novos módulos da Fase 3
+	_ "github.com/natanfeitosa/portuscript/stdlib/arquivos"
+	_ "github.com/natanfeitosa/portuscript/stdlib/cripto"
+	_ "github.com/natanfeitosa/portuscript/stdlib/http"
+	_ "github.com/natanfeitosa/portuscript/stdlib/json"
+	_ "github.com/natanfeitosa/portuscript/stdlib/bd"
+	_ "github.com/natanfeitosa/portuscript/stdlib/yaml"
+	_ "github.com/natanfeitosa/portuscript/stdlib/xml"
+	_ "github.com/natanfeitosa/portuscript/stdlib/logs"
+	_ "github.com/natanfeitosa/portuscript/stdlib/metricas"
+	_ "github.com/natanfeitosa/portuscript/stdlib/esquema"
+	_ "github.com/natanfeitosa/portuscript/stdlib/tarefas"
+	_ "github.com/natanfeitosa/portuscript/stdlib/ffi"
 )

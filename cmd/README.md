@@ -1,6 +1,6 @@
-# Pacote `cmd` (Comandos da CLI do Portuscript)
+# Pacote `cmd` (Comandos da CLI do Harpia)
 
-O pacote `cmd` é o núcleo de controle da Interface de Linha de Comando (CLI) do **Portuscript**. Ele serve como ponte de integração estrutural entre a inicialização inicial do executável (no ponto de entrada `main.go`) e a biblioteca de gerenciamento de comandos **Cobra** (`github.com/spf13/cobra`).
+O pacote `cmd` é o núcleo de controle da Interface de Linha de Comando (CLI) do **Harpia**. Ele serve como ponte de integração estrutural entre a inicialização inicial do executável (no ponto de entrada `main.go`) e a biblioteca de gerenciamento de comandos **Cobra** (`github.com/spf13/cobra`).
 
 Este pacote encapsula toda a lógica de tratamento de entrada de terminal, orquestração de contextos de execução do interpretador, inicialização de interfaces interativas e gerenciamento de atualizações automatizadas do binário.
 
@@ -30,12 +30,12 @@ Este pacote encapsula toda a lógica de tratamento de entrada de terminal, orque
 
 ## 🎯 Filosofia de Design
 
-A CLI do Portuscript foi desenhada para colocar a língua portuguesa em primeiro lugar. Por isso, toda a experiência no terminal:
+A CLI do Harpia foi desenhada para colocar a língua portuguesa em primeiro lugar. Por isso, toda a experiência no terminal:
 - Descrições curtas (`Short`) e longas (`Long`) dos comandos;
 - Mensagens explicativas de help/ajuda;
 - Diagnósticos e mensagens de erro do sistema;
 - Aliases (apelidos) de comandos (ex: `exec` como apelido para `executar`);
-são escritos nativamente em **Português (PT-BR)**, criando consistência com o propósito educacional e de acessibilidade da linguagem Portuscript.
+são escritos nativamente em **Português (PT-BR)**, criando consistência com o propósito educacional e de acessibilidade da linguagem Harpia.
 
 ---
 
@@ -80,14 +80,14 @@ Esta é a **única função exportada** e pública do pacote `cmd`. Ela serve co
 
 ## 🚀 Subcomando: `executar` (`exec`)
 
-O subcomando `executar` (apelidado de `exec`) é o ponto de entrada primário para a execução física de códigos na máquina virtual Portuscript. 
+O subcomando `executar` (apelidado de `exec`) é o ponto de entrada primário para a execução física de códigos na máquina virtual Harpia. 
 
 ### Mecânica de Funcionamento
 
 O interpretador inicializa o ambiente importando implicitamente a biblioteca padrão e configurando as variáveis de escopo local. No arquivo `executar.go`, a importação blank (`_`) é crítica:
 
 ```go
-import _ "github.com/natanfeitosa/portuscript/stdlib"
+import _ "github.com/natanfeitosa/harpia/stdlib"
 ```
 
 > **Por que isso é necessário?**  
@@ -95,7 +95,7 @@ import _ "github.com/natanfeitosa/portuscript/stdlib"
 
 ### Fluxo de Decisão do interpretador
 
-Quando o usuário digita `portuscript executar [arquivo] [flags]`, o seguinte algoritmo de decisão é acionado em `executar.go`:
+Quando o usuário digita `harpia executar [arquivo] [flags]`, o seguinte algoritmo de decisão é acionado em `executar.go`:
 
 ```
                     [Início do Comando Executar]
@@ -132,7 +132,7 @@ Quando o usuário digita `portuscript executar [arquivo] [flags]`, o seguinte al
 1. **Obtenção do Diretório de Trabalho**: A chamada para `os.Getwd()` define qual o diretório corrente do processo do usuário. Esse caminho é adicionado à lista de `CaminhosPadrao` do contexto da VM, permitindo que a importação de módulos locais (`importar ...`) seja resolvida corretamente a partir do local de chamada.
 2. **Ciclo de Vida do Contexto**: O contexto da VM (`ptst.Contexto`) é protegido por `defer ctx.Terminar()`. O método `Terminar()` limpa a memória, remove referências circulares, realiza o flush (escoamento) de buffers de escrita ativos e finaliza o coletor interno, prevenindo memory leaks.
 3. **Precedência de Execução**: Se o usuário fornecer um arquivo E código inline (`-c`), o arquivo é executado **primeiro**. O código inline é avaliado em seguida no mesmo contexto. Esse comportamento permite usar arquivos locais como scripts de "setup" de variáveis e ambientes antes de rodar comandos de teste rápidos passados inline no terminal.
-4. **Tratamento Amigável de Falhas**: Exceções e erros levantados pela VM são capturados e tratados via `ptst.LancarErro()`. Em vez de simplesmente exibir um stacktrace feio do Go, o Portuscript formata um traceback amigável em português com ponteiros visuais (sublinhado) indicando exatamente o token incorreto ou a linha física falha.
+4. **Tratamento Amigável de Falhas**: Exceções e erros levantados pela VM são capturados e tratados via `ptst.LancarErro()`. Em vez de simplesmente exibir um stacktrace feio do Go, o Harpia formata um traceback amigável em português com ponteiros visuais (sublinhado) indicando exatamente o token incorreto ou a linha física falha.
 
 ---
 
@@ -158,15 +158,15 @@ Como os arquivos binários compilados pelo GoReleaser no GitHub seguem uma nomen
 
 ### Fluxo de Atualização Semântica
 
-Ao acionar `portuscript atualize`, o interpretador executa as seguintes etapas estruturadas:
+Ao acionar `harpia atualize`, o interpretador executa as seguintes etapas estruturadas:
 
 ```
-                  [Comando portuscript atualize]
+                  [Comando harpia atualize]
                                  │
                    Identifica Home do Usuário
                                  │
               Monta caminho do binário local executável
-             (~/.portuscript/bin/portuscript[.exe])
+             (~/.harpia/bin/harpia[.exe])
                                  │
               Verifica versão local (executa -v)
                                  │
@@ -190,7 +190,7 @@ Ao acionar `portuscript atualize`, o interpretador executa as seguintes etapas e
                              (Mensagem amigável)              e Instalação
 ```
 
-1. **Localização**: Descobre o diretório de instalação padrão montando o caminho absoluto sob a pasta home do usuário (`~/.portuscript/bin/portuscript` ou `~/.portuscript/bin/portuscript.exe` se for Windows).
+1. **Localização**: Descobre o diretório de instalação padrão montando o caminho absoluto sob a pasta home do usuário (`~/.harpia/bin/harpia` ou `~/.harpia/bin/harpia.exe` se for Windows).
 2. **Extração de Versão Local**: Executa o próprio binário de forma isolada disparando o subcomando `-v` através do pacote nativo `os/exec`. Extrai a string correspondente à versão. Se retornar a string `"dev"`, o processo é abortado com erro informativo, já que ambientes de desenvolvimento local/compilações manuais não devem sofrer sobreposição automática de releases do GitHub.
 3. **Consulta Remota**: Utiliza um cliente HTTP reutilizável (`httpClient`) configurado com um timeout preventivo de **10 segundos** para obter a lista de tags da API do GitHub. O JSON é desserializado para a struct `Tag`:
    ```go
@@ -216,7 +216,7 @@ Se uma nova versão for detectada, o fluxo inicia a substituição do binário a
 
 ```go
 func urlDaVersao() string {
-    url := "https://github.com/natanfeitosa/portuscript/releases/latest/download/"
+    url := "https://github.com/natanfeitosa/harpia/releases/latest/download/"
     url += nomeOS() + "_" + nomeArch()
     if isWindows() { return url + ".zip" }
     return url + ".tar.gz"
@@ -226,7 +226,7 @@ func urlDaVersao() string {
 1. **Download Seguro**: Cria um arquivo temporário em disco protegido com prefixo `-ptst` no diretório padrão temporário do sistema operacional (limpo e apagado ao final via `defer os.Remove(...)`).
 2. **Invocação do `curl`**: Executa o comando utilitário `curl` do sistema de forma nativa para realizar o download com suporte a redirecionamento (`--location`), interrupção caso haja falhas HTTP (`--fail`) e exibindo uma barra de progresso elegante no próprio terminal (`--progress-bar`).
 3. **Descompactação Inteligente**: 
-   - **Sistemas Unix (Linux/macOS)**: Utiliza o utilitário nativo de sistema `tar` (`tar -xf [arquivo] -C [destino]`) para extrair e sobrescrever o binário diretamente em `~/.portuscript/bin/`.
+   - **Sistemas Unix (Linux/macOS)**: Utiliza o utilitário nativo de sistema `tar` (`tar -xf [arquivo] -C [destino]`) para extrair e sobrescrever o binário diretamente em `~/.harpia/bin/`.
    - **Windows**: Tenta primeiramente invocar o utilitário `unzip` do sistema. Se este não for localizado na variável de ambiente PATH, faz um fallback e tenta acionar a ferramenta `7z` (7-Zip) com parâmetros automáticos silenciosos de sobrescrita.
 
 ---
@@ -235,42 +235,42 @@ func urlDaVersao() string {
 
 ### Executando Códigos Através do Terminal
 
-#### Rodando um arquivo físico `.pt`:
+#### Rodando um arquivo físico `.hrp`:
 ```bash
-# Executa um script local chamado ola_mundo.pt
-portuscript executar ola_mundo.pt
+# Executa um script local chamado ola_mundo.hrp
+harpia executar ola_mundo.hrp
 ```
 
 #### Rodando código de forma rápida inline (flag `-c`):
 ```bash
 # Executa o interpretador sem criar arquivos locais
-portuscript executar -c "escreva('Olá, Portuscript!')"
+harpia executar -c "escreva('Olá, Harpia!')"
 ```
 
 #### Executando arquivo local e complementando com código inline:
 ```bash
-# Roda as definições contidas em setup.pt e executa a função de teste inline
-portuscript executar setup.pt -c "inicializarSessao()"
+# Roda as definições contidas em setup.hrp e executa a função de teste inline
+harpia executar setup.hrp -c "inicializarSessao()"
 ```
 
 #### Rodando o Playground (TUI Interativo):
 ```bash
 # Sem parâmetros, inicia o modo REPL console interativo
-portuscript executar
+harpia executar
 ```
 
 ### Atualizando o Interpretador
 
 ```bash
 # Verifica se há novas versões estáveis no GitHub e instala se houver
-portuscript atualize
+harpia atualize
 ```
 
 ---
 
 ## 🧪 Subcomando: `testar`
 
-Varre o diretório em busca de arquivos `.ptst`/`.pt` (recursivo), executa todos os blocos `testar`/blocos nativos e apresenta relatório visual com `✅ [PASSOU]`/`❌ [FALHOU]`. Implementação em `cmd/testar.go`.
+Varre o diretório em busca de arquivos `.hrp`/`.hrp` (recursivo), executa todos os blocos `testar`/blocos nativos e apresenta relatório visual com `✅ [PASSOU]`/`❌ [FALHOU]`. Implementação em `cmd/testar.go`.
 
 ---
 
@@ -279,7 +279,7 @@ Varre o diretório em busca de arquivos `.ptst`/`.pt` (recursivo), executa todos
 Novo subcomando adicionado no **Sprint 6** e estendido no **Sprint 8**. Permite varrer o código sem executá-lo, identificando erros *preventivos* da AST:
 
 ```bash
-portuscript checar ./src
+harpia checar ./src
 ```
 
 ### Flags Suportadas
@@ -297,7 +297,7 @@ portuscript checar ./src
     },
     "severity": 1,
     "code": "PSC-0005",
-    "source": "portuscript-linter",
+    "source": "harpia-linter",
     "message": "Identificador 'x' não encontrado no escopo"
   }
 ]
@@ -324,17 +324,17 @@ portuscript checar ./src
 
 ## 🛑 Subcomando: `erro` — Dicionário e Guia de Ajuda
 
-Adicionado no **Sprint 7** e estendido no **Sprint 8**. Permite consultar explicações pedagógicas sobre erros do Portuscript diretamente do terminal:
+Adicionado no **Sprint 7** e estendido no **Sprint 8**. Permite consultar explicações pedagógicas sobre erros do Harpia diretamente do terminal:
 
 ```bash
-portuscript erro PSC-0005
+harpia erro PSC-0005
 ```
 
 ### Subcomando: `explicar` (com IA Local)
 Fornece uma explicação inteligente e personalizada sobre o erro consultado utilizando um LLM local:
 
 ```bash
-portuscript erro explicar PSC-0005
+harpia erro explicar PSC-0005
 ```
 
 * **IA Local (Ollama)**: Se conecta via HTTP ao serviço Ollama (`127.0.0.1:11434`) usando o modelo leve `gemma` para gerar explicações pedagógicas e interativas em português brasileiro, completas com exemplos de erro e correções recomendadas.
@@ -347,12 +347,12 @@ Adicionada no fechamento da **Fase 1**. Habilita verificação estrita de tipage
 
 * **No comando `executar`**:
   ```bash
-  portuscript executar meu_script.ptst --estrito
+  harpia executar meu_script.hrp --estrito
   ```
   Se ativado, qualquer atribuição de valor incompatível com o tipo anotado ou passagem incorreta de parâmetros em runtime lança um erro `TipagemErro` (PSC-0004).
 * **No comando `checar`**:
   ```bash
-  portuscript checar meu_script.ptst --estrito
+  harpia checar meu_script.hrp --estrito
   ```
   O linter analisa estaticamente as atribuições e emite diagnósticos preventivos de conflito de tipo.
 
@@ -363,24 +363,24 @@ Adicionada no fechamento da **Fase 1**. Habilita verificação estrita de tipage
 ### 11. Subcomando: `novo` — Scaffolding Estruturado
 Inicializa uma nova árvore física padrão de projeto baseada no escopo e topologia desejada:
 ```bash
-portuscript novo monolito meu_app
-portuscript novo backend meu_back
-portuscript novo frontend meu_front
+harpia novo monolito meu_app
+harpia novo backend meu_back
+harpia novo frontend meu_front
 ```
 *   **Proteção Física**: O comando verifica se a pasta do projeto já existe e aborta de forma síncrona com aviso para impedir sobrescritas acidentais de arquivos do usuário.
 
 ### 12. Subcomando: `crie` — Assistente de Templates (Generators)
 Gera boilerplates estruturados prontos para uso em projetos existentes:
 ```bash
-portuscript crie rota sobre
-portuscript crie componente botao
+harpia crie rota sobre
+harpia crie componente botao
 ```
-*   **Inteligência de Detecção**: O assistente detecta automaticamente a presença da pasta `/web` e direciona a escrita física de arquivos para `/web/rotas` e `/web/componentes`, criando o arquivo lógico `.ptst` e folha de estilos correspondente `.estilo.ptst` em português.
+*   **Inteligência de Detecção**: O assistente detecta automaticamente a presença da pasta `/web` e direciona a escrita física de arquivos para `/web/rotas` e `/web/componentes`, criando o arquivo lógico `.hrp` e folha de estilos correspondente `.estilo.hrp` em português.
 
 ### 13. Subcomando: `lsp` — Servidor de Linguagem Integrado
 Inicia o servidor oficial de Language Server Protocol (LSP) em Go via stdio para IDEs (VS Code/Cursor):
 *   **Autocompletar (`textDocument/completion`)**: Fornece sugestões instantâneas no editor de palavras-chave da linguagem (como `funcao`, `classe`, `se`) e embutidos reativos (como `sinal`, `sinalPersistente`, `recurso`).
-*   **Formatação "On-Save" (`textDocument/formatting`)**: Permite que o editor formate arquivos `.ptst` de forma automatizada ao salvar, usando a nossa heurística síncrona de alinhamento de blocos.
+*   **Formatação "On-Save" (`textDocument/formatting`)**: Permite que o editor formate arquivos `.hrp` de forma automatizada ao salvar, usando a nossa heurística síncrona de alinhamento de blocos.
 *   **Diagnósticos de Clean Arch Inline**: Linter reativo que emite sublinhados vermelhos de erro na IDE em tempo de digitação caso um arquivo sob `/dominio/` tente importar algo de `/infra/` ou `/web/`.
 *   **Dicas de Passar o Mouse (`textDocument/hover`)**: Exibe informações ricas e assinaturas estruturadas de variáveis, funções e classes ao passar o mouse por cima do símbolo, integrando automaticamente blocos de documentações `///` e provendo documentações didáticas integradas para builtins (`imprimir`, `sinal`, `efeito`, etc.).
 *   **Ir Para a Definição (`textDocument/definition` / F12)**: Permite saltar instantaneamente do local de chamada de uma função, classe ou variável diretamente para a linha do arquivo onde o símbolo foi declarado de forma nativa.
@@ -388,28 +388,28 @@ Inicia o servidor oficial de Language Server Protocol (LSP) em Go via stdio para
 ### 14. Subcomando: `playground` — Editor e Depurador Web
 Inicia o servidor de interface web do playground interativo:
 ```bash
-portuscript playground -p 8090
+harpia playground -p 8090
 ```
-*   **Dogfooding Reativo**: A própria página do playground (`playground/interface.ptst`) é escrita **100% em Portuscript reativo**, usando Two-Way Binding (`_ligar`) e o componente de tabela inteligente `<GradeDeDados>` para renderizar as variáveis locais e logs capturados em tempo real.
+*   **Dogfooding Reativo**: A própria página do playground (`playground/interface.hrp`) é escrita **100% em Harpia reativo**, usando Two-Way Binding (`_ligar`) e o componente de tabela inteligente `<GradeDeDados>` para renderizar as variáveis locais e logs capturados em tempo real.
 
 ### 15. Subcomando: `formatar` — Pretty-Printer Heurístico
-Higieniza e alinha recuos de arquivos Portuscript:
+Higieniza e alinha recuos de arquivos Harpia:
 ```bash
-portuscript formatar meu_codigo.ptst -w
+harpia formatar meu_codigo.hrp -w
 ```
 *   **Controle de Blocos**: Corrige a indentação baseando-se em contagens de delimitadores (`{}`, `[]`, `()`), remove linhas vazias duplicadas e preserva 100% de comentários e JSX.
 
 ### 16. Subcomando: `doc` — Geração de Documentações
 Varre arquivos extraindo comentários especiais iniciados com três barras (`///`):
 ```bash
-portuscript doc calculos.ptst --formato=html
+harpia doc calculos.hrp --formato=html
 ```
 *   Gera APIs e documentações estruturadas de funções, classes, constantes e variáveis em formato Markdown ou páginas responsivas estilizadas em HTML.
 
 ### 17. Subcomando: `diagramar` — Mapeador Arquitetural
 Analisa o fluxo de importações entre as camadas do projeto:
 ```bash
-portuscript diagramar
+harpia diagramar
 ```
 *   Gera grafos de relacionamento textual em formato Mermaid, validando se as dependências de isolamento do Clean Architecture foram violadas.
 *   **Formatos HTML e SVG Interativos**: Adicionada a flag `--formato html` ou `-f html` (e suporte a `svg`) junto de `--saida` ou `-s` para gerar visualizações ricas locais.
@@ -419,17 +419,17 @@ portuscript diagramar
 ### 18. Subcomando: `instalar` — Gerenciador de Módulos
 Download e resolvedor de dependências assíncrono:
 ```bash
-portuscript instalar [nome-do-pacote] [versao-opcional]
+harpia instalar [nome-do-pacote] [versao-opcional]
 ```
 *   **Resolução Remota e Registro Central**: Agora permite buscar pacotes públicos diretamente pelo nome do registro central em português (`URL_REGISTRO_CENTRAL`).
-*   **Gestão de Versões Semver**: Suporta a resolução de dependências baseadas em restrições de versão semver diretamente no arquivo de manifesto `pacote.ptst` ou `pacote.json` (ex: `"banco-dados": "1.0.0"`, `"banco-dados": "latest"`), resolvendo os caminhos remotos dos arquivos ZIP compactados automaticamente.
-*   Lê o arquivo de manifesto em português `pacote.ptst` (ou `pacote.json`), baixa os pacotes zip associados e os extrai de forma automatizada sob a pasta local `pt_modulos/` exibindo relatórios de progresso de download em tempo real.
+*   **Gestão de Versões Semver**: Suporta a resolução de dependências baseadas em restrições de versão semver diretamente no arquivo de manifesto `pacote.hrp` ou `pacote.json` (ex: `"banco-dados": "1.0.0"`, `"banco-dados": "latest"`), resolvendo os caminhos remotos dos arquivos ZIP compactados automaticamente.
+*   Lê o arquivo de manifesto em português `pacote.hrp` (ou `pacote.json`), baixa os pacotes zip associados e os extrai de forma automatizada sob a pasta local `pt_modulos/` exibindo relatórios de progresso de download em tempo real.
 *   **Segurança de Extração (Anti-Zip Slip)**: Implementa um validador de sanidade de caminhos (`filepath.Clean` e verificação de prefixo) que bloqueia na hora a extração de arquivos maliciosos contendo caminhos de travessia de diretório (`..`), impedindo que pacotes ZIP corrompidos sobrescrevam ou criem arquivos fora da pasta alvo do projeto.
 
 ### 19. Subcomando: `empacotar` — Compilador e Gerador de Binários Standalone / WASM
-O comando `empacotar` permite compilar scripts Portuscript unificando interpretador e código de usuário em um executável nativo compilado autônomo (Single Binary Bundle) ou compilar o interpretador completo para WebAssembly:
-*   **Executáveis Standalone**: Compila e embute um script Portuscript específico de forma a rodá-lo diretamente como binário executável local do SO (Windows, Linux ou macOS).
-*   **Compilação Cruzada para WebAssembly (WASM)**: Suporta `--so=js --arq=wasm` para compilar o interpretador Portuscript completo para rodar de forma dinâmica 100% no cliente direto no navegador (`docs/portal/portuscript.wasm`).
+O comando `empacotar` permite compilar scripts Harpia unificando interpretador e código de usuário em um executável nativo compilado autônomo (Single Binary Bundle) ou compilar o interpretador completo para WebAssembly:
+*   **Executáveis Standalone**: Compila e embute um script Harpia específico de forma a rodá-lo diretamente como binário executável local do SO (Windows, Linux ou macOS).
+*   **Compilação Cruzada para WebAssembly (WASM)**: Suporta `--so=js --arq=wasm` para compilar o interpretador Harpia completo para rodar de forma dinâmica 100% no cliente direto no navegador (`docs/portal/harpia.wasm`).
 *   **Loader Portátil `wasm_exec.js`**: Copia dinamicamente do GOROOT do seu sistema a biblioteca Javascript correta correspondente à versão instalada de Go na sua máquina para carregar o binário compilado.
 
 

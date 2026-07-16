@@ -6,6 +6,7 @@ import (
 
 	"github.com/natanfeitosa/portuscript/playground"
 	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/natanfeitosa/portuscript/vm"
 
 	// A importação blank (_) é fundamental aqui: ela força a execução da função init()
 	// presente no pacote stdlib. Isso faz com que todos os módulos nativos da biblioteca
@@ -21,6 +22,9 @@ import (
 // estável na memória para preencher o valor do argumento por meio de referenciamento de ponteiro
 // na inicialização do subcomando (`PersistentFlags().StringVarP`).
 var codigo string
+var estrito bool
+var rodarNaVM bool
+var profilador bool
 
 // comandoExecutar projeta, configura e constrói a especificação do subcomando `executar` (com alias de atalho `exec`).
 //
@@ -63,7 +67,10 @@ func comandoExecutar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+			ctx := ptst.NewContexto(ptst.OpcsContexto{
+				CaminhosPadrao: []string{cur},
+				Estrito:        estrito,
+			})
 			defer ctx.Terminar()
 
 			// Cenário 1: Sem arquivo e sem código inline. Inicia o playground interativo.
@@ -74,10 +81,45 @@ func comandoExecutar() *cobra.Command {
 
 			// Cenário 2: Arquivo posicional recebido. Prioridade de carregamento antes do código inline.
 			if len(args) > 0 {
-				_, err = ptst.ExecutarArquivo(ctx, "", args[0], cur, false)
-				if err != nil {
-					ptst.LancarErro(err)
-					return
+				if rodarNaVM {
+					_, ast, errAst := ctx.TransformarEmAst(args[0], false, cur)
+					if errAst != nil {
+						ptst.LancarErro(errAst)
+						return
+					}
+
+					comp := vm.NewCompilador()
+					prog, errComp := comp.Compilar(ast)
+					if errComp != nil {
+						ptst.LancarErro(errComp)
+						return
+					}
+
+					mainModulo, errMod := ctx.ObterModulo("__main__")
+					var mainEscopo *ptst.Escopo
+					if errMod == nil && mainModulo != nil {
+						mainEscopo = mainModulo.Escopo
+					} else {
+						mainEscopo = ptst.NewEscopo()
+					}
+
+					virtualMachine := vm.NewVM(ctx)
+					virtualMachine.Perfil = profilador
+					frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil)
+					_, err = virtualMachine.Executar(frame)
+					if err != nil {
+						ptst.LancarErro(err)
+						return
+					}
+					if virtualMachine.Perfil {
+						virtualMachine.ImprimirPerfil()
+					}
+				} else {
+					_, err = ptst.ExecutarArquivo(ctx, "", args[0], cur, false)
+					if err != nil {
+						ptst.LancarErro(err)
+						return
+					}
 				}
 			}
 
@@ -94,5 +136,8 @@ func comandoExecutar() *cobra.Command {
 	// Define a flag de persistência `--codigo` (e seu atalho curto `-c`).
 	// Sendo uma flag persistente, garante-se que subcomandos adjacentes herdem a definição e comportamento.
 	executar.PersistentFlags().StringVarP(&codigo, "codigo", "c", "", "Use para rodar um código inline.")
+	executar.PersistentFlags().BoolVar(&estrito, "estrito", false, "Ativa a validação estrita de tipos em tempo de execução.")
+	executar.PersistentFlags().BoolVar(&rodarNaVM, "vm", false, "Habilita a execução experimental de bytecode na Máquina Virtual de Pilha.")
+	executar.PersistentFlags().BoolVar(&profilador, "perfil", false, "Ativa o monitoramento e perfilamento de tempo das instruções da VM.")
 	return executar
 }

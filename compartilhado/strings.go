@@ -6,9 +6,22 @@
 package compartilhado
 
 import (
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
+
+var (
+	cacheMu      sync.RWMutex
+	cacheUnicode = make(map[string][]int)
+)
+
+// LimparCacheUnicode esvazia de forma síncrona o cache estático global de índices de strings Unicode.
+func LimparCacheUnicode() {
+	cacheMu.Lock()
+	cacheUnicode = make(map[string][]int)
+	cacheMu.Unlock()
+}
 
 // IndiceBytePorCarater pré-calcula e mapeia a correspondência exata entre o índice sequencial de um
 // caractere Unicode (runa) e a sua respectiva posição inicial em bytes (byte offset) dentro da string.
@@ -23,6 +36,18 @@ import (
 // conceitual de caractere em loops de lexer/parser seria uma operação O(N) muito custosa. Este mapeamento
 // atua como uma tabela de consulta rápida (cache) que reduz futuros acessos ao arquivo ou string para O(1).
 func IndiceBytePorCarater(str string) []int {
+	// Se a string for muito longa, evitamos colocar no cache para não gastar memória excessiva.
+	usarCache := len(str) < 4096
+
+	if usarCache {
+		cacheMu.RLock()
+		if c, ok := cacheUnicode[str]; ok {
+			cacheMu.RUnlock()
+			return c
+		}
+		cacheMu.RUnlock()
+	}
+
 	out := make([]int, 0, len(str)+2)
 	byteIdx := 0
 	for byteIdx < len(str) {
@@ -31,6 +56,17 @@ func IndiceBytePorCarater(str string) []int {
 		byteIdx += tamanho
 	}
 	out = append(out, len(str))
+
+	if usarCache {
+		cacheMu.Lock()
+		// Evita o crescimento infinito e vazamento de memória da tabela hash do cache
+		if len(cacheUnicode) > 2048 {
+			cacheUnicode = make(map[string][]int)
+		}
+		cacheUnicode[str] = out
+		cacheMu.Unlock()
+	}
+
 	return out
 }
 

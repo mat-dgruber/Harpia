@@ -1,9 +1,9 @@
-# Especificação Gramatical (`gramatica` do Portuscript)
+# Especificação Gramatical (`gramatica` do Harpia)
 
-O diretório `gramatica` abriga os arquivos formais de especificação de sintaxe e léxico da linguagem **Portuscript**. As regras são descritas no formato padrão da ferramenta geradora de compiladores **ANTLR4** (`.g4`), dividindo-se em:
+O diretório `gramatica` abriga os arquivos formais de especificação de sintaxe e léxico da linguagem **Harpia**. As regras são descritas no formato padrão da ferramenta geradora de compiladores **ANTLR4** (`.g4`), dividindo-se em:
 
-1. **`PortuscriptLexer.g4`**: Define a especificação léxica (tokens, literais, operadores e identificadores).
-2. **`PortuscriptParser.g4`**: Define as regras sintáticas e a gramática de precedência gramatical (AST - Árvore de Sintaxe Abstrata).
+1. **`HarpiaLexer.g4`**: Define a especificação léxica (tokens, literais, operadores e identificadores).
+2. **`HarpiaParser.g4`**: Define as regras sintáticas e a gramática de precedência gramatical (AST - Árvore de Sintaxe Abstrata).
 
 ---
 
@@ -20,7 +20,7 @@ O diretório `gramatica` abriga os arquivos formais de especificação de sintax
 ## 🎯 Papel da Gramática no Compilador
 
 > **Nota de Design Importante**:  
-> Embora os arquivos `.g4` descrevam formalmente a gramática no padrão ANTLR4, o compilador físico do Portuscript **não utiliza código gerado automaticamente** pelo ANTLR. 
+> Embora os arquivos `.g4` descrevam formalmente a gramática no padrão ANTLR4, o compilador físico do Harpia **não utiliza código gerado automaticamente** pelo ANTLR. 
 > 
 > Por questões de performance de execução, flexibilidade de recursos de rede, tratamento correto de strings UTF-8 multibyte e, crucialmente, para emitir mensagens de diagnósticos de erros ricos inteiramente em Português, o **Lexer e o Parser foram escritos totalmente à mão em Go** (localizados nos pacotes correspondentes `/lexer` e `/parser`).
 
@@ -30,7 +30,7 @@ Portanto, os arquivos contidos nesta pasta servem como a **especificação técn
 
 ## 🔤 Análise Léxica (Palavras Reservadas e Constantes)
 
-O analisador léxico (`PortuscriptLexer.g4`) quebra o código fonte em pequenas unidades atômicas chamadas **Tokens**.
+O analisador léxico (`HarpiaLexer.g4`) quebra o código fonte em pequenas unidades atômicas chamadas **Tokens**.
 
 ### Constantes Primordiais:
 - `Verdadeiro`: Literal booleano de valor positivo.
@@ -48,7 +48,7 @@ O analisador léxico (`PortuscriptLexer.g4`) quebra o código fonte em pequenas 
 
 ## 🌳 Árvore Sintática e Precedência de Operadores
 
-A gramática do interpretador (`PortuscriptParser.g4`) organiza as expressões matemáticas e lógicas seguindo uma hierarquia estrita de precedência gramatical para evitar ambiguidades em cálculos lógicos e aritméticos.
+A gramática do interpretador (`HarpiaParser.g4`) organiza as expressões matemáticas e lógicas seguindo uma hierarquia estrita de precedência gramatical para evitar ambiguidades em cálculos lógicos e aritméticos.
 
 Abaixo está o mapeamento de **Precedência Operacional**, listado do operador de menor prioridade (resolvido por último) até o de maior prioridade (resolvido primeiro):
 
@@ -74,7 +74,7 @@ Abaixo está o mapeamento de **Precedência Operacional**, listado do operador d
 ### 1. Declaração Condicional (`se` / `senao`)
 A estrutura de blocos condicionais exige o uso de parênteses para a expressão de validação lógica e chaves para delimitar o escopo:
 
-```portuscript
+```harpia
 se (x > 10) {
     escreva("Maior que dez")
 } senao se (x == 10) {
@@ -87,7 +87,7 @@ se (x > 10) {
 ### 2. Laço Iterativo (`para` / `em`)
 O laço iterativo varre coleções (como listas ou sequências numéricas geradas) de forma simplificada:
 
-```portuscript
+```harpia
 para item em sequencia(10) {
     escreva(item)
 }

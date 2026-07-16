@@ -1,17 +1,29 @@
+/// Playground Interativo do Portuscript
+/// Aplicação web SPA desenvolvida 100% no próprio Portuscript Reativo.
+/// Demonstra o poder real de "dogfooding" da linguagem em produção: utiliza o sistema de
+/// Sinais (Fine-Grained), vinculação de dados síncronos bidirecionais (Two-Way Binding) e
+/// componentes complexos nativos de tabela (GradeDeDados).
+
+
 de "web" importe sinal, GradeDeDados;
 
 # ponytail: aplicação do playground escrita 100% em Portuscript
 exportar funcao PlaygroundApp() {
-	var [codigo, setCodigo] = sinal("var a = 10;\nvar [contador, setContador] = sinal(5);\n\nfuncao dobrar(num) {\n    retorne num * 2;\n}\n\nimprimir(\"Dobro de 10: \" + dobrar(a));\nimprimir(\"Contador reativo: \" + contador());");
+	# Código padrão que aparece no editor ao iniciar
+	var [codigo, setCogo] = sinal("var a = 10;\nvar [contador, setContador] = sinal(5);\n\nfuncao dobrar(num) {\n    retorne num * 2;\n}\n\nimprimir(\"Dobro de 10: \" + dobrar(a));\nimprimir(\"Contador reativo: \" + contador());");
+
+	# Sinais de estado locais para gerenciar saídas do console e diagnósticos
 	var [saida, setSaida] = sinal("");
 	var [erroHtml, setErroHtml] = sinal("");
 	var [variaveis, setVariaveis] = sinal([]);
 	var [executando, setExecutando] = sinal(Falso);
 
+	/// Executa o código fonte digitado no editor enviando-o síncronamente para a API em Go
 	funcao executar() {
 		setExecutando(Verdadeiro);
 
-		# Faz a requisição para a API local usando o fetch do navegador
+		# Faz a requisição para a API local de execução usando o fetch nativo do navegador.
+		# A API Go recebe o código, executa na VM e devolve a saída do stdout e as variáveis do escopo.
 		fetch("/api/executar", {
 			"method": "POST",
 			"headers": { "Content-Type": "application/json" },
@@ -21,6 +33,7 @@ exportar funcao PlaygroundApp() {
 			retorne res.json();
 		})
 		.then(funcao(dados) {
+			# Atualiza síncronamente os sinais reativos para atualizar o Virtual DOM
 			setSaida(dados.saida ou "");
 			setErroHtml(dados.erroHtml ou "");
 			setVariaveis(dados.variaveis ou []);
@@ -32,10 +45,12 @@ exportar funcao PlaygroundApp() {
 		});
 	}
 
+	/// Limpa as impressões acumuladas no painel do console
 	funcao limparConsole() {
 		setSaida("");
 	}
 
+	/// Escuta e intercepta as teclas físicas para permitir execução rápida via Ctrl+Enter
 	funcao lidarTeclado(e) {
 		se (e.ctrlKey e e.key == "Enter") {
 			e.preventDefault();
@@ -43,8 +58,8 @@ exportar funcao PlaygroundApp() {
 		}
 	}
 
+	# O JSX-like reativo transpilado estaticamente para JS ES6 e reconciliado via VDOM
 	retorne <div classe="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans">
-		<!-- Header -->
 		<header classe="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
 			<div classe="flex items-center space-x-3">
 				<span classe="text-2xl font-black text-blue-500">Portuscript</span>
@@ -56,19 +71,18 @@ exportar funcao PlaygroundApp() {
 			</button>
 		</header>
 
-		<!-- Painéis -->
 		<main classe="flex-1 grid grid-cols-2 gap-px bg-slate-800 overflow-hidden">
 			<!-- Esquerda: Editor -->
 			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden">
 				<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
 					CÓDIGO FONTE (PORTUSCRIPT)
 				</div>
+				# ligar={codigo} sintoniza o Two-Way Data Binding reativo de fábrica
 				<textarea ligar={codigo} aoTeclar={lidarTeclado} classe="flex-1 w-full p-6 bg-slate-950 text-slate-100 editor-textarea focus:outline-none resize-none overflow-y-auto leading-relaxed" placeholder="# Escreva seu código..."></textarea>
 			</section>
 
 			<!-- Direita: Saída/Console e Variáveis -->
 			<section classe="grid grid-rows-2 gap-px bg-slate-800 h-full overflow-hidden">
-				<!-- Console -->
 				<div classe="flex flex-col bg-slate-950 overflow-hidden">
 					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider flex justify-between">
 						<span>SAÍDA DO CONSOLE</span>
@@ -77,16 +91,17 @@ exportar funcao PlaygroundApp() {
 					<pre classe="flex-1 p-6 font-mono text-sm overflow-y-auto leading-relaxed whitespace-pre-wrap text-slate-300">{saida()}</pre>
 				</div>
 
-				<!-- Variáveis / Erros -->
 				<div classe="flex flex-col bg-slate-950 overflow-hidden">
 					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
 						INSPETOR DE VARIÁVEIS / DIAGNÓSTICOS
 					</div>
 					<div classe="flex-1 p-6 overflow-y-auto">
+						# Se houver erros, exibe a caixa de erros ricos vermelha usando innerHTML reativo do VDOM
 						<se condicao={erroHtml() != ""}>
 							<div classe="p-4 border border-red-900 bg-red-950/40 rounded-lg font-mono text-sm leading-relaxed overflow-x-auto text-red-300 mb-4" innerHTML={erroHtml()}></div>
 						</se>
 
+						# Se não houver erros, exibe a tabela inteligente GradeDeDados nativa do Portuscript
 						<se condicao={erroHtml() == ""}>
 							<GradeDeDados colunas={["nome", "tipo", "valor"]} dados={variaveis()} linhasPorPagina={10} />
 						</se>

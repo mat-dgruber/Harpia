@@ -110,6 +110,9 @@ var (
 	// ArquivoNaoEncontradoErro indica falhas ao tentar abrir ou ler caminhos inexistentes no disco rígido.
 	ArquivoNaoEncontradoErro = ErroDeSistema.NewTipo("ArquivoNaoEncontradoErro", "O arquivo não pôde ser encontrado")
 
+	// ErroDePilha ocorre quando o limite máximo de recursão da VM é atingido.
+	ErroDePilha = TipoErro.NewTipo("ErroDePilha", "Limite máximo de recursão excedido")
+
 	// ErroContinue é uma sinalização interna de controle para simular o avanço do comando 'continue' em loops.
 	ErroContinue = TipoErro.NewTipo("ErroContinue", "Erro utilizado para representar a instrução 'continue' em loops")
 
@@ -136,13 +139,47 @@ func (e *Erro) Tipo() *Tipo {
 }
 
 // AdicionarContexto vincula o supervisor de estado da VM à exceção para alimentar a resolução de tracebacks.
+//
+// Também propaga as coordenadas geográficas (Linha/Coluna/Token) do contexto
+// para o Erro, caso ainda não tenham sido definidas — permitindo que scripts
+// inspecionem `erro.linha`, `erro.coluna`, `erro.arquivo` durante o capture.
 func (e *Erro) AdicionarContexto(contexto *Contexto) {
-	if e.Contexto != nil {
+	if contexto == nil {
 		return
 	}
 
-	e.Contexto = contexto
+	if e.Contexto == nil {
+		e.Contexto = contexto
+	}
+
+	if e.Linha == -1 {
+		e.Linha = contexto.LinhaAtual
+		e.Coluna = contexto.ColunaAtual
+		e.Token = contexto.TokenAtual
+		e.Arquivo = contexto.ArquivoAtual
+		e.Codigo = contexto.CodigoAtual
+	}
 }
+
+func (e *Erro) M__obtem_attributo__(nome string) (Objeto, error) {
+	switch nome {
+	case "mensagem":
+		if e.Mensagem != nil {
+			return e.Mensagem, nil
+		}
+		return Nulo, nil
+	case "linha":
+		return NewInteiro(e.Linha)
+	case "coluna":
+		return NewInteiro(e.Coluna)
+	case "arquivo":
+		return NewTexto(e.Arquivo)
+	}
+
+	return nil, NewErroF(AtributoErro, "O atributo '%s' não existe no tipo '%s'", nome, e.Tipo().Nome)
+}
+
+var _ I__obtem_attributo__ = (*Erro)(nil)
 
 // ObterCodigoErro mapeia cada classe de exceção do Portuscript a um código estruturado de erro normatizado.
 // Isso facilita de forma extraordinária a indexação, criação de fóruns e documentação de suporte a bugs.
@@ -176,6 +213,8 @@ func ObterCodigoErro(tipo *Tipo) string {
 		return "PSC-0013"
 	case ArquivoNaoEncontradoErro:
 		return "PSC-0014"
+	case ErroDePilha:
+		return "PSC-0015"
 	default:
 		return "PSC-0000"
 	}
@@ -233,7 +272,7 @@ func (e *Erro) Error() string {
 
 	sugestao := e.Sugestao
 	if sugestao == "" {
-		sugestao = ObterSugestaoErro(e.Base, messageForSugestao(mensagem))
+		sugestao = ObterSugestaoErro(e.Base, mensagem)
 	}
 
 	usarCores := os.Getenv("NO_COLOR") == ""
@@ -302,8 +341,4 @@ func (e *Erro) Error() string {
 	}
 
 	return sb.String()
-}
-
-func messageForSugestao(s string) string {
-	return s
 }

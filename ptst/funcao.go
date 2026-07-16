@@ -9,14 +9,17 @@ import (
 // Ela armazena o corpo de instruções (AST Bloco), a relação ordenada de parâmetros formais esperados,
 // o supervisor (Contexto) de execução da VM, e o escopo léxico estático no qual ela foi originalmente declarada.
 type Funcao struct {
-	Nome     string                     // Nome identificador da função (disponível sob a constante '__nome__').
-	Doc      Texto                      // Bloco de documentação explicativo (disponível sob a constante '__doc__').
-	args     []string                   // Relação ordenada de nomes textuais correspondentes aos argumentos.
-	defaults map[string]parser.BaseNode // Valores padrões para os argumentos (AST)
-	corpo    *parser.Bloco              // O bloco de nós da AST correspondente ao corpo físico da função.
-	contexto *Contexto                  // Ponteiro de referência ao supervisor global da VM.
-	escopo   *Escopo                    // O escopo de enquadramento original de declaração (Lexical Scope).
-	Estatico bool                       // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
+	Nome        string                     // Nome identificador da função (disponível sob a constante '__nome__').
+	Doc         Texto                      // Bloco de documentação explicativo (disponível sob a constante '__doc__').
+	args        []string                   // Relação ordenada de nomes textuais correspondentes aos argumentos.
+	defaults    map[string]parser.BaseNode // Valores padrões para os argumentos (AST)
+	corpo       *parser.Bloco              // O bloco de nós da AST correspondente ao corpo físico da função.
+	contexto    *Contexto                  // Ponteiro de referência ao supervisor global da VM.
+	escopo      *Escopo                    // O escopo de enquadramento original de declaração (Lexical Scope).
+	Estatico    bool                       // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
+	tiposParams map[string]string          // Mapeamento dos tipos estritos exigidos pelos parâmetros formais.
+	tipoRetorno string                     // O tipo de retorno esperado de forma estrita.
+	Assincrono  bool                       // Flag que sinaliza se a função é assíncrona.
 }
 
 // TipoFuncao especifica as assinaturas e os metadados de classe do tipo Funcao na VM.
@@ -49,6 +52,29 @@ func (f *Funcao) definirDefault(nome string, node parser.BaseNode) {
 		f.defaults = make(map[string]parser.BaseNode)
 	}
 	f.defaults[nome] = node
+}
+
+func (f *Funcao) definirTipoParam(nome string, tipo string) {
+	if f.tiposParams == nil {
+		f.tiposParams = make(map[string]string)
+	}
+	f.tiposParams[nome] = tipo
+}
+
+func (f *Funcao) definirTipoRetorno(tipo string) {
+	f.tipoRetorno = tipo
+}
+
+func (f *Funcao) DefinirArgs(nomes []string) {
+	f.args = nomes
+}
+
+func (f *Funcao) SetContexto(ctx *Contexto) {
+	f.contexto = ctx
+}
+
+func (f *Funcao) SetEscopo(esc *Escopo) {
+	f.escopo = esc
 }
 
 // M__chame__ satisfaz o protocolo de chamabilidade da VM (I__chame__), realizando a execução física da função.
@@ -102,10 +128,32 @@ func (f *Funcao) M__chame__(args Tupla) (Objeto, error) {
 
 	// 3. Define no escopo local da função todos os parâmetros resolvidos
 	for nome, val := range resolvidos {
-		escopo.DefinirSimbolo(NewVarSimbolo(nome, val))
+		if f.tiposParams != nil && f.contexto.Opcs.Estrito {
+			if tipoEsperado, existe := f.tiposParams[nome]; existe && tipoEsperado != "" {
+				if !ValidarTipo(tipoEsperado, val) {
+					return nil, NewErroF(TipagemErro, "O valor passado para o parâmetro '%s' de %s() não coincide com o tipo '%s' (tipo obtido: '%s')", nome, f.Nome, tipoEsperado, val.Tipo().Nome)
+				}
+			}
+		}
+
+		simbolo := NewVarSimbolo(nome, val)
+		if f.tiposParams != nil {
+			simbolo.Tipo = f.tiposParams[nome]
+		}
+		escopo.DefinirSimbolo(simbolo)
 	}
 
-	return (&Interpretador{Ast: f.corpo, Contexto: f.contexto, Escopo: escopo}).Inicializa()
+	retorno, err := (&Interpretador{Ast: f.corpo, Contexto: f.contexto, Escopo: escopo}).Inicializa()
+	if err == nil && f.tipoRetorno != "" && f.contexto.Opcs.Estrito {
+		valRetorno := retorno
+		if valRetorno == nil {
+			valRetorno = Nulo
+		}
+		if !ValidarTipo(f.tipoRetorno, valRetorno) {
+			return nil, NewErroF(TipagemErro, "O valor retornado por %s() não coincide com o tipo esperado '%s' (tipo retornado: '%s')", f.Nome, f.tipoRetorno, valRetorno.Tipo().Nome)
+		}
+	}
+	return retorno, err
 }
 
 // Garante conformidade de satisfação do protocolo chamável.

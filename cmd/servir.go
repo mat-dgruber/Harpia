@@ -71,7 +71,7 @@ func comandoServir() *cobra.Command {
 							return nil
 						}
 						if !info.IsDir() && info.ModTime().After(ultimoCheck) {
-							if strings.HasSuffix(path, ".ptst") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
+							if strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".ptst") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
 								mudou = true
 								ultimoCheck = info.ModTime()
 							}
@@ -218,6 +218,6 @@ func comandoServir() *cobra.Command {
 	}
 
 	servir.Flags().IntVarP(&porta, "porta", "p", 3000, "Porta de escuta do Dev Server local")
-	servir.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .ptst de entrada principal")
+	servir.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .hrp de entrada principal")
 	return servir
 }

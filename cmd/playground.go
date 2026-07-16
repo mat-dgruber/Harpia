@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/natanfeitosa/portuscript/ptst"
 	"github.com/spf13/cobra"
@@ -28,6 +30,9 @@ type ExecucaoPlaygroundResponse struct {
 	Variaveis []VariavelEscopo `json:"variaveis"`
 	ErroHtml  string           `json:"erroHtml,omitempty"`
 }
+
+// ponytail: garante segurança concorrente contra corridas de dados no Stdout compartilhado
+var mutexExecucaoPlayground sync.Mutex
 
 // comandoPlayground inicia o servidor web do playground interativo local
 func comandoPlayground() *cobra.Command {
@@ -52,7 +57,14 @@ func iniciarServidorPlayground(porta int) {
 
 	fmt.Printf("🚀 Playground Interativo do Portuscript rodando em: http://localhost:%d\n", porta)
 	fmt.Println("Pressione Ctrl+C para encerrar o servidor.")
-	err := http.ListenAndServe(fmt.Sprintf(":%d", porta), nil)
+
+	// ponytail: servidor HTTP resiliente com timeouts para mitigar DoS/estouro de conexões
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", porta),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	err := server.ListenAndServe()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Erro ao iniciar o servidor do playground: %v\n", err)
 		os.Exit(1)
@@ -139,6 +151,13 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Método não suportado", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// ponytail: limita payload do editor a no máximo 1MB contra ataques de DoS/estouro de buffer
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
+
+	// ponytail: serializa execuções concorrentes do terminal local para evitar Race Conditions em os.Stdout
+	mutexExecucaoPlayground.Lock()
+	defer mutexExecucaoPlayground.Unlock()
 
 	var req ExecucaoPlaygroundRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

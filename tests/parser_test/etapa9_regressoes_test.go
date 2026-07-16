@@ -8,16 +8,6 @@ import (
 
 // 1 - 2 - 3 deve parsear como (1 - 2) - 3 = -4 (left-associative).
 func TestAssociatividadeSubtracao(t *testing.T) {
-	um := &parser.InteiroLiteral{Valor: "1"}
-	dois := &parser.InteiroLiteral{Valor: "2"}
-	tres := &parser.InteiroLiteral{Valor: "3"}
-
-	esperado := &parser.OpBinaria{
-		Esq: &parser.OpBinaria{Esq: um, Operador: "-", Dir: dois},
-		Operador: "-",
-		Dir: tres,
-	}
-
 	recebido, err := createParser("1 - 2 - 3").Parse()
 	if err != nil {
 		t.Fatal(err)
@@ -36,9 +26,6 @@ func TestAssociatividadeSubtracao(t *testing.T) {
 	if !ok || esqExterno.Operador != "-" {
 		t.Fatalf("esperava associatividade à esquerda na subtracao")
 	}
-
-	// Sanidade estrutural via reflect: garante que árvore completa bate.
-	_ = esperado
 }
 
 // 8 / 4 / 2 deve parsear como (8 / 4) / 2 = 1.
