@@ -152,6 +152,9 @@ Agendador de tarefas periódicas via Cron e filas assíncronas concorrentes em m
 ### 10. Módulo: `ffi`
 FFI portátil para carregar dinamicamente bibliotecas C (.so, .dll, .dylib) e chamar assinaturas de forma síncrona.
 
+### 11. Módulo: `ia`
+Integração nativa com inteligência artificial para criação de Agentes autônomos com memória, conectores Ollama/nuvem e orquestração de diálogos.
+
 ---
 
 ## 📝 Exemplo Completo de Uso de Módulos

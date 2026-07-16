@@ -513,6 +513,24 @@ Controle de sockets de baixo nível (TCP/IP). Requer `importar soquete`.
   * `define_opcoes(nivel, opcao, valor)`: Configura opções de soquete (SetsockoptInt).
   * `fecha()`: Encerra conexões e libera o File Descriptor do SO de forma segura.
 
+### Módulo: `ia`
+
+Integração nativa com inteligência artificial e primitivas de agentes autônomos. Requer `de "ia" importe ...`.
+
+* **Classes**:
+  * **`Agente`**:
+    * `nova Agente(nome, instrucoes, provedor?, modelo?)`: Instancia um agente autônomo. O provedor padrão é `"ollama"` e o modelo padrão é `"llama3"`.
+    * **Atributos**:
+      * `nome`: Nome do agente.
+      * `instrucoes`: System prompt com diretrizes de comportamento do agente.
+      * `provedor`: Provedor configurado (`"ollama"`, `"gemini"`, `"openai"`).
+      * `modelo`: Identificador do modelo de linguagem (ex: `"llama3"`, `"gemini-1.5-flash"`, `"gpt-4o-mini"`).
+      * `historico`: Lista contendo a memória/histórico de mensagens trocadas (`"role"`, `"content"`).
+    * **Métodos**:
+      * `perguntar(mensagem)`: Envia uma pergunta ao agente, anexando o histórico de conversas anterior, e retorna a resposta de texto gerada.
+      * `limpar_memoria()`: Apaga completamente o histórico de mensagens salvas.
+      * `comunicar(outro_agente, mensagem)`: Envia uma instrução a outro agente, aguarda sua resposta e a registra na própria memória do agente chamador de forma orquestrada (suporte nativo multi-agente).
+
 ---
 
 ## 8. Recursos Avançados da Linguagem
