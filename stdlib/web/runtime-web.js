@@ -59,6 +59,28 @@ export function sinal(valor) {
 }
 
 /**
+ * Cria um sinal cujo atualizador possui atraso (debounce) síncrono.
+ * @param {*} valorInicial - Valor inicial do sinal
+ * @param {number} tempoEmMs - Tempo em milissegundos para atrasar o disparo
+ */
+export function sinalDebounce(valorInicial, tempoEmMs) {
+  const [ler, definir] = sinal(valorInicial);
+  let timeoutId = null;
+
+  const definirDebounce = (novoValor) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      definir(novoValor);
+    }, tempoEmMs);
+  };
+
+  ler.set = definirDebounce; // ponytail: expõe atualizador para binding reativo
+  return [ler, definirDebounce];
+}
+
+/**
  * Cria um efeito colateral que roda imediatamente e se reinscreve nas mudanças de sinais lidos dentro dele.
  * @param {Function} funcao
  * @returns {Function} Função de limpeza (cleanup)
