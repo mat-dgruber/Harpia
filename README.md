@@ -1,69 +1,99 @@
-/
+# 🦅 Harpia
 
-# 🇧🇷 PortuScript
+<p align="center">
+  <img src="docs/assets/logo_harpia_refinado.jpg" alt="Logo Harpia" width="220" />
+</p>
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Documentation Status](https://readthedocs.org/projects/portudoc/badge/?version=latest)](https://portudoc.readthedocs.io/pt/latest/?badge=latest)
+<p align="center">
+  <strong>Linguagem de Programação Reativa, 100% Brasileira e Focada em Arquitetura Limpa</strong>
+</p>
 
-**PortuScript** é uma linguagem de programação brasileira, desenvolvida por brasileiros, totalmente em português. Mais do que uma simples linguagem para treino de lógica, o PortuScript visa proporcionar uma experiência de programação acessível, envolvente e extremamente poderosa para a comunidade de língua portuguesa.
-
-A linguagem é projetada sob uma perspectiva de **Ponte de Aprendizado** (facilitando a migração posterior para linguagens como JavaScript, Python e Go) e ao mesmo tempo como um **Ecossistema Completo** capaz de criar aplicações web profissionais (Frontend SPA), servidores robustos (Backend com injeção e banco de dados) e execução local rápida através de sua própria VM.
-
----
-
-## ✨ Características Principais
-
-- **Brasileira por Natureza:** Sintaxe e palavras-chave totalmente em português.
-- **Acessível e Moderna:** Sintaxe de blocos `{}` limpa, sem parênteses em condições.
-- **Erros Didáticos e IA:** Mensagens de erro visuais com sublinhado e um explicador interativo nativo (`harpia erro explicar`) integrado a LLM local.
-- **Tratador de Canais (`|>`):** Operador nativo pipe para processamento sequencial de dados.
-- **Reatividade Nativa:** Sinais, efeitos e estado global (`armazem`) nativos no núcleo.
-- **Frontend SPA Reativo:** Transpilação de alta performance para JavaScript moderno com runtime web próprio (~2.2KB), suporte nativo a Sinais, JSX, roteamento SPA por arquivos, estilos declarativos em português e SSR integrado.
-- **Estrutura de Arquitetura Assistida:** CLI que gera esqueletos de projetos separados por Clean Architecture e DDD.
-- **Tradutor de Código:** CLI nativo (`harpia traduzir`) para exportar o código PortuScript para JavaScript, Python ou Go.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-00A86B.svg" alt="License" /></a>
+  <a href="docs/BRAND_GUIDELINES.md"><img src="https://img.shields.io/badge/Diretrizes_de_Marca-Ver_Manual-F2A900.svg" alt="Brand Guidelines" /></a>
+  <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Desenvolvimento-Roadmap-D45D34.svg" alt="Roadmap" /></a>
+</p>
 
 ---
 
-## ⚡ Inovações Industriais de Performance e Segurança (v1.x)
-A versão `1.x` do Harpia incorpora tecnologias de ponta em engenharia de compiladores e runtimes, garantindo velocidade de execução e segurança de nível industrial:
-* **Direct-Threaded JIT VM**: Traduz dinamicamente bytecodes planos em callbacks Go de alta velocidade em tempo de execução, contornando desvios e pulando 100% dos loops de `switch/case` e decodificações na VM de pilha.
-* **Super-Instruções e Fusão de Opcodes**: Otimização estática no compilador para fundir operações sequenciais comuns de retorno de variáveis e literais (`OP_RETORNE_CONST`/`OP_RETORNE_VAR`), encolhendo os scripts compilados.
-* **Eden Space para Inteiros Curtos**: Pool de alocação rápida para inteiros de `-100` a `2000`, reutilizando instâncias imutáveis pré-boxeadas do Go em $O(1)$, aniquilando alocações redundantes no heap e poupando o Garbage Collector.
-* **Modelo Concorrente CSP por Canais**: Suporte nativo à primitiva `Canal` (`nova Canal()`) integrado ao `aguarde` assíncrono para tráfego thread-safe e reativo de mensagens entre processos de background.
-* **Modo Sandbox por Bloqueio Físico**: Proteção de isolamento estrito no contexto de execução por meio das flags de restrição ativa `BloquearArquivos` e `BloquearRede`, blindando o sistema operacional contra acessos não autorizados.
-* **Recovery Middleware & Timeouts contra Slowloris**: Servidor HTTP imune a interrupções lógicas graças a interceptadores `defer recover()`, e configuração rígida de tempos de limite de leitura e gravação de sockets.
+## 📖 O que é a Harpia?
+
+A **Harpia** (anteriormente conhecida como *PortuScript*) é uma linguagem de programação brasileira moderna, focada em desenvolvimento ágil de ponta a ponta (Full Stack). Ela foi projetada para ir além do ensino de lógica de programação, permitindo a criação de sistemas profissionais de nível industrial — incluindo frontends SPA reativos, backends corporativos e APIs seguras — tudo utilizando a nossa língua nativa.
+
+Representada pela imponente águia-real das Américas, a marca simboliza **soberania, precisão cirúrgica, força e foco absoluto**.
 
 ---
 
-## 🗺️ Roadmap de Desenvolvimento
+## ⚡ Filosofia e Conceito: O Método Ponytail
 
-O planejamento detalhado, justificativas técnicas e estratégias de evolução de cada fase estão documentados no nosso guia oficial:
-👉 **Consulte o [ROADMAP.md](file:///Users/matheus.diniz_1/Documents/GitHub/harpia/harpia/ROADMAP.md)**
-
----
-
-## 📦 Estrutura do CLI
-
-A CLI do PortuScript foi desenhada em português brasileiro com atalhos e ferramentas corporativas integradas de fábrica:
-
-*   **`harpia` (ou `tui`)**: Abre a TUI (Interface Gráfica de Terminal) Bubbletea com painéis para REPL, inspetor de VM e console de erros, com atalhos de depuração síncrona passo-a-passo (`F7`/`F8`) e navegação facilitada com `Tab`.
-*   **`harpia novo monolito/backend/frontend [nome]`**: Inicializa a árvore de pastas padrão de projetos corporativos com proteção contra sobrescritas.
-*   **`harpia crie rota/componente [nome]`**: Assistente assistido (generator) que cria boilerplates estruturados e acoplados prontos para uso.
-*   **`harpia executar [arquivo.hrp]`**: Executa códigos sob o interpretador tradicional ou VM de bytecode de alta performance se a flag `--vm` for passada.
-*   **`harpia testar [caminho] [--html]`**: Executa testes nativos, e opcionalmente gera o relatório visual `cobertura.html` com as linhas cobertas (fundo verde) e não cobertas (fundo vermelho).
-*   **`harpia checar [caminho] [--formato=json]`**: Linter semântico estático preventivo com suporte a diagnósticos no formato JSON de IDE.
-*   **`harpia lsp`**: Inicia o servidor de Language Server Protocol com suporte a autocompletar, formatação "On-Save" e linter de Clean Arch inline em tempo de digitação na IDE.
-*   **`harpia playground`**: Abre o servidor web local com editor de código e depurador web **escrito 100% em Harpia SPA Reativo (Dogfooding Supremo)**.
-*   **`harpia formatar [arquivo.hrp] [-w]`**: Pretty-printer de indentação de 4 espaços com preservação total de comentários e JSX.
-*   **`harpia doc [arquivo.hrp] [--formato=html]`**: Extrai comentários com três barras (`///`) e gera relatórios de API interativos em HTML ou Markdown.
-*   **`harpia diagramar`**: Varre as relações de importações e cospe o diagrama no formato Mermaid textual, alertando contra quebras de regras de Clean Architecture.
-*   **`harpia instalar`**: Resolvedor assíncrono que lê manifestos em português (`pacote.hrp`) e baixa zips de pacotes na pasta local `pt_modulos/`.
-*   **`harpia compilar [entrada.hrp] --alvo=web [--otimizar-assets]`**: Transpila o projeto para o browser e opcionalmente comprime e converte imagens de assets locais de forma síncrona para o diretório `/dist`.
-*   **`harpia servir [saida_dir] [--porta=3000]`**: Sobe o Dev Server de desenvolvimento integrado com **Hot-Reload em tempo real nativo via Server-Sent Events (SSE)**.
-*   **`harpia erro [código] [explicar]`**: Dicionário interativo de erros amigáveis em português, integrado com IA Local (Ollama) para explicações pedagógicas personalizadas.
+A linguagem é orientada pela **Filosofia Ponytail** (preguiçosa com o código redundante, atenta com a leitura e pragmática com a solução):
+1. **YAGNI (You Aren't Gonna Need It):** Eliminar qualquer código ou feature que não seja estritamente necessário.
+2. **Modularização sem Cíclicos:** O compilador barra dependências cíclicas estaticamente antes da execução.
+3. **Erros Didáticos e IA:** Mensagens estruturadas (`HRP-XXXX`) com dicas em português e suporte a explicações guiadas por IA local (`harpia erro explicar`).
+4. **Legibilidade Semântica:** Uso do operador de canais (`|>`) e termos nativos do ecossistema brasileiro (como `raiz`, `ninho`, `copa` e `correnteza` para as bibliotecas padrão).
 
 ---
 
-## 🚀 Instalação e Contribuição
+## 🏗️ Clean Architecture e DDD Nativo
 
-Consulte o arquivo [CONTRIBUTING.md](/CONTRIBUTING.md) para saber como contribuir e ajudar na construção da nossa linguagem brasileira.
+A Harpia foi desenhada sob a premissa de estruturar projetos robustos por padrão. Ao iniciar novos projetos corporativos, o compilador gera a árvore organizacional baseada em **DDD (Domain-Driven Design)** e **Clean Architecture**:
+
+```text
+meu-app/
+├── dependencias.json        -> Manifesto de dependências e configurações
+├── main.hrp                 -> Ponto de entrada (Bootstrapper)
+├── dominio/                 -> Regras de Negócio Isoladas
+│   ├── modelos/             -> Entidades e Objetos de Valor (ex: usuario.hrp)
+│   └── servicos/            -> Validações e regras de domínio (ex: validador.hrp)
+├── infra/                   -> Detalhes de Tecnologia (Banco de Dados, APIs)
+│   ├── bd/                  -> Conexões e repositórios (ex: sqlite.hrp)
+│   └── api/                 -> Clientes de requisição externa
+├── web/                     -> Camada de Apresentação (Frontend SPA)
+│   ├── rotas/               -> Páginas com File-system Routing (ex: index.hrp)
+│   ├── componentes/         -> Componentes UI reutilizáveis (ex: botao.hrp)
+│   └── estilos/             -> Folhas de estilo locais ou globais
+└── testes/                  -> Camada de Testes Automatizados
+```
+
+---
+
+## ✨ Características Principais & Performance
+
+* **Direct-Threaded JIT VM:** Bytecodes dinamicamente traduzidos em chamadas Go nativas em tempo de execução, otimizando o loop de decodificação.
+* **Pool de Alocação Eden:** Pré-boxeamento de inteiros curtos (de `-100` a `2000`) em $O(1)$ para aniquilar pressões desnecessárias do Garbage Collector.
+* **Reatividade Nativa (SPA):** Transpilação reativa eficiente para a web (`--alvo=web`) baseada em Sinais (`var [contador, definirContador] = sinal(0)`), Efeitos e Estado Global.
+* **Estilização Nativa:** Blocos de estilo CSS integrados nativamente e classes utilitárias na estrutura de marcação.
+* **Contrato RPC Automático:** Comunicação simplificada entre o Front-end e o Back-end sem a necessidade de APIs manuais complexas.
+
+---
+
+## 🛠️ Caixa de Ferramentas (CLI)
+
+O interpretador de linha de comando da Harpia disponibiliza utilitários completos:
+
+* **`harpia`**: Inicia o REPL ou TUI gráfica de depuração com inspetor de memória e VM ativo.
+* **`harpia executar [arquivo.hrp]`**: Roda o script de forma instantânea.
+* **`harpia compilar [entrada.hrp] --alvo=web`**: Transpila o frontend para `/dist` gerando o build estático.
+* **`harpia testar [caminho]`**: Executa testes de unidade e integração declarados diretamente no código com o bloco `testar`.
+* **`harpia diagramar`**: Mapeia as relações de importações e cospe um diagrama em sintaxe Mermaid, alertando se houver violações de arquitetura limpa.
+
+---
+
+## 📚 Documentação & Guias
+
+Para mais informações sobre as regras de desenvolvimento do projeto:
+
+- 🎨 **[Diretrizes de Marca & Identidade Visual](docs/BRAND_GUIDELINES.md)**
+- 💡 **[Exemplos Práticos de Aplicação e Código](docs/harpia-brand-examples.md)**
+- 🚀 **[Guia de Contribuição](CONTRIBUTING.md)**
+- 🗺️ **[Roadmap de Evolução](ROADMAP.md)**
+
+---
+
+<p align="center">
+  <img src="docs/assets/fundo_harpia.jpg" alt="Wallpaper Harpia" width="100%" />
+</p>
+
+<p align="center">
+  Feito com ❤️ pela Comunidade Brasileira de Programação 🇧🇷
+</p>
