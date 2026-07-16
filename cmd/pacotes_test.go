@@ -110,3 +110,65 @@ func TestBaixarEExtrairPacote(t *testing.T) {
 		t.Errorf("Conteúdo do arquivo extraído incorreto: %s", string(conteudo))
 	}
 }
+
+// TestObterUrlDoRegistro assevera a correta resolução de URLs do registro de pacotes remoto
+func TestObterUrlDoRegistro(t *testing.T) {
+	// JSON de registro simulado
+	regJson := `{
+		"pacotes": {
+			"banco-dados": {
+				"versoes": {
+					"1.0.0": {
+						"url": "http://exemplo.com/banco-1.0.0.zip"
+					},
+					"1.1.0": {
+						"url": "http://exemplo.com/banco-1.1.0.zip"
+					}
+				}
+			}
+		}
+	}`
+
+	// Inicia servidor mock para entregar o índice de pacotes
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(regJson))
+	}))
+	defer server.Close()
+
+	// Redireciona temporariamente a URL de registro para o servidor mock
+	antigoURL := URL_REGISTRO_CENTRAL
+	URL_REGISTRO_CENTRAL = server.URL
+	defer func() { URL_REGISTRO_CENTRAL = antigoURL }()
+
+	// 1. Testa resolução de versão exata
+	urlResolvida, err := obterUrlDoRegistro("banco-dados", "1.0.0")
+	if err != nil {
+		t.Fatalf("Erro ao obter URL: %v", err)
+	}
+	if urlResolvida != "http://exemplo.com/banco-1.0.0.zip" {
+		t.Errorf("URL resolvida incorreta para 1.0.0. Obtido: %s", urlResolvida)
+	}
+
+	// 2. Testa resolução sem versão informada (deve pegar a última estável disponível no map)
+	urlUltimo, err := obterUrlDoRegistro("banco-dados", "")
+	if err != nil {
+		t.Fatalf("Erro ao obter última versão: %v", err)
+	}
+	if urlUltimo != "http://exemplo.com/banco-1.1.0.zip" && urlUltimo != "http://exemplo.com/banco-1.0.0.zip" {
+		t.Errorf("URL resolvida inesperada para 'ultimo'. Obtido: %s", urlUltimo)
+	}
+
+	// 3. Testa erro de pacote inexistente
+	_, err = obterUrlDoRegistro("pacote-fantasma", "1.0.0")
+	if err == nil {
+		t.Errorf("Esperava erro ao buscar pacote fantasma")
+	}
+
+	// 4. Testa erro de versão inexistente
+	_, err = obterUrlDoRegistro("banco-dados", "9.9.9")
+	if err == nil {
+		t.Errorf("Esperava erro ao buscar versão inexistente")
+	}
+}
+

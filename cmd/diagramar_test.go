@@ -64,4 +64,63 @@ func TestAnalisarDependenciasViolacao(t *testing.T) {
 	if !strings.Contains(mermaid, "dominio --> infra") {
 		t.Errorf("Código Mermaid gerado esperado não encontrado. Obtido:\n%s", mermaid)
 	}
+
+	// 4. Testar colorização das conexões irregulares de linkStyle
+	if !strings.Contains(mermaid, "linkStyle 0 stroke:#ff3333,stroke-width:3px;") {
+		t.Errorf("Esperava estilo de linkStyle de violação em vermelho. Obtido:\n%s", mermaid)
+	}
 }
+
+// TestDiagramarHTMLExport assevera que a exportação de HTML interativo e de alertas está correta
+func TestDiagramarHTMLExport(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "portuscript_diag_html_*")
+	if err != nil {
+		t.Fatalf("Erro ao criar diretório temporário: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	saidaHtml := filepath.Join(tempDir, "diagrama_teste.html")
+
+	// Prepara dados de teste
+	rels := []ImportRel{
+		{De: "dominio", Para: "infra", Arquivo: "dominio/usuario.ptst"},
+	}
+	violacoes := []string{
+		"camada 'dominio' importando 'infra'",
+	}
+
+	codigoMermaid := gerarMermaid(rels)
+	alertas := gerarAlertasHTML(violacoes)
+
+	htmlFinal := strings.Replace(templateHTMLDiagrama, "{{MERMAID_CODE}}", codigoMermaid, 1)
+	htmlFinal = strings.Replace(htmlFinal, "{{ALERTS_MARKUP}}", alertas, 1)
+
+	err = os.WriteFile(saidaHtml, []byte(htmlFinal), 0644)
+	if err != nil {
+		t.Fatalf("Erro ao gravar arquivo HTML de teste: %v", err)
+	}
+
+	// Valida se o arquivo de fato existe e contém os componentes-chave
+	conteudoBytes, err := os.ReadFile(saidaHtml)
+	if err != nil {
+		t.Fatalf("Erro ao ler arquivo gravado: %v", err)
+	}
+	conteudo := string(conteudoBytes)
+
+	if !strings.Contains(conteudo, "Diagrama de Arquitetura do Portuscript") {
+		t.Errorf("Esperava cabeçalho do template no HTML. Obtido:\n%s", conteudo)
+	}
+
+	if !strings.Contains(conteudo, "dominio --> infra") {
+		t.Errorf("Esperava o diagrama Mermaid embutido no HTML. Obtido:\n%s", conteudo)
+	}
+
+	if !strings.Contains(conteudo, "camada 'dominio' importando 'infra'") {
+		t.Errorf("Esperava a listagem de alertas e violações injetada no HTML. Obtido:\n%s", conteudo)
+	}
+
+	if !strings.Contains(conteudo, "window.baixarSVG") {
+		t.Errorf("Esperava a função de exportação para SVG interativo. Obtido:\n%s", conteudo)
+	}
+}
+

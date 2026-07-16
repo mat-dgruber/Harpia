@@ -18,7 +18,13 @@ Este pacote encapsula toda a lógica de tratamento de entrada de terminal, orque
    - [Mapeamento de Sistema e Arquitetura](#mapeamento-de-sistema-e-arquitetura)
    - [Fluxo de Atualização Semântica](#fluxo-de-atualização-semântica)
    - [Baixando e Instalando Releases](#baixando-e-instalando-releases)
-6. [Exemplo de Uso Prático](#-exemplo-de-uso-prático)
+6. [Subcomando: `atualize`](#-subcomando-atualize)
+   - [Mapeamento de Sistema e Arquitetura](#mapeamento-de-sistema-e-arquitetura)
+   - [Fluxo de Atualização Semântica](#fluxo-de-atualização-semântica)
+   - [Baixando e Instalando Releases](#baixando-e-instalando-releases)
+7. [Subcomando: `testar`](#-subcomando-testar)
+8. [Subcomando: `checar` — Linter Estático](#-subcomando-checar--linter-estático)
+9. [Exemplo de Uso Prático](#-exemplo-de-uso-prático)
 
 ---
 
@@ -113,7 +119,9 @@ Quando o usuário digita `portuscript executar [arquivo] [flags]`, o seguinte al
       [Modo de Execução]                        [Fim]
                │
                ├─► [1] Se há argumento posicional (caminho do arquivo):
-               │       Executa ptst.ExecutarArquivo()
+               │       Se a flag --vm estiver presente, compila o código para bytecode
+               │       plano e despacha para a Máquina Virtual de Pilha (vm/vm.go).
+               │       Caso contrário, executa via interpretador clássico ptst.ExecutarArquivo().
                │       Se falhar: chama ptst.LancarErro() e encerra.
                │
                └─► [2] Se há flag -c/--codigo (script inline):
@@ -257,3 +265,171 @@ portuscript executar
 # Verifica se há novas versões estáveis no GitHub e instala se houver
 portuscript atualize
 ```
+
+---
+
+## 🧪 Subcomando: `testar`
+
+Varre o diretório em busca de arquivos `.ptst`/`.pt` (recursivo), executa todos os blocos `testar`/blocos nativos e apresenta relatório visual com `✅ [PASSOU]`/`❌ [FALHOU]`. Implementação em `cmd/testar.go`.
+
+---
+
+## 🧹 Subcomando: `checar` — Linter Estático
+
+Novo subcomando adicionado no **Sprint 6** e estendido no **Sprint 8**. Permite varrer o código sem executá-lo, identificando erros *preventivos* da AST:
+
+```bash
+portuscript checar ./src
+```
+
+### Flags Suportadas
+* `--formato`: Define o formato de saída do relatório de erros.
+  * `texto` (Padrão): Saída formatada amigável agrupada por arquivo com sumário.
+  * `json`: Saída padronizada no formato `Diagnostic` de LSP (Language Server Protocol) em português.
+
+#### Exemplo de Saída JSON-LSP (`--formato=json`)
+```json
+[
+  {
+    "range": {
+      "start": { "line": 2, "character": 4 },
+      "end": { "line": 2, "character": 10 }
+    },
+    "severity": 1,
+    "code": "PSC-0005",
+    "source": "portuscript-linter",
+    "message": "Identificador 'x' não encontrado no escopo"
+  }
+]
+```
+
+| Verificação | Descrição |
+| :--- | :--- |
+| Redeclaração de identificadores | Detecta nomes repetidos em um mesmo escopo |
+| Reatribuição de `const` | Impede escrita em constantes |
+| Identificadores indefinidos | Cobre builtins via tabela `globalsLinter` |
+| Parâmetros duplicados | Detecta `func f(a, a, b)` |
+
+**Arquitetura interna (`cmd/checar.go`):**
+
+- `EscopoLinter` — pilha de escopos léxicos encadeada via `Pai`.
+- `Linter.Checar(BaseNode)` — visitor recursivo que decide qual caso tratar com base no tipo dinâmico do nó AST.
+- `globalsLinter` — mapa constante sincronizado manualmente com a stdlib (evita falso positivo em `imprimir`, `assegura`, etc.).
+- **Mapeamento Espacial (Sprint 8)**: O linter resgata as posições absolutas físicas (linha, coluna e tamanho do token) de cada nó utilizando o mapa de posições gerado no analisador sintático, permitindo gerar o objeto `range` preciso no JSON-LSP.
+- Saída tradicional categoriza erros em **Erros de Sintaxe** (do parser) e **Erros Semânticos** (do linter), encerrando com sumário `Total: %d erro(s) semântico(s) em %d arquivo(s).`.
+
+**Limitação conhecida**: `globalsLinter` precisa ser updated manualmente quando novas funções stdlib forem adicionadas. Alternativa futura: injetar via `Contexto` da VM.
+
+---
+
+## 🛑 Subcomando: `erro` — Dicionário e Guia de Ajuda
+
+Adicionado no **Sprint 7** e estendido no **Sprint 8**. Permite consultar explicações pedagógicas sobre erros do Portuscript diretamente do terminal:
+
+```bash
+portuscript erro PSC-0005
+```
+
+### Subcomando: `explicar` (com IA Local)
+Fornece uma explicação inteligente e personalizada sobre o erro consultado utilizando um LLM local:
+
+```bash
+portuscript erro explicar PSC-0005
+```
+
+* **IA Local (Ollama)**: Se conecta via HTTP ao serviço Ollama (`127.0.0.1:11434`) usando o modelo leve `gemma` para gerar explicações pedagógicas e interativas em português brasileiro, completas com exemplos de erro e correções recomendadas.
+* **Fallback Inteligente**: Caso o Ollama não esteja instalado ou rodando localmente, o comando intercepta o erro de rede de forma graciosa, exibe instruções amigáveis passo a passo de como instalar o Ollama, e em seguida renderiza a explicação didática estática local do dicionário para que o desenvolvedor não fique parado.
+
+---
+
+## ⚡ Flag Global: `--estrito`
+Adicionada no fechamento da **Fase 1**. Habilita verificação estrita de tipagem opcional declarada em variáveis, parâmetros de funções e assinaturas de retorno.
+
+* **No comando `executar`**:
+  ```bash
+  portuscript executar meu_script.ptst --estrito
+  ```
+  Se ativado, qualquer atribuição de valor incompatível com o tipo anotado ou passagem incorreta de parâmetros em runtime lança um erro `TipagemErro` (PSC-0004).
+* **No comando `checar`**:
+  ```bash
+  portuscript checar meu_script.ptst --estrito
+  ```
+  O linter analisa estaticamente as atribuições e emite diagnósticos preventivos de conflito de tipo.
+
+---
+
+## 🏗️ Novas Ferramentas de Tooling e Ecossistema (Fase 5, 5-B & 5-C)
+
+### 11. Subcomando: `novo` — Scaffolding Estruturado
+Inicializa uma nova árvore física padrão de projeto baseada no escopo e topologia desejada:
+```bash
+portuscript novo monolito meu_app
+portuscript novo backend meu_back
+portuscript novo frontend meu_front
+```
+*   **Proteção Física**: O comando verifica se a pasta do projeto já existe e aborta de forma síncrona com aviso para impedir sobrescritas acidentais de arquivos do usuário.
+
+### 12. Subcomando: `crie` — Assistente de Templates (Generators)
+Gera boilerplates estruturados prontos para uso em projetos existentes:
+```bash
+portuscript crie rota sobre
+portuscript crie componente botao
+```
+*   **Inteligência de Detecção**: O assistente detecta automaticamente a presença da pasta `/web` e direciona a escrita física de arquivos para `/web/rotas` e `/web/componentes`, criando o arquivo lógico `.ptst` e folha de estilos correspondente `.estilo.ptst` em português.
+
+### 13. Subcomando: `lsp` — Servidor de Linguagem Integrado
+Inicia o servidor oficial de Language Server Protocol (LSP) em Go via stdio para IDEs (VS Code/Cursor):
+*   **Autocompletar (`textDocument/completion`)**: Fornece sugestões instantâneas no editor de palavras-chave da linguagem (como `funcao`, `classe`, `se`) e embutidos reativos (como `sinal`, `sinalPersistente`, `recurso`).
+*   **Formatação "On-Save" (`textDocument/formatting`)**: Permite que o editor formate arquivos `.ptst` de forma automatizada ao salvar, usando a nossa heurística síncrona de alinhamento de blocos.
+*   **Diagnósticos de Clean Arch Inline**: Linter reativo que emite sublinhados vermelhos de erro na IDE em tempo de digitação caso um arquivo sob `/dominio/` tente importar algo de `/infra/` ou `/web/`.
+*   **Dicas de Passar o Mouse (`textDocument/hover`)**: Exibe informações ricas e assinaturas estruturadas de variáveis, funções e classes ao passar o mouse por cima do símbolo, integrando automaticamente blocos de documentações `///` e provendo documentações didáticas integradas para builtins (`imprimir`, `sinal`, `efeito`, etc.).
+*   **Ir Para a Definição (`textDocument/definition` / F12)**: Permite saltar instantaneamente do local de chamada de uma função, classe ou variável diretamente para a linha do arquivo onde o símbolo foi declarado de forma nativa.
+
+### 14. Subcomando: `playground` — Editor e Depurador Web
+Inicia o servidor de interface web do playground interativo:
+```bash
+portuscript playground -p 8090
+```
+*   **Dogfooding Reativo**: A própria página do playground (`playground/interface.ptst`) é escrita **100% em Portuscript reativo**, usando Two-Way Binding (`_ligar`) e o componente de tabela inteligente `<GradeDeDados>` para renderizar as variáveis locais e logs capturados em tempo real.
+
+### 15. Subcomando: `formatar` — Pretty-Printer Heurístico
+Higieniza e alinha recuos de arquivos Portuscript:
+```bash
+portuscript formatar meu_codigo.ptst -w
+```
+*   **Controle de Blocos**: Corrige a indentação baseando-se em contagens de delimitadores (`{}`, `[]`, `()`), remove linhas vazias duplicadas e preserva 100% de comentários e JSX.
+
+### 16. Subcomando: `doc` — Geração de Documentações
+Varre arquivos extraindo comentários especiais iniciados com três barras (`///`):
+```bash
+portuscript doc calculos.ptst --formato=html
+```
+*   Gera APIs e documentações estruturadas de funções, classes, constantes e variáveis em formato Markdown ou páginas responsivas estilizadas em HTML.
+
+### 17. Subcomando: `diagramar` — Mapeador Arquitetural
+Analisa o fluxo de importações entre as camadas do projeto:
+```bash
+portuscript diagramar
+```
+*   Gera grafos de relacionamento textual em formato Mermaid, validando se as dependências de isolamento do Clean Architecture foram violadas.
+*   **Formatos HTML e SVG Interativos**: Adicionada a flag `--formato html` ou `-f html` (e suporte a `svg`) junto de `--saida` ou `-s` para gerar visualizações ricas locais.
+*   **Colorização de Violações**: Identifica e colore dinamicamente o fluxo do diagrama gerado: linhas verdes representam conexões arquiteturais saudáveis, enquanto **linhas vermelhas grossas destacam violações** de dependência no mapa visual.
+*   **Exportação de SVG em 1 Clique**: O arquivo HTML interativo gerado traz embutido um script de renderização interativa do Mermaid.js via CDN de alta velocidade que inclui um botão para baixar a imagem vetorial `.svg` com as proporções perfeitas direto pelo navegador de forma portátil.
+
+### 18. Subcomando: `instalar` — Gerenciador de Módulos
+Download e resolvedor de dependências assíncrono:
+```bash
+portuscript instalar [nome-do-pacote] [versao-opcional]
+```
+*   **Resolução Remota e Registro Central**: Agora permite buscar pacotes públicos diretamente pelo nome do registro central em português (`URL_REGISTRO_CENTRAL`).
+*   **Gestão de Versões Semver**: Suporta a resolução de dependências baseadas em restrições de versão semver diretamente no arquivo de manifesto `pacote.ptst` ou `pacote.json` (ex: `"banco-dados": "1.0.0"`, `"banco-dados": "latest"`), resolvendo os caminhos remotos dos arquivos ZIP compactados automaticamente.
+*   Lê o arquivo de manifesto em português `pacote.ptst` (ou `pacote.json`), baixa os pacotes zip associados e os extrai de forma automatizada sob a pasta local `pt_modulos/` exibindo relatórios de progresso de download em tempo real.
+*   **Segurança de Extração (Anti-Zip Slip)**: Implementa um validador de sanidade de caminhos (`filepath.Clean` e verificação de prefixo) que bloqueia na hora a extração de arquivos maliciosos contendo caminhos de travessia de diretório (`..`), impedindo que pacotes ZIP corrompidos sobrescrevam ou criem arquivos fora da pasta alvo do projeto.
+
+### 19. Subcomando: `empacotar` — Compilador e Gerador de Binários Standalone / WASM
+O comando `empacotar` permite compilar scripts Portuscript unificando interpretador e código de usuário em um executável nativo compilado autônomo (Single Binary Bundle) ou compilar o interpretador completo para WebAssembly:
+*   **Executáveis Standalone**: Compila e embute um script Portuscript específico de forma a rodá-lo diretamente como binário executável local do SO (Windows, Linux ou macOS).
+*   **Compilação Cruzada para WebAssembly (WASM)**: Suporta `--so=js --arq=wasm` para compilar o interpretador Portuscript completo para rodar de forma dinâmica 100% no cliente direto no navegador (`docs/portal/portuscript.wasm`).
+*   **Loader Portátil `wasm_exec.js`**: Copia dinamicamente do GOROOT do seu sistema a biblioteca Javascript correta correspondente à versão instalada de Go na sua máquina para carregar o binário compilado.
+
+
