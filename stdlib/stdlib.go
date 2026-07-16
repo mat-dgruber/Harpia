@@ -40,4 +40,5 @@ import (
 	_ "github.com/natanfeitosa/portuscript/stdlib/esquema"
 	_ "github.com/natanfeitosa/portuscript/stdlib/tarefas"
 	_ "github.com/natanfeitosa/portuscript/stdlib/ffi"
+	_ "github.com/natanfeitosa/portuscript/stdlib/ia"
 )
