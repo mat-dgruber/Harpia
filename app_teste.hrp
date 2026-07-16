@@ -1,0 +1,34 @@
+# Exemplo de App Portuscript SPA Reativo com Sinais e Estilos
+
+estilo MeuApp {
+    corDeFundo: "#f4f4f9";
+    padding: "20px";
+    borda: "1px solid #ccc";
+    famíliaFonte: "sans-serif";
+}
+
+funcao MeuApp() {
+    var contadorSinal = sinal(10);
+    var contador = contadorSinal[0];
+    var definirContador = contadorSinal[1];
+
+    var incrementar = funcao() {
+        definirContador(contador() + 1);
+    }
+
+    var decrementar = funcao() {
+        definirContador(contador() - 1);
+    }
+
+    retorne <div classe="MeuApp">
+        <h1>Meu App Portuscript</h1>
+        <p>Contador atual: <strong>{contador()}</strong></p>
+
+        <button aoClicar={incrementar}>Incrementar (+)</button>
+        <button aoClicar={decrementar}>Decrementar (-)</button>
+
+        <se condicao={contador() > 15}>
+            <p style="color: green;">Incrível! O contador está bem alto!</p>
+        </se>
+    </div>
+}
