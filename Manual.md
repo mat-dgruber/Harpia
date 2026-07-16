@@ -1171,7 +1171,31 @@ A Máquina Virtual de bytecode e o runtime de execução do Portuscript foram ap
     2. *Na Extensão do VS Code (`vscode-portuscript`)*: No arquivo `vscode-portuscript/extension.js`, o cliente LSP é instanciado via classe `LanguageClient`. Ao inicializar, a biblioteca padrão `vscode-languageclient` detecta a capacidade `"documentFormattingProvider": true` fornecida pelo servidor e registra automaticamente a capacidade de formatação nativa na IDE.
     3. *Como usar no VS Code*:
        - **Atalho de Formatação**: Pressionar `Shift + Alt + F` (Windows/Linux) ou `Shift + Option + F` (macOS) com um arquivo `.ptst` aberto.
-       - **Formatação Automática ao Salvar**: Habilitar a configuração `"editor.formatOnSave": true` nas configurações do VS Code para disparar a formatação limpa automaticamente em todo `Cmd+S` ou `Ctrl+S`.
+       - **Formatação Automática ao Salvar**: Habilitar a configuração `"editor.formatOnSave": true` nas configurações do VS Code para disparar a formatação limpa automaticamente em todo `Cmd+S` or `Ctrl+S`.
+  * **Publicação da Extensão no VS Code Marketplace (`vscode-portuscript`)**:
+    Caso você queira gerar e publicar atualizações da extensão oficial para a comunidade global de desenvolvedores do VS Code, siga os passos abaixo usando o utilitário oficial `vsce` (VS Code Extension Manager):
+    1. **Instalação do CLI**: Instale o gerenciador de extensões da Microsoft de forma global via npm:
+       ```bash
+       npm install -g @vscode/vsce
+       ```
+    2. **Criação do Publicador (Publisher)**:
+       - Crie uma conta de desenvolvedor no [Visual Studio Marketplace](https://marketplace.visualstudio.com/).
+       - Crie um ID de Publicador exclusivo (ex: `portuscript`).
+       - Insira esse ID no campo `"publisher"` do arquivo `package.json` localizado dentro da pasta `vscode-portuscript/`.
+    3. **Token de Acesso Pessoal (PAT)**:
+       - Crie uma conta no Azure DevOps (`dev.azure.com`) sob a mesma organização ou e-mail.
+       - No painel superior direito do Azure DevOps, vá em **Personal Access Tokens**.
+       - Adicione um novo token selecionando a organização "All accessible organizations", defina o escopo para **Marketplace (Publish)** com acessos de leitura e gravação (*Read & Write*). Salve o token (PAT) gerado em um local seguro.
+    4. **Autenticação no Terminal**: Efetue login no publicador por meio do terminal:
+       ```bash
+       vsce login [seu-id-publicador]
+       ```
+       (Cole o PAT gerado no Azure DevOps quando solicitado).
+    5. **Empacotamento e Publicação**:
+       - Entre no diretório da extensão: `cd vscode-portuscript`
+       - Instale as dependências locais de desenvolvimento: `npm install`
+       - **Publicar diretamente**: Execute `vsce publish` (ou incremente versões via `vsce publish patch` / `vsce publish minor`).
+       - **Apenas empacotar localmente (offline)**: Para gerar um arquivo instalável `.vsix` localmente sem enviar para o Marketplace público, execute `vsce package`. O arquivo `.vsix` gerado pode ser compartilhado com qualquer desenvolvedor para instalação manual arrastando-o para a aba de extensões do VS Code.
 
 ---
 
