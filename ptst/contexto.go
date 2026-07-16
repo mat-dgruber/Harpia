@@ -11,8 +11,11 @@ import (
 
 // OpcsContexto agrupa as propriedades opcionais de inicialização do contexto da VM.
 type OpcsContexto struct {
-	Args           []string // Argumentos CLI de terminal repassados ao script.
-	CaminhosPadrao []string // Caminhos de varredura do disco para resolução de diretivas de importação.
+	Args            []string // Argumentos CLI de terminal repassados ao script.
+	CaminhosPadrao  []string // Caminhos de varredura do disco para resolução de diretivas de importação.
+	Estrito         bool     // Ativa verificação estrita de tipagem dinâmica opcional.
+	BloquearArquivos bool     // Ativa o bloqueio de acesso ao sistema de arquivos (Sandbox).
+	BloquearRede     bool     // Ativa o bloqueio de conexões e operações de rede (Sandbox).
 }
 
 // Contexto representa o orquestrador global e supervisor de estado da VM do Portuscript.
@@ -29,18 +32,25 @@ type Contexto struct {
 	CodigoAtual  string         // O código fonte textual sob execução.
 	LinhaAtual   int            // Linha física corrente sob interpretação (base 1, -1 = indefinida).
 	ColunaAtual  int            // Coluna física corrente (base 1).
-	TokenAtual   *lexer.Token   // Ponteiro para o token do lexer sob análise operacional.
+	TokenAtual       *lexer.Token   // Ponteiro para o token do lexer sob análise operacional.
+	ResolvendoModulos []string       // Pilha de módulos que estão sendo importados/resolvidos para prevenção de ciclos.
+	LinhasExecutadas  map[string]map[int]bool // ponytail: mapa para rastreamento de linhas cobertas na execução de testes
 }
+
+var ContextoAtivo *Contexto
 
 // NewContexto aloca um novo contexto orquestrador da VM, inicializando o cache de módulos
 // e pré-carregando de forma global e compulsória o módulo nativo de embutidos.
 func NewContexto(opcs OpcsContexto) *Contexto {
 	context := &Contexto{
-		Modulos:    NewTabelaModulos(),
-		Opcs:       opcs,
-		fechado:    false,
-		LinhaAtual: -1,
+		Modulos:          NewTabelaModulos(),
+		Opcs:             opcs,
+		fechado:          false,
+		LinhaAtual:       -1,
+		LinhasExecutadas: make(map[string]map[int]bool), // ponytail: inicializa mapa de cobertura
 	}
+
+	ContextoAtivo = context
 
 	Importe = func(nome string, escopo *Escopo) (Objeto, error) {
 		return MaquinarioImporteModulo(context, nome, escopo)
@@ -53,10 +63,10 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 // TransformarEmAst localiza um arquivo físico no disco, decodifica sua codificação,
 // lê o seu conteúdo textual e dispara o parser para convertê-lo em Árvore de Sintaxe Abstrata (AST).
 func (c *Contexto) TransformarEmAst(caminhoInicial string, useSysPaths bool, curDir string) (caminho string, ast parser.BaseNode, err error) {
-	if err = c.adicionarTrabalho(); err != nil {
+	if err = c.AdicionarTrabalho(); err != nil {
 		return
 	}
-	defer c.encerrarTrabalho()
+	defer c.EncerrarTrabalho()
 
 	caminhos := []string{}
 	if useSysPaths {
@@ -91,10 +101,10 @@ func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode
 
 // AvaliarAst cria uma instância de Interpretador e processa sequencialmente as instruções da AST sob o escopo informado.
 func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, error) {
-	if err := c.adicionarTrabalho(); err != nil {
+	if err := c.AdicionarTrabalho(); err != nil {
 		return nil, err
 	}
-	defer c.encerrarTrabalho()
+	defer c.EncerrarTrabalho()
 
 	interpret := &Interpretador{Ast: ast, Contexto: c, Escopo: escopo}
 	if prog, ok := ast.(*parser.Programa); ok {
@@ -117,10 +127,10 @@ func (c *Contexto) ObterModulo(nome string) (*Modulo, error) {
 
 // InicializarModulo cria a representação do módulo dinâmico na tabela de cache e avalia suas respectivas ASTs de código.
 func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error) {
-	if err := c.adicionarTrabalho(); err != nil {
+	if err := c.AdicionarTrabalho(); err != nil {
 		return nil, err
 	}
-	defer c.encerrarTrabalho()
+	defer c.EncerrarTrabalho()
 
 	modulo, err := c.Modulos.NewModulo(c, implementacao)
 	if err != nil {
@@ -139,7 +149,7 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 
 // adicionarTrabalho incrementa de forma concorrente a contagem do WaitGroup, controlando que
 // o contexto não seja finalizado abruptamente enquanto tarefas ativas estão em processamento.
-func (c *Contexto) adicionarTrabalho() error {
+func (c *Contexto) AdicionarTrabalho() error {
 	if c.fechado {
 		return NewErro(RuntimeErro, Texto("Contexto já fechado"))
 	}
@@ -148,8 +158,8 @@ func (c *Contexto) adicionarTrabalho() error {
 	return nil
 }
 
-// encerrarTrabalho sinaliza o encerramento operacional de uma tarefa pendente na VM.
-func (c *Contexto) encerrarTrabalho() {
+// EncerrarTrabalho sinaliza o encerramento operacional de uma tarefa pendente na VM.
+func (c *Contexto) EncerrarTrabalho() {
 	c.waitgroup.Done()
 }
 
@@ -163,4 +173,20 @@ func (c *Contexto) Terminar() {
 			panic("Antes de usar a função `Importe` você precisa criar um contexto")
 		}
 	})
+}
+
+// VerificarPermissaoArquivos valida se o contexto possui a flag de permissão para ler ou escrever arquivos.
+func (c *Contexto) VerificarPermissaoArquivos() error {
+	if c.Opcs.BloquearArquivos {
+		return NewErroF(ErroDeSistema, "Acesso Negado: Operação de manipulação de arquivos bloqueada pelo Sandbox.")
+	}
+	return nil
+}
+
+// VerificarPermissaoRede valida se o contexto possui permissão ativa para conexões de rede (abrir portas ou requisições cliente).
+func (c *Contexto) VerificarPermissaoRede() error {
+	if c.Opcs.BloquearRede {
+		return NewErroF(ErroDeSistema, "Acesso Negado: Operação de rede bloqueada pelo Sandbox.")
+	}
+	return nil
 }

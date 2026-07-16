@@ -90,6 +90,14 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 			if tok.Inicio != nil {
 				i.Contexto.LinhaAtual = tok.Inicio.Linha
 				i.Contexto.ColunaAtual = tok.Inicio.Coluna
+
+				// ponytail: record executed line in the current context for coverage reporting!
+				if i.Contexto.LinhasExecutadas != nil && i.Arquivo != "" {
+					if i.Contexto.LinhasExecutadas[i.Arquivo] == nil {
+						i.Contexto.LinhasExecutadas[i.Arquivo] = make(map[int]bool)
+					}
+					i.Contexto.LinhasExecutadas[i.Arquivo][tok.Inicio.Linha] = true
+				}
 			}
 		}
 	}
@@ -153,6 +161,24 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		return i.visiteArgumentoNomeado(node)
 	case *parser.DeclTeste:
 		return i.visiteDeclTeste(node)
+	case *parser.TenteCaptureFinalmente:
+		return i.visiteTenteCapture(node)
+	case *parser.DeclExportar:
+		return i.visiteDeclExportar(node)
+	case *parser.TemplateLiteral:
+		return i.visiteTemplateLiteral(node)
+	case *parser.TemplateExpr:
+		return i.visiteTemplateExpr(node)
+	case *parser.AguardeNode:
+		return i.visiteAguardeNode(node)
+	case *parser.NoJSX:
+		return i.visiteNoJSX(node)
+	case *parser.NoSeJSX:
+		return i.visiteNoSeJSX(node)
+	case *parser.NoParaJSX:
+		return i.visiteNoParaJSX(node)
+	case *parser.DeclEstilo:
+		return i.visiteDeclEstilo(node)
 	}
 
 	return nil, nil
@@ -173,7 +199,14 @@ func (i *Interpretador) visiteDeclVar(node *parser.DeclVar) (Objeto, error) {
 		valor = val
 	}
 
+	if node.Tipo != "" && i.Contexto.Opcs.Estrito {
+		if !ValidarTipo(node.Tipo, valor) {
+			return nil, NewErroF(TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", node.Nome, node.Tipo, valor.Tipo().Nome)
+		}
+	}
+
 	simbolo := NewVarSimbolo(node.Nome, valor)
+	simbolo.Tipo = node.Tipo
 
 	if node.Constante {
 		simbolo.Constante = true
@@ -196,8 +229,19 @@ func (i *Interpretador) visiteDeclFuncao(node *parser.DeclFuncao) (Objeto, error
 		if param.Padrao != nil {
 			funcao.definirDefault(param.Nome, param.Padrao)
 		}
+		if param.Tipo != "" {
+			funcao.definirTipoParam(param.Nome, param.Tipo)
+		}
 	}
 	funcao.definirArgs(nomes)
+	if node.TipoRetorno != "" {
+		funcao.definirTipoRetorno(node.TipoRetorno)
+	}
+	funcao.Assincrono = node.Assincrono
+
+	if node.Nome == "" {
+		return funcao, nil
+	}
 
 	err := i.Escopo.DefinirSimbolo(NewVarSimbolo(node.Nome, funcao))
 	if err != nil {
@@ -232,7 +276,7 @@ func (i *Interpretador) visiteChamadaFuncao(node *parser.ChamadaFuncao) (Objeto,
 
 // visiteTextoLiteral converte a string física limpa de aspas em um Texto nativo.
 func (i *Interpretador) visiteTextoLiteral(node *parser.TextoLiteral) (Objeto, error) {
-	return NewTexto(node.Valor[1 : len(node.Valor)-1])
+	return Texto(node.Valor[1 : len(node.Valor)-1]), nil
 }
 
 // visiteInteiroLiteral converte o lexema numérico em um Inteiro nativo da VM.
@@ -489,6 +533,14 @@ func (i *Interpretador) visiteReatribuicao(node *parser.Reatribuicao) (Objeto, e
 		}
 		return DefineItem(esquerda, chave, valor)
 	case *parser.Identificador:
+		if i.Contexto.Opcs.Estrito {
+			simb, err := i.Escopo.ObterSimbolo(obj.Nome)
+			if err == nil && simb != nil && simb.Tipo != "" {
+				if !ValidarTipo(simb.Tipo, valor) {
+					return nil, NewErroF(TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", obj.Nome, simb.Tipo, valor.Tipo().Nome)
+				}
+			}
+		}
 		return nil, i.Escopo.RedefinirValor(obj.Nome, valor)
 	}
 
@@ -876,9 +928,233 @@ func (i *Interpretador) visiteDeclTeste(node *parser.DeclTeste) (Objeto, error) 
 	return nil, nil
 }
 
+// visiteTenteCapture controla o tratamento estruturado de exceções (tente/capture/finalmente).
+//
+// Semântica:
+//   - O bloco 'tente' é executado. Se ocorrer erro, a execução é desviada para 'capture'.
+//   - O bloco 'capture' cria um escopo filho isolado que expõe o erro capturado
+//     através do nome declarado entre parênteses (ex: capture (e) { ... }).
+//   - O bloco 'finalmente' (se existir) roda sempre — após o 'tente' passar limpo,
+//     após o 'capture' tratar o erro, ou ainda quando um erro se propaga.
+//   - Erros lançados dentro de 'finalmente' substituem o erro original (mesma
+//     semântica de Python/Java), refletindo em tracebacks.
+func (i *Interpretador) visiteTenteCapture(node *parser.TenteCaptureFinalmente) (resultado Objeto, errFinal error) {
+	// Defer garante a execução do bloco 'finalmente' se definido
+	if node.FinalmenteBlock != nil {
+		defer func() {
+			_, errFin := i.visite(node.FinalmenteBlock)
+			if errFin != nil {
+				errFinal = errFin
+			}
+		}()
+	}
+
+	// Executa o bloco tente
+	resultado, errFinal = i.visite(node.TenteBlock)
+	if errFinal == nil {
+		return resultado, nil
+	}
+
+	// Sem bloco capture: propaga o erro original (finalmente ainda roda via defer)
+	if node.CaptureBlock == nil {
+		adicionaContextoSeNaoTiver(errFinal, i.Contexto)
+		return nil, errFinal
+	}
+
+	// Converte erros nativos do Go para *Erro do Portuscript
+	ptstErr, ok := errFinal.(*Erro)
+	if !ok {
+		ptstErr = NewErro(RuntimeErro, Texto(errFinal.Error()))
+	}
+
+	// Garante que o erro exposto no 'capture' tenha metadados geográficos
+	ptstErr.AdicionarContexto(i.Contexto)
+
+	// Cria escopo filho isolado para o capture expor o erro
+	escopoCapture := i.Escopo.NewEscopo()
+	escopoCapture.DefinirSimbolo(NewVarSimbolo(node.NomeErro, ptstErr))
+
+	i.entrarNoEscopo(escopoCapture)
+	defer i.sairDoEscopo()
+
+	return i.visite(node.CaptureBlock)
+}
+
 // criarErroF aloca e formata erros associando automaticamente os metadados do contexto da VM.
 func (i *Interpretador) criarErroF(tipo *Tipo, format string, args ...any) error {
 	erro := NewErroF(tipo, format, args...)
-	erro.Contexto = i.Contexto
+	erro.AdicionarContexto(i.Contexto)
 	return erro
 }
+
+// visiteDeclExportar executa a declaração interna e opcionalmente registra o símbolo para exportação pública.
+func (i *Interpretador) visiteDeclExportar(node *parser.DeclExportar) (Objeto, error) {
+	// Apenas avalia a declaração interna. No interpretador tree-walk, o escopo do módulo
+	// é o escopo global do arquivo. Símbolos declarados no escopo do módulo são públicos por padrão.
+	return i.visite(node.Expressao)
+}
+
+func (i *Interpretador) visiteTemplateLiteral(node *parser.TemplateLiteral) (Objeto, error) {
+	resultado := ""
+	for _, parte := range node.Partes {
+		val, err := i.visite(parte)
+		if err != nil {
+			return nil, err
+		}
+		txt, err := NewTexto(val)
+		if err != nil {
+			return nil, err
+		}
+		resultado += string(txt.(Texto))
+	}
+	return Texto(resultado), nil
+}
+
+func (i *Interpretador) visiteTemplateExpr(node *parser.TemplateExpr) (Objeto, error) {
+	return i.visite(node.Expressao)
+}
+
+func (i *Interpretador) visiteAguardeNode(node *parser.AguardeNode) (Objeto, error) {
+	val, err := i.visite(node.Expressao)
+	if err != nil {
+		return nil, err
+	}
+
+	prom, ok := val.(*Promessa)
+	if !ok {
+		return val, nil
+	}
+
+	// Suspensão cooperativa idêntica à VM: espera o canal/callback da promessa
+	channel := make(chan Objeto, 1)
+	var errProm error
+	prom.Registre(func(res Objeto, err error) {
+		if err != nil {
+			errProm = err
+			channel <- nil
+		} else {
+			channel <- res
+		}
+	})
+
+	res := <-channel
+	if errProm != nil {
+		return nil, errProm
+	}
+
+	return res, nil
+}
+
+func (i *Interpretador) visiteNoJSX(node *parser.NoJSX) (Objeto, error) {
+	attrs := make(map[string]Objeto)
+	for _, attr := range node.Atributos {
+		var val Objeto = Verdadeiro
+		if attr.Valor != nil {
+			v, err := i.visite(attr.Valor)
+			if err != nil {
+				return nil, err
+			}
+			val = v
+		}
+		attrs[attr.Nome] = val
+	}
+
+	var filhos []Objeto
+	for _, f := range node.Filhos {
+		filho, err := i.visite(f)
+		if err != nil {
+			return nil, err
+		}
+		if filho != nil && filho != Nulo {
+			filhos = append(filhos, filho)
+		}
+	}
+
+	return &ElementoJSX{
+		Tag:       node.Tag,
+		Atributos: attrs,
+		Filhos:    filhos,
+	}, nil
+}
+
+func (i *Interpretador) visiteNoSeJSX(node *parser.NoSeJSX) (Objeto, error) {
+	cond, err := i.visite(node.Condicao)
+	if err != nil {
+		return nil, err
+	}
+
+	isTrue := false
+	if b, ok := cond.(Booleano); ok {
+		isTrue = bool(b)
+	} else if cond != nil && cond != Nulo {
+		isTrue = true
+	}
+
+	if isTrue {
+		var filhos []Objeto
+		for _, f := range node.Filhos {
+			filho, err := i.visite(f)
+			if err != nil {
+				return nil, err
+			}
+			if filho != nil && filho != Nulo {
+				filhos = append(filhos, filho)
+			}
+		}
+		if len(filhos) == 1 {
+			return filhos[0], nil
+		}
+		// Agrupa múltiplos nós filhos de SSR em uma Tupla para serem concatenados
+		return Tupla(filhos), nil
+	}
+
+	return Nulo, nil
+}
+
+func (i *Interpretador) visiteNoParaJSX(node *parser.NoParaJSX) (Objeto, error) {
+	listaObjeto, err := i.visite(node.Lista)
+	if err != nil {
+		return nil, err
+	}
+
+	var elementos []Objeto
+	switch l := listaObjeto.(type) {
+	case *Lista:
+		elementos = l.Itens
+	case Tupla:
+		elementos = l
+	default:
+		// Se não for iterável, tenta obter iterador nativo ou ignora
+		return Nulo, nil
+	}
+
+	var filhos []Objeto
+	for _, elem := range elementos {
+		// Aloca escopo temporário para a variável local do laço
+		escopoLaço := i.Escopo.NewEscopo()
+		escopoLaço.DefinirSimbolo(NewVarSimbolo(node.Item, elem))
+
+		interpretadorLocal := &Interpretador{
+			Contexto: i.Contexto,
+			Escopo:   escopoLaço,
+		}
+
+		for _, f := range node.Filhos {
+			filho, err := interpretadorLocal.visite(f)
+			if err != nil {
+				return nil, err
+			}
+			if filho != nil && filho != Nulo {
+				filhos = append(filhos, filho)
+			}
+		}
+	}
+
+	return Tupla(filhos), nil
+}
+
+func (i *Interpretador) visiteDeclEstilo(node *parser.DeclEstilo) (Objeto, error) {
+	// Ignora blocos estilo no backend (não geram nós de árvore VDOM física)
+	return Nulo, nil
+}
+
