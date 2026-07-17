@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/parser"
 	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
@@ -43,12 +44,12 @@ func comandoCompilar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if alvo != "web" && alvo != "nativo" {
-				fmt.Fprintf(os.Stderr, "erro: alvo de compilação '%s' não suportado. Alvos suportados: web, nativo\n", alvo)
+			if alvo != "web" && alvo != "nativo" && alvo != "wasm" && alvo != "wasi" {
+				fmt.Fprintf(os.Stderr, "erro: alvo de compilação '%s' não suportado. Alvos suportados: web, nativo, wasm, wasi\n", alvo)
 				os.Exit(1)
 			}
 
-			if alvo == "nativo" {
+			if alvo == "nativo" || alvo == "wasm" || alvo == "wasi" {
 				ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
 				defer ctx.Terminar()
 
@@ -56,6 +57,11 @@ func comandoCompilar() *cobra.Command {
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Erro de compilação/sintaxe: %v\n", err)
 					os.Exit(1)
+				}
+
+				// Otimiza a AST antes da geração do código nativo (DCE)
+				if prog, ok := ast.(*parser.Programa); ok {
+					ast = Otimizar(prog)
 				}
 
 				transpiler := &TranspilerNative{}
@@ -73,19 +79,29 @@ func comandoCompilar() *cobra.Command {
 				if saidaBin == "dist" {
 					baseName := filepath.Base(entrada)
 					saidaBin = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+					if alvo == "wasm" || alvo == "wasi" {
+						saidaBin += ".wasm"
+					}
 				}
 
-				fmt.Printf("Compilando binário nativo '%s'...\n", saidaBin)
+				fmt.Printf("Compilando binário '%s' (alvo=%s)...\n", saidaBin, alvo)
 
 				cmdBuild := exec.Command("go", "build", "-o", saidaBin, tmpGoFile)
 				cmdBuild.Stdout = os.Stdout
 				cmdBuild.Stderr = os.Stderr
+
+				if alvo == "wasm" {
+					cmdBuild.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
+				} else if alvo == "wasi" {
+					cmdBuild.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
+				}
+
 				if errBuild := cmdBuild.Run(); errBuild != nil {
 					fmt.Fprintf(os.Stderr, "erro ao executar go build: %v\n", errBuild)
 					os.Exit(1)
 				}
 
-				fmt.Println("🚀 Compilação AOT concluída com sucesso!")
+				fmt.Printf("🚀 Compilação AOT (%s) concluída com sucesso!\n", alvo)
 				return
 			}
 

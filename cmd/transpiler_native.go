@@ -435,6 +435,7 @@ import (
 )
 
 func main() {
+	var _ = fmt.Printf
 	ctx := ptst.NewContexto(ptst.OpcsContexto{})
 	defer ctx.Terminar()
 

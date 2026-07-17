@@ -287,3 +287,50 @@ replace github.com/mat-dgruber/Harpia => %s
 		t.Errorf("Erro ao executar o binário AOT gerado: %v", errRun)
 	}
 }
+
+func TestComandoCompilarWasm(t *testing.T) {
+	tempDir := t.TempDir()
+	cur, _ := os.Getwd()
+
+	scriptPath := filepath.Join(tempDir, "app.hrp")
+	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\n"), 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	saidaWasm := filepath.Join(tempDir, "app.wasm")
+
+	cmd := comandoCompilar()
+	cmd.SetArgs([]string{
+		scriptPath,
+		"--alvo=wasm",
+		"--saida=" + saidaWasm,
+	})
+
+	oldWd, _ := os.Getwd()
+	defer os.Chdir(oldWd)
+	os.Chdir(tempDir)
+
+	projectRoot := filepath.Dir(cur)
+
+	goModConteudo := fmt.Sprintf(`module test_aot
+go 1.24.2
+require github.com/mat-dgruber/Harpia v0.0.0
+replace github.com/mat-dgruber/Harpia => %s
+`, projectRoot)
+
+	os.WriteFile("go.mod", []byte(goModConteudo), 0644)
+
+	goSumOrigem := filepath.Join(projectRoot, "go.sum")
+	if dataSum, errSum := os.ReadFile(goSumOrigem); errSum == nil {
+		os.WriteFile("go.sum", dataSum, 0644)
+	}
+
+	if errCmd := cmd.Execute(); errCmd != nil {
+		t.Fatalf("Erro ao executar compilar wasm: %v", errCmd)
+	}
+
+	if _, errStat := os.Stat(saidaWasm); os.IsNotExist(errStat) {
+		t.Fatalf("O arquivo .wasm não foi gerado no caminho esperado: %s", saidaWasm)
+	}
+}
