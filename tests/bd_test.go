@@ -1,6 +1,10 @@
 package tests
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/ptst"
@@ -121,6 +125,89 @@ func TestBDModuloMySQL(t *testing.T) {
 	_, err := ptst.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com conector MySQL: %v", err)
+	}
+}
+
+func TestBDModuloQdrant(t *testing.T) {
+	// Cria servidor HTTP mockado para emular as respostas do Qdrant REST API
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		if r.Method == "PUT" {
+			w.Write([]byte(`{"result": {"status": "ok"}}`))
+			return
+		}
+
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/search") {
+			w.Write([]byte(`{
+				"result": [
+					{
+						"id": 1,
+						"score": 0.95,
+						"payload": {"nome": "Maria"}
+					}
+				]
+			}`))
+			return
+		}
+
+		if r.Method == "POST" && strings.Contains(r.URL.Path, "/delete") {
+			w.Write([]byte(`{"result": {"status": "ok"}}`))
+			return
+		}
+	}))
+	defer server.Close()
+
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := fmt.Sprintf(`
+	de "bd" importe conectarQdrant
+
+	var cliente = conectarQdrant("%s", "colecao-teste")
+
+	// 1. Testa inserir ponto vetorial
+	var vetor = [0.1, 0.2, 0.3]
+	var meta = {"nome": "Maria"}
+	var inserido = cliente.inserir(1, vetor, meta)
+
+	// 2. Testa busca vetorial por similaridade
+	var resultados = cliente.buscar(vetor, 5)
+	var totalResultados = tamanho(resultados)
+	var primeiro = resultados[0]
+	var id = primeiro["id"]
+	var score = primeiro["score"]
+	var payload = primeiro["payload"]
+	var nome = payload["nome"]
+
+	// 3. Testa deleção de ponto
+	var deletado = cliente.deletar(1)
+	`, server.URL)
+
+	res, err := ptst.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script com banco vetorial Qdrant: %v", err)
+	}
+
+	valInserido, _ := res.Escopo.ObterValor("inserido")
+	if valInserido != ptst.Verdadeiro {
+		t.Errorf("Inserção no Qdrant deveria ter tido sucesso")
+	}
+
+	valTotal, _ := res.Escopo.ObterValor("totalResultados")
+	if int(valTotal.(ptst.Inteiro)) != 1 {
+		t.Errorf("Deveria retornar exatamente 1 resultado do Qdrant")
+	}
+
+	valNome, _ := res.Escopo.ObterValor("nome")
+	if string(valNome.(ptst.Texto)) != "Maria" {
+		t.Errorf("Nome esperado 'Maria' no payload, obteve: %v", valNome)
+	}
+
+	valDeletado, _ := res.Escopo.ObterValor("deletado")
+	if valDeletado != ptst.Verdadeiro {
+		t.Errorf("Deleção no Qdrant deveria ter tido sucesso")
 	}
 }
 

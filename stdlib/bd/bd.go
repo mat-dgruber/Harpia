@@ -96,10 +96,11 @@ func init() {
 			Arquivo: "stdlib/bd",
 		},
 		Constantes: ptst.Mapa{
-			"ConexaoSQL":    TipoConexaoSQL,
-			"QueryBuilder":  TipoQueryBuilder,
-			"ConexaoMongo":  TipoConexaoMongo,
-			"ConexaoRedis":  TipoConexaoRedis,
+			"ConexaoSQL":      TipoConexaoSQL,
+			"QueryBuilder":    TipoQueryBuilder,
+			"ConexaoMongo":    TipoConexaoMongo,
+			"ConexaoRedis":    TipoConexaoRedis,
+			"ClienteVetorial": TipoClienteVetorial,
 		},
 		Metodos: []*ptst.Metodo{
 			ptst.NewMetodoOuPanic("conectarSqlite", met_bd_conectarSqlite, ""),
@@ -107,6 +108,7 @@ func init() {
 			ptst.NewMetodoOuPanic("conectarMysql", met_bd_conectarMysql, ""),
 			ptst.NewMetodoOuPanic("conectarMongo", met_bd_conectarMongo, ""),
 			ptst.NewMetodoOuPanic("conectarRedis", met_bd_conectarRedis, ""),
+			ptst.NewMetodoOuPanic("conectarQdrant", met_conectar_qdrant, "Conecta ao banco vetorial Qdrant(url, colecao)"),
 		},
 	})
 }
