@@ -43,12 +43,12 @@ func TestComandoNovoMonolito(t *testing.T) {
 	}
 
 	arquivosEsperados := []string{
-		filepath.Join("meu_monolito", "main.ptst"),
-		filepath.Join("meu_monolito", "dominio", "entidades", "usuario.ptst"),
-		filepath.Join("meu_monolito", "infra", "banco", "conexao.ptst"),
-		filepath.Join("meu_monolito", "web", "rotas", "index.ptst"),
+		filepath.Join("meu_monolito", "main.hrp"),
+		filepath.Join("meu_monolito", "dominio", "entidades", "usuario.hrp"),
+		filepath.Join("meu_monolito", "infra", "banco", "conexao.hrp"),
+		filepath.Join("meu_monolito", "web", "rotas", "index.hrp"),
 		filepath.Join("meu_monolito", "web", "componentes", "Layout.html"),
-		filepath.Join("meu_monolito", "testes", "usuario_test.ptst"),
+		filepath.Join("meu_monolito", "testes", "usuario_test.hrp"),
 	}
 
 	for _, arq := range arquivosEsperados {
@@ -79,8 +79,8 @@ func TestComandoNovoBackend(t *testing.T) {
 	}
 
 	arquivosEsperados := []string{
-		filepath.Join("meu_back", "main.ptst"),
-		filepath.Join("meu_back", "dominio", "entidades", "produto.ptst"),
+		filepath.Join("meu_back", "main.hrp"),
+		filepath.Join("meu_back", "dominio", "entidades", "produto.hrp"),
 	}
 
 	for _, arq := range arquivosEsperados {
@@ -113,7 +113,7 @@ func TestComandoCrieAssistido(t *testing.T) {
 		t.Fatalf("Erro ao executar crie rota: %v", err)
 	}
 
-	caminhoRota := filepath.Join("web", "rotas", "contato.ptst")
+	caminhoRota := filepath.Join("web", "rotas", "contato.hrp")
 	if _, err := os.Stat(caminhoRota); os.IsNotExist(err) {
 		t.Errorf("Arquivo de rota esperada '%s' não foi gerado", caminhoRota)
 	}
@@ -125,8 +125,8 @@ func TestComandoCrieAssistido(t *testing.T) {
 		t.Fatalf("Erro ao executar crie componente: %v", err)
 	}
 
-	caminhoComp := filepath.Join("web", "componentes", "Alerta.ptst")
-	caminhoEstilo := filepath.Join("web", "componentes", "Alerta.estilo.ptst")
+	caminhoComp := filepath.Join("web", "componentes", "Alerta.hrp")
+	caminhoEstilo := filepath.Join("web", "componentes", "Alerta.estilo.hrp")
 
 	if _, err := os.Stat(caminhoComp); os.IsNotExist(err) {
 		t.Errorf("Arquivo de componente esperado '%s' não foi gerado", caminhoComp)

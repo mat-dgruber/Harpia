@@ -40,7 +40,7 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 	b = 20 # b não foi declarado
 	`
 
-	caminhoArquivo := filepath.Join(dir, "teste.ptst")
+	caminhoArquivo := filepath.Join(dir, "teste.hrp")
 	if err := os.WriteFile(caminhoArquivo, []byte(codigoErrado), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -71,8 +71,8 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 	}
 
 	diag := diagnostics[0]
-	if diag.Code != "PSC-0005" {
-		t.Errorf("Código de erro incorreto. Esperava 'PSC-0005', obtive '%s'", diag.Code)
+	if diag.Code != "HRP-0005" {
+		t.Errorf("Código de erro incorreto. Esperava 'HRP-0005', obtive '%s'", diag.Code)
 	}
 
 	if diag.Range.Start.Line != 2 {
