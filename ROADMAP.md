@@ -425,7 +425,7 @@ A Fase 6 foca na entrega e distribuição física de alta performance e no ganho
 #### 6.1 — Compilação AOT (Ahead-Of-Time) Real e Otimizações Nativa
 
 - [X] **Empacotador Nativo Estático:** Subcomando `harpia empacotar` que compila o código para bytecode de VM Harpia e o embute com uma versão minificada e estática do interpretador Go, gerando executáveis puramente nativos (`.exe`, ELF, Mach-O).
-- [ ] **Compilador AOT Otimizado:** Tradutor Ahead-Of-Time que converte a AST do Harpia diretamente em código de máquina nativo sem reflexão, otimizando o consumo de CPU.
+- [X] **Compilador AOT Otimizado:** Tradutor Ahead-Of-Time que converte a AST do Harpia diretamente em código Go nativo sem reflexão, otimizando o consumo de CPU (suporta: var, const, se/senao, enquanto, para-em, funcao, classe, lista, mapa, indexacao, unario, pipe, tente/capture/finalmente, pare, continue, assegura, template).
 - [ ] **Otimizações Estáticas Avançadas:** Implementação de técnicas como *Dead Code Elimination* (remoção de código não utilizado) e desempacotamento de objetos curtos diretamente na pilha para acelerar a execução.
 
 #### 6.2 — Sandbox de Segurança WASM e WASI de Alta Performance

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ func comandoPlayground() *cobra.Command {
 	var porta int
 	cmdPlay := &cobra.Command{
 		Use:   "playground",
-		Short: "Inicia o servidor web local do Playground Interativo do Portuscript",
+		Short: "Inicia o servidor web local do Playground Interativo do Harpia",
 		Run: func(cmd *cobra.Command, args []string) {
 			iniciarServidorPlayground(porta)
 		},
@@ -54,8 +54,12 @@ func iniciarServidorPlayground(porta int) {
 	http.HandleFunc("/playground.js", servePlaygroundJS)
 	http.HandleFunc("/playground.css", servePlaygroundCSS)
 	http.HandleFunc("/api/executar", apiExecutarCodigoPlayground)
+	// ponytail: endpoints estáticos que alimentam o editor Monaco no cliente (highlight + hover)
+	http.HandleFunc("/api/editor-config", apiEditorConfig)
+	http.HandleFunc("/api/docs", apiDocsPlayground)
+	http.HandleFunc("/editor-monaco.js", serveEditorMonacoJS)
 
-	fmt.Printf("🚀 Playground Interativo do Portuscript rodando em: http://localhost:%d\n", porta)
+	fmt.Printf("🚀 Playground Interativo do Harpia rodando em: http://localhost:%d\n", porta)
 	fmt.Println("Pressione Ctrl+C para encerrar o servidor.")
 
 	// ponytail: servidor HTTP resiliente com timeouts para mitigar DoS/estouro de conexões
@@ -249,19 +253,36 @@ func ansiParaHtml(ansi string) string {
 	return res
 }
 
+// ponytail: stubs para endpoints do Monaco editor — implementar com grammar Harpia quando necessário
+func apiEditorConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"language": "harpia"})
+}
+
+func apiDocsPlayground(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"docs": "https://github.com/mat-dgruber/Harpia"})
+}
+
+func serveEditorMonacoJS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	w.Write([]byte("// Monaco Harpia language registration — placeholder"))
+}
+
 // htmlInterfacePlayground define a interface física do editor web em Dark Mode corporativo
 const htmlInterfacePlayground = `<!DOCTYPE html>
 <html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
 <head>
     <meta charset="UTF-8">
-    <title>Portuscript — Playground Interativo</title>
+    <title>Harpia — Playground Interativo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/playground.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.css">
     <style>
-        .editor-textarea {
-            font-family: 'Fira Code', 'Courier New', monospace;
-            tab-size: 4;
-        }
+        .editor-container { width: 100%; height: 100%; min-height: 200px; }
+        .editor-textarea { font-family: 'Fira Code', 'Courier New', monospace; tab-size: 4; }
+        .monaco-hover { padding: 0 12px !important; }
+        .monaco-hover code { font-family: 'Fira Code', monospace; }
     </style>
 </head>
 <body class="h-full flex flex-col overflow-hidden">
@@ -271,5 +292,7 @@ const htmlInterfacePlayground = `<!DOCTYPE html>
         import { PlaygroundApp } from './playground.js';
         montar(PlaygroundApp, document.getElementById('app'));
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.js"></script>
+    <script src="/editor-monaco.js"></script>
 </body>
 </html>`
