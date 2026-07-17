@@ -75,4 +75,5 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoEmpacotar())
 	raiz.AddCommand(comandoStressar())
 	raiz.AddCommand(comandoDepurar())
+	raiz.AddCommand(comandoCopiloto())
 }
