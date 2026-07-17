@@ -1,41 +1,24 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
-# *.exe
-*.exe~
+# Módulos e Builds
+/node_modules
+/dist
+/build
+
+# Variáveis de Ambiente e Arquivos Secretos
+*.env
+!.env.example # Mantém o exemplo .env para referência
+
+# Logs e Dados Gerados (Go e Geral)
+npm-debug.log*
+yarn-debug.log*
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+
+# Binários de programas e plugins
+*.exe
 *.dll
 *.so
 *.dylib
 
-# Test binary, built with `go test -c`
+# Teste de código (go test -c)
 *.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-portucov
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-# Go workspace file
-go.work
-.antlr
-/dist
-/build
-
-Harpia
-Harpia.exe
-
-# Dinamicamente gerados para benchmark
-benchmark
-main_test.go
-
-bin
-
-.vscode/*
-!.vscode/settings.json
-
-# custom
-__*

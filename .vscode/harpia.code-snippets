@@ -1,0 +1,159 @@
+{
+	"Declaração de Variável": {
+		"prefix": "var",
+		"body": [
+			"var ${1:nome} = ${2:valor}"
+		],
+		"description": "Declara uma variável mutável"
+	},
+	"Declaração de Constante": {
+		"prefix": "constante",
+		"body": [
+			"constante ${1:NOME} = ${2:valor}"
+		],
+		"description": "Declara uma constante imutável"
+	},
+	"Estrutura Condicional Se": {
+		"prefix": "se",
+		"body": [
+			"se ${1:condicao} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Estrutura condicional 'se'"
+	},
+	"Estrutura Condicional Se Senao": {
+		"prefix": "sesenao",
+		"body": [
+			"se ${1:condicao} {",
+			"\t$2",
+			"} senao {",
+			"\t$0",
+			"}"
+		],
+		"description": "Estrutura condicional 'se... senao'"
+	},
+	"Estrutura Condicional Senao Se": {
+		"prefix": "senaose",
+		"body": [
+			"senao se ${1:condicao} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Estrutura condicional 'senao se'"
+	},
+	"Repetição Enquanto": {
+		"prefix": "enquanto",
+		"body": [
+			"enquanto ${1:condicao} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Loop de repetição 'enquanto'"
+	},
+	"Repetição Para Em": {
+		"prefix": "para",
+		"body": [
+			"para ${1:item} em ${2:colecao} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Loop de repetição 'para... em'"
+	},
+	"Declaração de Função": {
+		"prefix": "funcao",
+		"body": [
+			"funcao ${1:nome}(${2:parametros}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Declara uma função"
+	},
+	"Declaração de Função Tipada": {
+		"prefix": "funcaotipada",
+		"body": [
+			"funcao ${1:nome}(${2:param}: ${3:Tipo}) -> ${4:Retorno} {",
+			"\t$0",
+			"}"
+		],
+		"description": "Declara uma função com assinaturas de tipo"
+	},
+	"Declaração de Classe": {
+		"prefix": "classe",
+		"body": [
+			"classe ${1:NomeClasse} {",
+			"\tinicializar(self, ${2:parametros}) {",
+			"\t\t$3",
+			"\t}",
+			"}"
+		],
+		"description": "Declara uma classe com construtor"
+	},
+	"Declaração de Classe Estendida": {
+		"prefix": "classeestende",
+		"body": [
+			"classe ${1:NomeClasse} estende ${2:ClassePai} {",
+			"\tinicializar(self, ${3:parametros}) {",
+			"\t\t${2:ClassePai}.inicializar(self, ${4:argumentos})",
+			"\t\t$0",
+			"\t}",
+			"}"
+		],
+		"description": "Declara uma classe que herda de outra"
+	},
+	"Tratamento de Erros Tente Capture": {
+		"prefix": "tente",
+		"body": [
+			"tente {",
+			"\t$1",
+			"} capture (${2:erro}) {",
+			"\t$3",
+			"} finalmente {",
+			"\t$0",
+			"}"
+		],
+		"description": "Bloco de tratamento de exceções tente/capture/finalmente"
+	},
+	"Bloco de Teste Nativo": {
+		"prefix": "testar",
+		"body": [
+			"testar \"${1:descricao do teste}\" {",
+			"\t$2",
+			"\tassegura($0)",
+			"}"
+		],
+		"description": "Declara um bloco de teste automatizado nativo"
+	},
+	"Importação de Módulo": {
+		"prefix": "importar",
+		"body": [
+			"importar { ${1:recurso} } de \"${2:modulo}\""
+		],
+		"description": "Importa recursos de um módulo padrão ou local"
+	},
+	"Reatividade Sinal": {
+		"prefix": "sinal",
+		"body": [
+			"var [${1:valor}, definir${1/(.*)/${1:/capitalize}/}] = sinal(${2:inicial})"
+		],
+		"description": "Cria um par de sinal reativo ler/definir"
+	},
+	"Reatividade Efeito": {
+		"prefix": "efeito",
+		"body": [
+			"efeito(funcao() {",
+			"\t$0",
+			"})"
+		],
+		"description": "Cria um efeito colateral reativo"
+	},
+	"Função Assíncrona": {
+		"prefix": "assincrono",
+		"body": [
+			"assincrono funcao ${1:nome}(${2:parametros}) {",
+			"\t$0",
+			"}"
+		],
+		"description": "Declara uma corotina assíncrona"
+	}
+}

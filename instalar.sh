@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
@@ -102,7 +102,7 @@ else
 fi
 
 GITHUB=${GITHUB-"https://github.com"}
-repo_github="$GITHUB/natanfeitosa/harpia"
+repo_github="$GITHUB/mat-dgruber/Harpia"
 
 arquivo_compactado="$target$sufixo"
 
@@ -119,7 +119,7 @@ executavel="$diretorio_binario/harpia"
 
 if [[ ! -d $diretorio_binario ]]; then
     mkdir -p "$diretorio_binario" ||
-        error "ERRO" "Falha ao criar o diretório de instalação \"$diretorio_binario\""
+        log "ERRO" "Falha ao criar o diretório de instalação \"$diretorio_binario\""
 fi
 
 log "DEBUG" "Iniciando download do arquivo compactado"
@@ -141,7 +141,7 @@ case "$sufixo" in
 esac
 log "SUCESSO" "Parece que a descompactação foi um sucesso"
 
-chmod +x "$executavel$sufixo"
+chmod +x "$executavel"
 rm "$executavel$sufixo"
 
 log "SUCESSO" "Parabéns, agora você tem o Harpia disponível em \033[1m$executavel\033[0m"
@@ -257,8 +257,8 @@ else
         ;;
     *)
         log "AVISO" 'Adicione manualmente os seguinte comandos ao ~/.bashrc (ou similar):'
-        log "INFO" "  export $install_env=$raiz_harpia"
-        log "INFO" "  export PATH=\"$bin_env:\$PATH\""
+        log "INFO" "  export DIRETORIO_HARPIA=$raiz_harpia"
+        log "INFO" "  export PATH=\"\$DIRETORIO_HARPIA/bin:\$PATH\""
         ;;
     esac
 fi
