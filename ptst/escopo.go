@@ -132,7 +132,7 @@ func (e *Escopo) ObterValor(nome string) (Objeto, error) {
 			return e.Pai.ObterValor(nome)
 		}
 
-		return nil, NewErroF(NomeErro, "'%s' não foi encontrado/a, talvez você não tenha definido ainda", nome)
+		return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
 	}
 
 	return simbolo.ObterValor(), nil
@@ -149,7 +149,7 @@ func (e *Escopo) ObterSimbolo(nome string) (*Simbolo, error) {
 			return e.Pai.ObterSimbolo(nome)
 		}
 
-		return nil, NewErroF(NomeErro, "'%s' não foi encontrado/a, talvez você não tenha definido ainda", nome)
+		return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
 	}
 
 	return simbolo, nil
@@ -161,7 +161,7 @@ func (e *Escopo) ExcluirSimbolo(nome string) error {
 	defer e.mu.Unlock()
 
 	if _, ok := e.Simbolos[nome]; !ok {
-		return NewErroF(NomeErro, "'%s' não foi encontrado/a, talvez você não tenha definido ainda", nome)
+		return NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
 	}
 
 	delete(e.Simbolos, nome)
