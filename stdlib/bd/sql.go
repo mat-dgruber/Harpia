@@ -90,16 +90,25 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
 
 	case "tabela":
 		return ptst.NewMetodoOuPanic("tabela", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-			if err := ptst.VerificaNumeroArgumentos("tabela", false, args, 1, 1); err != nil {
+			if err := ptst.VerificaNumeroArgumentos("tabela", false, args, 1, 2); err != nil {
 				return nil, err
 			}
 			tabelaTexto, err := ptst.NewTexto(args[0])
 			if err != nil {
 				return nil, err
 			}
+			var schema ptst.Mapa
+			if len(args) == 2 {
+				s, ok := args[1].(ptst.Mapa)
+				if !ok {
+					return nil, ptst.NewErroF(ptst.TipagemErro, "tabela esperava um Mapa como segundo argumento (schema)")
+				}
+				schema = s
+			}
 			return &QueryBuilder{
 				conexao: c,
 				tabela:  string(tabelaTexto.(ptst.Texto)),
+				schema:  schema,
 			}, nil
 		}, ""), nil
 
@@ -120,6 +129,7 @@ type QueryBuilder struct {
 	condicoes    []string
 	args         []ptst.Objeto
 	limiteVal    int
+	schema       ptst.Mapa
 }
 
 var TipoQueryBuilder = ptst.NewTipo("QueryBuilder", "Query Builder dinâmico")
@@ -227,6 +237,21 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
 			mapa, ok := args[0].(ptst.Mapa)
 			if !ok {
 				return nil, ptst.NewErroF(ptst.TipagemErro, "inserir esperava um Mapa como argumento")
+			}
+
+			if q.schema != nil {
+				for k, v := range mapa {
+					tipoEsperado, existe := q.schema[k]
+					if !existe {
+						return nil, ptst.NewErroF(ptst.ValorErro, "campo '%s' nao existe no schema da tabela '%s'", k, q.tabela)
+					}
+					tipoTexto, ok := tipoEsperado.(ptst.Texto)
+					if ok {
+						if errVal := validarTipoCampo(string(tipoTexto), v); errVal != nil {
+							return nil, ptst.NewErroF(ptst.TipagemErro, "campo '%s' da tabela '%s': %v", k, q.tabela, errVal)
+						}
+					}
+				}
 			}
 
 			var colunas []string
@@ -373,4 +398,26 @@ func (q *QueryBuilder) converterPlaceholders(query string) string {
 		sb.WriteString(partes[i])
 	}
 	return sb.String()
+}
+
+func validarTipoCampo(tipoEsperado string, valor ptst.Objeto) error {
+	switch tipoEsperado {
+	case "texto":
+		if _, ok := valor.(ptst.Texto); !ok {
+			return fmt.Errorf("esperava tipo Texto, obteve %s", valor.Tipo().Nome)
+		}
+	case "inteiro":
+		if _, ok := valor.(ptst.Inteiro); !ok {
+			return fmt.Errorf("esperava tipo Inteiro, obteve %s", valor.Tipo().Nome)
+		}
+	case "decimal":
+		if _, ok := valor.(ptst.Decimal); !ok {
+			return fmt.Errorf("esperava tipo Decimal, obteve %s", valor.Tipo().Nome)
+		}
+	case "booleano":
+		if _, ok := valor.(ptst.Booleano); !ok {
+			return fmt.Errorf("esperava tipo Booleano, obteve %s", valor.Tipo().Nome)
+		}
+	}
+	return nil
 }

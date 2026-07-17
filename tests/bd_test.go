@@ -211,3 +211,55 @@ func TestBDModuloQdrant(t *testing.T) {
 	}
 }
 
+func TestBDModuloORMTipado(t *testing.T) {
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	de "bd" importe conectarSqlite
+
+	var conn = conectarSqlite(":memory:")
+	conn.executar("CREATE TABLE produtos (id INTEGER PRIMARY KEY, nome TEXT, preco REAL, disponivel BOOLEAN)")
+
+	// Declara tabela com o schema de tipos mapeado (ORM Tipado)
+	var schema = {"id": "inteiro", "nome": "texto", "preco": "decimal", "disponivel": "booleano"}
+	var tabela = conn.tabela("produtos", schema)
+
+	// 1. Insercao valida
+	tabela.inserir({"id": 1, "nome": "Teclado", "preco": 150.0, "disponivel": Verdadeiro})
+
+	// 2. Insercao com campo inexistente no schema (deve gerar erro de valor)
+	var erroCampoInexistente = Falso
+	tente {
+		tabela.inserir({"id": 2, "nome": "Mouse", "cor": "preto"})
+	} capture (erro) {
+		erroCampoInexistente = Verdadeiro
+	}
+
+	// 3. Insercao com tipo incorreto no schema (deve gerar erro de tipagem)
+	var erroTipoIncorreto = Falso
+	tente {
+		tabela.inserir({"id": 3, "nome": "Monitor", "preco": "quinhentos"})
+	} capture (erro) {
+		erroTipoIncorreto = Verdadeiro
+	}
+
+	conn.fechar()
+	`
+
+	res, err := ptst.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script com ORM Tipado: %v", err)
+	}
+
+	valInexistente, _ := res.Escopo.ObterValor("erroCampoInexistente")
+	if valInexistente != ptst.Verdadeiro {
+		t.Errorf("Deveria levantar exceção para campo inexistente")
+	}
+
+	valTipoIncorreto, _ := res.Escopo.ObterValor("erroTipoIncorreto")
+	if valTipoIncorreto != ptst.Verdadeiro {
+		t.Errorf("Deveria levantar exceção para tipo de campo incorreto")
+	}
+}
+
