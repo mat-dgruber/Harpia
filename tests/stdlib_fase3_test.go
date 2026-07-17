@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	"github.com/mat-dgruber/Harpia/ptst"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func TestModuloArquivos(t *testing.T) {
@@ -19,7 +19,7 @@ func TestModuloArquivos(t *testing.T) {
 	codigo := `
 	de "arquivos" importe escrever, ler
 	
-	escrever("` + tempFile + `", "Olá Portuscript!")
+	escrever("` + tempFile + `", "Olá Harpia!")
 	var conteudo = ler("` + tempFile + `")
 	`
 
@@ -33,7 +33,7 @@ func TestModuloArquivos(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'conteudo' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Olá Portuscript!" {
+	if string(val.(ptst.Texto)) != "Olá Harpia!" {
 		t.Errorf("Conteúdo lido inválido, obteve: %s", val)
 	}
 }
@@ -45,7 +45,7 @@ func TestModuloJson(t *testing.T) {
 	codigo := `
 	de "json" importe analisar
 
-	var obj = analisar('{"nome": "Portuscript",' + ' "versao": 1}')
+	var obj = analisar('{"nome": "Harpia",' + ' "versao": 1}')
 	var nome = obj["nome"]
 	`
 
@@ -59,8 +59,8 @@ func TestModuloJson(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'nome' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Portuscript" {
-		t.Errorf("Esperava 'Portuscript', obteve: %v", val)
+	if string(val.(ptst.Texto)) != "Harpia" {
+		t.Errorf("Esperava 'Harpia', obteve: %v", val)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestModuloCripto(t *testing.T) {
 	codigo := `
 	de "cripto" importe sha256
 
-	var hash = sha256("portuscript")
+	var hash = sha256("Harpia")
 	`
 
 	res, err := ptst.ExecutarString(ctx, codigo)
@@ -84,8 +84,8 @@ func TestModuloCripto(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'hash' do escopo: %v", err)
 	}
 
-	// hash sha256 de "portuscript"
-	esperado := "b3ca93021241e9f943a325d1534a3063f352899f36f88affc12c9aca9f2951e7"
+	// hash sha256 de "Harpia" (computado externamente e verificado com `echo -n 'Harpia' | shasum -a 256`)
+	esperado := "62fc8ed9f81594499fa4833bcaa3e44b5e79fe7e659af1824591b2ebda5a2ade"
 	if string(val.(ptst.Texto)) != esperado {
 		t.Errorf("Hash SHA256 incorreto, obteve: %s, esperava: %s", val, esperado)
 	}
@@ -113,7 +113,7 @@ func TestModuloHttp(t *testing.T) {
 	server.escutar("8083")
 
 	# Realiza requisição cliente
-	var resCli = requisitar("GET", "http://localhost:8083/ola/portuscript")
+	var resCli = requisitar("GET", "http://localhost:8083/ola/Harpia")
 	var corpo = resCli.corpo
 	var cabecalho = resCli.cabecalho
 	var mwHeader = cabecalho["X-Middleware"]
@@ -131,8 +131,8 @@ func TestModuloHttp(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'corpo' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Ola portuscript" {
-		t.Errorf("Resposta HTTP incorreta, obteve: %v, esperava 'Ola portuscript'", val)
+	if string(val.(ptst.Texto)) != "Ola Harpia" {
+		t.Errorf("Resposta HTTP incorreta, obteve: %v, esperava 'Ola Harpia'", val)
 	}
 
 	valMw, err := res.Escopo.ObterValor("mwHeader")
@@ -152,10 +152,10 @@ func TestModuloYaml(t *testing.T) {
 	codigo := `
 	de "yaml" importe analisar, serializar
 
-	var obj = analisar("nome: Portuscript
+	var obj = analisar("nome: Harpia
 versao: 1")
 	var nome = obj["nome"]
-	var textoYaml = serializar({"nome": "Portuscript"})
+	var textoYaml = serializar({"nome": "Harpia"})
 	`
 
 	res, err := ptst.ExecutarString(ctx, codigo)
@@ -167,15 +167,15 @@ versao: 1")
 	if err != nil {
 		t.Fatalf("Não foi possível obter 'nome': %v", err)
 	}
-	if string(valNome.(ptst.Texto)) != "Portuscript" {
-		t.Errorf("Nome esperado 'Portuscript', obteve: %s", valNome)
+	if string(valNome.(ptst.Texto)) != "Harpia" {
+		t.Errorf("Nome esperado 'Harpia', obteve: %s", valNome)
 	}
 
 	valYaml, err := res.Escopo.ObterValor("textoYaml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(valYaml.(ptst.Texto)), "nome: Portuscript") {
+	if !strings.Contains(string(valYaml.(ptst.Texto)), "nome: Harpia") {
 		t.Errorf("Serialização YAML incorreta: %s", valYaml)
 	}
 }
@@ -187,9 +187,9 @@ func TestModuloXml(t *testing.T) {
 	codigo := `
 	de "xml" importe analisar, serializar
 
-	var obj = analisar("<usuario><nome>Portuscript</nome></usuario>")
+	var obj = analisar("<usuario><nome>Harpia</nome></usuario>")
 	var nome = obj["usuario"]["nome"]
-	var textoXml = serializar({"nome": "Portuscript"}, "usuario")
+	var textoXml = serializar({"nome": "Harpia"}, "usuario")
 	`
 
 	res, err := ptst.ExecutarString(ctx, codigo)
@@ -201,15 +201,15 @@ func TestModuloXml(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Não foi possível obter 'nome': %v", err)
 	}
-	if string(valNome.(ptst.Texto)) != "Portuscript" {
-		t.Errorf("Nome esperado 'Portuscript', obteve: %s", valNome)
+	if string(valNome.(ptst.Texto)) != "Harpia" {
+		t.Errorf("Nome esperado 'Harpia', obteve: %s", valNome)
 	}
 
 	valXml, err := res.Escopo.ObterValor("textoXml")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(valXml.(ptst.Texto)) != "<usuario><nome>Portuscript</nome></usuario>" {
+	if string(valXml.(ptst.Texto)) != "<usuario><nome>Harpia</nome></usuario>" {
 		t.Errorf("Serialização XML incorreta, obteve: %s", valXml)
 	}
 }
