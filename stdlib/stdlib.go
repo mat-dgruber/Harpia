@@ -23,16 +23,11 @@ import (
 	// argumentos CLI e propriedades do sistema operacional hospedeiro.
 	_ "github.com/mat-dgruber/Harpia/stdlib/sistema"
 
-	// A importação blank (_) do pacote soquete expõe facilidades de rede de baixo nível, permitindo que scripts
-	// Harpia abram conexões de rede TCP/IP e criem servidores/clientes básicos diretamente no terminal.
-	_ "github.com/mat-dgruber/Harpia/stdlib/soquete"
-
 	// Novos módulos da Fase 3
 	_ "github.com/mat-dgruber/Harpia/stdlib/arquivos"
 	_ "github.com/mat-dgruber/Harpia/stdlib/cripto"
 	_ "github.com/mat-dgruber/Harpia/stdlib/http"
 	_ "github.com/mat-dgruber/Harpia/stdlib/json"
-	_ "github.com/mat-dgruber/Harpia/stdlib/bd"
 	_ "github.com/mat-dgruber/Harpia/stdlib/yaml"
 	_ "github.com/mat-dgruber/Harpia/stdlib/xml"
 	_ "github.com/mat-dgruber/Harpia/stdlib/logs"
