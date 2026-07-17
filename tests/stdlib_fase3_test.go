@@ -145,6 +145,49 @@ func TestModuloHttp(t *testing.T) {
 	}
 }
 
+func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	de "http" importe Servidor, assinar_hmac, verificar_hmac, gerar_openapi
+
+	// 1. Testa HMAC
+	var chave = "chave-secreta"
+	var mensagem = "mensagem-corporativa"
+	var assinatura = assinar_hmac(chave, mensagem)
+	var valido = verificar_hmac(chave, mensagem, assinatura)
+	var invalido = verificar_hmac(chave, "mensagem-adulterada", assinatura)
+
+	// 2. Testa OpenAPI
+	var server = nova Servidor()
+	server.obter("/usuarios", funcao(req, res) {})
+	server.postar("/usuarios", funcao(req, res) {})
+	var spec = gerar_openapi(server)
+	`
+
+	res, err := ptst.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script de testes HMAC/OpenAPI: %v", err)
+	}
+
+	valValido, _ := res.Escopo.ObterValor("valido")
+	if valValido != ptst.Verdadeiro {
+		t.Errorf("Assinatura HMAC deveria ser válida")
+	}
+
+	valInvalido, _ := res.Escopo.ObterValor("valido")
+	if valInvalido != ptst.Verdadeiro {
+		t.Errorf("Assinatura HMAC adulterada não deveria ser válida")
+	}
+
+	valSpec, _ := res.Escopo.ObterValor("spec")
+	specStr := string(valSpec.(ptst.Texto))
+	if !strings.Contains(specStr, "/usuarios") || !strings.Contains(specStr, "get") || !strings.Contains(specStr, "post") {
+		t.Errorf("Especificação OpenAPI incorreta: %s", specStr)
+	}
+}
+
 func TestModuloYaml(t *testing.T) {
 	ctx := ptst.NewContexto(ptst.OpcsContexto{})
 	defer ctx.Terminar()

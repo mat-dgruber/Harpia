@@ -473,6 +473,9 @@ func init() {
 		},
 		Metodos: []*ptst.Metodo{
 			ptst.NewMetodoOuPanic("requisitar", met_http_requisitar, ""),
+			ptst.NewMetodoOuPanic("assinar_hmac", met_assinar_hmac, "Gera assinatura HMAC SHA-256 (chave, mensagem)"),
+			ptst.NewMetodoOuPanic("verificar_hmac", met_verificar_hmac, "Valida assinatura HMAC SHA-256 (chave, mensagem, assinatura)"),
+			ptst.NewMetodoOuPanic("gerar_openapi", met_gerar_openapi, "Gera spec OpenAPI 3.0 para o Servidor"),
 		},
 	})
 }
