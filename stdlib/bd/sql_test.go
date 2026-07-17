@@ -39,3 +39,22 @@ func TestConverterPlaceholdersSqlite(t *testing.T) {
 		t.Errorf("Erro ao converter placeholders para Sqlite (deveria manter '?').\nEsperado: %s\nObtido:   %s", queryEsperada, resultado)
 	}
 }
+
+func TestConverterPlaceholdersMysql(t *testing.T) {
+	conexaoMysql := &ConexaoSQL{
+		driver: "mysql",
+	}
+
+	qb := &QueryBuilder{
+		conexao: conexaoMysql,
+	}
+
+	queryOriginal := "SELECT * FROM usuarios WHERE nome = ? AND idade > ? AND ativo = ?"
+	queryEsperada := "SELECT * FROM usuarios WHERE nome = ? AND idade > ? AND ativo = ?"
+
+	resultado := qb.converterPlaceholders(queryOriginal)
+	if resultado != queryEsperada {
+		t.Errorf("Erro ao converter placeholders para Mysql (deveria manter '?').\nEsperado: %s\nObtido:   %s", queryEsperada, resultado)
+	}
+}
+

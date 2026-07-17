@@ -124,7 +124,7 @@ Protocolo completo HTTP para cliente e servidor de alto desempenho. Conta com pr
 
 ### 3. Módulo: `bd`
 Interface unificada e query builder para bancos de dados relacionais e não-relacionais (NoSQL) de alto rendimento.
-* **SQL**: Driver embarcado nativo `SQLite` e conector para `PostgreSQL`. Suporta pool de conexões e o Query Builder fluído `bd.tabela("usuarios").onde(...).obterMuitos()`.
+* **SQL**: Drivers integrados para `SQLite`, `PostgreSQL` e `MySQL`. Suporta pool de conexões e o Query Builder fluído `bd.tabela("usuarios").onde(...).obterMuitos()`.
 * **NoSQL**: Conectores e mapeadores para coleções de documentos no `MongoDB` e chaves-valores/cache rápido no `Redis`.
 
 ### 4. Módulo: `json`, `yaml` e `xml`

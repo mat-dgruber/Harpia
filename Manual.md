@@ -473,6 +473,7 @@ Acesso e manipulação de bancos de dados relacionais e não-relacionais. Requer
 * **Funções de Conexão**:
   * `conectarSqlite(caminho)`: Abre uma conexão SQLite pura em Go, retornando um objeto `ConexaoSQL`.
   * `conectarPostgres(url)`: Abre uma conexão PostgreSQL, retornando um objeto `ConexaoSQL`.
+  * `conectarMysql(url)`: Abre uma conexão MySQL, retornando um objeto `ConexaoSQL`.
   * `conectarMongo(url)`: Abre uma conexão MongoDB, retornando um objeto `ConexaoMongo`.
   * `conectarRedis(url)`: Abre uma conexão Redis, retornando um objeto `ConexaoRedis`.
 * **A Classe `ConexaoSQL`**:

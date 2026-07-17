@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/glebarez/go-sqlite"
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/natanfeitosa/portuscript/ptst"
 )
@@ -38,6 +39,22 @@ func met_bd_conectarPostgres(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, er
 		return nil, ptst.NewErroF(ptst.ErroDeSistema, "Erro ao abrir banco PostgreSQL: %v", errOpen)
 	}
 	return &ConexaoSQL{db: db, driver: "postgres"}, nil
+}
+
+// met_bd_conectarMysql abre conexao MySQL
+func met_bd_conectarMysql(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+	if err := ptst.VerificaNumeroArgumentos("conectarMysql", false, args, 1, 1); err != nil {
+		return nil, err
+	}
+	urlConn, err := ptst.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	db, errOpen := sql.Open("mysql", string(urlConn.(ptst.Texto)))
+	if errOpen != nil {
+		return nil, ptst.NewErroF(ptst.ErroDeSistema, "Erro ao abrir banco MySQL: %v", errOpen)
+	}
+	return &ConexaoSQL{db: db, driver: "mysql"}, nil
 }
 
 // met_bd_conectarMongo abre conexao MongoDB
@@ -87,6 +104,7 @@ func init() {
 		Metodos: []*ptst.Metodo{
 			ptst.NewMetodoOuPanic("conectarSqlite", met_bd_conectarSqlite, ""),
 			ptst.NewMetodoOuPanic("conectarPostgres", met_bd_conectarPostgres, ""),
+			ptst.NewMetodoOuPanic("conectarMysql", met_bd_conectarMysql, ""),
 			ptst.NewMetodoOuPanic("conectarMongo", met_bd_conectarMongo, ""),
 			ptst.NewMetodoOuPanic("conectarRedis", met_bd_conectarRedis, ""),
 		},

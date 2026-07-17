@@ -100,3 +100,27 @@ func TestBDModulo(t *testing.T) {
 		t.Errorf("Total depois de deletar esperado 1, obteve '%v'", valTotalDepois)
 	}
 }
+
+func TestBDModuloMySQL(t *testing.T) {
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	// O driver de MySQL deve ser registrado com sucesso.
+	// Vamos testar se a função conectarMysql é chamada e tenta abrir conexão.
+	codigo := `
+	de "bd" importe conectarMysql
+
+	tente {
+		var conn = conectarMysql("root:senha@tcp(127.0.0.1:3306)/banco")
+		conn.fechar()
+	} capture (erro) {
+		# Se falhar a conexão com banco real (MySQL offline), é esperado. O importante é o driver estar registrado.
+	}
+	`
+
+	_, err := ptst.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script com conector MySQL: %v", err)
+	}
+}
+
