@@ -15,7 +15,9 @@ func init() {
 			Constantes: ptst.Mapa{
 				"Agente": TipoAgente,
 			},
-			Metodos: []*ptst.Metodo{},
+			Metodos: []*ptst.Metodo{
+				ptst.NewMetodoOuPanic("validar_resposta", met_validar_resposta, "Valida resposta JSON contra esquema"),
+			},
 		},
 	)
 }

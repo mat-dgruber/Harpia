@@ -67,7 +67,7 @@ func TestModuloIA_Mockado(t *testing.T) {
 	var resposta = assistente.perguntar("como compilar?")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo ia: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestModuloIA_ComunicacaoMultiAgente(t *testing.T) {
 	var conversa = agente1.comunicar(agente2, "revise esta linha")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
 	if err != nil {
 		t.Fatalf("Erro ao executar script de comunicação multi-agente: %v", err)
 	}
@@ -140,5 +140,44 @@ func TestModuloIA_ComunicacaoMultiAgente(t *testing.T) {
 	valConversa, _ := res.Escopo.ObterValor("conversa")
 	if !strings.Contains(string(valConversa.(ptst.Texto)), "agente-codigo") {
 		t.Errorf("Erro na orquestração de resposta, obteve: %v", valConversa)
+	}
+}
+
+func TestModuloIA_ContratosSemanticos(t *testing.T) {
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	de "ia" importe validar_resposta
+
+	var esquema = {"nome": "texto", "idade": "inteiro", "ativo": "booleano"}
+
+	// JSON valido
+	var jsonValido = '{' + '"nome": "Maria", "idade": 30, "ativo": true' + '}'
+	var valido = validar_resposta(esquema, jsonValido)
+
+	// JSON invalido
+	var jsonInvalido = '{' + '"nome": "Maria", "idade": "trinta", "ativo": true' + '}'
+	var validoIncorreto = Falso
+	tente {
+		validar_resposta(esquema, jsonInvalido)
+	} capture (erro) {
+		validoIncorreto = Verdadeiro
+	}
+	`
+
+	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
+	if err != nil {
+		t.Fatalf("Erro ao executar script de contratos semânticos: %v", err)
+	}
+
+	valValido, _ := res.Escopo.ObterValor("valido")
+	if valValido != ptst.Verdadeiro {
+		t.Errorf("Esperava que o JSON fosse válido")
+	}
+
+	valInvalido, _ := res.Escopo.ObterValor("validoIncorreto")
+	if valInvalido != ptst.Verdadeiro {
+		t.Errorf("Esperava que o JSON inválido levantasse uma exceção/erro de validação")
 	}
 }
