@@ -28,11 +28,11 @@ No arquivo agregador central `stdlib.go`, é feito o uso do mecanismo de **impor
 package stdlib
 
 import (
-    _ "github.com/natanfeitosa/harpia/stdlib/colorize"
-    _ "github.com/natanfeitosa/harpia/stdlib/embutidos"
-    _ "github.com/natanfeitosa/harpia/stdlib/matematica"
-    _ "github.com/natanfeitosa/harpia/stdlib/sistema"
-    _ "github.com/natanfeitosa/harpia/stdlib/soquete"
+	_ "github.com/mat-dgruber/Harpia/stdlib/colorize"
+	_ "github.com/mat-dgruber/Harpia/stdlib/embutidos"
+	_ "github.com/mat-dgruber/Harpia/stdlib/matematica"
+	_ "github.com/mat-dgruber/Harpia/stdlib/sistema"
+	_ "github.com/mat-dgruber/Harpia/stdlib/soquete"
 )
 ```
 
@@ -118,14 +118,15 @@ Permite a manipulação direta e segura do sistema de arquivos físico (I/O). Co
 * **Funções**: `ler()`, `escrever()`, `acrescentar()`, `remover()`, `renomear()`, `caminhar()`, `resolver()`.
 
 ### 2. Módulo: `http`
-Protocolo completo HTTP para cliente e servidor de alto desempenho. Conta com proteção nativa contra pânicos de execução (Recovery), timeouts slowloris e Sandbox de Rede (`BloquearRede`).
+Protocolo completo HTTP para cliente e servidor de alto desempenho. Conta com proteção nativa contra pânicos de execução (Recovery), timeouts slowloris e Sandbox de Rede (`BloquearRede`). Suporta assinaturas HMAC SHA-256 e geração de especificações OpenAPI 3.0 para o servidor.
 * **Classes**: `Servidor` (suporta `obter()`, `postar()`, `deletar()`, `usar()`, `escutar()`, `fechar()`), `Requisicao`, `Resposta`.
-* **Funções**: `requisitar(metodo, url, ...)` para chamadas HTTPS seguras.
+* **Funções**: `requisitar(metodo, url, ...)`, `assinar_hmac(chave, mensagem)`, `verificar_hmac(chave, mensagem, assinatura)`, `gerar_openapi(servidor)`.
 
 ### 3. Módulo: `bd`
-Interface unificada e query builder para bancos de dados relacionais e não-relacionais (NoSQL) de alto rendimento.
-* **SQL**: Drivers integrados para `SQLite`, `PostgreSQL` e `MySQL`. Suporta pool de conexões e o Query Builder fluído `bd.tabela("usuarios").onde(...).obterMuitos()`.
+Interface unificada e query builder para bancos de dados relacionais, não-relacionais (NoSQL) e vetoriais de alto rendimento.
+* **SQL & ORM**: Drivers integrados para `SQLite`, `PostgreSQL` e `MySQL`. Suporta pool de conexões, Query Builder fluído `bd.tabela("usuarios").onde(...).obterMuitos()`, e ORM Tipado opcional passando esquema na tabela: `bd.tabela("usuarios", {"nome": "texto", "idade": "inteiro"})`.
 * **NoSQL**: Conectores e mapeadores para coleções de documentos no `MongoDB` e chaves-valores/cache rápido no `Redis`.
+* **Vetorial**: Conector `conectarQdrant(url, colecao)` de alto rendimento para bancos vetoriais, suportando operações de `inserir`, `buscar` (por cosseno/L2) e `deletar` pontos.
 
 ### 4. Módulo: `json`, `yaml` e `xml`
 Módulos de serialização e desserialização ultra-velozes para tráfego e formatação estruturada de dados.
@@ -153,7 +154,16 @@ Agendador de tarefas periódicas via Cron e filas assíncronas concorrentes em m
 FFI portátil para carregar dinamicamente bibliotecas C (.so, .dll, .dylib) e chamar assinaturas de forma síncrona.
 
 ### 11. Módulo: `ia`
-Integração nativa com inteligência artificial para criação de Agentes autônomos com memória, conectores Ollama/nuvem e orquestração de diálogos.
+Integração nativa com inteligência artificial para criação de Agentes autônomos com memória, conectores Ollama/nuvem, orquestração de diálogos e contratos semânticos de validação de esquemas de resposta.
+* **Funções**: `validar_resposta(esquema, resposta_json)` para certificar o formato da IA em runtime.
+
+### 12. Módulo: `resiliencia`
+Padrões nativos de resiliência e estabilidade para microsserviços.
+* **Funções**: `novo_disjuntor(limite_falhas, timeout_segundos)`, `novo_limite_de_taxa(max_tokens, tokens_seg)`, `nova_retentativa(tentativas, base_ms, fator)`.
+
+### 13. Módulo: `telemetria`
+Observabilidade nativa e leve compatível com as especificações do OpenTelemetry para exportação de dados.
+* **Funções**: `novo_tracer(servico)` (retorna Tracer com `iniciar_span`), `nova_metrica(nome, tipo)` (retorna Metrica com `registrar`).
 
 ---
 

@@ -1176,6 +1176,8 @@ A Máquina Virtual de bytecode e o runtime de execução do Harpia foram aprimor
 * **Validador de Esquemas de Dados (`de "esquema"`)**: Permite declarar restrições de esquemas de dados complexos com validação em tempo de execução (Ex: `esquema.NovoEsquema({ "nome": esquema.Texto, "idade": esquema.Inteiro })`).
 * **Agendador de Tarefas e Filas (`de "tarefas"`)**: Expõe o controle de filas concorrentes em memória e agendamento periódico baseado em Cron (Ex: `tarefas.agendar("*/5 * * * * *", funcao() { ... })`).
 * **Foreign Function Interface (`ffi`)**: Ponte nativa bidirecional de baixo nível que permite carregar bibliotecas binárias compartilhadas C-compatíveis (`.so`, `.dll`, `.dylib`) e executar assinaturas externas diretamente no Harpia de forma síncrona e performática.
+* **Resiliência e Estabilidade (`de "resiliencia"`)**: Padrões nativos de tolerância a falhas para microsserviços corporativos, incluindo *Disjuntor* (Circuit Breaker com 3 estados), *Limite de Taxa* (Rate Limiter via token bucket) e *Retentativa* (Retry) com backoff exponencial.
+* **Telemetria e Rastreamento (`de "telemetria"`)**: Observabilidade nativa e de baixo overhead compatível com a especificação OpenTelemetry, permitindo iniciar e finalizar Spans em formato JSON estruturado e registrar métricas com tags dinâmicas.
 
 ---
 
@@ -1229,19 +1231,22 @@ A Máquina Virtual de bytecode e o runtime de execução do Harpia foram aprimor
 
 ## Capítulo 18 — Pacote de Inteligência Artificial e IA Generativa (`de "ia"`)
 
-A Fase 6 introduz o pacote de IA padrão do Harpia, oferecendo uma interface declarativa e humana em português para interação com modelos de linguagem:
+A Fase 6 introduz o pacote de IA padrão do Harpia, oferecendo uma interface declarativa, tipada e nativa em português para interação com modelos de linguagem locais e comerciais:
 
-* **Conector Local com Ollama**: A função `ia.conectarLocal("llama3")` estabelece um cliente nativo apontando para uma instância local do Ollama, abstraindo requisições HTTP e gestão de tokens em chamadas simples:
+* **Agente de IA Declarativo**: A classe nativa `Agente(nome, instrucoes, provedor, modelo)` permite instanciar e parametrizar robôs autônomos com memória de conversação persistente nativa em Go, abstraindo a gestão do histórico e chamadas HTTP:
     ```harpia
-    de "ia" importe conectarLocal, completar, transcreverAudio;
+    de "ia" importe Agente, validar_resposta
 
-    var modelo = conectarLocal("llama3");
-    var resposta = modelo.completar("Qual é a capital do Brasil?");
-    imprimir(resposta);
+    # Instancia agente local usando Ollama
+    var assistente = Agente("HarpiaHelper", "Você é um assistente sênior prestativo", "ollama", "llama3")
+    
+    # Envia prompts acumulando memória automaticamente no histórico do agente
+    var resposta = assistente.perguntar("Qual é a capital do Brasil?")
+    escreva(resposta)
     ```
-* **Conector Remoto com OpenAI/Anthropic**: Para desenvolvedores que optam por provedores em nuvem, basta instanciar `ia.conectarRemoto("openai", "sua-chave-api")` e escolher o modelo. O mesmo prompt programático é reutilizado.
-* **Compreensão Multimodal**: Funções nativas para transcrição de áudio (`transcreverAudio(blob)`), sumarização de PDFs e classificação de intenção semântica em frases.
-* **Agentes de IA Declarativos**: Permite a construção de agentes em poucas linhas com a função `criarAgente`, integrando memória de curto prazo e ferramentas nativas (calendário, banco de dados, arquivos) via *function calling* estruturado.
+* **Orquestração Multi-Agente Nativa**: O método `comunicar(outro_agente, mensagem)` permite que dois agentes troquem mensagens de forma autônoma e cooperativa, atualizando seus respectivos históricos locais de conversas de forma transparente.
+* **Provedores de IA Integrados**: Conector nativo de alto desempenho que suporta `ollama` local (com fallback transparente para nuvens corporativas como `gemini` e `openai` utilizando chaves de ambiente).
+* **Contratos Semânticos de IA**: A função `validar_resposta(esquema, resposta_json)` permite certificar que a resposta textual em formato JSON retornada pelo modelo de IA é totalmente válida e segura contra o esquema de dados declarado no código antes de processá-la.
 
 ---
 
@@ -1249,20 +1254,21 @@ A Fase 6 introduz o pacote de IA padrão do Harpia, oferecendo uma interface dec
 
 Drivers de persistência robustos prontos para escalar em ambientes de alta concorrência corporativa:
 
-* **Drivers Nativos Expandidos**: Implementação nativa em Go de conectores de banco para **PostgreSQL**, **MySQL** e **MongoDB**, com séries históricas de migrations encapsuladas e gestão de credenciais via contexto.
+* **Drivers Nativos Expandidos**: Implementação nativa em Go de conectores de banco para **PostgreSQL**, **MySQL**, **SQLite** e **MongoDB**, com séries históricas de migrations encapsuladas e gestão de credenciais via contexto.
+* **ORM Estático e Tipado**: Permite mapear schemas de tabelas de forma declarativa e síncrona diretamente no Query Builder via `conn.tabela("nome", schema)`. A VM realiza a validação de tipo e a detecção de colunas inexistentes em runtime com mensagens educativas em português.
+* **Banco de Dados Vetorial Integrado**: O conector `conectarQdrant(url, colecao)` provê um cliente vetorial nativo completo e de altíssimo rendimento para Qdrant, habilitando as operações de `inserir`, `buscar` (por cossenos/L2) e `deletar` pontos vetoriais com payload.
 * **Pool de Conexões Otimizado**: Reaproveitamento de conexões ativas a partir de um *pool* thread-safe com backoff exponencial e detecção automatizada de timeouts do servidor.
-* **Transações Atômicas**: Block declarativo `bd.transacao(funcao() { ... })` que garante commit atômico ou rollback completo em erros, validando shutdown do Node independente da thread de origem.
-* **Query Builder Refinado**: Sintaxe encadeada fluente ainda mais ergonômica para filtros complexos, subqueries e joins múltiplos com autodetecção de colunas.
-* **Detecção de Esquema Automática**: Mapeamento automático entre tipos SQL (varchar, timestamp, jsonb) e o sistema de tipos da Stdlib `esquema`.
+* **Transações Atômicas**: Block declarativo `bd.transacao(funcao() { ... })` que garante commit atômico ou rollback completo em erros.
 
 ---
 
-## Capítulo 20 — WebAssembly (WASM) e Microsserviços Corporativos
+## Capítulo 20 — WebAssembly (WASM), WASI e Microsserviços Corporativos
 
-A camada de execução WASM eleva o limite de processamento matemático pesado no navegador, com interoperabilidade síncrona e tipada com a plataforma host:
+A camada de execução WASM e WASI eleva o limite de processamento matemático pesado e de isolamento seguro no navegador e no backend, com interoperabilidade síncrona:
 
-* **Alvo de Compilação `--alvo=wasm`**: O comando `harpia compilar --alvo=wasm` gera arquivos binários `.wasm` autônomos com tamanho mínimo.
-* **Interoperabilidade Síncrona**: Bridge tipada em TypeScript (`harpia/exporta.ts`) para expor funções da VM (rotas de filtro, ordenação pesada, parser JSON) e consumi-las via `WebAssembly.instantiate` na thread principal sem gargalos de marshalling.
+* **Alvo de Compilação `--alvo=wasm`**: O comando `harpia compilar --alvo=wasm` compila a AST do Harpia em código Go altamente otimizado e dispara o compilador Go com as variáveis `GOOS=js GOARCH=wasm`, gerando arquivos binários `.wasm` nativos leves prontos para execução no navegador.
+* **Sandbox Segura via `--alvo=wasi`**: Compilação estrita direcionada para ambientes de microsserviços via `GOOS=wasip1 GOARCH=wasm` (WASI), gerando uma sandbox WebAssembly de alta performance que isola variáveis de ambiente, acessos de rede e escrita em arquivos.
+* **Interoperabilidade Síncrona**: Bridge tipada de alta velocidade para expor e consumir de forma síncrona funções nativas da VM em WebAssembly, pulando os gargalos de marshalling de strings.
 * **Stone of Dedicatória**: A Fase 6 fecha o Harpia como um ecossistema de linguagem corporativa de ponta, contando com compilador, IDE nativa, ferramenta de empacotamento de binários, runtime WASM, IA integrada e drivers de banco escaláveis.
 
 ---
