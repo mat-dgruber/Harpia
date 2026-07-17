@@ -242,3 +242,39 @@ func TestLSPDefinition(t *testing.T) {
 	}
 }
 
+// TestLSPSecurityLinter valida o acionamento de alertas de segurança HRP-SEC-001, HRP-SEC-002 e HRP-SEC-003
+func TestLSPSecurityLinter(t *testing.T) {
+	codigoVuln := `
+	var sqlInseguro = "SELECT * FROM usuarios WHERE nome = " + "teste"
+	consultar(sqlInseguro) // HRP-SEC-001
+
+	var apiToken = "secret-12345" // HRP-SEC-002
+	
+	enviar("mensagem") // HRP-SEC-003
+	`
+
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	processarDiagnosticosLSP("file:///projeto/teste_seguranca.ptst", codigoVuln)
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	var buf bytes.Buffer
+	buf.ReadFrom(r)
+	saida := buf.String()
+
+	if !strings.Contains(saida, "HRP-SEC-001") {
+		t.Errorf("Esperava aviso de SQL Injection 'HRP-SEC-001'. Obtido: %s", saida)
+	}
+	if !strings.Contains(saida, "HRP-SEC-002") {
+		t.Errorf("Esperava aviso de Credential Leak 'HRP-SEC-002'. Obtido: %s", saida)
+	}
+	if !strings.Contains(saida, "HRP-SEC-003") {
+		t.Errorf("Esperava aviso de canal inseguro fora de contexto assíncrono 'HRP-SEC-003'. Obtido: %s", saida)
+	}
+}
+
+

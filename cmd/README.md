@@ -309,6 +309,9 @@ harpia checar ./src
 | Reatribuição de `const` | Impede escrita em constantes |
 | Identificadores indefinidos | Cobre builtins via tabela `globalsLinter` |
 | Parâmetros duplicados | Detecta `func f(a, a, b)` |
+| SQL Injection (`HRP-SEC-001`) | Detecta concatenação de strings em consultas SQL (`consultar`/`executar`) |
+| Vazamento de Credenciais (`HRP-SEC-002`) | Detecta segredos estáticos declarados no código em variáveis como `senha`, `token`, `key` |
+| Canais Inseguros (`HRP-SEC-003`) | Detecta operações síncronas de canal (`enviar`/`receber`) fora de contexto assíncrono |
 
 **Arquitetura interna (`cmd/checar.go`):**
 

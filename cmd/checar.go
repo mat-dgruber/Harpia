@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/natanfeitosa/portuscript/lexer"
 	"github.com/natanfeitosa/portuscript/parser"
@@ -68,9 +69,10 @@ var globalsLinter = map[string]bool{
 }
 
 type EscopoLinter struct {
-	Pai       *EscopoLinter
-	Variaveis map[string]bool
-	Consts    map[string]bool
+	Pai        *EscopoLinter
+	Variaveis  map[string]bool
+	Consts     map[string]bool
+	Assincrono bool
 }
 
 func (e *EscopoLinter) Declarada(nome string) bool {
@@ -93,6 +95,16 @@ func (e *EscopoLinter) IsConst(nome string) bool {
 	}
 	if e.Pai != nil {
 		return e.Pai.IsConst(nome)
+	}
+	return false
+}
+
+func (e *EscopoLinter) NoContextoAssincrono() bool {
+	if e.Assincrono {
+		return true
+	}
+	if e.Pai != nil {
+		return e.Pai.NoContextoAssincrono()
 	}
 	return false
 }
@@ -179,6 +191,14 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		}
 		l.Checar(n.Inicializador)
 
+		// 2. Detectar vazamento de credenciais
+		nomeLower := strings.ToLower(n.Nome)
+		if strings.Contains(nomeLower, "senha") || strings.Contains(nomeLower, "token") || strings.Contains(nomeLower, "key") || strings.Contains(nomeLower, "secret") || strings.Contains(nomeLower, "credencial") {
+			if _, ok := n.Inicializador.(*parser.TextoLiteral); ok {
+				l.registrarErro(fmt.Sprintf("Potencial vazamento de credencial: Evite expor segredos diretamente no código para a variável '%s'. Utilize variáveis de ambiente.", n.Nome), "HRP-SEC-002", 2, n)
+			}
+		}
+
 	case *parser.Reatribuicao:
 		if id, ok := n.Objeto.(*parser.Identificador); ok {
 			if !l.Escopo.Declarada(id.Nome) {
@@ -198,6 +218,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		l.Escopo.Variaveis[n.Nome] = true
 
 		l.pushEscopo()
+		l.Escopo.Assincrono = n.Assincrono
 		// Detecta parâmetros com o mesmo nome dentro do mesmo escopo de função
 		parametrosVistos := make(map[string]bool, len(n.Parametros))
 		for _, param := range n.Parametros {
@@ -225,6 +246,32 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		l.Checar(n.Identificador)
 		for _, arg := range n.Argumentos {
 			l.Checar(arg)
+		}
+
+		// 1. Detectar SQL Injection
+		var funcNome string
+		if id, ok := n.Identificador.(*parser.Identificador); ok {
+			funcNome = id.Nome
+		} else if acesso, ok := n.Identificador.(*parser.AcessoMembro); ok {
+			if idMembro, ok := acesso.Membro.(*parser.Identificador); ok {
+				funcNome = idMembro.Nome
+			}
+		}
+
+		if funcNome == "consultar" || funcNome == "executar" {
+			if len(n.Argumentos) > 0 {
+				primeiroArg := n.Argumentos[0]
+				if l.contemConcatenacaoOuVariavel(primeiroArg) {
+					l.registrarErro("Potencial SQL Injection detectado: Evite usar concatenação de strings ou variáveis diretamente na consulta SQL. Use parâmetros preparados ou o Query Builder.", "HRP-SEC-001", 2, primeiroArg)
+				}
+			}
+		}
+
+		// 3. Detectar concorrência insegura em canais fora de funções assíncronas
+		if funcNome == "receber" || funcNome == "enviar" {
+			if !l.Escopo.NoContextoAssincrono() {
+				l.registrarErro("Operação de canal síncrona/bloqueante fora de uma função assíncrona. Isso pode causar o travamento permanente da VM. Use 'assincrono funcao' e 'aguarde'.", "HRP-SEC-003", 2, n)
+			}
 		}
 
 	case *parser.ArgumentoNomeado:
@@ -305,6 +352,26 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	case *parser.DeclEstilo:
 		// Não precisa de checagem interna já que as regras são mantidas como texto simples CSS.
 	}
+}
+
+func (l *Linter) contemConcatenacaoOuVariavel(node parser.BaseNode) bool {
+	if node == nil {
+		return false
+	}
+	switch n := node.(type) {
+	case *parser.OpBinaria:
+		if n.Operador == "+" {
+			return true
+		}
+		return l.contemConcatenacaoOuVariavel(n.Esq) || l.contemConcatenacaoOuVariavel(n.Dir)
+	case *parser.Identificador:
+		return true
+	case *parser.ChamadaFuncao:
+		return true
+	case *parser.AcessoMembro:
+		return true
+	}
+	return false
 }
 
 func comandoChecar() *cobra.Command {
