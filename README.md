@@ -70,13 +70,59 @@ meu-app/
 
 ## 🛠️ Caixa de Ferramentas (CLI)
 
-O interpretador de linha de comando da Harpia disponibiliza utilitários completos:
+A ferramenta de linha de comando (`harpia`) oferece utilitários robustos de ponta a ponta para gerenciar, compilar, testar e estruturar seus projetos. Abaixo estão os comandos disponíveis com suas especificações e flags:
 
-- **`harpia`**: Inicia o REPL ou TUI gráfica de depuração com inspetor de memória e VM ativo.
-- **`harpia executar [arquivo.hrp]`**: Roda o script de forma instantânea.
-- **`harpia compilar [entrada.hrp] --alvo=web`**: Transpila o frontend para `/dist` gerando o build estático.
-- **`harpia testar [caminho]`**: Executa testes de unidade e integração declarados diretamente no código com o bloco `testar`.
-- **`harpia diagramar`**: Mapeia as relações de importações e cospe um diagrama em sintaxe Mermaid, alertando se houver violações de arquitetura limpa.
+### 1. `harpia executar` (ou `harpia exec`)
+Executa um script físico Harpia ou inicia o console de desenvolvimento interativo (REPL).
+* **Uso:** `harpia executar [caminho-do-arquivo.hrp] [flags]`
+* **Flags Principais:**
+  * `-c, --codigo`: Executa um trecho de código diretamente no terminal (ex: `harpia executar -c "imprimir('Olá!')"`).
+  * `--estrito`: Ativa a validação estrita de anotações de tipo em tempo de execução.
+* **Necessidades:** Sem argumentos, inicia o REPL com ajuda e inspetor de memória embutidos; com argumento, executa o arquivo `.hrp` imediatamente.
+
+### 2. `harpia checar`
+Linter semântico offline-friendly que realiza análise estática de sintaxe e semântica no arquivo especificado sem executá-lo.
+* **Uso:** `harpia checar [caminho-do-arquivo.hrp]`
+* **Saída:** Diagnósticos detalhados de variáveis não declaradas, reatribuição de constantes, assinaturas de funções incorretas ou erros de sintaxe.
+
+### 3. `harpia compilar`
+Transpila o seu código fonte Harpia para outras plataformas (como a Web com suporte a Virtual DOM e JavaScript, ou executáveis nativos via AOT).
+* **Uso:** `harpia compilar --alvo=web --entrada=main.hrp --saida=dist`
+* **Flags Principais:**
+  * `-a, --alvo`: Alvo da compilação. Opções: `web` (padrão), `nativo`, `wasm`.
+  * `-e, --entrada`: Ponto de entrada/arquivo principal do projeto (ex: `main.hrp`).
+  * `-s, --saida`: Pasta destino onde serão gravados os arquivos transpilados/compilados (padrão: `dist`).
+
+### 4. `harpia servir`
+Inicia um servidor web local extremamente leve e rápido para hospedar os arquivos compilados da sua aplicação SPA reativa e visualizá-la no navegador.
+* **Uso:** `harpia servir --diretorio=dist --porta=8080`
+* **Flags Principais:**
+  * `-d, --diretorio`: Pasta que contém os arquivos que serão servidos (padrão: `dist`).
+  * `-p, --porta`: Porta na qual o servidor web será escutado (padrão: `8080`).
+
+### 5. `harpia novo` (ou `iniciar`, `inicializar`)
+Inicializa uma nova estrutura de projeto baseada em Clean Architecture e DDD com termos em português.
+* **Uso:** `harpia novo [backend | frontend | monolito] [nome-do-projeto]`
+* **Subcomandos:**
+  * `backend`: Cria uma estrutura enxuta de backend focada em APIs lógicas, conectores de banco de dados e concorrência leve.
+  * `frontend`: Cria uma estrutura reativa cliente puramente SPA de alto desempenho baseada em Sinais e Virtual DOM.
+  * `monolito`: Cria um novo monolito completo de Frontend + Backend com pastas explicativas e documentação interna de arquitetura.
+
+### 6. `harpia crie`
+Assistente de geração dinâmica de novos arquivos de templates seguindo a Clean Architecture dentro de um projeto existente.
+* **Uso:** `harpia crie [rota | componente | modelo] [nome]`
+* **Subcomandos:**
+  * `rota`: Cria um novo arquivo de rota SPA (`.hrp`) na pasta correspondente.
+  * `componente`: Cria um componente de interface (`.hrp`) e seu respectivo arquivo de estilos dinâmicos (`.estilo.hrp`).
+  * `modelo`: Cria um novo modelo/entidade de dados rico e tipado na camada de domínio.
+
+### 7. `harpia testar`
+Varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa da linguagem, fornecendo um relatório consolidado de acertos e falhas.
+* **Uso:** `harpia testar [caminho_ou_pasta]`
+
+### 8. `harpia lsp`
+Inicia o servidor oficial LSP (Language Server Protocol) do Harpia via stdio, oferecendo suporte nativo para editores de código (como o VS Code) com autocomplete, hover lendo comentários de três barras (`///`), linter de arquitetura limpa e formatação automática de código ao salvar.
+* **Uso:** `harpia lsp`
 
 ---
 

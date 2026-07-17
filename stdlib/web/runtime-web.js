@@ -177,6 +177,10 @@ export function h(tag, props, ...filhos) {
  * @returns {Node} Elemento do DOM físico
  */
 export function criarNo(vno) {
+  if (typeof vno === 'function') {
+    return criarNo(vno());
+  }
+
   if (typeof vno === 'string' || typeof vno === 'number') {
     return document.createTextNode(vno);
   }
@@ -297,6 +301,9 @@ function mapearAtributo(nome) {
  * @param {number} index - Posição do nó físico no pai
  */
 export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
+  if (typeof velhoVNo === 'function') velhoVNo = velhoVNo();
+  if (typeof novoVNo === 'function') novoVNo = novoVNo();
+
   const noFisico = pai.childNodes[index];
 
   if (!velhoVNo) {

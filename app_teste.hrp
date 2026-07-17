@@ -12,11 +12,11 @@ funcao MeuApp() {
     var contador = contadorSinal[0];
     var definirContador = contadorSinal[1];
 
-    var incrementar = funcao() {
+    funcao incrementar() {
         definirContador(contador() + 1);
     }
 
-    var decrementar = funcao() {
+    funcao decrementar() {
         definirContador(contador() - 1);
     }
 

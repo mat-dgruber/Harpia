@@ -1,71 +1,110 @@
-/// Playground Interativo do Harpia
-/// Aplicação web SPA desenvolvida 100% no próprio Harpia Reativo.
-/// Demonstra o poder real de "dogfooding" da linguagem em produção: utiliza o sistema de
-/// Sinais (Fine-Grained), vinculação de dados síncronos bidirecionais (Two-Way Binding) e
-/// componentes complexos nativos de tabela (GradeDeDados).
-
-
 de "web" importe sinal, GradeDeDados;
 
-# ponytail: aplicação do playground escrita 100% em Harpia
+# ponytail: aplicação do playground escrita 100% em Harpia com UI/UX profissional e seleção de exemplos
 exportar funcao PlaygroundApp() {
-	# Código padrão que aparece no editor ao iniciar
-	var [codigo, setCogo] = sinal("var a = 10;\nvar [contador, setContador] = sinal(5);\n\nfuncao dobrar(num) {\n    retorne num * 2;\n}\n\nimprimir(\"Dobro de 10: \" + dobrar(a));\nimprimir(\"Contador reativo: \" + contador());");
+	var codigoSinal = sinal("")
+	var codigo = codigoSinal[0]
+	var setCogo = codigoSinal[1]
 
 	# Sinais de estado locais para gerenciar saídas do console e diagnósticos
-	var [saida, setSaida] = sinal("");
-	var [erroHtml, setErroHtml] = sinal("");
-	var [variaveis, setVariaveis] = sinal([]);
-	var [executando, setExecutando] = sinal(Falso);
+	var saidaSinal = sinal("")
+	var saida = saidaSinal[0]
+	var setSaida = saidaSinal[1]
+
+	var erroHtmlSinal = sinal("")
+	var erroHtml = erroHtmlSinal[0]
+	var setErroHtml = erroHtmlSinal[1]
+
+	var variaveisSinal = sinal([])
+	var variaveis = variaveisSinal[0]
+	var setVariaveis = variaveisSinal[1]
+
+	var executandoSinal = sinal(Falso)
+	var executando = executandoSinal[0]
+	var setExecutando = executandoSinal[1]
+
+	# Controle de abas da direita
+	var abaAtivaSinal = sinal("console")
+	var abaAtiva = abaAtivaSinal[0]
+	var setAbaAtiva = abaAtivaSinal[1]
+
+	# ponytail: conecta com a ponte JS do Monaco de forma limpa e sem erros de sintaxe
+	var ponte = registrarPontePlayground(setCogo, executar)
 
 	/// Executa o código fonte digitado no editor enviando-o síncronamente para a API em Go
 	funcao executar() {
-		setExecutando(Verdadeiro);
+		setExecutando(Verdadeiro)
+		executarCodigoHarpia(codigo(), funcao(dados) {
+			setSaida(dados.saida ou "")
+			setErroHtml(dados.erroHtml ou "")
+			setVariaveis(dados.variaveis ou [])
+			setExecutando(Falso)
+			se (dados.erroHtml != "") {
+				setAbaAtiva("console")
+			}
+		})
+	}
 
-		# Faz a requisição para a API local de execução usando o fetch nativo do navegador.
-		# A API Go recebe o código, executa na VM e devolve a saída do stdout e as variáveis do escopo.
-		fetch("/api/executar", {
-			"method": "POST",
-			"headers": { "Content-Type": "application/json" },
-			"body": JSON.stringify({ "codigo": codigo() })
-		})
-		.then(funcao(res) {
-			retorne res.json();
-		})
-		.then(funcao(dados) {
-			# Atualiza síncronamente os sinais reativos para atualizar o Virtual DOM
-			setSaida(dados.saida ou "");
-			setErroHtml(dados.erroHtml ou "");
-			setVariaveis(dados.variaveis ou []);
-			setExecutando(Falso);
-		})
-		.catch(funcao(err) {
-			setSaida("Erro de conexão: " + err);
-			setExecutando(Falso);
-		});
+	/// Funções de Abas
+	funcao verConsole() { setAbaAtiva("console"); }
+	funcao verVariaveis() { setAbaAtiva("variaveis"); }
+	funcao verGuia() { setAbaAtiva("guia"); }
+
+	funcao classeAbaConsole() {
+		se (abaAtiva() == "console") {
+			retorne "px-4 py-2 bg-slate-800 text-blue-400 rounded-md transition text-xs font-bold"
+		}
+		retorne "px-4 py-2 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 rounded-md transition text-xs font-medium"
+	}
+
+	funcao classeAbaVariaveis() {
+		se (abaAtiva() == "variaveis") {
+			retorne "px-4 py-2 bg-slate-800 text-blue-400 rounded-md transition text-xs font-bold"
+		}
+		retorne "px-4 py-2 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 rounded-md transition text-xs font-medium"
+	}
+
+	funcao classeAbaGuia() {
+		se (abaAtiva() == "guia") {
+			retorne "px-4 py-2 bg-slate-800 text-blue-400 rounded-md transition text-xs font-bold"
+		}
+		retorne "px-4 py-2 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 rounded-md transition text-xs font-medium"
+	}
+
+	/// Funções de carregamento de exemplos rápidos (DX)
+	funcao carregarContador() {
+		carregarExemploNoMonaco("contador")
+	}
+
+	funcao carregarFibonacci() {
+		carregarExemploNoMonaco("fibonacci")
+	}
+
+	funcao carregarClasse() {
+		carregarExemploNoMonaco("classes")
 	}
 
 	/// Limpa as impressões acumuladas no painel do console
 	funcao limparConsole() {
-		setSaida("");
-	}
-
-	/// Escuta e intercepta as teclas físicas para permitir execução rápida via Ctrl+Enter
-	funcao lidarTeclado(e) {
-		se (e.ctrlKey e e.key == "Enter") {
-			e.preventDefault();
-			executar();
-		}
+		setSaida("")
 	}
 
 	# O JSX-like reativo transpilado estaticamente para JS ES6 e reconciliado via VDOM
 	retorne <div classe="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans">
 		<header classe="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
-			<div classe="flex items-center space-x-3">
-				<span classe="text-2xl font-black text-blue-500">Harpia</span>
-				<span classe="text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 font-medium tracking-wide">Playground escrito em Harpia</span>
+			<div classe="flex items-center space-x-4">
+				<div classe="flex items-center space-x-2">
+					<span classe="text-2xl font-black text-blue-500 tracking-tight">Harpia</span>
+					<span classe="text-xs bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-slate-300 font-semibold tracking-wide">v1.2 Reativo</span>
+				</div>
+				<div classe="hidden md:flex items-center space-x-2 border-l border-slate-800 pl-4 text-xs">
+					<span classe="text-slate-500 font-medium">Exemplos DX:</span>
+					<button aoClicar={carregarContador} classe="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-xs font-semibold">Contador</button>
+					<button aoClicar={carregarFibonacci} classe="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-xs font-semibold">Fibonacci</button>
+					<button aoClicar={carregarClasse} classe="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 transition text-xs font-semibold">Classes POO</button>
+				</div>
 			</div>
-			<button aoClicar={executar} classe="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg transition duration-150 flex items-center space-x-2">
+			<button aoClicar={executar} classe="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg transition duration-150 flex items-center space-x-2 shadow-lg shadow-blue-500/10">
 				<span>{executando() ? "Executando..." : "Executar"}</span>
 				<span classe="text-xs opacity-75 font-normal">(Ctrl+Enter)</span>
 			</button>
@@ -73,39 +112,105 @@ exportar funcao PlaygroundApp() {
 
 		<main classe="flex-1 grid grid-cols-2 gap-px bg-slate-800 overflow-hidden">
 			<!-- Esquerda: Editor -->
-			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden">
-				<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
-					CÓDIGO FONTE (Harpia)
+			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden border-r border-slate-800">
+				<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider flex justify-between items-center">
+					<span>CÓDIGO FONTE (Harpia)</span>
+					<span classe="text-slate-600 text-xs font-semibold">Monaco Editor</span>
 				</div>
-				# ligar={codigo} sintoniza o Two-Way Data Binding reativo de fábrica
-				<textarea ligar={codigo} aoTeclar={lidarTeclado} classe="flex-1 w-full p-6 bg-slate-950 text-slate-100 editor-textarea focus:outline-none resize-none overflow-y-auto leading-relaxed" placeholder="# Escreva seu código..."></textarea>
+				<div id="editor-harpia-container" classe="flex-1 w-full bg-slate-950 overflow-hidden flex items-center justify-center text-slate-500 font-mono text-xs animate-pulse">
+					Carregando o editor Harpia Reativo...
+				</div>
 			</section>
 
-			<!-- Direita: Saída/Console e Variáveis -->
-			<section classe="grid grid-rows-2 gap-px bg-slate-800 h-full overflow-hidden">
-				<div classe="flex flex-col bg-slate-950 overflow-hidden">
-					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider flex justify-between">
-						<span>SAÍDA DO CONSOLE</span>
-						<button aoClicar={limparConsole} classe="text-slate-500 hover:text-slate-300">Limpar</button>
-					</div>
-					<pre classe="flex-1 p-6 font-mono text-sm overflow-y-auto leading-relaxed whitespace-pre-wrap text-slate-300">{saida()}</pre>
+			<!-- Direita: Sistema de Abas Integrado -->
+			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden">
+				<!-- Barra de Abas do Programador -->
+				<div classe="bg-slate-900 border-b border-slate-800 px-2 py-1 text-xs font-bold text-slate-400 tracking-wider flex items-center space-x-1">
+					<button aoClicar={verConsole} classe={classeAbaConsole()}>
+						CONSOLE / OUTPUT
+					</button>
+					<button aoClicar={verVariaveis} classe={classeAbaVariaveis()}>
+						VARIÁVEIS (REPL)
+					</button>
+					<button aoClicar={verGuia} classe={classeAbaGuia()}>
+						GUIA DE RECURSOS (DX)
+					</button>
 				</div>
 
-				<div classe="flex flex-col bg-slate-950 overflow-hidden">
-					<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
-						INSPETOR DE VARIÁVEIS / DIAGNÓSTICOS
-					</div>
-					<div classe="flex-1 p-6 overflow-y-auto">
-						# Se houver erros, exibe a caixa de erros ricos vermelha usando innerHTML reativo do VDOM
-						<se condicao={erroHtml() != ""}>
-							<div classe="p-4 border border-red-900 bg-red-950/40 rounded-lg font-mono text-sm leading-relaxed overflow-x-auto text-red-300 mb-4" innerHTML={erroHtml()}></div>
-						</se>
+				<div classe="flex-1 overflow-hidden relative">
+					<!-- Aba 1: Console / Output -->
+					<se condicao={abaAtiva() == "console"}>
+						<div classe="h-full flex flex-col overflow-hidden bg-slate-950">
+							<se condicao={erroHtml() != ""}>
+								<div classe="p-5 border-b border-red-900 bg-red-950/20 text-red-400 font-medium font-mono text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap select-text selection:bg-red-500/20" innerHTML={erroHtml()}></div>
+							</se>
+							<div classe="flex-1 relative overflow-hidden">
+								<se condicao={saida() != ""}>
+									<pre classe="h-full w-full p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap text-emerald-400 overflow-y-auto selection:bg-emerald-500/20">{saida()}</pre>
+								</se>
+								<se condicao={saida() == ""}>
+									<div classe="h-full w-full flex flex-col items-center justify-center text-slate-600 italic text-sm font-medium">
+										<span>Nenhuma saída de console acumulada...</span>
+										<span classe="text-xs text-slate-700 mt-1">Escreva código e clique em Executar para ver os logs do terminal aqui</span>
+									</div>
+								</se>
+							</div>
+							<se condicao={saida() != ""}>
+								<div classe="bg-slate-900/50 border-t border-slate-800 px-4 py-2 flex justify-end">
+									<button aoClicar={limparConsole} classe="text-xs font-semibold text-slate-500 hover:text-slate-300 transition">Limpar Terminal</button>
+								</div>
+							</se>
+						</div>
+					</se>
 
-						# Se não houver erros, exibe a tabela inteligente GradeDeDados nativa do Harpia
-						<se condicao={erroHtml() == ""}>
-							<GradeDeDados colunas={["nome", "tipo", "valor"]} dados={variaveis()} linhasPorPagina={10} />
-						</se>
-					</div>
+					<!-- Aba 2: Inspetor de Variáveis (GradeDeDados) -->
+					<se condicao={abaAtiva() == "variaveis"}>
+						<div classe="h-full flex flex-col overflow-hidden p-6 bg-slate-950">
+							<se condicao={erroHtml() != ""}>
+								<div classe="h-full w-full flex flex-col items-center justify-center text-red-400/60 italic text-sm p-4 text-center">
+									<span>O interpretador detectou erros sintáticos. Corrija o código para ativar a introspecção das variáveis da VM.</span>
+								</div>
+							</se>
+
+							<se condicao={erroHtml() == ""}>
+								<GradeDeDados
+									dados={variaveis()}
+									colunas={[
+										{ "cabecalho": "Nome", "propriedade": "nome", "classe": "font-bold text-blue-400" },
+										{ "cabecalho": "Tipo", "propriedade": "tipo", "classe": "text-slate-500 italic text-xs" },
+										{ "cabecalho": "Valor Corrente", "propriedade": "valor", "classe": "font-mono text-emerald-400" }
+									]}
+									classeVazia="text-slate-600 italic text-sm p-4 text-center block w-full"
+									textoVazio="Nenhuma variável declarada no escopo local."
+								/>
+							</se>
+						</div>
+					</se>
+
+					<!-- Aba 3: Guia de Recursos DX -->
+					<se condicao={abaAtiva() == "guia"}>
+						<div classe="h-full overflow-y-auto p-6 bg-slate-950 font-sans leading-relaxed text-sm select-text selection:bg-blue-500/20">
+							<h3 classe="text-base font-bold text-slate-200 mb-3 tracking-wide">Recursos DX de Ponta do Harpia</h3>
+							<p classe="text-slate-400 text-xs mb-5">O playground reativo foi enriquecido com recursos de IDE corporativa integrados diretamente na interface:</p>
+
+							<div classe="space-y-4 text-xs">
+								<div classe="bg-slate-900/40 border border-slate-800 p-4 rounded-lg">
+									<h4 classe="font-bold text-blue-400 mb-1">🔍 Hover & Documentação no Ar</h4>
+									<p classe="text-slate-300">Paire o mouse sobre qualquer palavra reservada (como <code classe="bg-slate-800 text-slate-200 px-1 py-0.5 rounded">sinal</code>, <code classe="bg-slate-800 text-slate-200 px-1 py-0.5 rounded">funcao</code>, <code classe="bg-slate-800 text-slate-200 px-1 py-0.5 rounded">se</code>, <code classe="bg-slate-800 text-slate-200 px-1 py-0.5 rounded">estilo</code>) para ver assinaturas e exemplos.</p>
+								</div>
+
+								<div classe="bg-slate-900/40 border border-slate-800 p-4 rounded-lg">
+									<h4 classe="font-bold text-blue-400 mb-1">⚡ Autocompleta Inteligente</h4>
+									<p classe="text-slate-300">O editor de Monaco reconhece termos chaves, delimiters e palavras do ecossistema e sugere snippets com auto-fechamento inteligente.</p>
+								</div>
+
+								<div classe="bg-slate-900/40 border border-slate-800 p-4 rounded-lg">
+									<h4 classe="font-bold text-blue-400 mb-1">💻 Atalhos de Teclado</h4>
+									<p classe="text-slate-300">Pressione <kbd classe="bg-slate-800 border border-slate-700 text-slate-300 px-1 py-0.5 rounded font-mono">Ctrl + Enter</kbd> ou <kbd class="bg-slate-800 border border-slate-700 text-slate-300 px-1 py-0.5 rounded font-mono">Cmd + Enter</kbd> dentro do editor para executar o script de forma instantânea.</p>
+								</div>
+							</div>
+						</div>
+					</se>
 				</div>
 			</section>
 		</main>
