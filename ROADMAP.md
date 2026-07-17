@@ -426,37 +426,37 @@ A Fase 6 foca na entrega e distribuição física de alta performance e no ganho
 
 - [x] **Empacotador Nativo Estático:** Subcomando `harpia empacotar` que compila o código para bytecode de VM Harpia e o embute com uma versão minificada e estática do interpretador Go, gerando executáveis puramente nativos (`.exe`, ELF, Mach-O).
 - [x] **Compilador AOT Otimizado:** Tradutor Ahead-Of-Time que converte a AST do Harpia diretamente em código Go nativo sem reflexão, otimizando o consumo de CPU (suporta: var, const, se/senao, enquanto, para-em, funcao, classe, lista, mapa, indexacao, unario, pipe, tente/capture/finalmente, pare, continue, assegura, template).
-- [ ] **Otimizações Estáticas Avançadas:** Implementação de técnicas como _Dead Code Elimination_ (remoção de código não utilizado) e desempacotamento de objetos curtos diretamente na pilha para acelerar a execução.
+- [x] **Otimizações Estáticas Avançadas:** Implementação de técnicas como _Dead Code Elimination_ (remoção de código não utilizado) e desempacotamento de objetos curtos diretamente na pilha para acelerar a execução.
 
 #### 6.2 — Sandbox de Segurança WASM e WASI de Alta Performance
 
-- [ ] **Suporte a Alvo WASM Otimizado:** Alvo `--alvo=wasm` no compilador para geração de binários de alto desempenho no navegador com suporte a concorrência e loops gráficos densos.
-- [ ] **Isolamento via WASI (WebAssembly System Interface):** Execução de código no backend dentro de uma sandbox segura do WASI, permitindo controle granular sobre o acesso a arquivos, variáveis de ambiente e recursos de rede.
-- [ ] **Segurança Ativa no Runtime:** Mecanismos contra ataques de injeção XSS e proteção nativa de segredos (tokens e credenciais) na memória da VM, impedindo leituras maliciosas.
+- [x] **Suporte a Alvo WASM Otimizado:** Alvo `--alvo=wasm` no compilador para geração de binários de alto desempenho no navegador com suporte a concorrência e loops gráficos densos.
+- [x] **Isolamento via WASI (WebAssembly System Interface):** Execução de código no backend dentro de uma sandbox segura do WASI, permitindo controle granular sobre o acesso a arquivos, variáveis de ambiente e recursos de rede.
+- [x] **Segurança Ativa no Runtime:** Mecanismos contra ataques de injeção XSS e proteção nativa de segredos (tokens e credenciais) na memória da VM, impedindo leituras maliciosas.
 
 #### 6.3 — LSP com Linter de Segurança e Sugestões Assistidas
 
 - [x] **Extensão Oficial do VS Code:** Publicação da extensão `vscode-harpia` no marketplace contendo LSP integrado, formatação On-Save e depurador (DAP) visual.
 - [x] **Análise Estática de Vulnerabilidades:** Linter de segurança integrado ao LSP que detecta dinamicamente padrões arriscados no código (como SQL Injection, vazamento de credenciais e concorrência insegura em canais).
-- [ ] **Copiloto Harpia Local:** Autocompletar inteligente baseado em modelos de IA rodando localmente (via Ollama) integrado diretamente ao editor para sugestão de código idiomático em português.
+- [x] **Copiloto Harpia Local:** Autocompletar inteligente baseado em modelos de IA rodando localmente (via Ollama) integrado diretamente ao editor para sugestão de código idiomático em português.
 
 #### 6.4 — SDK de IA e Primitivas Agentes Nativas (`de "ia"`)
 
 - [x] **Agentes Autônomos como Primitiva da Linguagem:** Introdução do tipo de dado nativo `agente` (Ex: `var meuAgente = agente(...)`) contendo suporte nativo a memória persistente, RAG embarcado, ferramentas (functions) e orquestração multi-agente sem bibliotecas de terceiros.
 - [x] **Stdlib IA Unificada:** Módulo `de "ia"` com conectores nativos simplificados para modelos locais (Ollama, Llama.cpp) com carregamento automático na GPU e fallback transparente para nuvens comerciais (OpenAI, Gemini).
-- [ ] **Contratos Semânticos IA:** Validação de formato de resposta estruturada nativa via schema de tipos da linguagem.
+- [x] **Contratos Semânticos IA:** Validação de formato de resposta estruturada nativa via schema de tipos da linguagem.
 
 #### 6.5 — ORM Tipado e Proteção Estática contra SQL Injection (`de "bd"`)
 
-- [ ] **Blindagem contra SQL Injection:** O compilador barra de forma estática o uso de strings brutas interpoladas em consultas ao banco de dados, exigindo o uso de parâmetros preparados ou do Query Builder para prevenir falhas.
-- [ ] **ORM Estático e Tipado:** Mapeamento de tabelas e schemas do banco diretamente para tipos do Harpia, gerando diagnósticos de compilação caso um campo inexistente seja acessado.
+- [x] **Blindagem contra SQL Injection:** O compilador barra de forma estática o uso de strings brutas interpoladas em consultas ao banco de dados, exigindo o uso de parâmetros preparados ou do Query Builder para prevenir falhas.
+- [x] **ORM Estático e Tipado:** Mapeamento de tabelas e schemas do banco diretamente para tipos do Harpia, gerando diagnósticos de compilação caso um campo inexistente seja acessado.
 - [x] **Conectores Corporativos Robustos:** Drivers estáveis com pool de conexões thread-safe e suporte a transações atômicas para PostgreSQL, MySQL, e suporte nativo a bancos vetoriais (Chroma/Qdrant) para inteligência de busca semântica.
 
 #### 6.6 — Microsserviços e Resiliência Nativa (Service Mesh Integrada)
 
 - [x] **Padrões de Resiliência Declarativos:** Suporte direto no código (via decoradores/palavras-chave) para padrões de resiliência corporativos: _Disjuntor_ (Circuit Breaker), _Limite de Taxa_ (Rate Limiting por IP/Token), e _Retentativa_ (Retry com backoff exponencial).
-- [ ] **Observabilidade Integrada (OpenTelemetry):** Geração automática de traces, métricas e logs estruturados em JSON para integração direta com Prometheus, Jaeger e serviços APM.
-- [ ] **Documentação e Proxy RPC Resiliente:** Geração automática de rotas OpenAPI (Swagger) a partir de comentários, e segurança no tráfego via assinatura HMAC SHA-256 e autenticação criptográfica nativa.
+- [x] **Observabilidade Integrada (OpenTelemetry):** Geração automática de traces, métricas e logs estruturados em JSON para integração direta com Prometheus, Jaeger e serviços APM.
+- [x] **Documentação e Proxy RPC Resiliente:** Geração automática de rotas OpenAPI (Swagger) a partir de comentários, e segurança no tráfego via assinatura HMAC SHA-256 e autenticação criptográfica nativa.
 
 ---
 
