@@ -1,0 +1,152 @@
+# Harpia
+
+> **Harpia** é uma linguagem de programação moderna com sintaxe nativa em português, chaves `{}` para blocos, tipagem opcional, reatividade por sinais no frontend, concorrência leve (CSP por canais e corotinas), compilador AOT, otimizador estático de código morto (DCE) e uma VM de bytecode de alta performance em Go.
+
+Para obter a especificação completa e detalhada contendo toda a stdlib, gramática, mecanismos de resiliência, IA, banco vetorial e exemplos avançados para contexto de LLMs, consulte o [llms-full.txt](file:///Users/matheus.diniz_1/Documents/GitHub/Harpia/llms-full.txt).
+
+---
+
+## 📌 Regras de Sintaxe Essenciais
+
+1. **Blocos com Chaves**: Delimitadores `{}` são obrigatórios para funções, condicionais e loops.
+2. **Sem Parênteses em Condições**: Condições de `se` e loops `enquanto` / `para` não utilizam parênteses (ex: `se expressao { ... }`).
+3. **Ponto e Vírgula (`;`) Opcional**: É opcional no final das instruções.
+4. **Funções Globais**: Funções de sistema como `imprimir` (ou `imprima` / `escreva`) são globais e integradas ao ambiente.
+5. **Tipagem Opcional**: Declarada após dois pontos (`var x: Inteiro = 10` ou `funcao soma(a: Inteiro, b: Inteiro) -> Inteiro`).
+6. **Operador de Canal (Pipe `|>`)**: Encadeia chamadas de funções da esquerda para a direita (ex: `texto |> removerEspacos |> maiusculo`).
+7. **Testes Unitários Integrados**: Palavra-chave `testar "nome" { ... }` com asserções `assegura(condicao)`.
+
+---
+
+## ⚙️ Exemplo Rápido de Código
+
+```harpia
+importar { Matematica } de "matematica"
+
+// Funções e Tipagem Opcional
+funcao calcular(a: Inteiro, b: Inteiro = 5) -> Inteiro {
+    se a <= 0 {
+        retorne b
+    }
+    retorne a * b
+}
+
+// Classes e Herança Simples
+classe Animal {
+    inicializar(self, nome: Texto) {
+        self.nome = nome
+    }
+    falar(self) -> Texto {
+        retorne "..."
+    }
+}
+
+classe Cachorro estende Animal {
+    falar(self) -> Texto {
+        retorne "Au! Eu sou " + self.nome
+    }
+}
+
+// Tratamento de Erros
+tente {
+    var rex = Cachorro("Rex")
+    imprimir(rex.falar())
+} capture (erro) {
+    imprimir("Ocorreu um erro: " + erro.mensagem)
+} finalmente {
+    imprimir("Execução concluída.")
+}
+```
+
+---
+
+## ⚡ Concorrência e Canais
+
+```harpia
+assincrono funcao produtor(canal: Canal) {
+    para i em [1, 2, 3] {
+        aguarde canal.enviar(i)
+    }
+}
+
+assincrono funcao consumidor(canal: Canal) {
+    enquanto Verdadeiro {
+        var valor = aguarde canal.receber()
+        imprimir("Recebido: " + valor)
+    }
+}
+```
+
+---
+
+## ⚛️ Reatividade e Frontend (SPA)
+
+Os arquivos em `/web/rotas/` determinam a rota (ex: `index.hrp` -> `/`).
+
+```harpia
+// Sinais e Efeitos (Devem ser declarados no ESCOPO GLOBAL fora dos componentes funcionais, prevenindo que sejam recriados e reiniciados a cada ciclo de renderização do efeito de reconciliação)
+var [contador, definirContador] = sinal(0)
+
+efeito(funcao() {
+    imprimir("Contador mudou para: " + contador())
+})
+
+// Componentes JSX-like reativos
+funcao BotaoContador() {
+    retorne <botao aoClicar={funcao() { definirContador(contador() + 1) }}>
+        Cliques: {contador()}
+    </botao>
+}
+```
+
+### 🎨 Estilização Inline e Classes
+* **Blocos `estilo`**: Recomendado declarar classes em português no topo do arquivo (ex: `estilo MeuCard { corDeFundo: "#ff0000" }`).
+* **Estilo Inline em PT**: Deve ser passado como um **Objeto/Dicionário** para o atributo `estilo` (ex: `estilo={{ "corDeFundo": "#ff0000" }}`). Strings livres em português não são processadas.
+* **Estilo Inline Padrão**: Use o atributo `style` nativo do HTML com strings convencionais em inglês (ex: `style="background-color: #ff0000"`).
+
+---
+
+## 🏢 Recursos de Maturidade Corporativa (v1.2.0)
+
+A partir da versão 1.2.0, o Harpia incorpora um conjunto completo de ferramentas de nível industrial para backend de alta performance:
+
+### 🛡️ 1. Resiliência Nativa (`importar resiliencia`)
+- **Circuit Breaker**: `novo_disjuntor(limite_falhas, timeout_segundos)` para mitigar picos de falha.
+- **Rate Limiter**: `novo_limite_de_taxa(max_tokens, tokens_seg)` para controle de throughput via Token Bucket.
+- **Retry**: `nova_retentativa(tentativas, base_ms, fator)` com backoff exponencial.
+
+### 📊 2. Observabilidade & Telemetria (`importar telemetria`)
+- **OpenTelemetry síncrono**: `novo_tracer(servico)` e `nova_metrica(nome, tipo)` para gerar traces, spans e métricas sem dependências pesadas externas.
+
+### 💾 3. Bancos Vetoriais e ORM Tipado (`importar bd`)
+- **Query Builder & ORM**: `bd.tabela("usuarios", {"nome": "texto", "idade": "inteiro"})` valida tipos de colunas em runtime sob schemas declarativos.
+- **Qdrant Vetorial**: `bd.conectarQdrant(url, colecao)` para manipulação e busca de similaridade por distância vetorial (`inserir`, `buscar`, `deletar`).
+
+### 🤖 4. IA Generativa & Agentes (`importar ia`)
+- **Agentes de IA locais (Ollama)**: Integração nativa e validação semântica estrita de contratos de resposta via `validar_resposta(esquema, resposta_json)`.
+
+---
+
+## 📂 Estrutura de Clean Architecture e DDD
+
+Ao criar novos projetos, siga rigorosamente a estrutura padrão:
+```
+meu-app/
+├── dependencias.json        -> Manifesto de dependências e configurações
+├── main.hrp                -> Ponto de entrada (Bootstrapper)
+├── dominio/                 -> Entidades e Serviços (regras de negócio puras)
+├── infra/                   -> Repositórios (SQLite/PostgreSQL/MongoDB/Qdrant) e APIs
+└── web/                     -> Frontend SPA (rotas, componentes e estilos)
+```
+
+---
+
+## 🛠️ Comandos Principais da CLI
+* **REPL/TUI**: `harpia` (Console interativo Bubbletea/REPL didático).
+* **Executar script**: `harpia executar main.hrp` (ou `--vm` para bytecode de alta performance).
+* **Testes unitários**: `harpia testar [caminho]` (executa blocos `testar` isolados).
+* **Servidor LSP**: `harpia lsp` (autocomplete, linter, hover e **formatação automática ao salvar**).
+* **Otimização & DCE**: O otimizador estático (`cmd/otimizador.go`) realiza duas passadas na AST, removendo código morto e colapsando caminhos condicionais constantes antes do empacotamento.
+* **Transpilação AOT & WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` transpila a AST diretamente para código Go nativo (`cmd/transpiler_native.go`) de alta performance. Adicionar `--so=js --arq=wasm` compila para WebAssembly isolando drivers nativos via conditional build tags em `stdlib_native.go`.
+* **Gerador de Diagramas**: `harpia diagramar` (gera grafo Mermaid interativo local colorindo de vermelho grosso as violações de Clean Arch).
+* **Gerenciador de Pacotes**: `harpia instalar [pacote]` (resolve versões semver do registro central em português).

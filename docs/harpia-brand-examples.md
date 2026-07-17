@@ -32,21 +32,21 @@ funcao criar_usuario(nome, email) {
   se (nome == "") {
     retorne Nulo
   }
-  
+
   # Criar entidade de domínio (classe)
   var usuario = nova Usuario()
   usuario.id = uuid()
   usuario.nome = nome
   usuario.email = email
   usuario.ativo = Verdadeiro
-  
+
   retorne usuario
 }
 
 # Exemplo de teste unitário nativo
 testar "deve validar criacao de usuario" {
   var resultado = criar_usuario("João", "joao@harpia.dev")
-  
+
   assegura(resultado.nome == "João")
   assegura(resultado.ativo == Verdadeiro)
 }
@@ -74,22 +74,22 @@ testar "deve validar criacao de usuario" {
  "O código bonito é como uma boa bossa nova: simples e fluido."
  ──────────────────────────────────────────────────────────────
  Sistema: macOS (arm64)  |  Projeto ativo: meu-app (v1.0.0)
- 
+
  › harpia ajuda   — Lista de todos os comandos do CLI
  › harpia novo    — Cria uma nova estrutura Clean/DDD (.hrp)
  › harpia ia      — Inicia o suporte interativo via IA local
- 
+
  [F1] Ajuda  │  [F2] Executar  │  [F3] Mentor IA  │  [ESC]/[ctrl+d] Sair
  ──────────────────────────────────────────────────────────────
- » 
+ »
 ```
 
 **Cores ANSI Recomendadas para o Terminal:**
-*   **Título (`🦅 HARPIA`):** Olho da Harpia em Negrito (`\033[1;33m` ou `#F2A900`)
-*   **Slogan/Ditado:** Névoa da Manhã em Itálico (`\033[3;90m` ou `#8C9B9E`)
-*   **Comandos (`› harpia ...`):** Terracota (`\033[38;2;212;93;52m` ou `#D45D34`)
-*   **Barra de Atalhos (`[F1] ...`):** Fundo Rio Profundo e texto em Penagem Branca (`\033[48;2;23;30;38m\033[38;2;243;246;244m`)
 
+- **Título (`🦅 HARPIA`):** Olho da Harpia em Negrito (`\033[1;33m` ou `#F2A900`)
+- **Slogan/Ditado:** Névoa da Manhã em Itálico (`\033[3;90m` ou `#8C9B9E`)
+- **Comandos (`› harpia ...`):** Terracota (`\033[38;2;212;93;52m` ou `#D45D34`)
+- **Barra de Atalhos (`[F1] ...`):** Fundo Rio Profundo e texto em Penagem Branca (`\033[48;2;23;30;38m\033[38;2;243;246;244m`)
 
 **Cores Utilizadas:**
 
@@ -151,10 +151,10 @@ testar "deve validar criacao de usuario" {
 
   • copa (v1.0.2 → v1.1.0)
     └ Mudanças: suporte a WebSocket, 15% mais rápido
-  
+
   • correnteza (v2.1.0 → v2.2.0)
     └ Mudanças: 3 bugs corrigidos, 1 breaking change
-  
+
 Execute 'harpia atualizar' para revisar mudanças antes de instalar.
 ```
 
@@ -164,7 +164,7 @@ Execute 'harpia atualizar' para revisar mudanças antes de instalar.
 
 ### 3.1 Página de Tutorial (Markdown)
 
-```markdown
+````markdown
 # Tutorial: Seu Primeiro Programa em Harpia
 
 Bem-vindo! Neste guia, você criará um programa simples que
@@ -187,6 +187,7 @@ valida emails e exibe mensagens personalizadas.
 $ harpia novo meu_email_validator
 $ cd meu_email_validator
 ```
+````
 
 Você verá uma estrutura como:
 
@@ -211,7 +212,7 @@ funcao validar_email(email: Texto) -> Booleano {
 
 funcao main() {
   email = "usuario@harpia.dev"
-  
+
   se validar_email(email) {
     imprimir("✓ Email válido: " + email)
   } senao {
@@ -242,7 +243,7 @@ Você deve ver:
 
 **Precisa de ajuda?** Digite `harpia ia` ou acesse nosso fórum.
 
-```
+````
 
 **Estilo de escrita:**
 - Ton caloroso mas preciso
@@ -269,7 +270,7 @@ Exibe uma mensagem no console padrão.
 ```harpia
 imprimir("Olá, Harpia!")
 // Saída: Olá, Harpia!
-```
+````
 
 **Notas:**
 
@@ -339,10 +340,10 @@ funcao dividir(a: Numero, b: Numero) -> Resultado<Numero> {
 🦅 Harpia v1.2.0 foi ao ar!
 
 ✨ O que tem de novo:
-  • WebSocket nativo (copa)
-  • Compilação 40% mais rápida
-  • 25 bugs corrigidos
-  • Docs em português 100% completas
+• WebSocket nativo (copa)
+• Compilação 40% mais rápida
+• 25 bugs corrigidos
+• Docs em português 100% completas
 
 Baixe agora: https://harpia.dev/download
 Changelog: https://harpia.dev/v1.2.0
@@ -370,10 +371,10 @@ desenvolvedores apaixonados por código limpo e arquitetura
 elegante — e que acreditam em tecnologia brasileira.
 
 📌 Canais principais:
-  • #geral — conversas sobre Harpia
-  • #ajuda — perguntas (não há perguntas bobas!)
-  • #showoff — compartilhe seus projetos
-  • #contribuindo — guia para contribuir ao projeto
+• #geral — conversas sobre Harpia
+• #ajuda — perguntas (não há perguntas bobas!)
+• #showoff — compartilhe seus projetos
+• #contribuindo — guia para contribuir ao projeto
 
 ✨ Primeira vez? Leia nosso Código de Conduta: link
 
@@ -394,7 +395,7 @@ Vamos codar juntos! 🚀
 ```
 
 ═══════════════════════════════════════════════════════════
-  HARPIA WEEKLY #47 — Semana de 15 de julho de 2026
+HARPIA WEEKLY #47 — Semana de 15 de julho de 2026
 ═══════════════════════════════════════════════════════════
 
 Olá, comunidade Harpia! 👋
@@ -404,18 +405,18 @@ Semana intensa no repo. Vamos aos destaques:
 📰 NOTÍCIAS
 
 [1] Harpia v1.2 em Release Candidate
-    A compilação agora é 40% mais rápida graças a
-    compilação incremental. Teste: harpia novo teste-v12
+A compilação agora é 40% mais rápida graças a
+compilação incremental. Teste: harpia novo teste-v12
 
 [2] João Silva fez PR monumental (DDD native patterns)
-    680 linhas de código, 12 testes verdes.
-    Parabéns, João! 🎉
+680 linhas de código, 12 testes verdes.
+Parabéns, João! 🎉
 
 🔧 MERGES NOTÁVEIS
 
-  • Corrigido parsing de strings multilinhas (#456)
-  • Adicionado suporte a destructuring em case (#421)
-  • Melhorado erro HRP-2001 com dica automática (#398)
+• Corrigido parsing de strings multilinhas (#456)
+• Adicionado suporte a destructuring em case (#421)
+• Melhorado erro HRP-2001 com dica automática (#398)
 
 💡 TIP DA SEMANA
 
@@ -433,10 +434,10 @@ Link: https://docs.harpia.dev/api-rest
 
 👥 NÚMEROS DESTA SEMANA
 
-  ⭐ 250 novos stars no GitHub
-  🔀 18 PRs merged
-  🐛 5 bugs corrigidos
-  📝 7 docs adicionadas
+⭐ 250 novos stars no GitHub
+🔀 18 PRs merged
+🐛 5 bugs corrigidos
+📝 7 docs adicionadas
 
 🎤 VOCÊ TEM VOZ
 
@@ -446,7 +447,7 @@ https://github.com/harpialang/harpia/discussions
 Até semana que vem! 🦅
 
 ═══════════════════════════════════════════════════════════
-  Curado com ❤️ pela Comunidade Harpia
+Curado com ❤️ pela Comunidade Harpia
 ═══════════════════════════════════════════════════════════
 
 ```
@@ -466,10 +467,10 @@ Até semana que vem! 🦅
 ```
 
 Descrição: Ícone mostra um "!" em círculo
-  Cores: Terracota (#D45D34) em fundo Sombra da Floresta (#162913)
-  Estilo: Geométrico, sem preenchimento (stroke 2px)
-  Uso: Mensagens de erro, placeholders de aviso
-  Tamanho: 16x16px (mínimo), 32x32px (padrão), 64x64px (grande)
+Cores: Terracota (#D45D34) em fundo Sombra da Floresta (#162913)
+Estilo: Geométrico, sem preenchimento (stroke 2px)
+Uso: Mensagens de erro, placeholders de aviso
+Tamanho: 16x16px (mínimo), 32x32px (padrão), 64x64px (grande)
 
 ```
 
@@ -478,10 +479,10 @@ Descrição: Ícone mostra um "!" em círculo
 ```
 
 Descrição: Checkmark estilizado (simplificado)
-  Cores: Broto de Ipê (#00A86B) em fundo transparente
-  Estilo: Stroke 2.5px, suavizado
-  Uso: Confirmações, validações bem-sucedidas
-  Animação: Opcional - stroke animation 0.6s ease-in-out
+Cores: Broto de Ipê (#00A86B) em fundo transparente
+Estilo: Stroke 2.5px, suavizado
+Uso: Confirmações, validações bem-sucedidas
+Animação: Opcional - stroke animation 0.6s ease-in-out
 
 ```
 
@@ -490,14 +491,14 @@ Descrição: Checkmark estilizado (simplificado)
 ```
 
 Descrição: Gradiente diagonal sutil da Floresta ao Rio Profundo
-  Ponto inicial: Sombra da Floresta (#162913) — canto superior esquerdo
-  Ponto final: Rio Profundo (#171E26) — canto inferior direito
-  Ângulo: 135 graus
-  Transição: Linear, suavidade natural
-  Sobreposição: Padrão geométrico em 10% opacity
-  Uso: Backgrounds de página, cards, seções
+Ponto inicial: Sombra da Floresta (#162913) — canto superior esquerdo
+Ponto final: Rio Profundo (#171E26) — canto inferior direito
+Ângulo: 135 graus
+Transição: Linear, suavidade natural
+Sobreposição: Padrão geométrico em 10% opacity
+Uso: Backgrounds de página, cards, seções
 
-```
+````
 
 ---
 
@@ -555,7 +556,7 @@ Ao revisar qualquer material Harpia (código, docs, social, etc.):
 
 ```bash
 # Comando rápido de instalação/setup
-```
+````
 
 ## 📚 Documentação
 

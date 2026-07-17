@@ -1,0 +1,690 @@
+# Harpia — Especificação Completa para Modelos de Linguagem (LLMs)
+
+Este arquivo é um guia exaustivo da linguagem Harpia, projetado para ser consumido por IAs (como ChatGPT, Claude, Gemini, e agentes autônomos) para que consigam ler, entender, manter e gerar códigos sintaticamente válidos e idiomáticos na linguagem.
+
+---
+
+## 📖 Índice
+1. [Visão Geral & Sintaxe de Controle](#1-visão-geral--sintaxe-de-controle)
+2. [Tipos e Sistema de Tipagem Opcional](#2-tipos-e-sistema-de-tipagem-opcional)
+3. [Funções, Closures e Operador Pipe](#3-funções-closures-e-operador-pipe)
+4. [Orientação a Objetos (Classes e Herança)](#4-orientação-a-objetos-classes-e-herança)
+5. [Tratamento de Exceções](#5-tratamento-de-exceções)
+6. [Concorrência e Canais (CSP)](#6-concorrência-e-canais-csp)
+7. [Reatividade Nativa e Componentes Frontend SPA](#7-reatividade-nativa-e-componentes-frontend-spa)
+8. [Biblioteca Padrão (Stdlib v1.2.0)](#8-biblioteca-padrão-stdlib)
+9. [Arquitetura de Projetos (Clean Architecture)](#9-arquitetura-de-projetos-clean-architecture)
+10. [Arcabouço de Testes Nativos](#10-arcabouço-de-testes-nativos)
+11. [Comandos da CLI](#11-comandos-da-cli)
+12. [Máquina Virtual e Compilação de Bytecode](#12-máquina-virtual-e-compilação-de-bytecode)
+13. [Compilação Ahead-Of-Time (AOT), Otimizador Estático (DCE) e WebAssembly (WASM)](#13-compilação-aot-otimizador-estático-dce-e-webassembly)
+
+---
+
+## 1. Visão Geral & Sintaxe de Controle
+
+Harpia utiliza chaves `{}` para delimitar blocos lógicos. Parênteses nas condições de estruturas condicionais e de repetição são **proibidos** (estilo Go/Rust). O término de instruções com ponto e vírgula (`;`) é opcional.
+
+### Declaração de Variáveis e Constantes
+```harpia
+var nome = "Harpia"       // Variável comum mutável
+constante PI = 3.14159         // Constante imutável (deve ser inicializada)
+```
+
+### Estruturas Condicionais (`se`, `senao se`, `senao`)
+```harpia
+var idade = 18
+
+se idade < 12 {
+    imprimir("Criança")
+} senao se idade < 18 {
+    imprimir("Adolescente")
+} senao {
+    imprimir("Adulto")
+}
+```
+
+### Estruturas de Repetição (`enquanto`, `para`, `em`)
+```harpia
+// Loop Enquanto
+var contador = 0
+enquanto contador < 5 {
+    imprimir(contador)
+    contador = contador + 1
+}
+
+// Loop Para Em (Iterando Listas ou Mapas)
+var frutas = ["maçã", "banana", "laranja"]
+para fruta em frutas {
+    imprimir(fruta)
+}
+
+// Controladores de Loop
+para i em [1, 2, 3, 4, 5] {
+    se i == 2 {
+        continue // Pula para a próxima iteração
+    }
+    se i == 4 {
+        pare // Interrompe o loop
+    }
+    imprimir(i)
+}
+```
+
+---
+
+## 2. Tipos e Sistema de Tipagem Opcional
+
+A linguagem suporta tipagem opcional dinâmica. Se omitidos, os tipos são inferidos. Se a verificação estrita estiver ativa (`--estrito` no interpretador), violações de tipo disparam erros.
+
+### Tipos Primitivos
+* `Inteiro` (números inteiros de 64 bits)
+* `Decimal` (ponto flutuante IEEE 754 de 64 bits)
+* `Booleano` (`Verdadeiro` ou `Falso`)
+* `Texto` (strings imutáveis em UTF-8)
+* `Nulo` (ausência de valor)
+
+### Tipagem em Variáveis
+```harpia
+var nome: Texto = "João"
+var idade: Inteiro = 30
+var preco: Decimal = 19.90
+var ativo: Booleano = Verdadeiro
+var valor: Nulo = Nulo
+```
+
+### Tipos Compostos (Genéricos)
+* `Lista<T>`: Coleção mutável indexada de tipo homogêneo ou heterogêneo.
+* `Mapa<C, V>`: Tabela hash (chave-valor).
+* `Tupla`: Coleção indexada imutável.
+* `funcao`: Assinatura tipada de função.
+
+```harpia
+var idades: Lista<Inteiro> = [10, 20, 30]
+var dicionario: Mapa<Texto, Inteiro> = {"chave": 42}
+```
+
+---
+
+## 3. Funções, Closures e Operador Pipe
+
+Funções são declaradas usando `funcao` (ou a abreviação `func`). Suportam parâmetros nomeados, parâmetros padrão, closures de escopo léxico e tipagem de retorno.
+
+### Declaração Básica e Tipada
+```harpia
+funcao somar(a: Inteiro, b: Inteiro = 0) -> Inteiro {
+    retorne a + b
+}
+
+// Parâmetros nomeados na invocação
+var resultado = somar(b = 10, a = 5)
+```
+
+### Closures e Shadowing
+```harpia
+funcao criarGerador(inicial: Inteiro) -> funcao {
+    var valor = inicial
+    retorne funcao() -> Inteiro {
+        valor = valor + 1
+        retorne valor
+    }
+}
+```
+
+### Operador de Canal (Pipe `|>`)
+Permite encadear transformações lineares de dados de maneira extremamente legível.
+```harpia
+// Sintaxe tradicional: imprimir(maiusculo(removerEspacos(texto)))
+// Com Pipe:
+texto |> removerEspacos |> maiusculo |> imprimir
+```
+
+---
+
+## 4. Orientação a Objetos (Classes e Herança)
+
+Harpia implementa suporte nativo a classes com herança simples e métodos de instância e estáticos. Métodos construtores devem ser declarados com o nome `inicializar` e receber o parâmetro `self` explicitamente no escopo da instância.
+
+```harpia
+classe Veiculo {
+    inicializar(self, marca: Texto, ano: Inteiro) {
+        self.marca = marca
+        self.ano = ano
+    }
+
+    exibirDados(self) {
+        imprimir(self.marca + " - " + self.ano)
+    }
+}
+
+classe Carro estende Veiculo {
+    inicializar(self, marca: Texto, ano: Inteiro, portas: Inteiro) {
+        Veiculo.inicializar(self, marca, ano) // Chamada da classe pai
+        self.portas = portas
+    }
+
+    estatico buzinar() {
+        imprimir("Bibi!")
+    }
+
+    exibirDados(self) {
+        Veiculo.exibirDados(self)
+        imprimir("Portas: " + self.portas)
+    }
+}
+
+// Uso:
+var meuCarro = Carro("Toyota", 2024, 4)
+meuCarro.exibirDados()
+Carro.buzinar() // Invocação de método estático
+
+// Operador de instância:
+se meuCarro instancia de Carro {
+    imprimir("É um carro!")
+}
+```
+
+---
+
+## 5. Tratamento de Exceções
+
+O controle de fluxo de erros utiliza os blocos `tente`, `capture` e `finalmente`. O bloco `capture` recebe um objeto de erro contendo metadados (como mensagem, linha, coluna e sugestão contextual em português).
+
+```harpia
+tente {
+    var resultado = 10 / 0
+} capture (erro) {
+    imprimir("Código do Erro: " + erro.codigoErro)
+    imprimir("Mensagem: " + erro.mensagem)
+    imprimir("Sugestão: " + erro.sugestao)
+} finalmente {
+    imprimir("Bloco opcional sempre executado.")
+}
+```
+
+---
+
+## 6. Concorrência e Canais (CSP)
+
+A concorrência no Harpia é leve, cooperativa e utiliza corotinas assíncronas com o loop de eventos centralizado no runtime, seguindo o padrão de concorrência CSP por canais.
+
+```harpia
+// Declaração de corotinas
+assincrono funcao processar(canal: Canal, id: Inteiro) {
+    imprimir("Corotina %i iniciada" % id)
+    aguarde canal.enviar("Dados da corotina %i" % id)
+}
+
+assincrono funcao principal() {
+    var canal = Canal() // Cria um canal FIFO thread-safe
+
+    // Dispara corotinas assíncronas no Event Loop
+    processar(canal, 1)
+    processar(canal, 2)
+
+    // Aguarda recepção síncrona
+    var resultado1 = aguarde canal.receber()
+    var resultado2 = aguarde canal.receber()
+
+    imprimir("Resultado 1: " + resultado1)
+    imprimir("Resultado 2: " + resultado2)
+}
+```
+
+---
+
+## 7. Reatividade Nativa e Componentes Frontend SPA
+
+Quando compilado para a Web (`harpia compilar --alvo=web`), o Harpia transpila componentes ricos e reativos para HTML/JS sem carregar VMs pesadas. O compilador embutido em Go transpila seu código Harpia para ES6 de tamanho mínimo (~2.2KB final), gerando o Virtual DOM e ligando os fios de reatividade.
+
+### Sinais, Efeitos, Debounce e Estado Global (`armazem`)
+A reatividade no Harpia é de granularidade fina (*fine-grained*), o que significa que o motor atualiza **exclusivamente os nós do DOM que mudaram**, sem re-renderizar a árvore inteira.
+
+> ⚠️ **Regra Crítica de Escopo**: Os sinais reativos de estado devem ser declarados no **escopo global (fora da função do componente)** ou em um módulo de gerenciamento de estado. Se declarados dentro do componente, eles serão recriados e reiniciados a cada ciclo de renderização do efeito de reconciliação do Virtual DOM.
+```harpia
+// Criação de sinais normais
+var [contagem, definirContagem] = sinal(0)
+
+// Efeito reativo executado a cada mudança
+efeito(funcao() {
+    imprimir("Contagem atualizada para: " + contagem())
+})
+
+// Sinais Persistentes (Local Storage síncrono automático)
+var [tema, setTema] = sinalPersistente("tema", "claro")
+
+// Sinais com Debounce (Atrasa a propagação em Ms - ideal para buscas)
+var [busca, setBusca] = sinalDebounce("", 300)
+
+// Sinais Assíncronos (Consumo de APIs com estados síncronos na UI)
+var usuario = recurso(funcao() {
+    retorne requisitar("GET", "https://api.com/usuario")
+})
+// Uso na UI: usuario.carregando(), usuario.erro(), usuario.ok()
+
+// Armazém de Estado Global reativo
+exportar var carrinho = armazem({
+    itens: [],
+    total: 0
+})
+```
+
+### Componentes JSX-like, Two-Way Binding (`ligar`) e Modificadores
+Os componentes são funções comuns que retornam marcações JSX nativas da linguagem. O atributo `ligar` realiza binding de duas vias bidirecional de inputs de formulários a sinais. Os eventos suportam modificadores diretos no atributo (ex: `_prevenir` para `e.preventDefault()` e `_parar` para `e.stopPropagation()`).
+```harpia
+funcao FormularioLogin() {
+    var [usuario, definirUsuario] = sinal("")
+    var [senha, definirSenha] = sinal("")
+
+    funcao submeter() {
+        imprimir("Submetendo para: " + usuario())
+    }
+
+    retorne <form aoSubmeter_prevenir={submeter} classe="flex-coluna p-4">
+        <label>Usuário:</label>
+        <input tipo="text" ligar={usuario} />
+
+        <label>Senha:</label>
+        <input tipo="password" ligar={senha} />
+
+        <botao tipo="submit" classe="cor-azul-500">
+            Entrar
+        </botao>
+    </form>
+}
+```
+
+### Estruturas de Controle Inline JSX e Keyed Diffing
+A reatividade é estendida no JSX por meio de tags de controle dedicadas, as quais reduzem o custo computacional de redesenho no algoritmo do Virtual DOM de $O(N^2)$ para $O(N)$ linear usando a propriedade `chave`:
+* Condicional: `<se condicao={...}>...</se>`
+* Loop de Repetição: `<para item em lista={...} chave="propriedade">...</para>`
+
+### Componentes de UI Corporativos Embutidos
+* `<FronteiraDeErro>`: Barreira protetora que impede falhas em subcomponentes secundários de quebrarem a aplicação inteira, renderizando um fallback.
+* `<ListaVirtual>`: Renderiza estritamente os nós físicos visíveis na tela para listas massivas (ex: 50.000 registros), mantendo a rolagem fluida a 60fps.
+* `<GradeDeDados>`: Tabela interativa robusta contendo paginação, filtragem rápida e ordenamento de colunas em português.
+
+### Modelo Híbrido de Arquivos (`.hrp`, `.html`, `.estilo.hrp`)
+Para projetos corporativos de grande porte, você pode separar as responsabilidades de estilo e layout físico de forma transparente:
+* **Estilos Separados em Português (`.estilo.hrp`)**: Arquivos de folha de estilo declarados com a palavra-chave `estilo` contendo sintaxe nativa em português (ex: `corDeFundo → background-color`, `raio-grande → border-radius`).
+* **Templates HTML Físicos Separados (`.html`)**: Layout físico isolado importado de dentro da função lógica usando `importarHtml("./layout.html")`.
+
+```harpia
+// web/componentes/MeuCard.hrp
+de "web" importe sinal, importarHtml;
+de "./MeuCard.estilo.hrp" importe EstiloDoCard;
+
+exportar funcao MeuCard() {
+    var [expandido, setExpandido] = sinal(falso);
+    retorne importarHtml("./MeuCard.html"); // Compilador faz o inline dinâmico no JS final
+}
+```
+
+### Regras e Boas Práticas de Estilização em Português
+No ecossistema do Harpia, existem três formas distintas e regulamentadas para gerenciar a estilização visual de componentes no navegador:
+1. **Declarações Estáticas de Classe (`estilo`)**: Recomendado para melhor desempenho. São declaradas no topo do arquivo (ou em arquivos `.estilo.hrp`) utilizando a palavra-chave `estilo` e propriedades amigáveis em português (ex: `corDeFundo`, `borda`, `corDaFonte`). O compilador traduz estas regras para CSS nativo de forma estática antes de enviar ao navegador (zero custo de runtime).
+2. **Estilo Inline Reativo em PT (`estilo={{...}}`)**: Se houver necessidade de aplicar estilos inline dinâmicos e baseados em Sinais usando propriedades em português, passe obrigatoriamente um **Objeto/Dicionário** para o atributo `estilo` (ex: `estilo={{ "corDeFundo": "#ff0000", "cor": "white" }}`). O runtime do Harpia mapeará estas propriedades dinamicamente em tempo de execução. Strings contendo sintaxe CSS em português (como `classe="corDeFundo: ..."` ou `style="corDeFundo: ..."`) **não são válidas** e não serão interpretadas pelo browser.
+3. **Estilo Inline Padrão (`style="..."`)**: Se desejar escrever estilos inline convencionais como string crua tradicional, utilize o atributo nativo HTML `style` acompanhado de regras padrão em inglês (ex: `style="background-color: #ff0000; color: white;"`).
+
+---
+
+## 8. Biblioteca Padrão (Stdlib v1.2.0)
+
+Módulos nativos são importados da biblioteca padrão do sistema ou localmente.
+```harpia
+importar { Matematica } de "matematica"
+importar { Sistema } de "sistema"
+```
+
+### Principais Módulos da Stdlib:
+
+#### 1. `matematica`
+* `Matematica.sen(x)`, `cos(x)`, `tan(x)`
+* `Matematica.abs(x)`
+* `Matematica.PI`, `E`
+
+#### 2. `sistema`
+* `Sistema.argumentos` (Lista de argumentos CLI)
+* `Sistema.variaveisAmbiente` (Mapa de variáveis de ambiente)
+* `Sistema.arquitetura`
+* `Sistema.plataforma`
+
+#### 3. `arquivos`
+* `arquivos.ler(caminho)` -> Retorna string com conteúdo
+* `arquivos.escrever(caminho, texto)` -> Salva texto em arquivo
+* `arquivos.caminhar(diretorio)` -> Varredura recursiva de caminhos
+
+#### 4. `json` / `yaml` / `xml`
+* `json.analisar(stringJson)` -> Converte JSON para Mapas/Listas
+* `json.serializar(objeto)` -> Serializa objetos Harpia para JSON
+
+#### 5. `cripto`
+* `cripto.sha256(texto)`
+* `cripto.codificarBase64(texto)`, `cripto.decodificarBase64(dados)`
+* `cripto.uuid()` -> Gera UUID v4 string.
+
+#### 6. `http` (Servidor e Middlewares)
+```harpia
+importar { Servidor } de "http"
+
+var app = Servidor()
+
+// Middlewares nativos
+app.usar(funcao(req, res, proximo) {
+    imprimir("Requisição recebida: " + req.caminho)
+    proximo()
+})
+
+app.obter("/usuarios/:id", funcao(req, res) {
+    var usuarioId = req.caminhoParametros.id
+    res.enviarJson({"id": usuarioId, "status": "ativo"})
+})
+
+app.escutar(8080)
+```
+
+#### 7. `bd` (Query Builder Relacional, ORM Tipado, MongoDB, Redis e Qdrant)
+O módulo `bd` implementa interfaces avançadas de persistência estruturada e não-estruturada de dados:
+
+* **SQL & ORM Tipado**: Mapeamento e validação rígida de tipos em runtime.
+```harpia
+importar { bd } de "bd"
+
+# Query Builder fluído
+var adultos = bd.tabela("usuarios")
+    .selecionar(["nome", "idade"])
+    .onde("idade", ">", 18)
+    .limite(10)
+    .obterMuitos()
+
+# ORM Tipado declarativo
+var esquemaUsuario = {
+    "nome": "texto",
+    "idade": "inteiro",
+    "ativo": "booleano"
+}
+var tabelaUsuarios = bd.tabela("usuarios", esquemaUsuario)
+
+# Dispara erro automático se os dados violarem a tipagem definida
+tabelaUsuarios.inserir({"nome": "Alice", "idade": "não-número", "ativo": Verdadeiro}) # Erro de Tipo!
+```
+
+* **Banco Vetorial (Qdrant)**: Interface nativa de alto desempenho para buscas de similaridade de embeddings:
+```harpia
+importar { bd } de "bd"
+
+# Estabelece canal de comunicação HTTP/REST de alta velocidade com o Qdrant
+var bancoVetorial = bd.conectarQdrant("http://localhost:6333", "artigos")
+
+# Inserção de vetores estruturados com payloads de metadados
+bancoVetorial.inserir("artigo-101", [0.12, 0.45, -0.87, 0.93], {"autor": "João", "tags": ["IA", "Go"]})
+
+# Busca de similaridade por distância vetorial cosseno / L2
+var resultados = bancoVetorial.buscar([0.10, 0.40, -0.80, 0.90], limite = 3)
+para ponto em resultados {
+    imprimir("ID: " + ponto.id + " | Score: " + texto(ponto.score))
+}
+
+# Deletar ponto vetorial
+bancoVetorial.deletar("artigo-101")
+```
+
+#### 8. `logs` (Logs Estruturados)
+Fornece gravação e formatação de auditoria e logs estruturados em JSON ou texto por níveis de severidade (`INFO`, `AVISO`, `ERRO`):
+```harpia
+importar { log } de "logs"
+
+log.definirFormato("json") // Formato profissional em JSON
+log.info("Servidor iniciado com sucesso", {"porta": 8080})
+log.aviso("Uso de memória elevado", {"memoria": "82%"})
+```
+
+#### 9. `metricas` (Métricas Prometheus)
+Exposição de contadores, medidores de nível (*gauges*) e histogramas compatíveis nativamente com sistemas Prometheus de monitoramento:
+```harpia
+importar { metricas } de "metricas"
+
+var contadorRequisicoes = metricas.NovoContador("http_req_total", "Total de requisições")
+contadorRequisicoes.incrementar({"rota": "/home"})
+```
+
+#### 10. `esquema` (Validador de Esquemas)
+Validação declarativa de estruturas de dados e tipagens de payloads em tempo de execução:
+```harpia
+importar { esquema } de "esquema"
+
+var esquemaUsuario = esquema.objeto({
+    "nome": esquema.texto().minimo(3),
+    "idade": esquema.inteiro().positivo()
+})
+
+var [dadosValidos, erros] = esquemaUsuario.validar({"nome": "Jo", "idade": -5})
+```
+
+#### 11. `tarefas` (Agendador Cron)
+Permite criar, orquestrar e gerenciar tarefas agendadas nativas recorrentes (padrão crontab) de forma assíncrona:
+```harpia
+importar { Cron } de "tarefas"
+
+Cron.agendar("*/5 * * * *", funcao() {
+    imprimir("Tarefa executada a cada 5 minutos!")
+})
+```
+
+#### 12. `ffi` (Foreign Function Interface / Plugins)
+Permite carregar e executar funções nativas compartilhadas (`.so`, `.dll`, `.dylib`) compiladas em outras linguagens (C/C++/Go/Rust):
+```harpia
+importar { ffi } de "ffi"
+
+var lib = ffi.abrir("./libcalculo.so")
+var somarRapido = lib.funcao("somar", ["Inteiro", "Inteiro"], "Inteiro")
+var res = somarRapido(10, 20)
+```
+
+#### 13. `resiliencia` (Estabilidade de Microsserviços)
+Oferece padrões nativos de tolerância a falhas industriais de forma embutida em Go:
+```harpia
+importar { resiliencia } de "resiliencia"
+
+# 1. Circuit Breaker (Disjuntor de 3 estados)
+# Se registrar mais de 5 falhas, abre o circuito por 15 segundos para aliviar o backend downstream
+var disjuntor = resiliencia.novo_disjuntor(limite_falhas = 5, timeout_segundos = 15)
+
+disjuntor.executar(funcao() {
+    # código que pode falhar (chamada HTTP, acesso a DB, etc)
+    retorne requisitar("GET", "http://servico-instavel/dados")
+})
+
+# 2. Rate Limiter (Token Bucket)
+# Permite rajadas de até 10 tokens, regenerando na taxa estável de 2 tokens por segundo
+var limitador = resiliencia.novo_limite_de_taxa(max_tokens = 10, tokens_seg = 2)
+
+se limitador.adquirir() {
+    # processa requisição sob limite de taxa
+    processar_dados()
+} senao {
+    # excede limite
+    imprimir("Limite de requisições excedido. Tente novamente mais tarde.")
+}
+
+# 3. Retry (Retentativa Resiliente)
+# Realiza até 3 tentativas adicionais, aplicando recuo (backoff) exponencial de 200ms multiplicado por fator 2
+var retentador = resiliencia.nova_retentativa(tentativas = 3, base_ms = 200, fator = 2)
+
+retentador.executar(funcao() {
+    # Código com retry automático se retornar erro
+    retorne conectar_api()
+})
+```
+
+#### 14. `telemetria` (Observabilidade Baseada em OpenTelemetry)
+Suporte leve nativo para geração de traces e métricas estruturadas compatíveis com OTEL:
+```harpia
+importar { telemetria } de "telemetria"
+
+# Inicializa Tracer com identificador de serviço
+var rastreador = telemetria.novo_tracer("servico-pagamentos")
+
+# Criação manual de Spans de monitoramento para análise de latência
+var spanPrincipal = rastreador.iniciar_span("processar-compra")
+spanPrincipal.definir_tag("cartao.bandeira", "visa")
+
+tente {
+    validar_pagamento()
+    spanPrincipal.definir_status("sucesso")
+} capture (erro) {
+    spanPrincipal.definir_status("erro", erro.mensagem)
+} finalmente {
+    spanPrincipal.fechar() # Despacha o span estruturado para o coletor
+}
+```
+
+#### 15. `ia` (Mecanismos de Agentes & Contratos Semânticos)
+Abstração simplificada e robusta de agentes inteligentes com validação de schemas estruturados em runtime:
+```harpia
+importar { ia } de "ia"
+
+# Define o contrato estruturado em formato de mapa
+var contratoResposta = {
+    "nome_usuario": "texto",
+    "idade": "inteiro",
+    "sugestao_plano": "texto"
+}
+
+# Consome a inteligência artificial local (via Ollama) ou provedor em nuvem
+var prompt = "Crie uma recomendação de plano para uma pessoa de 25 anos chamada Carol."
+var respostaIA = ia.perguntar("llama3", prompt)
+
+# Valida síncronamente se o JSON de resposta da IA adere estritamente ao contrato
+var [sucesso, erroContrato] = ia.validar_resposta(contratoResposta, respostaIA)
+
+se sucesso {
+    var dadosCarol = json.analisar(respostaIA)
+    imprimir("Plano recomendado: " + dadosCarol.sugestao_plano)
+} senao {
+    imprimir("Falha no contrato semântico: " + erroContrato.mensagem)
+}
+```
+
+---
+
+## 9. Arquitetura de Projetos (Clean Architecture)
+
+Projetos estruturados seguem o template gerado pelo scaffolding (`harpia novo-monolito`):
+
+```
+meu-app/
+├── dependencias.json        -> Arquivo de manifesto e configuração de portas/APIs
+├── main.hrp                -> Inicializador / Bootstrapper
+├── dominio/                 -> Regras de negócios isoladas
+│   ├── modelos/             -> Entidades (ex: usuario.hrp)
+│   └── servicos/            -> Validações e regras cruas (ex: validador.hrp)
+├── infra/                   -> Adaptadores de DB (bd/sqlite.hrp), HTTP e APIs
+└── web/                     -> Interface SPA reativa
+    ├── rotas/               -> File-system routing (ex: index.hrp, painel.hrp)
+    ├── componentes/         -> Componentes JSX reusáveis
+    └── estilos/             -> Folhas de estilo locais
+```
+
+---
+
+## 10. Arcabouço de Testes Nativos
+
+O Harpia possui palavras-chave exclusivas integradas à sintaxe para realização de testes automatizados unitários e de integração de forma nativa.
+
+```harpia
+// modulo_calculadora.hrp
+exportar funcao soma(a, b) {
+    retorne a + b
+}
+
+// modulo_calculadora_test.hrp
+importar { soma } de "./modulo_calculadora.hrp"
+
+testar "deve somar dois valores inteiros com sucesso" {
+    var resultado = soma(2, 3)
+    assegura(resultado == 5)
+}
+
+testar "soma com valores negativos" {
+    var resultado = soma(-2, -3)
+    assegura(resultado == -5)
+}
+```
+
+---
+
+## 11. Comandos da CLI
+
+* **Executar script diretamente**: `harpia executar arquivo.hrp` (suporta flag `--estrito` para validação rigorosa de anotações de tipo e `--vm` para execução na máquina virtual de bytecode otimizada).
+* **Iniciar REPL de Terminal**: `harpia` (inicializa console e TUI didática baseada em Bubbletea com painéis para REPL de código, inspetor de escopo/pilha da VM e painel de logs de saída e atalhos de ajuda).
+* **Executar suíte de testes**: `harpia testar [caminho_ou_pasta]` (varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa).
+* **Servidor LSP Integrado**: `harpia lsp` (inicia servidor oficial LSP via stdio. Declara `"documentFormattingProvider": true` na inicialização em Go para responder síncronamente à requisição `textDocument/formatting` usando `FormatarCodigoHarpia(codigo)` de `cmd/formatar.go`. A extensão `vscode-harpia` instancia o cliente LSP via `LanguageClient` do `vscode-languageclient` em `extension.js`, registrando o formatador nativo no VS Code ao detectar o suporte do servidor. Habilita formatação com `Shift+Alt+F` / `Shift+Option+F` ou automática ao salvar com `"editor.formatOnSave": true`. Oferece autocompletar termos, linter Clean Arch, hover lendo `///` e definição F12).
+* **Análise Estática e Linter**: `harpia checar [caminho] [flags]` (linter semântico offline-friendly que valida redeclarações, reatribuição de `const`, parâmetros duplicados e emite diagnósticos amigáveis ou JSON padrão LSP).
+* **Guia e Dicionário de Erros**: `harpia erro [codigo]` (consultas a códigos de erro regulamentados como `PSC-0005`, suportando `harpia erro explicar [codigo]` para obter auxílio assistido por inteligência artificial local via Ollama/Gemma).
+* **Gerador de Diagramas**: `harpia diagramar [diretorio] --formato=html --saida=diag.html` (Mapeia as relações de dependências estáticas do Clean Architecture gerando grafos Mermaid, colorindo violações arquiteturais em vermelho grossa e conexões saudáveis em verde, além de expor botão de download de imagem vetorial `.svg` no browser em 1 clique).
+* **Gerenciador de Pacotes e Dependências**: `harpia instalar [nome-pacote]` (resolve e baixa pacotes remotos consultando restrições Semver no índice JSON público do registro central em português, gravando o módulo de forma segura contra Zip Slip em `./pt_modulos/`).
+* **Extrair Documentação de Comentários de Três Barras (`///`)**: `harpia doc pasta/ --formato=markdown` (extração nativa de docstrings).
+* **Gerar Scaffolding de Código**: `harpia crie [rota | componente | modelo] nome` (assistente interativo de templates direcionados de Clean Architecture e DDD).
+* **Empacotar em Binário Nativo Único ou WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` (compila o script embutido em binário executável local do SO) e `harpia empacotar --so=js --arq=wasm` (compila o interpretador completo para WebAssembly gerando `docs/portal/harpia.wasm` e copiando o carregador JS portátil `wasm_exec.js` do GOROOT de forma automática).
+* **Publicar Extensão do VS Code (`vscode-harpia`)**: O processo de publicação e empacotamento oficial da extensão para o Marketplace do VS Code usa a CLI oficial `vsce`. Passos:
+  1. Instalar ferramenta globalmente: `npm install -g @vscode/vsce`
+  2. Criar publicador (Publisher) no VS Code Marketplace e adicionar o ID no campo `"publisher"` de `package.json` em `vscode-harpia/`.
+  3. Gerar um Personal Access Token (PAT) no Azure DevOps (`dev.azure.com`) com escopo **Marketplace (Publish)** com permissões de *Read & Write*.
+  4. Realizar o login do publicador no terminal via `vsce login [id-publicador]` (colando o PAT gerado).
+  5. Para publicar na nuvem Marketplace: rodar `vsce publish` dentro da pasta `vscode-harpia/`.
+  6. Para apenas empacotar em um instalador local off-line: rodar `vsce package`, gerando o arquivo instalável `.vsix`.
+* **Especificação de Realce de Cores e DX do VS Code**: A extensão oficial (`vscode-harpia`) implementa regras refinadas do TextMate (`harpia.tmLanguage.json`) e configurações de produtividade para maior clareza visual:
+  1. *Comentários Suaves*: Comentários `#` (linha única) ou `<!-- -->` (bloco XML/JSX) são processados no topo do arquivo TextMate, desabilitando colorizações indesejadas de palavras-chave como `funcao` ou `sinal` dentro de textos comentados.
+  2. *Tags XML/JSX*: Tags do Virtual DOM do frontend (como `<div>`, `<section>`, `<main>`) e seus delimitadores (`<`, `/>`, `</`) são coloridos sob a classe `entity.name.tag`.
+  3. *Chamadas de Funções*: Chamadas síncronas/reativas e métodos (`somar()`, `setCodigo()`, `imprimir()`) são identificados e coloridos em escopo de função `entity.name.function`.
+  4. *Propriedades de Objetos*: Atributos pós-ponto (como `self.nome` ou `carrinho.itens`) recebem o escopo `variable.other.property`.
+  5. *Suporte a Aspas Simples*: Strings de aspas simples (`'textos'`) são coloridas como strings de forma idêntica às aspas duplas.
+  6. *Error Lens Recomendado*: O projeto da extensão includes recomendações no arquivo `.vscode/extensions.json` para instalar o **Error Lens**, habilitando de forma síncrona a renderização de erros LSP inline no final de cada linha.
+
+---
+
+## 12. Máquina Virtual e Compilação de Bytecode
+
+Para sistemas que exigem máxima performance, o Harpia oferece uma Máquina Virtual (VM) de pilha e um compilador estático dedicados e escritos em Go.
+
+### Compilador e Bytecode (`.hrpc`)
+* **Análise e Geração Estática**: O compilador traduz a árvore sintática abstrata (AST) em um conjunto linear de instruções (Bytecode) altamente otimizado, empacotando e salvando a árvore serializada como arquivos compilados binários de extensão `.hrpc`.
+* **Pool de Constantes**: Agrupa de forma unificada e limpa strings, floats e literais complexos indexados por offsets rápidos de 16 bits para evitar alocações duplicadas.
+
+### Modelo de Dados de Alta Performance: NaN-Boxing
+* **Compressão em 64 Bits**: Envelopa e compacta todos os tipos primitivos (Inteiros de 32 bits, Booleanos, Nulo, e ponteiros do coletor de lixo) dentro dos bits de valores "Não-Número" (NaN) da representação em ponto flutuante de precisão dupla (Double IEEE 754 de 64 bits).
+* **Vantagem**: Reduz o overhead de estruturas boxeadas tradicionais e desvios de ponteiro da CPU, resultando em localidade de cache extraordinária.
+
+### Engine de Execução e Otimizações de CPU
+* **Threaded Interpretive Loop**: Abandona laços de dispatch `switch` gigantes convencionais que causam falhas constantes de predição de desvios na CPU, adotando um despacho baseado em tabelas de saltos diretos e cache de instruções.
+* **Super-instruções**: Fusão estática e dinâmica de padrões de instruções comuns (ex: fundir `CARREGAR_VARIAVEL` + `ADICIONAR_IMEDIATO` em um único opcode `SUPER_SOMA_IMEDIATA`), poupando ciclos de CPU.
+* **Morphic Inline Caching (MIC)**: Guarda em cache o tipo concreto e os offsets de memória do último acesso a métodos e propriedades de instâncias de classes, acelerando acessos dinâmicos subsequentes de $O(N)$ para tempo de busca constante $O(1)$.
+* **Pre-alocação da Operand Stack**: Pilhas de avaliação pré-alocadas no Heap na inicialização da VM para conter o escopo ativo, prevenindo alocações e liberações de slices a cada chamada de função.
+
+### Coletor de Lixo Híbrido (Garbage Collector)
+* **Contagem de Referências**: Gerenciamento síncrono e instantâneo de desalocações de memória com overhead zero de pausas de execução ("Stop the World").
+* **Trial Deletion (Detecção de Ciclos)**: Algoritmo complementar assíncrono que varre e colore redes de objetos suspeitos em segundo plano, localizando e limpando de forma cirúrgica vazamentos formados por dependências e referências circulares fechadas.
+
+---
+
+## 13. Compilação Ahead-Of-Time (AOT), Otimizador Estático (DCE) e WebAssembly
+
+Para expandir as capacidades de execução e atender aos requisitos corporativos de performance e segurança multiplataforma, o ecossistema Harpia (v1.2.0) inclui uma cadeia completa de compilação avançada:
+
+### ⚙️ 13.1 Transpilação Ahead-Of-Time (AOT)
+O utilitário de compilação embutido no compilador implementa um transpiler AOT de alta performance (`cmd/transpiler_native.go`).
+* **Tradutor AST-para-Go**: Em vez de interpretar nós de árvore de forma dinâmica e lenta, o transpiler varre recursivamente a AST Harpia e gera o respectivo código fonte Go nativo super otimizado.
+* **Preservação de Escopos Léxicos**: Variáveis locais e símbolos globais do Harpia são mapeados diretamente para estruturas de dados de alta localidade na VM nativa (`ptst.Escopo`), preservando fechamentos (closures) e permitindo interoperabilidade transparente com a biblioteca padrão escrita em Go.
+* **Template Stub de Referência**: O template gerador nativo injeta referências em branco (ex: `var _ = fmt.Printf`) para mitigar o problema clássico de imports de Go não utilizados que inviabilizavam compilações dinâmicas de pequenos trechos de scripts.
+
+### 🗑️ 13.2 Otimizador Estático & Dead Code Elimination (DCE)
+Integrado ao pipeline de compilação, o Harpia possui um otimizador estático de duas passadas na árvore de sintaxe (`cmd/otimizador.go`):
+1. **Primeira Passada (Coleta de Usos)**: Varre a árvore sintática rastreando exaustivamente todos os identificadores chamados, definidos e consumidos no escopo de programa global e local. Uma proteção no coletor (`case *parser.Programa:`) garante que o escopo global não seja incorretamente descartado.
+2. **Segunda Passada (Remoção & Simplificação)**: Varre e limpa todas as funções, declarações de variáveis, classes e importações que não são ativamente consumidas em nenhum ramo de execução, reduzindo o tamanho do artefato binário. Adicionalmente, resolve caminhos condicionais óbvios e constantes (`se Verdadeiro`, `se Falso`) em tempo de compilação.
+
+### 🕸️ 13.3 Isolamento & Sandbox WebAssembly (WASM/WASI)
+O Harpia suporta compilação cruzada completa do compilador/interpretador para o ecossistema WebAssembly (`GOOS=js GOARCH=wasm`).
+* **Tags de Compilação Condicional**: Para possibilitar builds leves no browser e evitar dependências problemáticas de CGO e chamadas nativas de sistema de arquivos incompatíveis com WASM (como as da biblioteca SQLite `modernc.org/libc`), a biblioteca padrão do Harpia adota isolamento de escopo no agregador de imports (`stdlib.go`).
+* **Módulos Nativos Isolados (`stdlib_native.go`)**: Através da diretiva condicional Go `//go:build !js && !wasm`, o compilador exclui de forma cirúrgica drivers relacionais pesados, interfaces direct socket (`soquete`) e outras chamadas a drivers do sistema operacional nativo em builds WebAssembly, mantendo o tamanho e a integridade da sandbox.
+* **Build Automatizado**: O comando `harpia empacotar --so=js --arq=wasm` realiza toda a coordenação do compilador Go, extraindo o carregador JavaScript síncrono `wasm_exec.js` correspondente do GOROOT de forma totalmente automatizada e transparente para o desenvolvedor.
