@@ -9,54 +9,46 @@ Documento complementar com casos de uso reais e modelos para implementar a ident
 ### 1.1 Código Harpia com Tema "Harpia Dark"
 
 ```harpia
-// usuario.hrp — Módulo de domínio (Domain Layer)
-// Exemplo de código bem estruturado em Harpia
+# usuario.hrp — Módulo de domínio (Domain Layer)
+# Exemplo de código real e homologado em Harpia
 
-usar raiz::resultado
-usar tronco::conexao
+de "cripto" importe uuid
 
-// ============= Tipos de Domínio =============
+# ============= Classes de Domínio =============
 
-estrutura Usuario {
-  id: Texto,
-  nome: Texto,
-  email: Texto,
-  ativo: Booleano,
+classe Usuario {
+  func inicializar(self, id, nome, email, ativo) {
+    self.id = id
+    self.nome = nome
+    self.email = email
+    self.ativo = ativo
+  }
 }
 
-contrato RepositorioUsuario {
-  obter(id: Texto) -> Resultado<Usuario>
-  salvar(usuario: Usuario) -> Resultado<Usuario>
-  listar() -> Resultado<Lista<Usuario>>
-}
+# ============= Casos de Uso =============
 
-// ============= Casos de Uso =============
-
-funcao criar_usuario(nome: Texto, email: Texto) -> Resultado<Usuario> {
-  // Validar entrada
-  se nome::vazio?() {
-    retornar Resultado::erro("Nome não pode ser vazio")
+funcao criar_usuario(nome, email) {
+  # Validar entrada
+  se (nome == "") {
+    retorne Nulo
   }
   
-  // Criar entidade de domínio
-  usuario = Usuario {
-    id: gerar_id_unico(),
-    nome: nome,
-    email: email,
-    ativo: verdadeiro,
-  }
+  # Criar entidade de domínio (classe)
+  var usuario = nova Usuario()
+  usuario.id = uuid()
+  usuario.nome = nome
+  usuario.email = email
+  usuario.ativo = Verdadeiro
   
-  // Persistir (retorna Resultado)
-  retornar repositorio::salvar(usuario)
+  retorne usuario
 }
 
-// Exemplo de teste unitário
-teste "deve validar email duplicado" {
-  usuario1 = Usuario { email: "joao@harpia.dev", ... }
-  resultado = criar_usuario("João", "joao@harpia.dev")
+# Exemplo de teste unitário nativo
+testar "deve validar criacao de usuario" {
+  var resultado = criar_usuario("João", "joao@harpia.dev")
   
-  afirmar resultado::erro? == verdadeiro
-  afirmar resultado::mensagem contém "duplicado"
+  assegura(resultado.nome == "João")
+  assegura(resultado.ativo == Verdadeiro)
 }
 ```
 
