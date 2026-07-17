@@ -2,7 +2,7 @@
 # EXEMPLO: ARITMÉTICA BÁSICA
 # ============================================================================
 # Demonstração de precedência e operadores aritméticos primitivos.
-# O Portuscript resolve expressões matemáticas respeitando as regras universais de álgebra.
+# O Harpia resolve expressões matemáticas respeitando as regras universais de álgebra.
 
 const ano = 2023;
 

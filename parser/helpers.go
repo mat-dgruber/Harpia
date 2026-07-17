@@ -5,7 +5,7 @@ import (
 )
 
 // palavrasChave define a relação interna e exclusiva de palavras reservadas
-// que possuem significado semântico fixo na sintaxe do Portuscript.
+// que possuem significado semântico fixo na sintaxe do Harpia.
 var palavrasChave = map[string]bool{
 	"se":       true,
 	"senao":    true,

@@ -34,7 +34,7 @@ func comandoServir() *cobra.Command {
 				os.Exit(1)
 			}
 
-			saidaTemp = filepath.Join(os.TempDir(), "portuscript_servir_dist")
+			saidaTemp = filepath.Join(os.TempDir(), "Harpia_servir_dist")
 			_ = os.MkdirAll(saidaTemp, 0755)
 
 			// Função de build instantâneo
@@ -67,7 +67,7 @@ func comandoServir() *cobra.Command {
 						if err != nil {
 							return nil
 						}
-						if strings.Contains(path, "portuscript_servir_dist") || strings.Contains(path, "dist") {
+						if strings.Contains(path, "Harpia_servir_dist") || strings.Contains(path, "dist") {
 							return nil
 						}
 						if !info.IsDir() && info.ModTime().After(ultimoCheck) {

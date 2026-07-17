@@ -1,6 +1,6 @@
 package matematica
 
-import "github.com/natanfeitosa/portuscript/ptst"
+import "github.com/mat-dgruber/Harpia/ptst"
 
 // met_mat_raiz implementa a lógica nativa para a função 'raiz()'.
 //
@@ -28,10 +28,10 @@ func met_mat_raiz(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 		indice = dec.(ptst.Decimal)
 	}
 
-	return met_mat_potencia(inst, ptst.Tupla{args[0], 1.0/indice})
+	return met_mat_potencia(inst, ptst.Tupla{args[0], 1.0 / indice})
 }
 
-// _mat_raiz cria e define a assinatura do método 'raiz' exposto na stdlib do Portuscript.
+// _mat_raiz cria e define a assinatura do método 'raiz' exposto na stdlib do Harpia.
 var _mat_raiz = ptst.NewMetodoOuPanic(
 	"raiz",
 	met_mat_raiz,

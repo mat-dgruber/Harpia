@@ -1,6 +1,6 @@
 package ptst
 
-// Booleano representa a representação nativa de valores lógicos de verdadeiro ou falso no Portuscript.
+// Booleano representa a representação nativa de valores lógicos de verdadeiro ou falso no Harpia.
 // É um apelido (alias) para o tipo básico 'bool' do Go.
 type Booleano bool
 
@@ -45,7 +45,7 @@ func NewBooleano(obj any) (Objeto, error) {
 }
 
 func init() {
-	// Nova define a função construtora para instanciação explícita de Booleanos em scripts Portuscript.
+	// Nova define a função construtora para instanciação explícita de Booleanos em scripts Harpia.
 	TipoBooleano.Nova = func(args Tupla) (Objeto, error) {
 		return NewBooleano(args[0])
 	}

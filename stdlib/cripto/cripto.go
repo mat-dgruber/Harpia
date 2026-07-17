@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 
 	"github.com/google/uuid"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_cripto_sha256 implementa 'sha256(texto)' -> retorna hash hexadecimal SHA256 do texto fornecido

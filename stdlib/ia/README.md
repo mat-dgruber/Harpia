@@ -6,7 +6,7 @@ O módulo `ia` fornece conectores nativos e primitivas para integração de Inte
 
 ## 🚀 Como Importar
 
-```portuscript
+```harpia
 de "ia" importe Agente
 ```
 
@@ -18,7 +18,7 @@ A classe `Agente` representa um agente inteligente autônomo. Cada agente possui
 
 ### Construtor
 
-```portuscript
+```harpia
 var meuAgente = Agente(nome, instrucoes, provedor?, modelo?)
 ```
 
@@ -66,7 +66,7 @@ A linguagem prioriza a execução local para garantir a soberania e a privacidad
 
 ### Exemplo 1: Conversa Simples com Memória
 
-```portuscript
+```harpia
 de "ia" importe Agente
 
 # Criamos um agente focado em desenvolvimento
@@ -82,7 +82,7 @@ imprimir(resposta2)
 
 ### Exemplo 2: Comunicação Multi-Agente
 
-```portuscript
+```harpia
 de "ia" importe Agente
 
 var escritor = Agente("Redator", "Você escreve poemas curtos", "ollama", "llama3")

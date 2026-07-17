@@ -3,7 +3,7 @@ package yaml
 import (
 	"gopkg.in/yaml.v3"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func converteParaGo(obj ptst.Objeto) any {

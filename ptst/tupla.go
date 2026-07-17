@@ -1,6 +1,6 @@
 package ptst
 
-// Tupla representa a coleção indexada ordenada e imutável de dados do Portuscript (ex: (1, 2, 3)).
+// Tupla representa a coleção indexada ordenada e imutável de dados do Harpia (ex: (1, 2, 3)).
 //
 // É um apelido (alias) para um slice de Objetos Go (`[]Objeto`). Diferente da Lista, uma vez instanciada,
 // a Tupla não expõe métodos mutáveis para alteração, adição ou deleção de dados físicos em tempo de execução.
@@ -57,7 +57,7 @@ func (t Tupla) ObtemItem(i Objeto, nomeTipo string) (Objeto, error) {
 }
 
 // DefineItem executa a escrita no slice físico.
-// Embora exposta como interface Go, o Portuscript lança erros ou impede mutabilidades em scripts de usuário.
+// Embora exposta como interface Go, o Harpia lança erros ou impede mutabilidades em scripts de usuário.
 func (t Tupla) DefineItem(chave, valor Objeto, nomeTipo string) (Objeto, error) {
 	if I, ok := chave.(Inteiro); ok {
 		t[I] = valor

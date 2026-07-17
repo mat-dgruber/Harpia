@@ -1,6 +1,6 @@
 # Exemplo: Lista de Tarefas
 
-SPA minimalista que demonstra gerenciamento de estado reativo com Sinais, listas dinâmicas e eventos DOM em Portuscript.
+SPA minimalista que demonstra gerenciamento de estado reativo com Sinais, listas dinâmicas e eventos DOM em Harpia.
 
 ## Conceitos demonstrados
 
@@ -12,6 +12,6 @@ SPA minimalista que demonstra gerenciamento de estado reativo com Sinais, listas
 ## Como rodar
 
 ```bash
-portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+harpia compilar --alvo=web --entrada=main.ptst --saida=dist
 # Abra dist/index.html no browser
 ```

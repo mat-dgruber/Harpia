@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestTranspileWeb(t *testing.T) {
@@ -82,7 +82,7 @@ func TestTranspileWeb(t *testing.T) {
 }
 
 func TestComandoCompilarWeb(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_build_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_build_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestCompilacaoExemplos(t *testing.T) {
 				t.Skipf("Ignorando teste do exemplo '%s' (arquivo não encontrado)", ptstPath)
 			}
 
-			tempDir, err := os.MkdirTemp("", "portuscript_ex_build_*")
+			tempDir, err := os.MkdirTemp("", "Harpia_ex_build_*")
 			if err != nil {
 				t.Fatalf("Erro ao criar tempdir: %v", err)
 			}
@@ -205,7 +205,7 @@ func TestCompilacaoExemplos(t *testing.T) {
 }
 
 func TestComandoCompilarComRotas(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_build_rotas_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_build_rotas_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -322,7 +322,7 @@ func TestTranspileEstritoJSDoc(t *testing.T) {
 
 // TestTranspileRecursosAvancadosWeb assevera o funcionamento síncrono das inovações da Fase 4-C
 func TestTranspileRecursosAvancadosWeb(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_avancado_test_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_avancado_test_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -400,7 +400,7 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 
 // TestOtimizarECopiarAssets assevera que assets de imagens são processados, otimizados e copiados
 func TestOtimizarECopiarAssets(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_assets_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_assets_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}

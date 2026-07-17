@@ -25,8 +25,8 @@ go.work
 /dist
 /build
 
-portuscript
-portuscript.exe
+Harpia
+Harpia.exe
 
 # Dinamicamente gerados para benchmark
 benchmark

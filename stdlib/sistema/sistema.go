@@ -1,14 +1,14 @@
 // Package sistema implementa o módulo nativo de informações e propriedades de ambiente
-// da biblioteca padrão do Portuscript.
+// da biblioteca padrão do Harpia.
 //
-// Este pacote permite que scripts em Portuscript consultem detalhes dinâmicos sobre
+// Este pacote permite que scripts em Harpia consultem detalhes dinâmicos sobre
 // a arquitetura de processador e o sistema operacional hospedeiro no qual o interpretador está rodando.
 package sistema
 
 import (
 	"runtime"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 	// metodos é inicializado vazio, reservado para futuras expansões e comandos do sistema operacional (ex: 'saida', 'executa_comando').
 	metodos := []*ptst.Metodo{}
 
-	// Registra o módulo 'sistema' na lista interna de módulos nativos do Portuscript.
+	// Registra o módulo 'sistema' na lista interna de módulos nativos do Harpia.
 	ptst.RegistraModuloImpl(
 		&ptst.ModuloImpl{
 			Info: ptst.ModuloInfo{

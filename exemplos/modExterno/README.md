@@ -1,6 +1,6 @@
 # Módulos de Extensões Externas (.so)
 
-O Portuscript oferece suporte nativo e maduro para carregamento dinâmico de **Plugins de Extensões** compilados em Go, permitindo estender e expor recursos complexos com a performance bruta da linguagem Go.
+O Harpia oferece suporte nativo e maduro para carregamento dinâmico de **Plugins de Extensões** compilados em Go, permitindo estender e expor recursos complexos com a performance bruta da linguagem Go.
 
 ---
 

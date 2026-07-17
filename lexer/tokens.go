@@ -4,7 +4,7 @@ package lexer
 // Mapeado de forma sequencial utilizando 'iota' em Go.
 type TokenType int
 
-// Relação de todos os tipos de tokens suportados e classificados pelo Lexer do Portuscript.
+// Relação de todos os tipos de tokens suportados e classificados pelo Lexer do Harpia.
 const (
 	// TokenErro sinaliza a ocorrência de um caractere inválido ou falha léxica em tempo de análise.
 	TokenErro TokenType = iota

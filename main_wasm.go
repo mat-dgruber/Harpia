@@ -5,7 +5,7 @@ package main
 import (
 	"syscall/js"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 var (
@@ -17,10 +17,10 @@ var (
 func main() {
 	c := make(chan struct{}, 0)
 
-	// Expõe a função global rodarPortuscript no escopo do JavaScript
-	js.Global().Set("rodarPortuscript", js.FuncOf(func(this js.Value, args []js.Value) any {
+	// Expõe a função global rodarHarpia no escopo do JavaScript
+	js.Global().Set("rodarHarpia", js.FuncOf(func(this js.Value, args []js.Value) any {
 		if len(args) < 1 {
-			return "erro: código portuscript não fornecido"
+			return "erro: código Harpia não fornecido"
 		}
 		codigo := args[0].String()
 

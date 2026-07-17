@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 func TestDeclareFuncaoVazia(t *testing.T) {
@@ -167,12 +167,12 @@ func TestChamadaFuncaoComArgumentos(t *testing.T) {
 		Identificador: &parser.Identificador{Nome: "nenhumaOperacao"},
 		Argumentos: []parser.BaseNode{
 			&parser.InteiroLiteral{Valor: "2023"},
-			&parser.TextoLiteral{Valor: "\"portuscript\""},
+			&parser.TextoLiteral{Valor: "\"harpia\""},
 		},
 	}
 	esperada.Declaracoes = append(esperada.Declaracoes, chamada)
 
-	code := `nenhumaOperacao(2023, "portuscript")`
+	code := `nenhumaOperacao(2023, "harpia")`
 
 	err, ok := createParserAndCompare(code, esperada)
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 type ConexaoSQL struct {

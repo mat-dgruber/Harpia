@@ -14,7 +14,7 @@ func comandoNovo() *cobra.Command {
 	novo := &cobra.Command{
 		Use:     "novo",
 		Aliases: []string{"iniciar", "inicializar"},
-		Short:   "Inicializa uma nova estrutura de projeto Portuscript",
+		Short:   "Inicializa uma nova estrutura de projeto Harpia",
 	}
 
 	novo.AddCommand(comandoMonolito())
@@ -90,7 +90,7 @@ exportar funcao RotaIndex() {
 
 			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "Layout.html"), `
 <div class="p-6 max-w-lg mx-auto bg-white rounded-xl shadow-md space-y-4">
-	<h1 class="text-2xl font-bold text-gray-900">Meu Monolito Portuscript</h1>
+	<h1 class="text-2xl font-bold text-gray-900">Meu Monolito Harpia</h1>
 	<p class="text-gray-500">Desenvolvido em português com Clean Architecture e DDD.</p>
 	<div class="contador-secao">
 		<p>Cliques: <strong>{contador()}</strong></p>
@@ -119,7 +119,7 @@ de "assegura" importe assegure;
 de "../dominio/entidades/usuario.ptst" importe Usuario;
 
 testar "deve instanciar um usuario de dominio com tipos corretos" {
-	var user = nova Usuario(1, "Natan", "natan@portuscript.org")
+	var user = nova Usuario(1, "Natan", "natan@Harpia.org")
 	assegure(user.id == 1)
 	assegure(user.nome == "Natan")
 }
@@ -287,7 +287,7 @@ func comandoCrieRota() *cobra.Command {
 exportar funcao Rota%s() {
 	retorne <div class="p-6">
 		<h1 class="text-2xl font-bold">Página %s</h1>
-		<p>Gerado automaticamente com o assistente do Portuscript.</p>
+		<p>Gerado automaticamente com o assistente do Harpia.</p>
 	</div>;
 }
 `, nomeLimp, nomeLimp)
@@ -360,10 +360,10 @@ func exibirSucessoCompleto(nomeProj, tipo string) {
 	fmt.Println("Para rodar:")
 	fmt.Printf("  cd %s\n", nomeProj)
 	if tipo == "backend" {
-		fmt.Println("  portuscript executar main.ptst")
+		fmt.Println("  Harpia executar main.ptst")
 	} else {
-		fmt.Println("  portuscript compilar --alvo=web --entrada=main.ptst --saida=dist")
-		fmt.Println("  portuscript servir --diretorio=dist")
+		fmt.Println("  Harpia compilar --alvo=web --entrada=main.ptst --saida=dist")
+		fmt.Println("  Harpia servir --diretorio=dist")
 	}
 }
 

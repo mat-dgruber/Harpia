@@ -9,7 +9,7 @@ import (
 
 // TestAnalisarDependenciasViolacao assevera a detecção de violações da Clean Architecture
 func TestAnalisarDependenciasViolacao(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_diag_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_diag_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestAnalisarDependenciasViolacao(t *testing.T) {
 
 // TestDiagramarHTMLExport assevera que a exportação de HTML interativo e de alertas está correta
 func TestDiagramarHTMLExport(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_diag_html_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_diag_html_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestDiagramarHTMLExport(t *testing.T) {
 	}
 	conteudo := string(conteudoBytes)
 
-	if !strings.Contains(conteudo, "Diagrama de Arquitetura do Portuscript") {
+	if !strings.Contains(conteudo, "Diagrama de Arquitetura do Harpia") {
 		t.Errorf("Esperava cabeçalho do template no HTML. Obtido:\n%s", conteudo)
 	}
 

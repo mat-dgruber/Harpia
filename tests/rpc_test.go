@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	"github.com/mat-dgruber/Harpia/ptst"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func TestRPCModulo(t *testing.T) {
@@ -64,7 +64,7 @@ func TestRPCModulo(t *testing.T) {
 
 	res, err := ptst.ExecutarString(ctx, codigo)
 	if err != nil {
-		t.Fatalf("Erro ao executar chamada RPC no Portuscript: %v", err)
+		t.Fatalf("Erro ao executar chamada RPC no Harpia: %v", err)
 	}
 
 	val, err := res.Escopo.ObterValor("resposta")

@@ -8,7 +8,7 @@ import (
 
 // TestComandoTestarComHTML assevera o funcionamento da geração do relatório estético de cobertura em HTML
 func TestComandoTestarComHTML(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_test_html_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_test_html_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}

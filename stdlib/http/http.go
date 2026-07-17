@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // Requisicao representa a requisição HTTP recebida pelo servidor.

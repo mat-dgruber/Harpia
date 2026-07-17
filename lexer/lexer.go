@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/natanfeitosa/portuscript/compartilhado"
+	"github.com/mat-dgruber/Harpia/compartilhado"
 )
 
 // Lexer é a máquina de estados que executa o processo de varredura (scanning) de caracteres

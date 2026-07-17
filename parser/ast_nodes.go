@@ -1,6 +1,6 @@
 package parser
 
-import "github.com/natanfeitosa/portuscript/lexer"
+import "github.com/mat-dgruber/Harpia/lexer"
 
 // BaseNode define a interface de especificação de base para qualquer nó sintático da AST (Árvore de Sintaxe Abstrata).
 //
@@ -8,7 +8,7 @@ import "github.com/natanfeitosa/portuscript/lexer"
 // o polimorfismo estrutural, limitando que apenas structs autorizados implementem a interface.
 type BaseNode interface{ isExpr() }
 
-// Programa representa o nó raiz unificado da AST de um script Portuscript completo.
+// Programa representa o nó raiz unificado da AST de um script Harpia completo.
 type Programa struct {
 	Declaracoes []BaseNode                // Lista sequencial de instruções contidas no arquivo.
 	Codigo      string                    // Cópia textual integral do código fonte para fins de diagnósticos.

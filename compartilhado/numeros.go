@@ -6,7 +6,7 @@ import "strconv"
 //
 // A conversão utiliza a base decimal (base 10) e garante o tamanho máximo de precisão em 64 bits
 // para evitar estouro de pilha (overflow) ou perda de sinal na representação dos números
-// dentro da Máquina Virtual do Portuscript.
+// dentro da Máquina Virtual do Harpia.
 //
 // Retorna o valor inteiro decodificado ou um erro do tipo *strconv.NumError caso a string
 // não seja um número inteiro válido.
@@ -16,7 +16,7 @@ func StringParaInt(s string) (int64, error) {
 
 // StringParaDec converte a representação textual de um número de ponto flutuante em float64 (decimais).
 //
-// Esta função é fundamental para a correta tipagem do tipo 'Decimal' do Portuscript.
+// Esta função é fundamental para a correta tipagem do tipo 'Decimal' do Harpia.
 // Ela interpreta strings que possuem representação exponencial (científica) ou casas decimais
 // separadas por ponto (padrão IEEE 754 de dupla precisão).
 //

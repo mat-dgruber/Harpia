@@ -93,7 +93,7 @@ var explicacoes = map[string]ExplicacaoErro{
 func comandoErroCLI() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "erro [codigo]",
-		Short: "Fornece explicações didáticas em português sobre os códigos de erros do Portuscript",
+		Short: "Fornece explicações didáticas em português sobre os códigos de erros do Harpia",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			codigo := strings.ToUpper(args[0])
@@ -130,7 +130,7 @@ func comandoErroCLI() *cobra.Command {
 
 			requestBody, _ := json.Marshal(map[string]interface{}{
 				"model":  "gemma",
-				"prompt": fmt.Sprintf("Explique o código de erro '%s' (%s) do compilador Portuscript de forma extremamente pedagógica, em português brasileiro, fornecendo um exemplo curto de código com erro e a respectiva correção.", codigo, explicacao.Nome),
+				"prompt": fmt.Sprintf("Explique o código de erro '%s' (%s) do compilador Harpia de forma extremamente pedagógica, em português brasileiro, fornecendo um exemplo curto de código com erro e a respectiva correção.", codigo, explicacao.Nome),
 				"stream": false,
 			})
 
@@ -139,7 +139,7 @@ func comandoErroCLI() *cobra.Command {
 
 			if err != nil {
 				fmt.Println("\n⚠️  Não foi possível conectar ao Ollama local (127.0.0.1:11434).")
-				fmt.Println("Para usar IA local do Portuscript, siga estes passos:")
+				fmt.Println("Para usar IA local do Harpia, siga estes passos:")
 				fmt.Println("  1. Baixe e instale o Ollama em: https://ollama.com")
 				fmt.Println("  2. Instale o modelo 'gemma' via terminal:")
 				fmt.Println("     ollama run gemma")

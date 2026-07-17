@@ -3,15 +3,15 @@ package ptst_test
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestTemplateStringsEInterpolacao(t *testing.T) {
 	codigo := `
-	var nome = "Portuscript"
+	var nome = "Harpia"
 	var versao = 1
 	var msg = "Olá, {nome}! Versão {versao}."
-	assegura msg == "Olá, Portuscript! Versão 1."
+	assegura msg == "Olá, Harpia! Versão 1."
 	`
 
 	ctx := ptst.NewContexto(ptst.OpcsContexto{})

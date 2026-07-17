@@ -3,10 +3,10 @@ package ptst
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/compartilhado"
+	"github.com/mat-dgruber/Harpia/compartilhado"
 )
 
-// Decimal representa o tipo de dado numérico real de dupla precisão do Portuscript.
+// Decimal representa o tipo de dado numérico real de dupla precisão do Harpia.
 // É um apelido (alias) para o tipo básico 'float64' (IEEE 754) do Go.
 type Decimal float64
 

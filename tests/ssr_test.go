@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestSSRBasico(t *testing.T) {

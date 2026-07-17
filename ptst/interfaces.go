@@ -2,7 +2,7 @@ package ptst
 
 // ============================================================================
 // CONVENÇÃO DE NOMENCLATURA:
-// De acordo com as diretrizes de design do Portuscript, todas as interfaces Go
+// De acordo com as diretrizes de design do Harpia, todas as interfaces Go
 // destinadas a fins de modelagem de protocolos dinâmicos devem obrigatoriamente
 // iniciar com o prefixo "I" e os seus respectivos métodos internos com o prefixo "M" (de "Método").
 // ============================================================================

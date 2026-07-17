@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
-// TranspilerWeb converte uma AST do Portuscript para código JavaScript ES6 correspondente.
+// TranspilerWeb converte uma AST do Harpia para código JavaScript ES6 correspondente.
 type TranspilerWeb struct {
 	Styles        []string // Acumula blocos de estilo declarados para salvar no CSS
 	Estiro        bool     // ponytail: deprecating typo anterior
@@ -79,7 +79,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		esq := t.Transpile(n.Esq)
 		dir := t.Transpile(n.Dir)
 		op := n.Operador
-		// Mapeamentos de operadores do Portuscript para JS
+		// Mapeamentos de operadores do Harpia para JS
 		if op == "e" {
 			op = "&&"
 		} else if op == "ou" {
@@ -236,7 +236,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		var methods []string
 		for _, m := range n.Metodos {
-			// Métodos mágicos de inicialização no Portuscript convertem para constructor()
+			// Métodos mágicos de inicialização no Harpia convertem para constructor()
 			name := m.Nome
 			if name == "__init__" || name == "inicializar" {
 				name = "constructor"

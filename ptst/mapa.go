@@ -8,10 +8,10 @@ import (
 // refsMapas gerencia de forma global as contagens de referências das instâncias do tipo Mapa (ponteiros implícitos).
 var refsMapas = make(map[uintptr]int)
 
-// Mapa representa a coleção do tipo dicionário ou mapa chave-valor associativo do Portuscript (ex: { "a": 1 }).
+// Mapa representa a coleção do tipo dicionário ou mapa chave-valor associativo do Harpia (ex: { "a": 1 }).
 //
 // É um apelido (alias) para o tipo nativo hashmap `map[string]Objeto` do Go.
-// No Portuscript, as chaves de mapas são restritas estritamente ao tipo Texto (string).
+// No Harpia, as chaves de mapas são restritas estritamente ao tipo Texto (string).
 type Mapa map[string]Objeto
 
 // Métodos de gerenciamento explícito de memória (ObjetoGC) para o tipo Mapa.
@@ -95,7 +95,7 @@ func (m Mapa) M__texto__() (Objeto, error) {
 // M__iter__ satisfaz o protocolo de objetos iteráveis.
 //
 // Diferencial de Iteração:
-// A iteração sobre mapas do Portuscript varre e devolve consecutivamente uma Tupla
+// A iteração sobre mapas do Harpia varre e devolve consecutivamente uma Tupla
 // contendo o par [Chave, Valor] de cada elemento, permitindo desestruturação fluida.
 func (m Mapa) M__iter__() (Objeto, error) {
 	entradas := make(Tupla, 0, len(m))

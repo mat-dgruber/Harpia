@@ -1,5 +1,5 @@
 // Package embutidos reúne e expõe os tipos primitivos, constantes universais e funções essenciais
-// que compõem o escopo global implícito do Portuscript.
+// que compõem o escopo global implícito do Harpia.
 //
 // Diferente de outros módulos da biblioteca padrão (como 'matematica' ou 'sistema'), os elementos
 // deste pacote não requerem uma declaração de importação explícita; eles são injetados diretamente
@@ -7,11 +7,11 @@
 package embutidos
 
 import (
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // registrarTipos é um utilitário interno para automatizar o mapeamento de tipos estruturais
-// e classes do Portuscript diretamente no dicionário global de constantes do pacote.
+// e classes do Harpia diretamente no dicionário global de constantes do pacote.
 func registrarTipos(tipos []*ptst.Tipo, mapa ptst.Mapa) {
 	for _, tipo := range tipos {
 		mapa[tipo.Nome] = tipo

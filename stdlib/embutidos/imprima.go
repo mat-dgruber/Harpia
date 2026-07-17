@@ -3,7 +3,7 @@ package embutidos
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_emb_imprima implementa a lógica nativa para a função global 'imprima()'.

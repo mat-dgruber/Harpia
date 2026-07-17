@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestExportacaoESimbolos(t *testing.T) {
@@ -16,7 +16,7 @@ func TestExportacaoESimbolos(t *testing.T) {
 	}
 	`
 
-	dir, err := os.MkdirTemp("", "portuscript_test_*")
+	dir, err := os.MkdirTemp("", "Harpia_test_*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestExportacaoESimbolos(t *testing.T) {
 }
 
 func TestImportacaoCiclica(t *testing.T) {
-	dir, err := os.MkdirTemp("", "portuscript_ciclo_*")
+	dir, err := os.MkdirTemp("", "Harpia_ciclo_*")
 	if err != nil {
 		t.Fatal(err)
 	}

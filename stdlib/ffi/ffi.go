@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 type Biblioteca struct {
@@ -47,7 +47,7 @@ func (f *FuncaoFFI) Tipo() *ptst.Tipo {
 	return TipoFuncaoFFI
 }
 
-// M__chame__ torna a função FFI chamável diretamente no Portuscript.
+// M__chame__ torna a função FFI chamável diretamente no Harpia.
 // Como FFI real requer montagem de registros de CPU dependendo da ABI, simulamos a ponte CGO/DLL,
 // retornando resultados simulados de exemplo se o arquivo de biblioteca física não existir de fato.
 func (f *FuncaoFFI) M__chame__(args ptst.Tupla) (ptst.Objeto, error) {

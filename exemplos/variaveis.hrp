@@ -6,7 +6,7 @@
 #   - 'const' declara constantes imutáveis cujo valor é fixado e protegido.
 
 # Declaração inicial
-var nome = "Portuscript";
+var nome = "Harpia";
 const ano = 2023;
 
 imprima("nome:", nome)

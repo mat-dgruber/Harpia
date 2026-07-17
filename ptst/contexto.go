@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/natanfeitosa/portuscript/lexer"
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/lexer"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // OpcsContexto agrupa as propriedades opcionais de inicialização do contexto da VM.
@@ -18,7 +18,7 @@ type OpcsContexto struct {
 	BloquearRede     bool     // Ativa o bloqueio de conexões e operações de rede (Sandbox).
 }
 
-// Contexto representa o orquestrador global e supervisor de estado da VM do Portuscript.
+// Contexto representa o orquestrador global e supervisor de estado da VM do Harpia.
 //
 // O Contexto armazena o cache de módulos importados, rastreia as coordenadas geográficas físicas da
 // instrução em execução (útil para tracebacks precisos de erros) e lida com a sincronização de tarefas concorrentes.

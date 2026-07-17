@@ -3,10 +3,10 @@ package ptst
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/compartilhado"
+	"github.com/mat-dgruber/Harpia/compartilhado"
 )
 
-// Inteiro representa o tipo de dado numérico inteiro com sinal de 64 bits do Portuscript.
+// Inteiro representa o tipo de dado numérico inteiro com sinal de 64 bits do Harpia.
 // É um apelido (alias) para o tipo básico 'int64' do Go.
 type Inteiro int64
 

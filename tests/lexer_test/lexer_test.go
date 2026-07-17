@@ -5,11 +5,11 @@ import (
 
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/lexer"
+	"github.com/mat-dgruber/Harpia/lexer"
 )
 
 func TestFuncaoSimples(t *testing.T) {
-	code := `nenhumaOperacao(2023, "portuscript")`
+	code := `nenhumaOperacao(2023, "harpia")`
 
 	lex := lexer.NewLexer(code)
 	tokens := []lexer.Token{
@@ -17,7 +17,7 @@ func TestFuncaoSimples(t *testing.T) {
 		{Tipo: lexer.TokenAbreParenteses, Valor: "("},
 		{Tipo: lexer.TokenInteiro, Valor: "2023"},
 		{Tipo: lexer.TokenVirgula, Valor: ","},
-		{Tipo: lexer.TokenTexto, Valor: "\"portuscript\""},
+		{Tipo: lexer.TokenTexto, Valor: "\"harpia\""},
 		{Tipo: lexer.TokenFechaParenteses, Valor: ")"},
 	}
 

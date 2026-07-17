@@ -8,7 +8,7 @@ package compartilhado
 //
 // Decisão de Design:
 // A função delega a lógica para ContemApenasDigitos e ContemApenasLetras para garantir
-// reaproveitamento de código e consistência nas regras de classificação do Lexer do Portuscript,
+// reaproveitamento de código e consistência nas regras de classificação do Lexer do Harpia,
 // evitando caminhos de validação divergentes.
 func ContemApenasAlfaNum(str string) bool {
 	return ContemApenasDigitos(str) || ContemApenasLetras(str)

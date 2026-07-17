@@ -13,7 +13,7 @@ type NovaFunc func(args Tupla) (Objeto, error)
 // (corresponde ao método construtor '__inicializa__', similar ao '__init__' do Python).
 type InicializaFunc func(args Tupla) error
 
-// Tipo é a estrutura fundamental de representação de classes e metaclasses na VM do Portuscript.
+// Tipo é a estrutura fundamental de representação de classes e metaclasses na VM do Harpia.
 //
 // Cada instância de Tipo define uma classe, carregando seu dicionário de atributos, ponteiro
 // para a classe pai (herança), manual de documentação técnica (Doc) e os ponteiros de funções

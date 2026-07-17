@@ -1,6 +1,6 @@
 package ptst
 
-// Lista representa a coleção indexada mutável ordenada de dados do Portuscript (ex: [1, 2, 3]).
+// Lista representa a coleção indexada mutável ordenada de dados do Harpia (ex: [1, 2, 3]).
 //
 // Ela atua encapsulando uma estrutura interna do tipo Tupla, estendendo-a com capacidades de mutabilidade,
 // inserção, deleção e redimensionamento dinâmico.

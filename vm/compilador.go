@@ -3,9 +3,9 @@ package vm
 import (
 	"encoding/binary"
 	"fmt"
-	"github.com/natanfeitosa/portuscript/compartilhado"
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/compartilhado"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // ProgramaCompilado agrupa o pool de constantes extraídas e o bytecode plano gerado para execução na VM.
@@ -14,7 +14,7 @@ type ProgramaCompilado struct {
 	Bytecode   []byte
 }
 
-// Compilador realiza a tradução de passagem única (single-pass) da AST do Portuscript para bytecode.
+// Compilador realiza a tradução de passagem única (single-pass) da AST do Harpia para bytecode.
 type Compilador struct {
 	Constantes []ptst.Objeto
 	Bytecode   []byte

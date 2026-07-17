@@ -1,6 +1,6 @@
 package embutidos
 
-import "github.com/natanfeitosa/portuscript/ptst"
+import "github.com/mat-dgruber/Harpia/ptst"
 
 // emb_tamanho_fn implementa a lógica nativa para a função global 'tamanho()'.
 //

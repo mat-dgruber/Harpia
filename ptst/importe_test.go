@@ -3,8 +3,8 @@ package ptst_test
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	"github.com/mat-dgruber/Harpia/ptst"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func assertPanic(t *testing.T, f func()) {

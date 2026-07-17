@@ -3,7 +3,7 @@ package matematica
 import (
 	"math"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_mat_absoluto implementa a lógica nativa para a função 'absoluto()'.
@@ -24,7 +24,7 @@ func met_mat_absoluto(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return ptst.Decimal(math.Abs(float64(numero.(ptst.Decimal)))), nil
 }
 
-// _mat_absoluto cria e define a assinatura do método 'absoluto' exposto na stdlib do Portuscript.
+// _mat_absoluto cria e define a assinatura do método 'absoluto' exposto na stdlib do Harpia.
 var _mat_absoluto = ptst.NewMetodoOuPanic(
 	"absoluto",
 	met_mat_absoluto,

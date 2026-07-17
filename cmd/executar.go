@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/natanfeitosa/portuscript/playground"
-	"github.com/natanfeitosa/portuscript/ptst"
-	"github.com/natanfeitosa/portuscript/vm"
+	"github.com/mat-dgruber/Harpia/playground"
+	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/vm"
 
 	// A importação blank (_) é fundamental aqui: ela força a execução da função init()
 	// presente no pacote stdlib. Isso faz com que todos os módulos nativos da biblioteca
-	// padrão do Portuscript (como 'embutidos', 'matematica', 'sis', etc.) se registrem de
+	// padrão do Harpia (como 'embutidos', 'matematica', 'sis', etc.) se registrem de
 	// forma automática no interpretador antes que qualquer código comece a rodar.
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 	"github.com/spf13/cobra"
 )
 
-// codigo armazena o conteúdo textual de um código Portuscript fornecido inline através da flag `-c` ou `--codigo`.
+// codigo armazena o conteúdo textual de um código Harpia fornecido inline através da flag `-c` ou `--codigo`.
 //
 // Esta variável é declarada no escopo do pacote porque a biblioteca Cobra necessita de uma referência
 // estável na memória para preencher o valor do argumento por meio de referenciamento de ponteiro
@@ -36,12 +36,12 @@ var profilador bool
 //  2. Execução de Arquivo: Ativado quando um arquivo `.pt` é fornecido como primeiro argumento posicional.
 //     O interpretador lê, analisa (parser), compila em AST e executa as instruções descritas no arquivo físico.
 //
-//  3. Execução Inline (Código Rápido): Ativado pela flag `-c "codigo_portuscript"`.
+//  3. Execução Inline (Código Rápido): Ativado pela flag `-c "codigo_Harpia"`.
 //     Permite testar pequenos trechos de código diretamente pelo shell do sistema sem a necessidade de criar arquivos no disco.
 //
 // Ordem de Avaliação e Regras de Negócio:
 //   - O diretório corrente (Working Directory) do processo atual é obtido via `os.Getwd()` no momento do disparo.
-//     Ele é adicionado por padrão aos caminhos de busca (`CaminhosPadrao`) do contexto do Portuscript, garantindo que
+//     Ele é adicionado por padrão aos caminhos de busca (`CaminhosPadrao`) do contexto do Harpia, garantindo que
 //     importações relativas de módulos (`importar modulo`) funcionem corretamente a partir de onde o usuário chamou a CLI.
 //   - Um novo contexto de máquina virtual é criado (`ptst.NewContexto`). O comando registra um `defer ctx.Terminar()`
 //     imediatamente após. Isso garante que a destruição controlada do contexto ocorra de forma segura, limpando caches,

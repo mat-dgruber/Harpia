@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 type ConfigDependencias struct {

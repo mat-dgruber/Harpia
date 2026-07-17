@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 var (

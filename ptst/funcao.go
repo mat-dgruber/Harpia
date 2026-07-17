@@ -1,10 +1,10 @@
 package ptst
 
 import (
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
-// Funcao representa uma sub-rotina ou função declarada no próprio código fonte pelo programador do Portuscript (ex: func somar(a, b)).
+// Funcao representa uma sub-rotina ou função declarada no próprio código fonte pelo programador do Harpia (ex: func somar(a, b)).
 //
 // Ela armazena o corpo de instruções (AST Bloco), a relação ordenada de parâmetros formais esperados,
 // o supervisor (Contexto) de execução da VM, e o escopo léxico estático no qual ela foi originalmente declarada.
@@ -23,7 +23,7 @@ type Funcao struct {
 }
 
 // TipoFuncao especifica as assinaturas e os metadados de classe do tipo Funcao na VM.
-var TipoFuncao = NewTipo("Funcao", "Uma funcao Portuscript")
+var TipoFuncao = NewTipo("Funcao", "Uma funcao Harpia")
 
 // Tipo retorna a representação de classe (Tipo de Funcao).
 func (f *Funcao) Tipo() *Tipo {

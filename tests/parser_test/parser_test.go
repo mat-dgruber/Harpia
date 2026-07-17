@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 func TestParseEstilo(t *testing.T) {

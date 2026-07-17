@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 	"github.com/spf13/cobra"
 )
 
@@ -153,13 +153,13 @@ func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[
 <html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
 <head>
     <meta charset="UTF-8">
-    <title>Portuscript — Relatório de Cobertura de Testes</title>
+    <title>Harpia — Relatório de Cobertura de Testes</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="p-8 max-w-6xl mx-auto">
     <header class="mb-8 border-b border-slate-800 pb-6">
         <h1 class="text-3xl font-black text-blue-500">Relatório de Cobertura de Testes</h1>
-        <p class="text-slate-400 mt-1">Garantia e integridade de código do ecossistema Portuscript</p>
+        <p class="text-slate-400 mt-1">Garantia e integridade de código do ecossistema Harpia</p>
     </header>
     <div class="space-y-8">
 `)

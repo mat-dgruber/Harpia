@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_emb_leia implementa a lógica nativa para a função global 'leia()'.

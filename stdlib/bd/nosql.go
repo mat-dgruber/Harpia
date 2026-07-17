@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -213,7 +213,7 @@ func conectarMongoImpl(url string) (*ConexaoMongo, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbName := "portuscript"
+	dbName := "Harpia"
 	return &ConexaoMongo{client: client, dbName: dbName}, nil
 }
 

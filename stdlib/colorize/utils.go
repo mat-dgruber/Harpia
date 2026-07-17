@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // cor define a estrutura de dados interna para mapeamento estático de cores hexadecimais.

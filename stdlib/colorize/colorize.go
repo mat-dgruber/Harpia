@@ -2,13 +2,13 @@
 // no console (terminal) utilizando sequências de escape ANSI de 24 bits (True Color).
 //
 // O pacote define objetos Foreground (texto) e Background (fundo) cujas propriedades de cores
-// são mapeadas de forma dinâmica e expostas ao interpretador do Portuscript.
+// são mapeadas de forma dinâmica e expostas ao interpretador do Harpia.
 package colorize
 
 import (
 	"os"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 const (
@@ -50,7 +50,7 @@ func init() {
 		_color_imprimac,
 	}
 
-	// Registra o módulo 'colorize' nativamente na VM do Portuscript.
+	// Registra o módulo 'colorize' nativamente na VM do Harpia.
 	ptst.RegistraModuloImpl(
 		&ptst.ModuloImpl{
 			Info: ptst.ModuloInfo{

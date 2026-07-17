@@ -1,4 +1,4 @@
-// Package cmd agrupa, estrutura e instala os subcomandos que compõem a CLI (Interface de Linha de Comando) do Portuscript.
+// Package cmd agrupa, estrutura e instala os subcomandos que compõem a CLI (Interface de Linha de Comando) do Harpia.
 //
 // O pacote atua como o ponto central de integração entre a inicialização do executável (definido no arquivo principal main.go)
 // e a biblioteca de gerenciamento de comandos Cobra (github.com/spf13/cobra).
@@ -10,7 +10,7 @@
 //     propagadas para recursos internos como o atualizador e o console interativo (playground).
 //
 //   - Fornecer a função InstalarComandos como o ponto único de montagem de toda a árvore de comandos
-//     e subcomandos suportados pelo utilitário de terminal do Portuscript.
+//     e subcomandos suportados pelo utilitário de terminal do Harpia.
 //
 // Filosofia de Design da CLI:
 // Toda a comunicação com o desenvolvedor ocorre prioritariamente em Português (PT-BR). As descrições curtas,
@@ -26,7 +26,7 @@ import "github.com/spf13/cobra"
 // o desenvolvimento local (ex: rodar utilizando `go run main.go`).
 // Durante o build oficial de distribuição, essas strings são substituídas via flags de ligação:
 //
-//	go build -ldflags "-X 'github.com/natanfeitosa/portuscript/cmd.Version=1.0.0' -X 'github.com/natanfeitosa/portuscript/cmd.Commit=abcdef' -X 'github.com/natanfeitosa/portuscript/cmd.Datetime=2026-07-14T00:00:00Z'"
+//	go build -ldflags "-X 'github.com/mat-dgruber/Harpia/cmd.Version=1.0.0' -X 'github.com/mat-dgruber/Harpia/cmd.Commit=abcdef' -X 'github.com/mat-dgruber/Harpia/cmd.Datetime=2026-07-14T00:00:00Z'"
 var (
 	// Commit armazena a hash curta (ou completa) do commit do Git no qual este build foi gerado.
 	// É útil para auditoria e rastreamento exato do código-fonte em execução no cliente.
@@ -47,7 +47,7 @@ var (
 // Esta função encapsula o acoplamento do Cobra e registra na instância raiz (raiz) do console
 // os comandos secundários disponíveis:
 //   - `atualize`: Busca e instala novas releases binárias a partir do GitHub.
-//   - `executar` (exec): Interpreta arquivos Portuscript (.pt) ou pequenos trechos passados diretamente via terminal.
+//   - `executar` (exec): Interpreta arquivos Harpia (.pt) ou pequenos trechos passados diretamente via terminal.
 //   - `testar`: Varre o diretório em busca de arquivos `.ptst`/`.pt` e executa os blocos `teste`/blocos nativos.
 //   - `checar`: Linter estático — analisa a AST em busca de erros semânticos sem executar (escopo, redeclaração, constantes).
 //

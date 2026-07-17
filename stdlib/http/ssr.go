@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
-// ServirAppHandler implementa a lógica de servir e reidratar um SPA Portuscript com SSR, AEO/GEO.
+// ServirAppHandler implementa a lógica de servir e reidratar um SPA Harpia com SSR, AEO/GEO.
 func ServirAppHandler(diretorioDist string, componenteRaiz ptst.Objeto, metadados ptst.Objeto) ptst.Objeto {
 	return ptst.NewMetodoOuPanic("handler_spa", func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 		if len(args) < 2 {
@@ -88,7 +88,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz ptst.Objeto, metadado
 				// Titulo
 				if t, ok := mapa["titulo"]; ok {
 					if txt, ok := t.(ptst.Texto); ok {
-						htmlStr = strings.Replace(htmlStr, "<title>Portuscript App</title>", fmt.Sprintf("<title>%s</title>", txt), 1)
+						htmlStr = strings.Replace(htmlStr, "<title>Harpia App</title>", fmt.Sprintf("<title>%s</title>", txt), 1)
 						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:title\" content=\"%s\">", txt))
 					}
 				}

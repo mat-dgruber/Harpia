@@ -1,7 +1,7 @@
-# Exemplo de contador reativo usando Sinais e JSX no Portuscript.
+# Exemplo de contador reativo usando Sinais e JSX no Harpia.
 #
 # Para rodar este exemplo:
-#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#   Harpia compilar --alvo=web --entrada=main.ptst --saida=dist
 #
 # Abra o arquivo dist/index.html gerado no seu navegador de preferência.
 

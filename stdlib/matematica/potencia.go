@@ -3,7 +3,7 @@ package matematica
 import (
 	"math"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_mat_potencia implementa a lógica nativa para a função 'potencia()'.
@@ -37,7 +37,7 @@ func met_mat_potencia(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return ptst.Decimal(potencia), nil
 }
 
-// _mat_potencia cria e define a assinatura do método 'potencia' exposto na stdlib do Portuscript.
+// _mat_potencia cria e define a assinatura do método 'potencia' exposto na stdlib do Harpia.
 var _mat_potencia = ptst.NewMetodoOuPanic(
 	"potencia",
 	met_mat_potencia,

@@ -3,7 +3,7 @@ package ptst
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 func TestTipagemEstaticaParsing(t *testing.T) {

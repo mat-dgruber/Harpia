@@ -1,7 +1,7 @@
 # ============================================================================
 # EXEMPLO: CAIXA ELETRÔNICO INTERATIVO (ATM)
 # ============================================================================
-# Este exemplo consolida múltiplos recursos avançados do Portuscript:
+# Este exemplo consolida múltiplos recursos avançados do Harpia:
 #   - Variáveis mutáveis e constantes de menu;
 #   - Loop infinito 'enquanto(Verdadeiro)';
 #   - Interações amigáveis via 'leia()' e 'imprima()';

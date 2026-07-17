@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Proponha um novo recurso para o Portuscript. Descreva o recurso desejado, explique
+about: Proponha um novo recurso para o Harpia. Descreva o recurso desejado, explique
   sua motivação e como ele pode agregar valor ao projeto.
 title: 'Recurso: [Breve descrição do recurso]'
 labels: enhancement

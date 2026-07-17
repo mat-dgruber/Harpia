@@ -28,7 +28,7 @@ type LSPDiagnostic struct {
 }
 
 func TestLinterLSPDiagnosticsJSON(t *testing.T) {
-	dir, err := os.MkdirTemp("", "portuscript_linter_lsp_*")
+	dir, err := os.MkdirTemp("", "Harpia_linter_lsp_*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,14 +47,14 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 
 	// Executa a checagem diretamente chamando o binário compilado
 	// Isso faz o roundtrip completo testando flags do Cobra
-	execPath, err := filepath.Abs("../portuscript")
+	execPath, err := filepath.Abs("../Harpia")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// ponytail: evita falhas se o binário de produção ainda não foi compilado no root
 	if _, err := os.Stat(execPath); os.IsNotExist(err) {
-		t.Skipf("Ignorando teste de linter LSP: binário '%s' não encontrado. Compile com 'go build -o portuscript main.go' primeiro.", execPath)
+		t.Skipf("Ignorando teste de linter LSP: binário '%s' não encontrado. Compile com 'go build -o Harpia main.go' primeiro.", execPath)
 	}
 
 	cmdRun := exec.Command(execPath, "checar", caminhoArquivo, "--formato=json")

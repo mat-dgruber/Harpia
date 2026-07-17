@@ -3,7 +3,7 @@ package ffi
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestFFIMockSoma(t *testing.T) {

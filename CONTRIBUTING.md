@@ -2,13 +2,13 @@ le@ vsa
 
 # Guia de Contribuição
 
-Obrigado por considerar contribuir para o projeto PortuScript! Sua contribuição é valiosa e ajuda a melhorar a linguagem para todos os usuários. Antes de começar, por favor, leia este guia para entender como você pode contribuir de maneira eficaz.
+Obrigado por considerar contribuir para o projeto Harpia! Sua contribuição é valiosa e ajuda a melhorar a linguagem para todos os usuários. Antes de começar, por favor, leia este guia para entender como você pode contribuir de maneira eficaz.
 
 ## Como Contribuir
 
 1. **Consulte o [ROADMAP.md](ROADMAP.md):** Verifique quais tarefas e fases estão planejadas e priorizadas para o desenvolvimento da linguagem.
 2. **Crie uma Issue:** Antes de começar a trabalhar em uma nova funcionalidade ou correção do roadmap, crie ou comente em uma issue para discutir sua proposta e alinhamento.
-3. **Fork do Repositório:** Faça um fork do repositório PortuScript para sua própria conta do GitHub. Isso permitirá que você faça alterações e envie solicitações de pull.
+3. **Fork do Repositório:** Faça um fork do repositório Harpia para sua própria conta do GitHub. Isso permitirá que você faça alterações e envie solicitações de pull.
 4. **Clone o Repositório Forked:** Clone o repositório forked para sua máquina local usando o seguinte comando:
 
    ```bash

@@ -4,7 +4,7 @@ import (
 	"bytes"
 )
 
-// Bytes representa o tipo de dado de torrente e array de bytes raw mutável (ou congelado) do Portuscript.
+// Bytes representa o tipo de dado de torrente e array de bytes raw mutável (ou congelado) do Harpia.
 type Bytes struct {
 	Itens     []byte // O slice standard de bytes do Go que guarda os dados físicos.
 	Congelado bool   // Flag opcional que sinaliza se o array de bytes está bloqueado contra escritas.

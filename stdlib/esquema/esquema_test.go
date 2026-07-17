@@ -3,7 +3,7 @@ package esquema
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestEsquemaValidacaoSucesso(t *testing.T) {

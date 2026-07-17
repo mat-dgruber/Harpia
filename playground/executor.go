@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // Executor é o componente responsável pelo gerenciamento de compilação rápida, isolamento de escopo
@@ -40,7 +40,7 @@ func NovoExecutor(ctx *ptst.Contexto) *Executor {
 //  1. Recebe a string de código e compila dinamicamente para uma Árvore de Sintaxe Abstrata (AST)
 //     referenciando a origem virtual "<playground>";
 //  2. Avalia a AST no ambiente da VM sob o escopo isolado e persistente do módulo virtual do playground;
-//  3. Converte o Objeto Go de retorno resultante em sua representação textual correspondente no Portuscript;
+//  3. Converte o Objeto Go de retorno resultante em sua representação textual correspondente no Harpia;
 //  4. Imprime o resultado final diretamente no terminal padrão do usuário.
 //
 // Em caso de qualquer falha léxica, sintática ou de tempo de execução, a exceção é interceptada,

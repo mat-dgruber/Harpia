@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
-    <title>Portuscript — Portal Oficial e Playground</title>
+    <title>Harpia — Portal Oficial e Playground</title>
     <style>
       body {
         background: #121212;
@@ -118,7 +118,7 @@
   </head>
   <body>
     <header>
-      <h1>Portuscript — Portal Oficial</h1>
+      <h1>Harpia — Portal Oficial</h1>
       <div id="status" class="status-badge">
         Carregando compilador WebAssembly...
       </div>
@@ -129,7 +129,7 @@
         <h2 class="titulo-coluna">Playground (Código Fonte)</h2>
         <textarea
           id="codigo"
-          placeholder="Escreva seu código Portuscript aqui..."
+          placeholder="Escreva seu código Harpia aqui..."
         >
 # Escreva seu código em português
 var a = 10
@@ -171,7 +171,7 @@ imprimir(somar(a, b))
       };
 
       WebAssembly.instantiateStreaming(
-        fetch("portuscript.wasm"),
+        fetch("Harpia.wasm"),
         go.importObject,
       )
         .then((result) => {
@@ -186,7 +186,7 @@ imprimir(somar(a, b))
         });
 
       function executarCodigo() {
-        if (typeof window.rodarPortuscript !== "function") {
+        if (typeof window.rodarHarpia !== "function") {
           alert("O compilador WASM não foi inicializado corretamente.");
           return;
         }
@@ -196,7 +196,7 @@ imprimir(somar(a, b))
         saidaEl.textContent = "Executando...";
 
         const codigo = document.getElementById("codigo").value;
-        const resultado = window.rodarPortuscript(codigo);
+        const resultado = window.rodarHarpia(codigo);
 
         // Renderiza as impressões capturadas do console
         if (logsOriginais.length > 0) {

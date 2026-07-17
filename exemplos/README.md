@@ -1,6 +1,6 @@
-# Galeria de Exemplos (`exemplos` do Portuscript)
+# Galeria de Exemplos (`exemplos` do Harpia)
 
-Este diretório abriga um catálogo abrangente de **Scripts Demonstrativos** (`.ptst`) e **Módulos de Extensões** desenhados para servir de guia de aprendizado pedagógico prático das capacidades do **Portuscript**.
+Este diretório abriga um catálogo abrangente de **Scripts Demonstrativos** (`.ptst`) e **Módulos de Extensões** desenhados para servir de guia de aprendizado pedagógico prático das capacidades do **Harpia**.
 
 Aqui você encontrará desde o clássico Olá Mundo até programas completos de redes assíncronas e extensões nativas compiladas de alto desempenho.
 
@@ -47,7 +47,7 @@ A subpasta **`soquetes/`** abriga uma demonstração prática de programação d
 
 ## ⚙️ Recurso Avançado: Extensões Dinâmicas Go (`modExterno`)
 
-O Portuscript permite que programadores criem módulos compilados nativamente em Go que são carregados de forma assíncrona como plug-ins compartilhados de alto desempenho (`.so`):
+O Harpia permite que programadores criem módulos compilados nativamente em Go que são carregados de forma assíncrona como plug-ins compartilhados de alto desempenho (`.so`):
 
 - **`modExterno/main.go`**: Define a extensão nativa Go contendo o método de performance `.exiba()`.
 - **`modExterno/main.ptst`**: Demonstra a importação e o uso da extensão.
@@ -61,8 +61,8 @@ Para rodar qualquer um dos scripts de demonstração locais, utilize o interpret
 
 ```bash
 # Executa o exemplo do Caixa Eletrônico interativo
-portuscript executar exemplos/atm.ptst
+harpia executar exemplos/atm.ptst
 
 # Executa o exemplo de fatorial recursivo
-portuscript executar exemplos/fatorial.ptst
+harpia executar exemplos/fatorial.ptst
 ```

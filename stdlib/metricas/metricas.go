@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 type MetricaInfo struct {

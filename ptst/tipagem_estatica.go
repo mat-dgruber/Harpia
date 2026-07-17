@@ -70,7 +70,7 @@ func ValidarTipo(esperado string, obtido Objeto) bool {
 
 			for chave, valor := range mapa {
 				txtChave, _ := NewTexto(chave)
-				// Na VM do Portuscript as chaves de mapas são strings (Texto)
+				// Na VM do Harpia as chaves de mapas são strings (Texto)
 				if !ValidarTipo(tipoChave, txtChave) {
 					return false
 				}

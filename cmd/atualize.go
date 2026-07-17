@@ -83,12 +83,12 @@ func jaAtualizado(a, b string) bool {
 }
 
 // urlDaVersao reconstrói dinamicamente o link de download direto do release mais recente
-// do Portuscript baseado na arquitetura e sistema operacional do cliente atual.
+// do Harpia baseado na arquitetura e sistema operacional do cliente atual.
 //
 // O link aponta para o diretório de downloads do repositório GitHub e anexa as extensões
 // correspondentes (.zip para Windows e .tar.gz para as demais plataformas Unix-like).
 func urlDaVersao() string {
-	url := "https://github.com/natanfeitosa/portuscript/releases/latest/download/"
+	url := "https://github.com/mat-dgruber/Harpia/releases/latest/download/"
 	url += nomeOS() + "_" + nomeArch()
 
 	if isWindows() {
@@ -105,7 +105,7 @@ type Tag struct {
 	Name string `json:"name"`
 }
 
-// versaoInstalada executa o binário do Portuscript especificado no caminho para descobrir
+// versaoInstalada executa o binário do Harpia especificado no caminho para descobrir
 // a sua versão atual rodando o argumento `-v` ou `--version`.
 //
 // Retorna a string de versão (limpa de espaços e sem o prefixo do nome do programa) ou um
@@ -114,7 +114,7 @@ type Tag struct {
 func versaoInstalada(binario string) (string, error) {
 	comandoEx, err := exec.Command(binario, "-v").Output()
 	if err != nil {
-		return "", fmt.Errorf("erro ao obter a versão instalada, provavelmente você ainda não instalou nenhuma versão, veja: <https://github.com/natanfeitosa/portuscript/?tab=readme-ov-file#com-bash>")
+		return "", fmt.Errorf("erro ao obter a versão instalada, provavelmente você ainda não instalou nenhuma versão, veja: <https://github.com/mat-dgruber/Harpia/?tab=readme-ov-file#com-bash>")
 	}
 	parts := strings.Split(strings.Trim(string(comandoEx), " \t\n"), " ")
 	v := parts[len(parts)-1]
@@ -130,7 +130,7 @@ func versaoInstalada(binario string) (string, error) {
 // e recente devido à ordenação da API) e limpa o caractere de prefixo "v" caso esteja presente,
 // retornando a string pura do Semantic Versioning (ex: "0.1.0").
 func ultimaVersao() (string, error) {
-	response, err := httpClient.Get("https://api.github.com/repos/natanfeitosa/portuscript/tags")
+	response, err := httpClient.Get("https://api.github.com/repos/mat-dgruber/Harpia/tags")
 	if err != nil {
 		return "", fmt.Errorf("erro ao obter as versões no repositório")
 	}
@@ -152,12 +152,12 @@ func ultimaVersao() (string, error) {
 	return strings.TrimPrefix(tags[0].Name, "v"), nil
 }
 
-// downloadEInstalar faz o download do pacote comprimido do Portuscript em um arquivo temporário no sistema,
+// downloadEInstalar faz o download do pacote comprimido do Harpia em um arquivo temporário no sistema,
 // exibe a barra de progresso no terminal usando a ferramenta nativa curl e, ao final, dispara o processo de
 // descompactação do novo binário diretamente no diretório de destino correspondente à instalação.
 //
 // O arquivo temporário criado no disco é limpo e removido de forma garantida através do recurso defer.
-func downloadEInstalar(raizPortuscript string) error {
+func downloadEInstalar(raizHarpia string) error {
 	f, err := os.CreateTemp("", "-ptst")
 	if err != nil {
 		return fmt.Errorf("erro ao criar um diretorio temporário")
@@ -180,22 +180,22 @@ func downloadEInstalar(raizPortuscript string) error {
 
 	fmt.Println("Instalando a nova versão...")
 
-	return descompactar(compactTemp, raizPortuscript)
+	return descompactar(compactTemp, raizHarpia)
 }
 
 // descompactar extrai o conteúdo do pacote compactado baixado temporariamente para o diretório
-// final de execução do Portuscript (raizPortuscript).
+// final de execução do Harpia (raizHarpia).
 //
 // Esta função faz distinção inteligente entre sistemas operacionais:
 //   - No Windows: tenta extrair usando o comando "unzip" do sistema ou, se não disponível, o "7z" (7-zip).
 //   - Nos demais sistemas (Linux, macOS): executa o utilitário padrão do sistema "tar" com suporte a arquivos comprimidos.
-func descompactar(compactTemp, raizPortuscript string) error {
+func descompactar(compactTemp, raizHarpia string) error {
 	if isWindows() {
 		var cmd *exec.Cmd
 		if _, err := exec.LookPath("unzip"); err == nil {
-			cmd = exec.Command("unzip", "-d", raizPortuscript, "-o", compactTemp)
+			cmd = exec.Command("unzip", "-d", raizHarpia, "-o", compactTemp)
 		} else {
-			cmd = exec.Command("7z", "x", "-o", raizPortuscript, "-y", compactTemp)
+			cmd = exec.Command("7z", "x", "-o", raizHarpia, "-y", compactTemp)
 		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -205,7 +205,7 @@ func descompactar(compactTemp, raizPortuscript string) error {
 		return nil
 	}
 
-	cmd := exec.Command("tar", "-xf", compactTemp, "-C", raizPortuscript)
+	cmd := exec.Command("tar", "-xf", compactTemp, "-C", raizHarpia)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -217,8 +217,8 @@ func descompactar(compactTemp, raizPortuscript string) error {
 // atualize centraliza todo o fluxo do subcomando de atualização da CLI.
 //
 // O processo consiste em:
-//  1. Descobrir a pasta home do usuário logado para localizar a instalação padrão em `~/.portuscript/bin/`;
-//  2. Identificar qual a versão do Portuscript está atualmente instalada localmente;
+//  1. Descobrir a pasta home do usuário logado para localizar a instalação padrão em `~/.Harpia/bin/`;
+//  2. Identificar qual a versão do Harpia está atualmente instalada localmente;
 //  3. Buscar a versão mais recente do interpretador disponibilizada no repositório GitHub;
 //  4. Comparar ambas as versões usando Semantic Versioning;
 //  5. Se uma atualização estiver disponível, faz o download do pacote correspondente e o instala.
@@ -228,8 +228,8 @@ func atualize() error {
 		return fmt.Errorf("erro ao tentar montar o caminho da versão atual: %s", err)
 	}
 
-	raizPortuscript := path.Join(home, ".portuscript/bin/")
-	binario := path.Join(raizPortuscript, "portuscript")
+	raizHarpia := path.Join(home, ".Harpia/bin/")
+	binario := path.Join(raizHarpia, "Harpia")
 	if isWindows() {
 		binario += ".exe"
 	}
@@ -250,7 +250,7 @@ func atualize() error {
 	}
 
 	fmt.Printf("Nova versão disponível: %s\n", remota)
-	if err := downloadEInstalar(raizPortuscript); err != nil {
+	if err := downloadEInstalar(raizHarpia); err != nil {
 		return err
 	}
 	fmt.Println("Nova versão instalada com sucesso!")
@@ -262,12 +262,12 @@ var _ = cobra.Command{}
 // comandoAtualize cria e retorna o comando *cobra.Command para atualizar a CLI.
 //
 // Este comando é montado e registrado na raiz da árvore CLI em cmd.go através
-// do método InstalarComandos. Quando acionado no terminal (`portuscript atualize`),
+// do método InstalarComandos. Quando acionado no terminal (`Harpia atualize`),
 // dispara a lógica em RunE que executa a função de fluxo de atualização (atualize).
 func comandoAtualize() *cobra.Command {
 	return &cobra.Command{
 		Use:   "atualize",
-		Short: "Atualiza a CLI do PortuScript",
+		Short: "Atualiza a CLI do Harpia",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return atualize()
 		},

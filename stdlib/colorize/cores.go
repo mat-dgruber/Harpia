@@ -3,10 +3,10 @@ package colorize
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
-// Background representa o tipo de objeto nativo do Portuscript usado para colorir o fundo do texto.
+// Background representa o tipo de objeto nativo do Harpia usado para colorir o fundo do texto.
 type Background struct{}
 
 // TipoBackground define as propriedades e métodos associados à estrutura Background no interpretador.
@@ -20,7 +20,7 @@ func (b *Background) Tipo() *ptst.Tipo {
 	return TipoBackground
 }
 
-// Foreground representa o tipo de objeto nativo do Portuscript usado para colorir a frente (letra) do texto.
+// Foreground representa o tipo de objeto nativo do Harpia usado para colorir a frente (letra) do texto.
 type Foreground struct{}
 
 // TipoForeground define as propriedades e métodos associados à estrutura Foreground no interpretador.
@@ -49,7 +49,7 @@ var cores = []*cor{
 
 func init() {
 	// Popula dinamicamente os mapas de propriedades de TipoBackground e TipoForeground.
-	// Cada entrada na lista de cores se torna um método chamável de conveniência no Portuscript.
+	// Cada entrada na lista de cores se torna um método chamável de conveniência no Harpia.
 	// Por exemplo, colorize.TEXTO.vermelho("Olá") retornará a string formatada em vermelho.
 	for _, cor := range cores {
 		r, g, b, err := HexParaRgb(cor.Hex)

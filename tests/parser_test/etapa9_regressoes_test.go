@@ -3,7 +3,7 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // 1 - 2 - 3 deve parsear como (1 - 2) - 3 = -4 (left-associative).

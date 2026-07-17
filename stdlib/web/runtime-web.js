@@ -1,5 +1,5 @@
 /**
- * Portuscript Web Runtime - VDOM & Reatividade Fina
+ * Harpia Web Runtime - VDOM & Reatividade Fina
  * ponytail: Solução ultraleve (~2.5KB) sem dependências externas.
  * Fornece Virtual DOM, reconciliação cirúrgica e reatividade fina baseada em Sinais.
  */

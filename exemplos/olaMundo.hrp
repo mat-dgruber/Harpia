@@ -1,7 +1,7 @@
 # ============================================================================
 # EXEMPLO: OLA MUNDO
 # ============================================================================
-# Este é o programa clássico de introdução ao Portuscript.
+# Este é o programa clássico de introdução ao Harpia.
 # Ele demonstra o uso da função global integrada 'imprima', que recebe
 # argumentos textuais (strings) ou objetos e os exibe no terminal padrão.
 

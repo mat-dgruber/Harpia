@@ -1,6 +1,6 @@
 package embutidos
 
-import "github.com/natanfeitosa/portuscript/ptst"
+import "github.com/mat-dgruber/Harpia/ptst"
 
 // met_emb_texto implementa a lógica nativa para a função global 'texto()'.
 //

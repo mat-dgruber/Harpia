@@ -1,5 +1,5 @@
 // Package matematica implementa o módulo nativo de funções matemáticas e constantes de alta precisão
-// da biblioteca padrão do Portuscript.
+// da biblioteca padrão do Harpia.
 //
 // Este pacote faz a ponte entre a biblioteca de matemática padrão do Go (math) e o interpretador,
 // expondo constantes como PI e E, além de funções para cálculo de potência, raízes e arredondamentos.
@@ -8,7 +8,7 @@ package matematica
 import (
 	"math"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func init() {

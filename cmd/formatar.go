@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// comandoFormatar inicializa o comando 'portuscript formatar'
+// comandoFormatar inicializa o comando 'Harpia formatar'
 func comandoFormatar() *cobra.Command {
 	var escrever bool
 	cmdFormatar := &cobra.Command{
@@ -23,7 +23,7 @@ func comandoFormatar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			formatado := FormatarCodigoPortuscript(string(conteudo))
+			formatado := FormatarCodigoHarpia(string(conteudo))
 
 			if escrever {
 				err = os.WriteFile(caminho, []byte(formatado), 0644)
@@ -41,8 +41,8 @@ func comandoFormatar() *cobra.Command {
 	return cmdFormatar
 }
 
-// FormatarCodigoPortuscript formata recuos de blocos baseando-se em contagens de delimitadores
-func FormatarCodigoPortuscript(codigo string) string {
+// FormatarCodigoHarpia formata recuos de blocos baseando-se em contagens de delimitadores
+func FormatarCodigoHarpia(codigo string) string {
 	linhas := strings.Split(codigo, "\n")
 	var res []string
 	nivel := 0

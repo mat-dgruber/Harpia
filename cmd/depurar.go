@@ -36,7 +36,7 @@ func comandoDepurar() *cobra.Command {
 			}
 			defer listener.Close()
 
-			fmt.Printf("🐞 Servidor DAP Portuscript rodando em: %s\n", endereco)
+			fmt.Printf("🐞 Servidor DAP Harpia rodando em: %s\n", endereco)
 			fmt.Println("Pronto para conexões de IDEs/Editores (VS Code, etc.). Press ESC/Ctrl+C para parar.")
 
 			for {

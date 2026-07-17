@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 type FilaItem struct {

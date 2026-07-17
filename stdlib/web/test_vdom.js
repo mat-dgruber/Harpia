@@ -100,7 +100,7 @@ async function rodarTestes() {
   await Promise.resolve();
 
   console.log("\n=== 3. TESTANDO VIRTUAL DOM E MONTAGEM REATIVA ===");
-  const [titulo, setTitulo] = sinal("Olá Portuscript");
+  const [titulo, setTitulo] = sinal("Olá Harpia");
   const container = document.createElement("div");
 
   function MeuApp() {

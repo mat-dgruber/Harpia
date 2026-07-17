@@ -3,7 +3,7 @@ package ptst
 import (
 	"sync"
 
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // ModuloInfo armazena os metadados declarativos que descrevem as propriedades básicas de identificação de um módulo.
@@ -69,7 +69,7 @@ type Modulo struct {
 	acessoRapido Mapa        // Cache de propriedades resolvidas recentemente para acelerar acessos O(1).
 }
 
-// TipoModulo especifica a assinatura e os metadados de Tipo da classe Modulo no Portuscript.
+// TipoModulo especifica a assinatura e os metadados de Tipo da classe Modulo no Harpia.
 var TipoModulo = NewTipo("Modulo", "Módulos dinâmicos de extensões lógicas e de biblioteca padrão.")
 
 // Tipo retorna a especificação de Tipo da classe Modulo.

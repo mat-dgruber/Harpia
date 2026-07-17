@@ -3,7 +3,7 @@ package matematica
 import (
 	"math"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // met_mat_piso implementa a lógica nativa para a função 'piso()'.
@@ -24,7 +24,7 @@ func met_mat_piso(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return ptst.Inteiro(math.Floor(float64(num.(ptst.Decimal)))), nil
 }
 
-// _mat_piso cria e define a assinatura do método 'piso' exposto na stdlib do Portuscript.
+// _mat_piso cria e define a assinatura do método 'piso' exposto na stdlib do Harpia.
 var _mat_piso = ptst.NewMetodoOuPanic(
 	"piso",
 	met_mat_piso,

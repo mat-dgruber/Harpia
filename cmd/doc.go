@@ -19,7 +19,7 @@ type DocElement struct {
 	Descricao  []string 
 }
 
-// comandoDoc inicializa o comando 'portuscript doc'
+// comandoDoc inicializa o comando 'Harpia doc'
 func comandoDoc() *cobra.Command {
 	var formato string
 	var saida string
@@ -156,7 +156,7 @@ func gerarDocMarkdown(arquivo string, elementos []DocElement) string {
 
 	for _, el := range elementos {
 		sb.WriteString(fmt.Sprintf("## 🏷️ %s `%s`\n\n", strings.Title(el.Tipo), el.Nome))
-		sb.WriteString(fmt.Sprintf("```portuscript\n%s\n```\n\n", el.Assinatura))
+		sb.WriteString(fmt.Sprintf("```Harpia\n%s\n```\n\n", el.Assinatura))
 		sb.WriteString("### Descrição\n")
 		for _, desc := range el.Descricao {
 			sb.WriteString(desc + "\n")

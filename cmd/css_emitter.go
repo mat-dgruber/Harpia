@@ -1,8 +1,8 @@
 package cmd
 
-// ponytail: emissor de CSS enxuto para blocos `estilo` do Portuscript.
+// ponytail: emissor de CSS enxuto para blocos `estilo` do Harpia.
 //
-// Não usamos uma lib externa de parser CSS — a entrada do Portuscript
+// Não usamos uma lib externa de parser CSS — a entrada do Harpia
 // é delimitada e pequena, então um Handel local resolve em ~50 linhas,
 // alimentado pela string já capturada pelo parser (DeclEstilo.Regras).
 //

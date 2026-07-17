@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // regexCor é uma expressão regular usada para identificar e capturar sequências de escape ANSI cromáticas

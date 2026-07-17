@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// ExecutarString compila uma string contendo comandos Portuscript para AST, aloca um escopo virtual
+// ExecutarString compila uma string contendo comandos Harpia para AST, aloca um escopo virtual
 // de módulo para a expressão, e executa-a retornando o objeto Modulo correspondente.
 func ExecutarString(ctx *Contexto, codigo string) (*Modulo, error) {
 	ast, err := ctx.StringParaAst(codigo, "<string>")
@@ -25,9 +25,9 @@ func ExecutarString(ctx *Contexto, codigo string) (*Modulo, error) {
 //
 // Diferencial de Conectividade Nativa:
 // Se o arquivo resolvido e calculado possuir a extensão de objeto binário compartilhado (.so),
-// o Portuscript carrega dinamicamente o arquivo como um plug-in do Go (plugin.Open), resolve a função
+// o Harpia carrega dinamicamente o arquivo como um plug-in do Go (plugin.Open), resolve a função
 // exportada global 'InicializaModulo()' via reflexão de símbolos, e aciona a inicialização nativa do módulo.
-// Isto permite desenvolver extensões binárias de altíssima performance para o Portuscript em Go ou C/C++.
+// Isto permite desenvolver extensões binárias de altíssima performance para o Harpia em Go ou C/C++.
 func ExecutarArquivo(ctx *Contexto, nome, caminho, curDir string, useSysPaths bool) (*Modulo, error) {
 	caminhoCalculado, ast, err := ctx.TransformarEmAst(caminho, useSysPaths, curDir)
 	if err != nil {

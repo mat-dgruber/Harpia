@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestLinterShadowingWarning(t *testing.T) {

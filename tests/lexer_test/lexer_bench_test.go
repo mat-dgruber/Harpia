@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/lexer"
+	"github.com/mat-dgruber/Harpia/lexer"
 )
 
 func benchSource(n int) string {

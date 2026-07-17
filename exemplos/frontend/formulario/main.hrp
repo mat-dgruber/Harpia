@@ -1,7 +1,7 @@
-# Exemplo de Formulário de Contato com Validações em Tempo Real e Sinais no Portuscript.
+# Exemplo de Formulário de Contato com Validações em Tempo Real e Sinais no Harpia.
 #
 # Para rodar este exemplo:
-#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#   Harpia compilar --alvo=web --entrada=main.ptst --saida=dist
 #
 # Abra o arquivo dist/index.html gerado no seu navegador.
 

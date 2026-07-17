@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// TestFormatarCodigoPortuscript assevera a higienização de identações de blocos e linhas vazias
-func TestFormatarCodigoPortuscript(t *testing.T) {
+// TestFormatarCodigoHarpia assevera a higienização de identações de blocos e linhas vazias
+func TestFormatarCodigoHarpia(t *testing.T) {
 	codigoDesorganizado := `
 funcao MeuApp() {
 var a = 10;
@@ -27,7 +27,7 @@ funcao MeuApp() {
 }
 `)
 
-	formatado := FormatarCodigoPortuscript(codigoDesorganizado)
+	formatado := FormatarCodigoHarpia(codigoDesorganizado)
 	formatadoLimp := strings.TrimSpace(formatado)
 
 	if formatadoLimp != esperado {

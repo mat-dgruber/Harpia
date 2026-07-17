@@ -19,7 +19,7 @@ func comandoEmpacotar() *cobra.Command {
 
 	empacotar := &cobra.Command{
 		Use:   "empacotar",
-		Short: "Empacota um script Portuscript em um executável nativo autônomo (Single Binary Bundle) ou WASM",
+		Short: "Empacota um script Harpia em um executável nativo autônomo (Single Binary Bundle) ou WASM",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
 				entrada = args[0]
@@ -34,7 +34,7 @@ func comandoEmpacotar() *cobra.Command {
 
 			if saida == "" {
 				if isWasm {
-					saida = filepath.Join("docs", "portal", "portuscript.wasm")
+					saida = filepath.Join("docs", "portal", "Harpia.wasm")
 				} else {
 					saida = "app_compilado"
 					if so == "windows" {
@@ -89,7 +89,7 @@ func init() {
 
 			// Executa go build com as variáveis de ambiente corretas para cross-compilation
 			if isWasm {
-				fmt.Printf("📦 Compilando interpretador Portuscript para WebAssembly [%s]...\n", saida)
+				fmt.Printf("📦 Compilando interpretador Harpia para WebAssembly [%s]...\n", saida)
 			} else {
 				fmt.Printf("📦 Empacotando '%s' para o executável nativo '%s' [%s/%s]...\n", entrada, saida, so, arq)
 			}
@@ -134,7 +134,7 @@ func init() {
 		},
 	}
 
-	empacotar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo Portuscript de entrada.")
+	empacotar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo Harpia de entrada.")
 	empacotar.Flags().StringVarP(&saida, "saida", "s", "", "Caminho de saída do binário gerado.")
 	empacotar.Flags().StringVar(&so, "so", runtime.GOOS, "Sistema Operacional alvo (linux, windows, darwin, js).")
 	empacotar.Flags().StringVar(&arq, "arq", runtime.GOARCH, "Arquitetura alvo (amd64, arm64, wasm).")

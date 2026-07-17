@@ -1,5 +1,5 @@
 // Package ptst implementa o núcleo estrutural e de runtime (Máquina Virtual, Tipos e Símbolos)
-// do interpretador Portuscript.
+// do interpretador Harpia.
 //
 // Este pacote define a modelagem polimórfica de objetos dinâmicos (Objeto, Tipo), as tabelas de escopo,
 // tratamento de erros ricos em português e toda a infraestrutura matemática e lógica executável de runtime.

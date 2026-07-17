@@ -102,20 +102,20 @@ else
 fi
 
 GITHUB=${GITHUB-"https://github.com"}
-repo_github="$GITHUB/natanfeitosa/portuscript"
+repo_github="$GITHUB/natanfeitosa/harpia"
 
 arquivo_compactado="$target$sufixo"
 
 if [[ $# = 0 ]]; then
-    portuscript_uri=$repo_github/releases/latest/download/$arquivo_compactado
+    harpia_uri=$repo_github/releases/latest/download/$arquivo_compactado
 else
-    portuscript_uri=$repo_github/releases/download/$1/$arquivo_compactado
+    harpia_uri=$repo_github/releases/download/$1/$arquivo_compactado
 fi
 
-raiz_portuscript="${RAIZ_PORTUSCRIPT:-$HOME/.portuscript}"
-diretorio_binario="$raiz_portuscript/bin"
+raiz_harpia="${RAIZ_HARPIA:-$HOME/.harpia}"
+diretorio_binario="$raiz_harpia/bin"
 # diretorio_binario="./bin"
-executavel="$diretorio_binario/portuscript"
+executavel="$diretorio_binario/harpia"
 
 if [[ ! -d $diretorio_binario ]]; then
     mkdir -p "$diretorio_binario" ||
@@ -123,8 +123,8 @@ if [[ ! -d $diretorio_binario ]]; then
 fi
 
 log "DEBUG" "Iniciando download do arquivo compactado"
-curl --fail --location --progress-bar --output "$executavel$sufixo" "$portuscript_uri" ||
-    log "ERRO" "Falha ao baixar o Portuscript de \"$portuscript_uri\""
+curl --fail --location --progress-bar --output "$executavel$sufixo" "$harpia_uri" ||
+    log "ERRO" "Falha ao baixar o Harpia de \"$harpia_uri\""
 
 log "DEBUG" "Iniciando descompactação"
 case "$sufixo" in
@@ -144,24 +144,24 @@ log "SUCESSO" "Parece que a descompactação foi um sucesso"
 chmod +x "$executavel$sufixo"
 rm "$executavel$sufixo"
 
-log "SUCESSO" "Parabéns, agora você tem o Portuscript disponível em \033[1m$executavel\033[0m"
+log "SUCESSO" "Parabéns, agora você tem o Harpia disponível em \033[1m$executavel\033[0m"
 
 refresh_command=""
-if command -v portuscript >/dev/null; then
-	log "INFO" "agora você pode usar o comando 'portuscript --help' para ter um guia de comandos"
+if command -v harpia >/dev/null; then
+	log "INFO" "agora você pode usar o comando 'harpia --help' para ter um guia de comandos"
 else
 	case $(basename "$SHELL") in
     fish)
         commands=(
-            "set --export DIRETORIO_PORTUSCRIPT $raiz_portuscript"
-            "set --export PATH \$DIRETORIO_PORTUSCRIPT/bin \$PATH"
+            "set --export DIRETORIO_HARPIA $raiz_harpia"
+            "set --export PATH \$DIRETORIO_HARPIA/bin \$PATH"
         )
 
         fish_config=$HOME/.config/fish/config.fish
 
         if [[ -w $fish_config ]]; then
             {
-                echo -e '\n# configuraçõs portuscript'
+                echo -e '\n# configuraçõs harpia'
 
                 for command in "${commands[@]}"; do
                     echo "$command"
@@ -181,15 +181,15 @@ else
         ;;
     zsh)
         commands=(
-            "export DIRETORIO_PORTUSCRIPT=$raiz_portuscript"
-            "export PATH=\"\$DIRETORIO_PORTUSCRIPT/bin:\$PATH\""
+            "export DIRETORIO_HARPIA=$raiz_harpia"
+            "export PATH=\"\$DIRETORIO_HARPIA/bin:\$PATH\""
         )
 
         zsh_config=$HOME/.zshrc
 
         if [[ -w $zsh_config ]]; then
             {
-                echo -e '\n# configuraçõs portuscript'
+                echo -e '\n# configuraçõs harpia'
 
                 for command in "${commands[@]}"; do
                     echo "$command"
@@ -209,8 +209,8 @@ else
         ;;
     bash)
         commands=(
-            "export DIRETORIO_PORTUSCRIPT=$raiz_portuscript"
-            "export PATH=\$DIRETORIO_PORTUSCRIPT/bin:\$PATH"
+            "export DIRETORIO_HARPIA=$raiz_harpia"
+            "export PATH=\$DIRETORIO_HARPIA/bin:\$PATH"
         )
 
         bash_configs=(
@@ -232,7 +232,7 @@ else
 
             if [[ -w $bash_config ]]; then
                 {
-                    echo -e '\n# configuraçõs portuscript'
+                    echo -e '\n# configuraçõs harpia'
 
                     for command in "${commands[@]}"; do
                         echo "$command"
@@ -257,7 +257,7 @@ else
         ;;
     *)
         log "AVISO" 'Adicione manualmente os seguinte comandos ao ~/.bashrc (ou similar):'
-        log "INFO" "  export $install_env=$raiz_portuscript"
+        log "INFO" "  export $install_env=$raiz_harpia"
         log "INFO" "  export PATH=\"$bin_env:\$PATH\""
         ;;
     esac
@@ -272,7 +272,7 @@ if [[ $refresh_command ]]; then
     log "INFO" "  $refresh_command"
 fi
 
-log "INFO" "  portuscript --help"
+log "INFO" "  harpia --help"
 
 echo
 

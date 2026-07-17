@@ -95,7 +95,7 @@ func NomeAtributo(obj Objeto) (string, error) {
 // em busca de atributos ou métodos.
 //
 // O Recurso de Otimização e Reflexão Nativa (Reflection):
-// Se o atributo solicitado for uma interface de método mágico nativo do Portuscript (ex: iniciada e finalizada com "__",
+// Se o atributo solicitado for uma interface de método mágico nativo do Harpia (ex: iniciada e finalizada com "__",
 // como "__texto__"), a função executa um desvio de inteligência via 'reflect' em Go. Ela busca se o struct Go do objeto
 // implementa um método físico precedido de "M" (ex: "M__texto__"). Se implementado, monta, cria e retorna
 // um MetodoProxy de forma instantânea e automatizada, reduzindo dezenas de mapeamentos manuais e redundâncias!

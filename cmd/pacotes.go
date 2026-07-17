@@ -19,7 +19,7 @@ type PacoteManifest struct {
 	Dependencias map[string]string `json:"dependencias"`
 }
 
-// comandoInstalar inicializa o subcomando 'portuscript instalar'
+// comandoInstalar inicializa o subcomando 'Harpia instalar'
 func comandoInstalar() *cobra.Command {
 	var deArquivo string
 	cmdInstalar := &cobra.Command{
@@ -165,7 +165,7 @@ func parseManifesto(conteudo []byte) (*PacoteManifest, error) {
 			if len(valor) >= 2 && ((valor[0] == '"' && valor[len(valor)-1] == '"') || (valor[0] == '\'' && valor[len(valor)-1] == '\'')) {
 				valor = valor[1 : len(valor)-1]
 			}
-			// Limpa declarações do portuscript como 'var' ou 'const' se houver
+			// Limpa declarações do Harpia como 'var' ou 'const' se houver
 			chave = strings.TrimPrefix(chave, "var ")
 			chave = strings.TrimPrefix(chave, "const ")
 			chave = strings.TrimSpace(chave)
@@ -250,7 +250,7 @@ func baixarEExtrairPacote(nome, url string) error {
 }
 
 // ponytail: URL oficial contendo os metadados centralizados do índice de pacotes
-var URL_REGISTRO_CENTRAL = "https://raw.githubusercontent.com/portuscript/registro/main/pacotes.json"
+var URL_REGISTRO_CENTRAL = "https://raw.githubusercontent.com/Harpia/registro/main/pacotes.json"
 
 type RegistroRemoto struct {
 	Pacotes map[string]struct {

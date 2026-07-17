@@ -1,5 +1,5 @@
-/// Playground Interativo do Portuscript
-/// Aplicação web SPA desenvolvida 100% no próprio Portuscript Reativo.
+/// Playground Interativo do Harpia
+/// Aplicação web SPA desenvolvida 100% no próprio Harpia Reativo.
 /// Demonstra o poder real de "dogfooding" da linguagem em produção: utiliza o sistema de
 /// Sinais (Fine-Grained), vinculação de dados síncronos bidirecionais (Two-Way Binding) e
 /// componentes complexos nativos de tabela (GradeDeDados).
@@ -7,7 +7,7 @@
 
 de "web" importe sinal, GradeDeDados;
 
-# ponytail: aplicação do playground escrita 100% em Portuscript
+# ponytail: aplicação do playground escrita 100% em Harpia
 exportar funcao PlaygroundApp() {
 	# Código padrão que aparece no editor ao iniciar
 	var [codigo, setCogo] = sinal("var a = 10;\nvar [contador, setContador] = sinal(5);\n\nfuncao dobrar(num) {\n    retorne num * 2;\n}\n\nimprimir(\"Dobro de 10: \" + dobrar(a));\nimprimir(\"Contador reativo: \" + contador());");
@@ -62,8 +62,8 @@ exportar funcao PlaygroundApp() {
 	retorne <div classe="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100 font-sans">
 		<header classe="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
 			<div classe="flex items-center space-x-3">
-				<span classe="text-2xl font-black text-blue-500">Portuscript</span>
-				<span classe="text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 font-medium tracking-wide">Playground escrito em Portuscript</span>
+				<span classe="text-2xl font-black text-blue-500">Harpia</span>
+				<span classe="text-xs bg-slate-800 px-2.5 py-1 rounded-full text-slate-400 font-medium tracking-wide">Playground escrito em Harpia</span>
 			</div>
 			<button aoClicar={executar} classe="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 py-2 rounded-lg transition duration-150 flex items-center space-x-2">
 				<span>{executando() ? "Executando..." : "Executar"}</span>
@@ -75,7 +75,7 @@ exportar funcao PlaygroundApp() {
 			<!-- Esquerda: Editor -->
 			<section classe="flex flex-col bg-slate-950 h-full overflow-hidden">
 				<div classe="bg-slate-900 border-b border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 tracking-wider">
-					CÓDIGO FONTE (PORTUSCRIPT)
+					CÓDIGO FONTE (Harpia)
 				</div>
 				# ligar={codigo} sintoniza o Two-Way Data Binding reativo de fábrica
 				<textarea ligar={codigo} aoTeclar={lidarTeclado} classe="flex-1 w-full p-6 bg-slate-950 text-slate-100 editor-textarea focus:outline-none resize-none overflow-y-auto leading-relaxed" placeholder="# Escreva seu código..."></textarea>
@@ -101,7 +101,7 @@ exportar funcao PlaygroundApp() {
 							<div classe="p-4 border border-red-900 bg-red-950/40 rounded-lg font-mono text-sm leading-relaxed overflow-x-auto text-red-300 mb-4" innerHTML={erroHtml()}></div>
 						</se>
 
-						# Se não houver erros, exibe a tabela inteligente GradeDeDados nativa do Portuscript
+						# Se não houver erros, exibe a tabela inteligente GradeDeDados nativa do Harpia
 						<se condicao={erroHtml() == ""}>
 							<GradeDeDados colunas={["nome", "tipo", "valor"]} dados={variaveis()} linhasPorPagina={10} />
 						</se>

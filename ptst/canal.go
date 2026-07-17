@@ -22,7 +22,7 @@ func (c *Canal) Tipo() *Tipo {
 }
 
 func init() {
-	// Nova define o construtor da classe Canal para scripts Portuscript (ex: novo Canal())
+	// Nova define o construtor da classe Canal para scripts Harpia (ex: novo Canal())
 	TipoCanal.Nova = func(args Tupla) (Objeto, error) {
 		return &Canal{
 			buffer:      make([]Objeto, 0),

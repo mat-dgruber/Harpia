@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/lexer"
+	"github.com/mat-dgruber/Harpia/lexer"
 )
 
-// Parser representa o analisador sintático de descida recursiva manual do Portuscript.
+// Parser representa o analisador sintático de descida recursiva manual do Harpia.
 //
 // O Parser consome a torrente de tokens lógicos fornecidos pelo Lexer e os organiza
 // em estruturas hierárquicas e nós que formam a Árvore de Sintaxe Abstrata (AST).

@@ -1,4 +1,4 @@
-# Exemplo de App Portuscript SPA Reativo com Sinais e Estilos
+# Exemplo de App Harpia SPA Reativo com Sinais e Estilos
 
 estilo MeuApp {
     corDeFundo: "#f4f4f9";
@@ -21,7 +21,7 @@ funcao MeuApp() {
     }
 
     retorne <div classe="MeuApp">
-        <h1>Meu App Portuscript</h1>
+        <h1>Meu App Harpia</h1>
         <p>Contador atual: <strong>{contador()}</strong></p>
 
         <button aoClicar={incrementar}>Incrementar (+)</button>

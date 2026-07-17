@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +18,7 @@ type ImportRel struct {
 	Arquivo string
 }
 
-// comandoDiagramar inicializa o comando 'portuscript diagramar'
+// comandoDiagramar inicializa o comando 'Harpia diagramar'
 func comandoDiagramar() *cobra.Command {
 	var formato string
 	var saida string
@@ -242,7 +242,7 @@ const templateHTMLDiagrama = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Portuscript — Diagrama de Arquitetura</title>
+  <title>Harpia — Diagrama de Arquitetura</title>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: true, theme: 'dark' });
@@ -277,7 +277,7 @@ const templateHTMLDiagrama = `<!DOCTYPE html>
 </head>
 <body>
   <div class="container">
-    <h1>Diagrama de Arquitetura do Portuscript</h1>
+    <h1>Diagrama de Arquitetura do Harpia</h1>
     <p>Visualização interativa das relações de imports entre as camadas de domínio, infraestrutura e web.</p>
 
     <pre class="mermaid">

@@ -3,7 +3,7 @@ package ptst
 import "fmt"
 
 // Metodo representa uma função ou rotina nativa escrita em Go que é exposta e integrada
-// de forma chamável no interpretador do Portuscript.
+// de forma chamável no interpretador do Harpia.
 type Metodo struct {
 	Nome     string  // Nome identificador do método (ex: "adiciona").
 	Doc      string  // Bloco de documentação explicativo (Docstring).
@@ -12,7 +12,7 @@ type Metodo struct {
 }
 
 // TipoMetodo especifica as assinaturas e metadados de classe do tipo Metodo na VM.
-var TipoMetodo = NewTipo("Metodo", "Um metodo Portuscript")
+var TipoMetodo = NewTipo("Metodo", "Um metodo Harpia")
 
 // Tipo retorna a representação de classe (Tipo de Metodo).
 func (o *Metodo) Tipo() *Tipo {

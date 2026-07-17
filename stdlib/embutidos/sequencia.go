@@ -1,10 +1,10 @@
 package embutidos
 
 import (
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
-// SequenciaNumerica representa o objeto gerador de intervalos numéricos (iterador) do Portuscript.
+// SequenciaNumerica representa o objeto gerador de intervalos numéricos (iterador) do Harpia.
 //
 // Esta estrutura guarda o estado dinâmico da iteração ativa, definindo os limites,
 // o tamanho do passo de incremento/decremento e o índice correspondente ao valor atual.
@@ -20,7 +20,7 @@ func (sn *SequenciaNumerica) Tipo() *ptst.Tipo {
 	return TipoSequenciaNumerica
 }
 
-// M__iter__ satisfaz a interface de objetos iteráveis do Portuscript (ptst.I_iterador).
+// M__iter__ satisfaz a interface de objetos iteráveis do Harpia (ptst.I_iterador).
 // Ela retorna a própria estrutura como o iterador ativo a ser varrido pelo laço 'para'.
 func (sn *SequenciaNumerica) M__iter__() (ptst.Objeto, error) {
 	return sn, nil

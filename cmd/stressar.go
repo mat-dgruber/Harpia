@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +17,7 @@ func comandoStressar() *cobra.Command {
 
 	stressar := &cobra.Command{
 		Use:   "stressar",
-		Short: "Executa testes de estresse concorrentes em um script Portuscript",
+		Short: "Executa testes de estresse concorrentes em um script Harpia",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) > 0 {
 				arquivo = args[0]
@@ -106,7 +106,7 @@ func comandoStressar() *cobra.Command {
 		},
 	}
 
-	stressar.Flags().StringVarP(&arquivo, "arquivo", "a", "", "Caminho do arquivo Portuscript.")
+	stressar.Flags().StringVarP(&arquivo, "arquivo", "a", "", "Caminho do arquivo Harpia.")
 	stressar.Flags().IntVarP(&concorrencia, "concorrencia", "c", 10, "Quantidade de instâncias concorrentes.")
 	stressar.Flags().IntVarP(&requisicoes, "requisicoes", "r", 100, "Número total de execuções de teste.")
 

@@ -8,7 +8,7 @@ import (
 
 // TestComandoNovoMonolito assevera que o scaffold do tipo monolito com Clean Architecture é gerado corretamente
 func TestComandoNovoMonolito(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_mono_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_mono_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestComandoNovoMonolito(t *testing.T) {
 
 // TestComandoNovoBackend assevera a geração física de projetos backend-only
 func TestComandoNovoBackend(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_back_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_back_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}
@@ -92,7 +92,7 @@ func TestComandoNovoBackend(t *testing.T) {
 
 // TestComandoCrieAssistido assevera que geradores crie rota e crie componente inserem arquivos boilerplate
 func TestComandoCrieAssistido(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "portuscript_crie_*")
+	tempDir, err := os.MkdirTemp("", "Harpia_crie_*")
 	if err != nil {
 		t.Fatalf("Erro ao criar diretório temporário: %v", err)
 	}

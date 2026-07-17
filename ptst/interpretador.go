@@ -1,11 +1,11 @@
 package ptst
 
 import (
-	"github.com/natanfeitosa/portuscript/lexer"
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/lexer"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
-// Interpretador representa o motor avaliador (Visitor) de nós da AST (Árvore de Sintaxe Abstrata) do Portuscript.
+// Interpretador representa o motor avaliador (Visitor) de nós da AST (Árvore de Sintaxe Abstrata) do Harpia.
 //
 // O Interpretador varre os nós de forma recursiva, mantendo referências do contexto global,
 // o escopo léxico corrente, buffers de valor de retorno e os metadados de posições físicas do código-fonte.
@@ -961,7 +961,7 @@ func (i *Interpretador) visiteTenteCapture(node *parser.TenteCaptureFinalmente) 
 		return nil, errFinal
 	}
 
-	// Converte erros nativos do Go para *Erro do Portuscript
+	// Converte erros nativos do Go para *Erro do Harpia
 	ptstErr, ok := errFinal.(*Erro)
 	if !ok {
 		ptstErr = NewErro(RuntimeErro, Texto(errFinal.Error()))

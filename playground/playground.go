@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/peterh/liner"
 )
 

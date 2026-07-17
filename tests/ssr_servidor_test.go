@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestSSRServidorCompleto(t *testing.T) {
@@ -23,7 +23,7 @@ func TestSSRServidorCompleto(t *testing.T) {
 	indexHTML := `<!DOCTYPE html>
 <html>
 <head>
-    <title>Portuscript App</title>
+    <title>Harpia App</title>
 </head>
 <body>
     <div id="app"></div>

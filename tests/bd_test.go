@@ -3,8 +3,8 @@ package tests
 import (
 	"testing"
 
-	"github.com/natanfeitosa/portuscript/ptst"
-	_ "github.com/natanfeitosa/portuscript/stdlib"
+	"github.com/mat-dgruber/Harpia/ptst"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func TestBDModulo(t *testing.T) {
@@ -19,7 +19,7 @@ func TestBDModulo(t *testing.T) {
 
 	# Testando inserção via Query Builder
 	var qb = conn.tabela("usuarios")
-	qb.inserir({"id": 1, "nome": "Portuscript", "idade": 3})
+	qb.inserir({"id": 1, "nome": "Harpia", "idade": 3})
 	qb.inserir({"id": 2, "nome": "Go", "idade": 13})
 
 	# Testando obterUm
@@ -64,8 +64,8 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(valNome.(ptst.Texto)) != "Portuscript" {
-		t.Errorf("Nome esperado 'Portuscript', obteve '%v'", valNome)
+	if string(valNome.(ptst.Texto)) != "Harpia" {
+		t.Errorf("Nome esperado 'Harpia', obteve '%v'", valNome)
 	}
 
 	valIdade, err := res.Escopo.ObterValor("idade")

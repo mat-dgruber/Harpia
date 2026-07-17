@@ -1,15 +1,15 @@
-parser grammar PortuscriptParser;
+parser grammar HarpiaParser;
 
 options {
-	// Importa e vincula o dicionário de tokens declarados em PortuscriptLexer.g4.
-	tokenVocab = PortuscriptLexer;
+	// Importa e vincula o dicionário de tokens declarados em HarpiaLexer.g4.
+	tokenVocab = HarpiaLexer;
 }
 
 // ============================================================================
 // PONTO DE ENTRADA GRAMATICAL (PÁGINA DO PROGRAMA)
 // ============================================================================
 
-// programa define a regra de análise raiz para qualquer script físico em Portuscript.
+// programa define a regra de análise raiz para qualquer script físico em Harpia.
 // Pode conter declarações opcionais seguidas obrigatoriamente pelo token de Fim de Arquivo (EOF).
 programa: declaracoes? EOF;
 

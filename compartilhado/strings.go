@@ -1,5 +1,5 @@
 // Package compartilhado reúne funções utilitárias e rotinas auxiliares comuns que são consumidas
-// por múltiplos subsistemas do Portuscript (como o lexer, parser, compilador e o próprio interpretador).
+// por múltiplos subsistemas do Harpia (como o lexer, parser, compilador e o próprio interpretador).
 //
 // O pacote serve como uma caixa de ferramentas desacoplada para evitar duplicação de lógica,
 // com foco especial na manipulação eficiente de strings Unicode (UTF-8) e conversões numéricas.
@@ -134,7 +134,7 @@ func ContemApenasLetras(str string) bool {
 // Retorna false se a string for vazia ou se possuir qualquer caractere não classificado como dígito
 // de acordo com a tabela de classificação Unicode (incluindo letras, acentos, pontuação ou espaços).
 //
-// Essencial para o reconhecimento rápido e classificação sintática de números inteiros pelo Lexer do Portuscript.
+// Essencial para o reconhecimento rápido e classificação sintática de números inteiros pelo Lexer do Harpia.
 func ContemApenasDigitos(str string) bool {
 	if str == "" {
 		return false

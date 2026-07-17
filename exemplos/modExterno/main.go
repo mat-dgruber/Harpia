@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // InicializaModulo é a porta de entrada obrigatória e o símbolo público exportado
-// que a Máquina Virtual do Portuscript resolve e executa através de reflexão dinâmica de plugins (.so).
+// que a Máquina Virtual do Harpia resolve e executa através de reflexão dinâmica de plugins (.so).
 //
 // Esta função deve retornar o ponteiro para a especificação estática do módulo (*ptst.ModuloImpl),
 // declarando o nome do módulo, documentações explicativas de auxílio (Doc) e as assinaturas de seus métodos.

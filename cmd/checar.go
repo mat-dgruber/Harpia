@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/lexer"
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/lexer"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
 // globalsLinter define o conjunto de nomes globais pré-declarados pela VM e pela stdlib
-// do Portuscript. Cada vez que novos built-ins forem adicionados, sincronize este mapa
+// do Harpia. Cada vez que novos built-ins forem adicionados, sincronize este mapa
 // para evitar falsos positivos no linter ("Identificador X não encontrado no escopo").
 //
 // Manter esta lista sincronizada manualmente é o ponto principal — alternativa seria
@@ -414,7 +414,7 @@ func comandoChecar() *cobra.Command {
 							Range:    DiagnosticRange{Start: DiagnosticPosition{Line: 0, Character: 0}, End: DiagnosticPosition{Line: 0, Character: 1}},
 							Severity: 1,
 							Code:     "HRP-0001",
-							Source:   "portuscript-parser",
+							Source:   "Harpia-parser",
 							Message:  err.Error(),
 						})
 					} else {
@@ -450,7 +450,7 @@ func comandoChecar() *cobra.Command {
 								Range:    DiagnosticRange{Start: DiagnosticPosition{Line: line, Character: col}, End: DiagnosticPosition{Line: line, Character: col + length}},
 								Severity: errObj.Severity,
 								Code:     errObj.Code,
-								Source:   "portuscript-linter",
+								Source:   "Harpia-linter",
 								Message:  errObj.Message,
 							})
 						} else {

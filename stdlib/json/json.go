@@ -3,10 +3,10 @@ package json
 import (
 	"encoding/json"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
-// converteParaGo converte recursivamente objetos Portuscript para tipos Go primitivos analisáveis pelo encoding/json.
+// converteParaGo converte recursivamente objetos Harpia para tipos Go primitivos analisáveis pelo encoding/json.
 func converteParaGo(obj ptst.Objeto) any {
 	if obj == nil || obj == ptst.Nulo {
 		return nil
@@ -36,7 +36,7 @@ func converteParaGo(obj ptst.Objeto) any {
 	return nil
 }
 
-// converteParaPtst converte recursivamente dados tipados de volta em tipos Portuscript nativos.
+// converteParaPtst converte recursivamente dados tipados de volta em tipos Harpia nativos.
 func converteParaPtst(dados any) ptst.Objeto {
 	if dados == nil {
 		return ptst.Nulo
@@ -68,7 +68,7 @@ func converteParaPtst(dados any) ptst.Objeto {
 	return ptst.Nulo
 }
 
-// met_json_analisar implementa 'analisar(texto)' -> decodifica string JSON em objeto Portuscript
+// met_json_analisar implementa 'analisar(texto)' -> decodifica string JSON em objeto Harpia
 func met_json_analisar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	if err := ptst.VerificaNumeroArgumentos("analisar", false, args, 1, 1); err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func met_json_analisar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	return converteParaPtst(dados), nil
 }
 
-// met_json_serializar implementa 'serializar(objeto)' -> codifica objeto Portuscript em string JSON
+// met_json_serializar implementa 'serializar(objeto)' -> codifica objeto Harpia em string JSON
 func met_json_serializar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 	if err := ptst.VerificaNumeroArgumentos("serializar", false, args, 1, 1); err != nil {
 		return nil, err

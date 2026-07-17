@@ -5,16 +5,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/lexer"
+	"github.com/mat-dgruber/Harpia/lexer"
 )
 
-// Erro representa uma exceção estruturada em tempo de execução ou de análise no Portuscript.
+// Erro representa uma exceção estruturada em tempo de execução ou de análise no Harpia.
 //
 // Esta estrutura atua em conformidade com a interface 'error' nativa do Go, porém é enriquecida
 // com metadados geográficos detalhados (arquivo, linha, coluna, token físico causador) para formatar
 // e emitir relatórios de tracebacks visuais amigáveis ao usuário inteiramente em português.
 type Erro struct {
-	Base     *Tipo        // A classe específica de erro do Portuscript (ex: NomeErro, SintaxeErro).
+	Base     *Tipo        // A classe específica de erro do Harpia (ex: NomeErro, SintaxeErro).
 	Contexto *Contexto    // Ponteiro de referência ao supervisor global da VM.
 	CRef     int          // Atributo reservado para futuras implementações de referências internas.
 	Mensagem Objeto       // Texto descritivo ou representação do erro.
@@ -181,7 +181,7 @@ func (e *Erro) M__obtem_attributo__(nome string) (Objeto, error) {
 
 var _ I__obtem_attributo__ = (*Erro)(nil)
 
-// ObterCodigoErro mapeia cada classe de exceção do Portuscript a um código estruturado de erro normatizado.
+// ObterCodigoErro mapeia cada classe de exceção do Harpia a um código estruturado de erro normatizado.
 // Isso facilita de forma extraordinária a indexação, criação de fóruns e documentação de suporte a bugs.
 func ObterCodigoErro(tipo *Tipo) string {
 	switch tipo {
@@ -228,7 +228,7 @@ func ObterSugestaoErro(tipo *Tipo, mensagem string) string {
 		return "Você quis dizer 'imprimir'?"
 	}
 	if tipo == SintaxeErro && strings.Contains(msgLower, "retornar") {
-		return "Em Portuscript, use a palavra-chave 'retorne' para retornar valores."
+		return "Em Harpia, use a palavra-chave 'retorne' para retornar valores."
 	}
 	if tipo == DivisaoPorZeroErro {
 		return "Não é possível dividir um número por zero."

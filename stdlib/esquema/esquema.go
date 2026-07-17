@@ -3,7 +3,7 @@ package esquema
 import (
 	"fmt"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 type Esquema struct {

@@ -54,7 +54,7 @@ var tokensSimples = map[string]TokenType{
 	"|>": TokenPipe,
 }
 
-// tokensIdentificadores atua como a tabela de símbolos de palavras-chave reservadas do Portuscript.
+// tokensIdentificadores atua como a tabela de símbolos de palavras-chave reservadas do Harpia.
 //
 // Decisão de Projeto / Como funciona:
 // No fluxo de análise, assim que o Lexer identifica uma cadeia pura de letras (um identificador válido),

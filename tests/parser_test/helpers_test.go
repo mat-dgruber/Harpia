@@ -3,8 +3,8 @@ package parser_test
 import (
 	"reflect"
 
-	"github.com/natanfeitosa/portuscript/lexer"
-	"github.com/natanfeitosa/portuscript/parser"
+	"github.com/mat-dgruber/Harpia/lexer"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 func createParser(code string) *parser.Parser {

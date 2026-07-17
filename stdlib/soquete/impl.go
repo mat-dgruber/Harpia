@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"golang.org/x/sys/unix"
 )
 
@@ -19,7 +19,7 @@ func ultimoElemento[T any](slice []T) T {
 	return slice[len(slice)-1]
 }
 
-// Soquete representa o objeto encapsulador de um descritor de arquivo de socket de rede na VM do Portuscript.
+// Soquete representa o objeto encapsulador de um descritor de arquivo de socket de rede na VM do Harpia.
 type Soquete struct {
 	// descritorDoSoquete armazena o manipulador de baixo nível (File Descriptor) gerenciado pelo kernel do SO.
 	descritorDoSoquete       int
@@ -243,7 +243,7 @@ func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, er
 }
 
 func init() {
-	// Nova é a função construtora para instanciar Sockets a partir de scripts Portuscript.
+	// Nova é a função construtora para instanciar Sockets a partir de scripts Harpia.
 	TipoSoquete.Nova = func(args ptst.Tupla) (ptst.Objeto, error) {
 		if argsLen := len(args); argsLen != 3 {
 			if argsLen < 2 {

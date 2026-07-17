@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// ClasseObj representa a modelagem de uma nova classe declarada em código pelo usuário do Portuscript.
+// ClasseObj representa a modelagem de uma nova classe declarada em código pelo usuário do Harpia.
 //
 // Ela armazena o nome da classe, as referências de herança para sua classe base correspondente
 // e o mapa estruturado de métodos e funções internas.
@@ -14,8 +14,8 @@ type ClasseObj struct {
 	Metodos map[string]*Funcao // Catálogo mapeando chaves textuais aos métodos lógicos da classe.
 }
 
-// TipoClasseObj especifica as assinaturas e metadados de metaclasse para classes do Portuscript na VM.
-var TipoClasseObj = NewTipo("ClasseObj", "Metaclasse para classes Portuscript")
+// TipoClasseObj especifica as assinaturas e metadados de metaclasse para classes do Harpia na VM.
+var TipoClasseObj = NewTipo("ClasseObj", "Metaclasse para classes Harpia")
 
 // Tipo retorna a representação de Tipo de ClasseObj.
 func (c *ClasseObj) Tipo() *Tipo {
@@ -59,7 +59,7 @@ func (c *ClasseObj) M__nova_instancia__(meta *Tipo, args Tupla) (Objeto, error) 
 	return instancia, nil
 }
 
-// Instancia representa o objeto físico instanciado a partir de uma classe customizada do Portuscript (ClasseObj).
+// Instancia representa o objeto físico instanciado a partir de uma classe customizada do Harpia (ClasseObj).
 type Instancia struct {
 	Classe    *ClasseObj        // Ponteiro de amarração que referencia a classe de origem.
 	Atributos map[string]Objeto // Tabela de símbolos local contendo as propriedades e atributos dinâmicos do objeto.

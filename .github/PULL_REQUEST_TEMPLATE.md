@@ -21,7 +21,7 @@ Marque a opção apropriada:
 
 ## 🏗️ Clean Architecture & DDD Checklist
 
-Por favor, verifique se suas alterações cumprem as regras de arquitetura do Portuscript:
+Por favor, verifique se suas alterações cumprem as regras de arquitetura do Harpia:
 
 - [ ] As regras de negócio puras foram mantidas isoladas na camada `/dominio`?
 - [ ] Modificações de persistência, APIs ou integrações com sistemas externos ficaram na camada `/infra`?
@@ -32,7 +32,7 @@ Por favor, verifique se suas alterações cumprem as regras de arquitetura do Po
 
 ## 🧪 Checklist de Testes
 
-- [ ] Todos os testes nativos do Portuscript foram executados (`portuscript testar`) e passaram?
+- [ ] Todos os testes nativos do Harpia foram executados (`harpia testar`) e passaram?
 - [ ] Todos os testes do compilador/runtime Go foram executados (`go test ./...`) e passaram sem erros?
 - [ ] Foram adicionados novos testes nativos cobrindo o bug ou a funcionalidade adicionada?
 

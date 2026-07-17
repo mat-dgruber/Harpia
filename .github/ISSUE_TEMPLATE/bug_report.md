@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Reporte um bug no Portuscript para nos ajudar a identificar e corrigir problemas.
+about: Reporte um bug no Harpia para nos ajudar a identificar e corrigir problemas.
   Certifique-se de seguir as instruções abaixo para garantir uma descrição clara do
   bug e do comportamento esperado.
 title: 'Bug: [Breve descrição do bug]'
@@ -25,5 +25,5 @@ assignees: ''
 **Ambiente:**
 
 -   Sistema Operacional:
--   Versão do Portuscript:
+-   Versão do Harpia:
 -   Outras informações relevantes:

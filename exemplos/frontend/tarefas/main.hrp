@@ -1,11 +1,11 @@
-# Exemplo de Lista de Tarefas (Todo) usando Sinais, Loops JSX-like e Arrays no Portuscript.
+# Exemplo de Lista de Tarefas (Todo) usando Sinais, Loops JSX-like e Arrays no Harpia.
 #
 # Para rodar este exemplo:
-#   portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+#   Harpia compilar --alvo=web --entrada=main.ptst --saida=dist
 #
 # Abra o arquivo dist/index.html gerado no seu navegador.
 
-var listaDeTarefas = sinal(["Estudar Portuscript", "Praticar Sinais e Virtual DOM", "Configurar SSR e Hidratação"]);
+var listaDeTarefas = sinal(["Estudar Harpia", "Praticar Sinais e Virtual DOM", "Configurar SSR e Hidratação"]);
 var lerTarefas = listaDeTarefas[0];
 var definirTarefas = listaDeTarefas[1];
 
@@ -36,7 +36,7 @@ estilo ListaApp {
 funcao MeuApp() {
 	retorne <div classe="ListaApp flex-coluna p-6 fundo-branco raio-grande borda">
 			<h2 classe="texto-azul"> Minhas Tarefas </h2>
-			<p classe="texto-cinza"> Gerenciador de tarefas nativo em Portuscript </p>
+			<p classe="texto-cinza"> Gerenciador de tarefas nativo em Harpia </p>
 
 			<div classe="flex-linha p-2">
 				<input

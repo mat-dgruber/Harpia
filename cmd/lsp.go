@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/lexer"
-	"github.com/natanfeitosa/portuscript/parser"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/lexer"
+	"github.com/mat-dgruber/Harpia/parser"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -195,7 +195,7 @@ func tratarRequisicaoLSP(req RequestMessage) {
 		if err := json.Unmarshal(req.Params, &params); err == nil {
 			codigo := cacheArquivosLSP[params.TextDocument.URI]
 			if codigo != "" {
-				codigoFormatado := FormatarCodigoPortuscript(codigo)
+				codigoFormatado := FormatarCodigoHarpia(codigo)
 				res := ResponseMessage{
 					Jsonrpc: "2.0",
 					ID:      req.ID,
@@ -301,7 +301,7 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 			},
 			Severity: 1,
 			Code:     "PSC-0001",
-			Source:   "portuscript-parser",
+			Source:   "Harpia-parser",
 			Message:  err.Error(),
 		})
 	} else {
@@ -337,7 +337,7 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 								},
 								Severity: 1, // Erro
 								Code:     "PSC-ARCH-001",
-								Source:   "portuscript-arquitetura",
+								Source:   "Harpia-arquitetura",
 								Message:  "Violação de Clean Architecture: Arquivos sob '/dominio' não podem importar camadas de infraestrutura ou web!",
 							})
 						}
@@ -364,7 +364,7 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 				},
 				Severity: errObj.Severity,
 				Code:     errObj.Code,
-				Source:   "portuscript-linter",
+				Source:   "Harpia-linter",
 				Message:  errObj.Message,
 			})
 		}
@@ -383,7 +383,7 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 }
 
 // =============================================================================
-// PONYTAIL: hover + go-to-definition nativos do LSP do Portuscript
+// PONYTAIL: hover + go-to-definition nativos do LSP do Harpia
 // =============================================================================
 
 type TextDocumentPositionParams struct {
@@ -537,17 +537,17 @@ func assinaturaVar(d *parser.DeclVar) string {
 func obterDescricaoBuiltin(palavra string) string {
 	switch palavra {
 	case "imprimir":
-		return "```portuscript\nimprimir(valor)\n```\n\nImprime um valor na saída padrão do console."
+		return "```Harpia\nimprimir(valor)\n```\n\nImprime um valor na saída padrão do console."
 	case "sinal":
-		return "```portuscript\nsinal(valorInicial)\n```\n\nCria um sinal reativo contendo um valor mutável."
+		return "```Harpia\nsinal(valorInicial)\n```\n\nCria um sinal reativo contendo um valor mutável."
 	case "efeito":
-		return "```portuscript\nefeito(funcao)\n```\n\nCria um efeito colateral que roda automaticamente sempre que os sinais dependentes mudam."
+		return "```Harpia\nefeito(funcao)\n```\n\nCria um efeito colateral que roda automaticamente sempre que os sinais dependentes mudam."
 	case "derivado":
-		return "```portuscript\nderivado(funcao)\n```\n\nCria um valor reativo derivado de outros sinais e memoizado."
+		return "```Harpia\nderivado(funcao)\n```\n\nCria um valor reativo derivado de outros sinais e memoizado."
 	case "armazem":
-		return "```portuscript\narmazem(estadoInicial)\n```\n\nCria um armazenamento de estado global reativo para componentes."
+		return "```Harpia\narmazem(estadoInicial)\n```\n\nCria um armazenamento de estado global reativo para componentes."
 	case "montar":
-		return "```portuscript\nmontar(componente, elementoAlvo)\n```\n\nInicializa e renderiza a montagem reativa da aplicação em um elemento alvo."
+		return "```Harpia\nmontar(componente, elementoAlvo)\n```\n\nInicializa e renderiza a montagem reativa da aplicação em um elemento alvo."
 	}
 	return ""
 }
@@ -598,7 +598,7 @@ func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 	}
 
 	var markdown strings.Builder
-	markdown.WriteString(fmt.Sprintf("```portuscript\n%s\n```\n", assinatura))
+	markdown.WriteString(fmt.Sprintf("```Harpia\n%s\n```\n", assinatura))
 
 	if tok != nil {
 		docs := buscarDocInserida(cache.codigo, tok.Inicio.Linha)

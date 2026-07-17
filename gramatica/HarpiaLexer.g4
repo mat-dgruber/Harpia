@@ -1,4 +1,4 @@
-lexer grammar PortuscriptLexer;
+lexer grammar HarpiaLexer;
 
 // ============================================================================
 // TOKENS PRIMORDIAIS E VALORES LITERAIS

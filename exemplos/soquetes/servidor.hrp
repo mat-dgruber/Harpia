@@ -2,7 +2,7 @@
 # EXEMPLO: SERVIDOR DE REDE TCP (ECHO SERVER)
 # ============================================================================
 # Este script implementa um servidor de eco (echo server) TCP não-bloqueante
-# de alto nível na porta 3000, demonstrando a robustez de conexões do Portuscript.
+# de alto nível na porta 3000, demonstrando a robustez de conexões do Harpia.
 
 de "soquete" importe Soquete;
 
@@ -21,7 +21,7 @@ soq.associa("127.0.0.1", 3000)
 # 5. Ativa a escuta de conexões entrantes
 soq.ouve()
 
-imprima("Parece que nosso soquete Portuscript está ouvindo em http://127.0.0.1:3000")
+imprima("Parece que nosso soquete Harpia está ouvindo em http://127.0.0.1:3000")
 
 # 6. Loop de aceitação contínua de novos clientes
 enquanto (Verdadeiro) {

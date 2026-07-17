@@ -8,10 +8,11 @@ import (
 	"image/png"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +25,7 @@ func comandoCompilar() *cobra.Command {
 
 	compilar := &cobra.Command{
 		Use:   "compilar",
-		Short: "Compila/Transpila o código Portuscript para a plataforma Web",
+		Short: "Compila/Transpila o código Harpia para a plataforma Web",
 		Run: func(cmd *cobra.Command, args []string) {
 			cur, err := os.Getwd()
 			if err != nil {
@@ -42,9 +43,50 @@ func comandoCompilar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			if alvo != "web" {
-				fmt.Fprintf(os.Stderr, "erro: alvo de compilação '%s' não suportado. Alvos suportados: web\n", alvo)
+			if alvo != "web" && alvo != "nativo" {
+				fmt.Fprintf(os.Stderr, "erro: alvo de compilação '%s' não suportado. Alvos suportados: web, nativo\n", alvo)
 				os.Exit(1)
+			}
+
+			if alvo == "nativo" {
+				ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+				defer ctx.Terminar()
+
+				_, ast, err := ctx.TransformarEmAst(entrada, false, cur)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Erro de compilação/sintaxe: %v\n", err)
+					os.Exit(1)
+				}
+
+				transpiler := &TranspilerNative{}
+				goCode := transpiler.GenerateFullCode(ast)
+
+				tmpGoFile := filepath.Join(cur, "main_aot.go")
+				err = os.WriteFile(tmpGoFile, []byte(goCode), 0644)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "erro ao gravar arquivo Go temporário: %v\n", err)
+					os.Exit(1)
+				}
+				defer os.Remove(tmpGoFile)
+
+				saidaBin := saida
+				if saidaBin == "dist" {
+					baseName := filepath.Base(entrada)
+					saidaBin = strings.TrimSuffix(baseName, filepath.Ext(baseName))
+				}
+
+				fmt.Printf("Compilando binário nativo '%s'...\n", saidaBin)
+
+				cmdBuild := exec.Command("go", "build", "-o", saidaBin, tmpGoFile)
+				cmdBuild.Stdout = os.Stdout
+				cmdBuild.Stderr = os.Stderr
+				if errBuild := cmdBuild.Run(); errBuild != nil {
+					fmt.Fprintf(os.Stderr, "erro ao executar go build: %v\n", errBuild)
+					os.Exit(1)
+				}
+
+				fmt.Println("🚀 Compilação AOT concluída com sucesso!")
+				return
 			}
 
 			ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
@@ -205,7 +247,7 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portuscript App</title>
+    <title>Harpia App</title>
     <link rel="stylesheet" href="estilos.css">
 </head>
 <body>
@@ -244,7 +286,7 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 		},
 	}
 
-	compilar.Flags().StringVarP(&alvo, "alvo", "a", "web", "Alvo da compilação (web)")
+	compilar.Flags().StringVarP(&alvo, "alvo", "a", "web", "Alvo da compilação (web, nativo)")
 	compilar.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .hrp principal de entrada")
 	compilar.Flags().StringVarP(&saida, "saida", "s", "dist", "Diretório de destino da compilação")
 	compilar.Flags().BoolVar(&estrito, "estrito", false, "Ativa anotações JSDoc para tipagem estática")

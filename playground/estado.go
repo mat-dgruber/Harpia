@@ -1,5 +1,5 @@
 // Package playground implementa a Interface de Usuário de Terminal (TUI) e o ambiente de REPL
-// (Read-Eval-Print Loop) interativo do Portuscript.
+// (Read-Eval-Print Loop) interativo do Harpia.
 //
 // O pacote é responsável por gerenciar a entrada histórica de comandos, renderizar o prompt,
 // controlar o buffer de escrita do desenvolvedor em tempo de digitação, compilar e avaliar os

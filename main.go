@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/natanfeitosa/portuscript/cmd"
-	"github.com/natanfeitosa/portuscript/ptst"
+	"github.com/mat-dgruber/Harpia/cmd"
+	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ const LongDescription = `
 facilitar os estudos por parte de novos aventureiros no mundo da programação
 com foco em Clean Architecture e DDD, sem ficar apenas criando códigos sem uso prático.
 
-	A documentação completa pode ser encontrada em https://github.com/natanfeitosa/portuscript
+	A documentação completa pode ser encontrada em https://github.com/mat-dgruber/Harpia
 `
 
 func init() {
@@ -37,7 +37,7 @@ var embeddedSource string
 func main() {
 	if embeddedSource != "" {
 		// Importa a biblioteca padrão implicitamente
-		_ = "github.com/natanfeitosa/portuscript/stdlib"
+		_ = "github.com/mat-dgruber/Harpia/stdlib"
 
 		ctx := ptst.NewContexto(ptst.OpcsContexto{})
 		defer ctx.Terminar()

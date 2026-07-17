@@ -1,6 +1,6 @@
 # Exemplo: Contador Reativo
 
-SPA minimalista que demonstra o uso mais básico de Sinais e eventos DOM em Portuscript.
+SPA minimalista que demonstra o uso mais básico de Sinais e eventos DOM em Harpia.
 
 ## Conceitos demonstrados
 
@@ -11,6 +11,6 @@ SPA minimalista que demonstra o uso mais básico de Sinais e eventos DOM em Port
 ## Como rodar
 
 ```bash
-portuscript compilar --alvo=web --entrada=main.ptst --saida=dist
+harpia compilar --alvo=web --entrada=main.ptst --saida=dist
 # Abra dist/index.html no browser
 ```

@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 )
 
-// Texto representa o tipo de dado textual (string) nativo do Portuscript.
+// Texto representa o tipo de dado textual (string) nativo do Harpia.
 // É um apelido (alias) para o tipo básico 'string' (codificação UTF-8 por padrão) do Go.
 type Texto string
 
@@ -21,7 +21,7 @@ Chama obj.__texto__() ou obj.__repr__(), se nenhum dos dois for encontrado, um e
 	`,
 )
 
-// NewTexto tenta forçar a coerção (casting) de qualquer objeto ou interface Go em um Texto (string) do Portuscript.
+// NewTexto tenta forçar a coerção (casting) de qualquer objeto ou interface Go em um Texto (string) do Harpia.
 //
 // Regras de Coerção:
 //   - nil ➔ Retorna Texto("").
@@ -149,7 +149,7 @@ func (t Texto) M__contem__(obj Objeto) (Objeto, error) {
 	return Falso, nil
 }
 
-// M__mod__ implementa a interpolação de strings no Portuscript usando o operador modulo % (semelhante ao Python).
+// M__mod__ implementa a interpolação de strings no Harpia usando o operador modulo % (semelhante ao Python).
 //
 // Suporta formatações:
 //   - %i: Formata valores de Inteiros.

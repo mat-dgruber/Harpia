@@ -148,7 +148,7 @@ import (
 
 func main() {
 	// Exemplo de manipulação de string Unicode complexa
-	texto := "PortuScript é incrível! 🚀"
+	texto := "Harpia é incrível! 🚀"
 	
 	// 1. Pré-calculando o cache de índices
 	cache := compartilhado.IndiceBytePorCarater(texto)

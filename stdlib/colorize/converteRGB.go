@@ -1,6 +1,6 @@
 package colorize
 
-import "github.com/natanfeitosa/portuscript/ptst"
+import "github.com/mat-dgruber/Harpia/ptst"
 
 // met_color_converteRGB implementa a lógica nativa para a função 'converteRGB()'.
 //
