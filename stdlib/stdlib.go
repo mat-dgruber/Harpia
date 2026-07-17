@@ -39,6 +39,7 @@ import (
 	_ "github.com/mat-dgruber/Harpia/stdlib/metricas"
 	_ "github.com/mat-dgruber/Harpia/stdlib/esquema"
 	_ "github.com/mat-dgruber/Harpia/stdlib/resiliencia"
+	_ "github.com/mat-dgruber/Harpia/stdlib/telemetria"
 	_ "github.com/mat-dgruber/Harpia/stdlib/tarefas"
 	_ "github.com/mat-dgruber/Harpia/stdlib/ffi"
 	_ "github.com/mat-dgruber/Harpia/stdlib/ia"

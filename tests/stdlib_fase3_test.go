@@ -188,6 +188,29 @@ func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
 	}
 }
 
+func TestTelemetria(t *testing.T) {
+	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	de "telemetria" importe novo_tracer, nova_metrica
+
+	// 1. Testa Tracer e Spans
+	var tracer = novo_tracer("servico-pagamentos")
+	var span = tracer.iniciar_span("processar_pix")
+	span.finalizar("OK")
+
+	// 2. Testa Métricas
+	var metrica = nova_metrica("requisicoes_total", "counter")
+	metrica.registrar(1, "sucesso")
+	`
+
+	_, err := ptst.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script de testes de telemetria: %v", err)
+	}
+}
+
 func TestModuloYaml(t *testing.T) {
 	ctx := ptst.NewContexto(ptst.OpcsContexto{})
 	defer ctx.Terminar()
