@@ -1,0 +1,37 @@
+{
+  "comments": {
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
+  },
+  "brackets": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"]
+  ],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "\"", "close": "\"" },
+    { "open": "'", "close": "'" },
+    { "open": "`", "close": "`" }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["\"", "\""],
+    ["'", "'"],
+    ["`", "`"]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^.*\\{[^}\"]*$|^.*\\([^)]*$|^.*\\[[^\\]]*$",
+    "decreaseIndentPattern": "^\\s*[})\\]]"
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(?:se|senao|enquanto|para|funcao|classe|interface|tente|capture|finalmente|senao\\s+se).*\\{\\s*$",
+      "afterText": "}"
+    }
+  ]
+}

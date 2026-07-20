@@ -1,0 +1,35 @@
+{
+  "name": "Harpia Claro",
+  "type": "light",
+  "colors": {
+    "editor.background": "#fafafa",
+    "editor.foreground": "#4c4f69",
+    "editorLineNumber.foreground": "#9ca0b0",
+    "editorLineNumber.activeForeground": "#4c4f69",
+    "editor.selectionBackground": "#dce0e8",
+    "editor.lineHighlightBackground": "#e6e9ef",
+    "editorCursor.foreground": "#dc8a78"
+  },
+  "tokenColors": [
+    { "name": "Comentários", "scope": ["comment.line.harpia", "comment.block.harpia", "comment.block.html.harpia"], "settings": { "foreground": "#9ca0b0", "fontStyle": "italic" } },
+    { "name": "Palavras-chave de controle", "scope": "keyword.control.harpia", "settings": { "foreground": "#8839ef", "fontStyle": "bold" } },
+    { "name": "Palavras-chave de fluxo", "scope": "keyword.control.flow.harpia", "settings": { "foreground": "#d20f39", "fontStyle": "bold" } },
+    { "name": "Declarações (classe, funcao, var)", "scope": "storage.type.harpia", "settings": { "foreground": "#fe640b", "fontStyle": "bold" } },
+    { "name": "Modificadores", "scope": "storage.modifier.harpia", "settings": { "foreground": "#fe640b", "fontStyle": "italic" } },
+    { "name": "Tipos primitivos", "scope": "support.type.primitive.harpia", "settings": { "foreground": "#df8e1d" } },
+    { "name": "Classes, Componentes e Estilos", "scope": ["entity.name.type.class.harpia", "entity.name.type.interface.harpia", "entity.name.type.enum.harpia", "entity.name.type.component.harpia", "support.class.component.harpia"], "settings": { "foreground": "#1e66f5", "fontStyle": "bold" } },
+    { "name": "Funções e métodos", "scope": ["entity.name.function.harpia", "support.function.builtin.harpia"], "settings": { "foreground": "#40a02b", "fontStyle": "bold" } },
+    { "name": "Decoradores", "scope": "meta.decorator.harpia", "settings": { "foreground": "#ea76cb", "fontStyle": "italic" } },
+    { "name": "Propriedades e atributos", "scope": ["variable.other.property.harpia", "entity.other.attribute-name.harpia", "entity.other.attribute-name.style.harpia"], "settings": { "foreground": "#179299" } },
+    { "name": "Tags JSX/HTML", "scope": ["entity.name.tag.harpia", "meta.tag.harpia"], "settings": { "foreground": "#ea76cb", "fontStyle": "bold" } },
+    { "name": "Strings", "scope": ["string.quoted.harpia", "string.template.harpia"], "settings": { "foreground": "#40a02b" } },
+    { "name": "Números", "scope": "constant.numeric.harpia", "settings": { "foreground": "#fe640b" } },
+    { "name": "Booleanos e Nulo", "scope": ["constant.language.boolean.harpia", "constant.language.null.harpia"], "settings": { "foreground": "#fe640b", "fontStyle": "bold" } },
+    { "name": "Operadores lógicos", "scope": ["keyword.operator.logical.harpia", "keyword.operator.comparison.harpia"], "settings": { "foreground": "#04a5e5" } },
+    { "name": "Operadores aritméticos/atribuição", "scope": ["keyword.operator.arithmetic.harpia", "keyword.operator.assignment.harpia"], "settings": { "foreground": "#04a5e5" } },
+    { "name": "Parâmetros", "scope": "variable.parameter.harpia", "settings": { "foreground": "#dc8a78", "fontStyle": "italic" } },
+    { "name": "Variáveis", "scope": "variable.other.readwrite.harpia", "settings": { "foreground": "#4c4f69" } },
+    { "name": "this/super", "scope": "variable.language.self.harpia", "settings": { "foreground": "#ea76cb", "fontStyle": "bold" } },
+    { "name": "Pontuação", "scope": "punctuation.*.harpia", "settings": { "foreground": "#7c7f93" } }
+  ]
+}

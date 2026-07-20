@@ -1,0 +1,13 @@
+{
+  "iconDefinitions": {
+    "harpia_file": {
+      "iconPath": "./harpia-file-icon.jpg"
+    }
+  },
+  "fileExtensions": {
+    "hrp": "harpia_file"
+  },
+  "languageIds": {
+    "harpia": "harpia_file"
+  }
+}

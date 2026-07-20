@@ -1,0 +1,125 @@
+{
+  "name": "Harpia Escuro",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#1e1e2e",
+    "editor.foreground": "#cdd6f4",
+    "editorLineNumber.foreground": "#6c7086",
+    "editorLineNumber.activeForeground": "#cdd6f4",
+    "editor.selectionBackground": "#45475a",
+    "editor.lineHighlightBackground": "#313244",
+    "editorCursor.foreground": "#f5e0dc"
+  },
+  "tokenColors": [
+    {
+      "name": "Comentários",
+      "scope": ["comment.line.harpia", "comment.block.harpia", "comment.block.html.harpia"],
+      "settings": { "foreground": "#6c7086", "fontStyle": "italic" }
+    },
+    {
+      "name": "Palavras-chave de controle",
+      "scope": "keyword.control.harpia",
+      "settings": { "foreground": "#cba6f7", "fontStyle": "bold" }
+    },
+    {
+      "name": "Palavras-chave de fluxo",
+      "scope": "keyword.control.flow.harpia",
+      "settings": { "foreground": "#f38ba8", "fontStyle": "bold" }
+    },
+    {
+      "name": "Declarações (classe, funcao, var)",
+      "scope": "storage.type.harpia",
+      "settings": { "foreground": "#fab387", "fontStyle": "bold" }
+    },
+    {
+      "name": "Modificadores",
+      "scope": "storage.modifier.harpia",
+      "settings": { "foreground": "#fab387", "fontStyle": "italic" }
+    },
+    {
+      "name": "Tipos primitivos",
+      "scope": "support.type.primitive.harpia",
+      "settings": { "foreground": "#f9e2af" }
+    },
+    {
+      "name": "Classes, Componentes e Estilos",
+      "scope": [
+        "entity.name.type.class.harpia",
+        "entity.name.type.interface.harpia",
+        "entity.name.type.enum.harpia",
+        "entity.name.type.component.harpia",
+        "support.class.component.harpia"
+      ],
+      "settings": { "foreground": "#89b4fa", "fontStyle": "bold" }
+    },
+    {
+      "name": "Funções e métodos",
+      "scope": ["entity.name.function.harpia", "support.function.builtin.harpia"],
+      "settings": { "foreground": "#a6e3a1", "fontStyle": "bold" }
+    },
+    {
+      "name": "Decoradores",
+      "scope": "meta.decorator.harpia",
+      "settings": { "foreground": "#f5c2e7", "fontStyle": "italic" }
+    },
+    {
+      "name": "Propriedades e atributos",
+      "scope": [
+        "variable.other.property.harpia",
+        "entity.other.attribute-name.harpia",
+        "entity.other.attribute-name.style.harpia"
+      ],
+      "settings": { "foreground": "#94e2d5" }
+    },
+    {
+      "name": "Tags JSX/HTML",
+      "scope": ["entity.name.tag.harpia", "meta.tag.harpia"],
+      "settings": { "foreground": "#f5c2e7", "fontStyle": "bold" }
+    },
+    {
+      "name": "Strings",
+      "scope": ["string.quoted.harpia", "string.template.harpia"],
+      "settings": { "foreground": "#a6e3a1" }
+    },
+    {
+      "name": "Números",
+      "scope": "constant.numeric.harpia",
+      "settings": { "foreground": "#fab387" }
+    },
+    {
+      "name": "Booleanos e Nulo",
+      "scope": ["constant.language.boolean.harpia", "constant.language.null.harpia"],
+      "settings": { "foreground": "#fab387", "fontStyle": "bold" }
+    },
+    {
+      "name": "Operadores lógicos",
+      "scope": ["keyword.operator.logical.harpia", "keyword.operator.comparison.harpia"],
+      "settings": { "foreground": "#89dceb" }
+    },
+    {
+      "name": "Operadores aritméticos/atribuição",
+      "scope": ["keyword.operator.arithmetic.harpia", "keyword.operator.assignment.harpia"],
+      "settings": { "foreground": "#89dceb" }
+    },
+    {
+      "name": "Parâmetros",
+      "scope": "variable.parameter.harpia",
+      "settings": { "foreground": "#f5e0dc", "fontStyle": "italic" }
+    },
+    {
+      "name": "Variáveis",
+      "scope": "variable.other.readwrite.harpia",
+      "settings": { "foreground": "#cdd6f4" }
+    },
+    {
+      "name": "this/super",
+      "scope": "variable.language.self.harpia",
+      "settings": { "foreground": "#f5c2e7", "fontStyle": "bold" }
+    },
+    {
+      "name": "Pontuação",
+      "scope": "punctuation.*.harpia",
+      "settings": { "foreground": "#9399b2" }
+    }
+  ]
+}
