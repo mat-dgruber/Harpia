@@ -120,7 +120,8 @@ exportar funcao RotaIndex() {
 Esta camada é responsável por expor a interface visual (UI) para o navegador de forma ultra veloz por meio do Virtual DOM reativo nativo do Harpia.
 
 - **pages/**: Estrutura de telas, painéis e páginas em HTML, estilos específicos e lógica associada. Cada página possui a tríade de arquivos integrada: ".hrp" (lógica), ".estilo.hrp" (estilos) e ".html" (marcação visual).
-- **componentes/**: Reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas. Também abriga o arquivo de estilos gerais "global.estilos.hrp".
+- **componentes/**: Reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas.
+- **global.estilos.hrp**: Arquivo na raiz de 'web/' contendo os estilos gerais da aplicação.
 - **rotas/**: Telas, dashboards e páginas de roteamento SPA (.hrp).
 
 ## 📌 Boas Práticas e Regras de Ouro:
@@ -128,7 +129,7 @@ Esta camada é responsável por expor a interface visual (UI) para o navegador d
 2. **Design Tokens Unificados**: Centralize cores e espaçamentos no seu estilos.hrp usando a palavra-chave 'estilo' do Harpia para preservar consistência.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "global.estilos.hrp"), `exportar estilo TituloGlobal {
+			escreverArquivo(nomeProj, filepath.Join("web", "global.estilos.hrp"), `exportar estilo TituloGlobal {
 	tamanhoFonte: "2.5rem";
 	alinhamentoTexto: "center";
 	cor: "#171e26";
@@ -218,7 +219,8 @@ Responsável pela interface do usuário (UI) e controle de rotas no navegador (S
 
 * **Convenções:**
   * **pages/**: Estrutura de telas e páginas completas. Cada página segue a arquitetura tripla e sintonizada: um arquivo de marcação ".html", um arquivo de folha de estilos ".estilo.hrp" e um arquivo lógico ".hrp" que integra ambos e gerencia os sinais locais.
-  * **componentes/**: Elementos e blocos visuais reutilizáveis menores (como botões, cards, barras) criados futuramente e importados nas páginas. Também abriga o arquivo "global.estilos.hrp" de estilos gerais.
+  * **componentes/**: Elementos e blocos visuais reutilizáveis menores (como botões, cards, barras) criados futuramente e importados nas páginas.
+  * **global.estilos.hrp**: Arquivo na raiz de 'web/' contendo as classes de estilos globais da aplicação.
   * **rotas/**: Controladores de fluxo e arquivos de roteamento SPA ("rotas.hrp").
 `)
 
@@ -432,7 +434,7 @@ exportar funcao RotaIndex() {
 
 			criarAssetsPadrao(nomeProj)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "global.estilos.hrp"), `exportar estilo TituloGlobal {
+			escreverArquivo(nomeProj, filepath.Join("web", "global.estilos.hrp"), `exportar estilo TituloGlobal {
 	tamanhoFonte: "2.5rem";
 	alinhamentoTexto: "center";
 	cor: "#171e26";
@@ -488,12 +490,13 @@ exportar estilo EntradaTexto {
 Esta pasta abriga os elementos de renderização dinâmica no navegador (SPA), como rotas e componentes de interface Virtual DOM com suporte a folhas de estilo declaradas em português.
 
 - **pages/**: Estrutura de telas, painéis e páginas em HTML, estilos específicos e lógica associada. Cada página possui a tríade de arquivos integrada: ".hrp" (lógica), ".estilo.hrp" (estilos) e ".html" (marcação visual).
-- **componentes/**: Pasta vazia reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas. Também abriga o arquivo de estilos gerais "global.estilos.hrp".
+- **componentes/**: Pasta vazia reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas.
+- **global.estilos.hrp**: Arquivo na raiz de 'web/' contendo os estilos gerais da aplicação.
 - **rotas/**: Telas, dashboards e páginas de roteamento SPA (.hrp).
 
 ## 📌 Boas Práticas:
 1. **Controle de Estado Cirúrgico**: Faça o controle de dados reativos por meio de Sinais (sinal) para obter alta precisão e evitar renderizações pesadas do DOM.
-2. **Estilizações Reutilizáveis**: Evite escrever estilos inline extensos; centralize cores e layouts em "web/componentes/global.estilos.hrp" para reuso.
+2. **Estilizações Reutilizáveis**: Evite escrever estilos inline extensos; centralize cores e layouts em "web/global.estilos.hrp" para reuso.
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# 🏛️ Arquitetura Frontend Harpia (SPA)
@@ -501,7 +504,8 @@ Esta pasta abriga os elementos de renderização dinâmica no navegador (SPA), c
 Uma estrutura reativa focada no cliente SPA (Single Page Application) de altíssimo desempenho, alimentada integralmente pelo motor de Virtual DOM e Sinais Reativos do Harpia.
 
 - **web/pages/**: Estrutura de telas e páginas completas. Cada página segue a arquitetura tripla e sintonizada: um arquivo de marcação ".html", um arquivo de folha de estilos ".estilo.hrp" e um arquivo lógico ".hrp" que integra ambos e gerencia os sinais locais.
-- **web/componentes/**: Blocos de interface declarativos, folhas de estilos gerais ("global.estilos.hrp") e componentes menores reutilizáveis criados futuramente.
+- **web/componentes/**: Blocos de interface declarativos e componentes menores reutilizáveis criados futuramente.
+- **web/global.estilos.hrp**: Arquivo na raiz de 'web/' contendo as classes de estilos globais da aplicação.
 - **web/rotas/**: Telas e fluxos de navegação reativos baseados em rotas amigáveis ("rotas.hrp").
 - **main.hrp**: Ponto de entrada que carrega os estilos e monta o componente raiz na interface.
 `)

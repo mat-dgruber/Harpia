@@ -47,7 +47,7 @@ func TestComandoNovoMonolito(t *testing.T) {
 		filepath.Join("meu_monolito", "dominio", "entidades", "usuario.hrp"),
 		filepath.Join("meu_monolito", "infra", "banco", "conexao.hrp"),
 		filepath.Join("meu_monolito", "web", "rotas", "rotas.hrp"),
-		filepath.Join("meu_monolito", "web", "componentes", "global.estilos.hrp"),
+		filepath.Join("meu_monolito", "web", "global.estilos.hrp"),
 		filepath.Join("meu_monolito", "web", "pages", "Inicio.hrp"),
 		filepath.Join("meu_monolito", "web", "pages", "Inicio.estilo.hrp"),
 		filepath.Join("meu_monolito", "web", "pages", "Inicio.html"),
