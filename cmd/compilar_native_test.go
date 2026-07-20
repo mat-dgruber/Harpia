@@ -252,17 +252,15 @@ func TestComandoCompilarNativo(t *testing.T) {
 
 	projectRoot := filepath.Dir(cur)
 
-	// Escreve um go.mod mínimo para a sandbox de teste para resolver a dependência local
-	goModConteudo := fmt.Sprintf(`module test_aot
-
-go 1.24.2
-
-require (
-	github.com/mat-dgruber/Harpia v0.0.0
-)
-
-replace github.com/mat-dgruber/Harpia => %s
-`, projectRoot)
+	// Lê o go.mod original para herdar todas as dependências de forma idêntica
+	goModOrigem := filepath.Join(projectRoot, "go.mod")
+	goModData, errMod := os.ReadFile(goModOrigem)
+	if errMod != nil {
+		t.Fatal(errMod)
+	}
+	goModConteudo := string(goModData)
+	goModConteudo = strings.Replace(goModConteudo, "module github.com/mat-dgruber/Harpia", "module test_aot", 1)
+	goModConteudo += fmt.Sprintf("\nrequire github.com/mat-dgruber/Harpia v0.0.0\nreplace github.com/mat-dgruber/Harpia => %s\n", projectRoot)
 
 	os.WriteFile("go.mod", []byte(goModConteudo), 0644)
 
@@ -313,11 +311,15 @@ func TestComandoCompilarWasm(t *testing.T) {
 
 	projectRoot := filepath.Dir(cur)
 
-	goModConteudo := fmt.Sprintf(`module test_aot
-go 1.24.2
-require github.com/mat-dgruber/Harpia v0.0.0
-replace github.com/mat-dgruber/Harpia => %s
-`, projectRoot)
+	// Lê o go.mod original para herdar todas as dependências de forma idêntica
+	goModOrigem := filepath.Join(projectRoot, "go.mod")
+	goModData, errMod := os.ReadFile(goModOrigem)
+	if errMod != nil {
+		t.Fatal(errMod)
+	}
+	goModConteudo := string(goModData)
+	goModConteudo = strings.Replace(goModConteudo, "module github.com/mat-dgruber/Harpia", "module test_aot", 1)
+	goModConteudo += fmt.Sprintf("\nrequire github.com/mat-dgruber/Harpia v0.0.0\nreplace github.com/mat-dgruber/Harpia => %s\n", projectRoot)
 
 	os.WriteFile("go.mod", []byte(goModConteudo), 0644)
 

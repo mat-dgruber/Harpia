@@ -10,11 +10,12 @@ import (
 // É um apelido (alias) para o tipo básico 'int64' do Go.
 type Inteiro int64
 
-var (
+const (
 	cacheInteirosMin = -100
 	cacheInteirosMax = 2000
-	cacheInteiros    [2101]Objeto // ponytail: pool de alocação rápida Eden Space para inteiros curtos
 )
+
+var cacheInteiros [2101]Objeto // ponytail: pool de alocação rápida Eden Space para inteiros curtos
 
 func init() {
 	for i := cacheInteirosMin; i <= cacheInteirosMax; i++ {
@@ -55,7 +56,7 @@ func NewInteiro(obj any) (Objeto, error) {
 		return Inteiro(b), nil
 	case int64:
 		if b >= int64(cacheInteirosMin) && b <= int64(cacheInteirosMax) {
-			return cacheInteiros[int(b)-cacheInteirosMin], nil
+			return cacheInteiros[int(b-int64(cacheInteirosMin))], nil
 		}
 		return Inteiro(b), nil
 	case Inteiro:

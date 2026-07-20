@@ -10,6 +10,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+const MaxLimiteBuscaVetorial = 10000
+
 type ClienteVetorial struct {
 	URL     string
 	Colecao string
@@ -104,9 +106,13 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 				vetor = append(vetor, float64(vDec.(hrp.Decimal)))
 			}
 
+			limVal := int64(limite.(hrp.Inteiro))
+			if limVal < 1 || limVal > MaxLimiteBuscaVetorial {
+				return nil, hrp.NewErroF(hrp.ValorErro, "limite de busca vetorial inválido (deve ser entre 1 e %d)", MaxLimiteBuscaVetorial)
+			}
 			query := map[string]interface{}{
 				"vector":       vetor,
-				"limit":        int(limite.(hrp.Inteiro)),
+				"limit":        limVal,
 				"with_payload": true,
 			}
 

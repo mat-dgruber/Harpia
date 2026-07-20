@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test-compiler:
     name: Test & Lint Harpia Compiler
@@ -23,7 +26,9 @@ jobs:
           cache: true
 
       - name: Instalar Dependências
-        run: go mod download
+        run: |
+          go mod download
+          go mod tidy
 
       - name: Validar Formatação de Código (go fmt)
         run: |

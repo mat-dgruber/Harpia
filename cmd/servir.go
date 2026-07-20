@@ -158,6 +158,12 @@ func comandoServir() *cobra.Command {
 				}
 
 				p := filepath.Join(saidaTemp, caminho)
+				rel, err := filepath.Rel(saidaTemp, p)
+				if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+					http.NotFound(w, r)
+					return
+				}
+
 				if _, err := os.Stat(p); os.IsNotExist(err) {
 					http.NotFound(w, r)
 					return
