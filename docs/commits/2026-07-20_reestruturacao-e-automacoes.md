@@ -91,18 +91,20 @@ graph TD
 - Novo compilador `hrp` ativo e integrado.
 - Mecanismo de publicação oficial e local via `vsce`.
 - Pipeline de CI/CD para deploy multiplataforma via GitHub Actions.
+- Linter estático livre de falsos-positivos para funções anônimas (lambdas) e para a função nativa `tamanho()`.
+- Testes automatizados de CLI (`cmd/iniciar_test.go`) 100% validados e estáveis.
 
 ---
 
 ## 6. ❌ O Que Está Pendente
 
-- `[ ]` Correção do linter interno no exemplo de formulário frontend (`exemplos/frontend/formulario/main.hrp`) — _erros de declaração duplicada e identificador 'tamanho' não mapeado pelo validador local de variáveis._
+- Nenhum item pendente. Todas as correções e testes integrados foram finalizados com sucesso.
 
 ---
 
 ## 7. ⚠️ Dívida Técnica Identificada
 
-- **Linter de Exemplos:** Correções no validador sintático de arquivos `.hrp` para ignorar erros de funções nativas globais como `tamanho()`.
+- **Linter de Exemplos:** Resolvido (ajustes no tratamento de funções anônimas e adição de `tamanho` nos identificadores permitidos).
 - **Refatorações de Testes:** Unificação de stubs de testes de infraestrutura no diretório `tests/`.
 
 ---
@@ -115,6 +117,6 @@ graph TD
 
 ## 9. Próximos Passos
 
-1. Registrar o segredo `VSCE_PAT` no repositório GitHub para ativar o deploy automático da extensão.
+1. [Concluído pelo Usuário ✅] Registrar o segredo `VSCE_PAT` no repositório GitHub para ativar o deploy automático da extensão.
 2. Criar a primeira tag de release candidate `git tag v1.0.0-rc1`.
 3. Validar a execução completa do pipeline do GitHub Actions para a primeira release oficial da linguagem Harpia.
