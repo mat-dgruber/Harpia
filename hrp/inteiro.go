@@ -15,7 +15,7 @@ const (
 	cacheInteirosMax = 2000
 )
 
-var cacheInteiros    [2101]Objeto // ponytail: pool de alocação rápida Eden Space para inteiros curtos
+var cacheInteiros [2101]Objeto // ponytail: pool de alocação rápida Eden Space para inteiros curtos
 
 func init() {
 	for i := cacheInteirosMin; i <= cacheInteirosMax; i++ {
