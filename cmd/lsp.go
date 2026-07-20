@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -49,7 +49,7 @@ type TextDocumentItem struct {
 }
 
 type DidChangeTextDocumentParams struct {
-	TextDocument VersionedTextDocumentIdentifier `json:"textDocument"`
+	TextDocument   VersionedTextDocumentIdentifier  `json:"textDocument"`
 	ContentChanges []TextDocumentContentChangeEvent `json:"contentChanges"`
 }
 
@@ -154,7 +154,7 @@ func tratarRequisicaoLSP(req RequestMessage) {
 			ID:      req.ID,
 			Result: map[string]interface{}{
 				"capabilities": map[string]interface{}{
-					"textDocumentSync":           1, // Full sync (didOpen, didChange, didClose, didSave)
+					"textDocumentSync":           1,    // Full sync (didOpen, didChange, didClose, didSave)
 					"documentFormattingProvider": true, // ponytail: ativa suporte síncrono para 'On-Save' na IDE
 					"hoverProvider":              true, // ponytail: hover de palavras-chave e símbolos usando o Lexer
 					"definitionProvider":         true, // ponytail: F12 navega para a declaração via walk do AST
@@ -286,7 +286,7 @@ func processarDiagnosticosLSP(uriStr, codigo string) {
 		caminhoArquivo = caminhoArquivo[1:]
 	}
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	var diagnostics []LSPDiagnostic

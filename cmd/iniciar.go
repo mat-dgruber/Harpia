@@ -47,6 +47,7 @@ func comandoMonolito() *cobra.Command {
 				filepath.Join(nomeProj, "infra", "banco"),
 				filepath.Join(nomeProj, "web"),
 				filepath.Join(nomeProj, "web", "rotas"),
+				filepath.Join(nomeProj, "web", "pages"),
 				filepath.Join(nomeProj, "web", "componentes"),
 				filepath.Join(nomeProj, "testes"),
 				filepath.Join(nomeProj, "docs"),
@@ -70,49 +71,93 @@ exportar classe Usuario {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("dominio", "README.md"), `# Camada de Domínio
+			escreverArquivo(nomeProj, filepath.Join("dominio", "README.md"), `# 🧬 Camada de Domínio (O Coração do Sistema)
 
-Esta é a camada mais importante do sistema. Ela abriga a lógica central de negócios (regras que definem o sistema) e é totalmente independente de banco de dados, APIs ou frameworks.
+Esta é a camada mais interna e importante do seu aplicativo. Ela abriga todas as regras e lógicas de negócios centrais da sua aplicação de forma isolada.
 
 - **entidades/**: Modelos de dados ricos e tipados (.hrp).
-- **repositorios/**: Interfaces/portas de comunicação para persistência de dados (.hrp).
+- **repositorios/**: Interfaces e contratos de portas de comunicação para persistência (.hrp).
+
+## 📌 Boas Práticas e Regras de Ouro:
+1. **Isolamento Absoluto**: Esta camada nunca deve ter dependências de infraestrutura, bancos ou frameworks de terceiros. Deve ser puro código Harpia.
+2. **Entidades Ricas**: Prefira entidades ricas (com lógicas de validação em seu inicializador) a estruturas de dados anêmicas e sem comportamento.
+3. **Inversão de Dependência**: O domínio define os contratos de acesso (interfaces em repositories); a infraestrutura os implementa.
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("infra", "banco", "conexao.hrp"), `de "bd" importe conectar;
 
 exportar funcao obterBanco() {
-	# ponytail: SQLite embarcado de forma nativa e segura
+	# SQLite embarcado de forma nativa e segura
 	retorne conectar("sqlite", "dados.db");
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("infra", "README.md"), `# Camada de Infraestrutura
+			escreverArquivo(nomeProj, filepath.Join("infra", "README.md"), `# 🔌 Camada de Infraestrutura (Detalhes de Tecnologia)
 
-Aqui residem os adaptadores concretos e tecnologias externas que suportam o domínio.
+A camada de infraestrutura é responsável por conectar a lógica puramente conceitual do domínio com o mundo físico exterior (banco de dados, rede, etc.).
 
-- **banco/**: Arquivos de conexão, drivers e implementações específicas de consultas (ex: SQLite em .hrp).
+- **banco/**: Arquivos de conexão, drivers e repositórios concretos (ex: SQLite em .hrp).
+
+## 📌 Boas Práticas e Regras de Ouro:
+1. **Lógica de Persistência**: Isole queries, SQLs e ORM nesta camada. O domínio não deve saber se os dados vêm de arquivos locais, bancos SQL ou NoSQL.
+2. **Resiliência Integrada**: Use disjuntores, limites de taxa ou retentativas na infraestrutura para blindar o sistema contra picos de erro de conexões externas.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "index.hrp"), `de "web" importe sinal, importarHtml;
-de "../componentes/estilos.hrp" importe Aplicacao, BotaoPrincipal;
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "web" importe h;
+de "../pages/Inicio.hrp" importe RotaInicio;
 
 exportar funcao RotaIndex() {
-	var contadorSinal = sinal(0);
-	var contador = contadorSinal[0];
-	var setContador = contadorSinal[1];
-	retorne importarHtml("../componentes/Layout.html");
+	retorne <RotaInicio />;
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "README.md"), `# Camada Web / Interface
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "README.md"), conteudoRotasReadmeMd)
 
-Contém a camada visual, componentes de interface Virtual DOM, folhas de estilo e gerenciamento de rotas.
+			criarAssetsPadrao(nomeProj)
 
-- **componentes/**: Blocos visuais reutilizáveis em HTML e estilos dinâmicos (.hrp).
+			escreverArquivo(nomeProj, filepath.Join("web", "README.md"), `# 🌐 Camada Web e Apresentação (Frontend SPA)
+
+Esta camada é responsável por expor a interface visual (UI) para o navegador de forma ultra veloz por meio do Virtual DOM reativo nativo do Harpia.
+
+- **pages/**: Estrutura de telas, painéis e páginas em HTML, estilos específicos e lógica associada. Cada página possui a tríade de arquivos integrada: ".hrp" (lógica), ".estilo.hrp" (estilos) e ".html" (marcação visual).
+- **componentes/**: Reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas. Também abriga o arquivo de estilos gerais "global.estilos.hrp".
 - **rotas/**: Telas, dashboards e páginas de roteamento SPA (.hrp).
+
+## 📌 Boas Práticas e Regras de Ouro:
+1. **Estado Fino com Sinais**: Use Sinais (sinal) no escopo global para gerenciar dados reativos, lendo seus valores via getter para atualizações cirúrgicas no DOM.
+2. **Design Tokens Unificados**: Centralize cores e espaçamentos no seu estilos.hrp usando a palavra-chave 'estilo' do Harpia para preservar consistência.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "estilos.hrp"), `exportar estilo Aplicacao {
+			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "global.estilos.hrp"), `exportar estilo TituloGlobal {
+	tamanhoFonte: "2.5rem";
+	alinhamentoTexto: "center";
+	cor: "#171e26";
+}
+
+exportar estilo CorpoGlobal {
+	margem: "0";
+	preenchimento: "0";
+	famíliaFonte: "sans-serif";
+}
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "web" importe sinal, importarHtml;
+de "./Inicio.estilo.hrp" importe Aplicacao, BotaoPrincipal;
+
+exportar funcao RotaInicio() {
+	var contadorSinal = sinal(0);
+	var contador = contadorSinal[0];
+	var setContador = contadorSinal[1];
+
+	var incrementar = funcao() {
+		setContador(contador() + 1);
+	};
+
+	retorne importarHtml("./Inicio.html");
+}
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.estilo.hrp"), `exportar estilo Aplicacao {
 	famíliaFonte: "sans-serif";
 	padding: "40px";
 	alinhamentoTexto: "center";
@@ -129,33 +174,58 @@ exportar estilo BotaoPrincipal {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "Layout.html"), `<div class={Aplicacao}>
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.html"), `<div class={Aplicacao}>
 	<h1>🦅 Olá, Mundo Harpia!</h1>
 	<p>Desenvolvido em português com Clean Architecture e DDD.</p>
 
 	<div style="margin-top: 30px; padding: 20px; background: #f3f4f6; border-radius: 8px; display: inline-block;">
 		<p>Cliques reativos: <strong>{contador()}</strong></p>
-		<button aoClicar={funcao() { setContador(contador() + 1); }} class={BotaoPrincipal}>
+		<button aoClicar={incrementar} class={BotaoPrincipal}>
 			Incrementar
 		</button>
 	</div>
 </div>
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# Arquitetura do Projeto Harpia
+			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# 🏛️ Guia de Arquitetura do Projeto Harpia (Clean Architecture + DDD)
 
-Este projeto foi estruturado utilizando **Clean Architecture** (Arquitetura Limpa) combinada com conceitos de **DDD** (Domain-Driven Design) em Português.
+Este projeto foi estruturado sob os princípios da **Arquitetura Limpa (Clean Architecture)** e do **Design Orientado a Domínio (DDD)** de forma nativa em português.
 
-## Camadas do Sistema:
-1. **dominio/**: Contém a lógica de negócios e entidades essenciais (independente de frameworks ou banco de dados).
-2. **infra/**: Adaptadores de dados, repositórios concretos e conexões (como banco de dados SQLite).
-3. **web/**: Roteamento, componentes de interface, visual e controladores.
+---
+
+## 🧭 O Fluxo de Dependência (A Regra de Ouro)
+O princípio central da Clean Architecture é que **as dependências de código devem apontar apenas para dentro**. As camadas externas (infraestrutura e web) conhecem o domínio, mas o domínio **nunca** deve importar nada da infraestrutura ou da web.
+
+---
+
+## 📁 Estrutura de Camadas e Convenções
+
+### 1. Camada de Domínio ("dominio/")
+Representa o núcleo do software. Ela contém as regras de negócios cruciais que seriam verdadeiras mesmo se o aplicativo não fosse um sistema computacional.
+
+* **Convenções:**
+  * **entidades/**: Modelos de domínio ricos que possuem identidade própria (ex: "Usuario"). Devem validar seus próprios estados durante a inicialização.
+  * **repositorios/**: Contratos de persistência de dados (interfaces). Definem quais dados o domínio precisa salvar ou ler, sem saber qual banco será usado.
+
+### 2. Camada de Infraestrutura ("infra/")
+Contém os detalhes técnicos e implementações concretas que dão suporte ao funcionamento do domínio.
+
+* **Convenções:**
+  * **banco/**: Drivers, conexões físicas (ex: SQLite) e implementações de repositórios concretos.
+
+### 3. Camada de Apresentação ("web/")
+Responsável pela interface do usuário (UI) e controle de rotas no navegador (SPA).
+
+* **Convenções:**
+  * **pages/**: Estrutura de telas e páginas completas. Cada página segue a arquitetura tripla e sintonizada: um arquivo de marcação ".html", um arquivo de folha de estilos ".estilo.hrp" e um arquivo lógico ".hrp" que integra ambos e gerencia os sinais locais.
+  * **componentes/**: Elementos e blocos visuais reutilizáveis menores (como botões, cards, barras) criados futuramente e importados nas páginas. Também abriga o arquivo "global.estilos.hrp" de estilos gerais.
+  * **rotas/**: Controladores de fluxo e arquivos de roteamento SPA ("rotas.hrp").
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
 
 			escreverArquivo(nomeProj, "main.hrp", `de "web" importe montar;
-de "./web/rotas/index.hrp" importe RotaIndex;
+de "./web/rotas/rotas.hrp" importe RotaIndex;
 
 funcao Aplicacao() {
 	retorne <div class="App">
@@ -174,6 +244,31 @@ testar "deve instanciar um usuario de dominio com tipos corretos" {
 	assegure(user.id == 1)
 	assegure(user.nome == "Natan")
 }
+`)
+
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Monolito Harpia)
+
+Este projeto monolito foi gerado de forma automática sob as premissas de **Clean Architecture** e **DDD** com termos em português.
+
+---
+
+## 🧭 Como Navegar
+Consulte a pasta de documentação para guias e especificações de uso:
+* 🏛️ [Manual de Arquitetura](docs/arquitetura.md) — Explicação de Domínio, Infra e Apresentação.
+* 🎮 [Guia de Comandos](docs/comandos.md) — Comandos do CLI, flags e necessidades.
+
+---
+
+## ⚡ Como Rodar a Aplicação
+Para compilar e servir o seu projeto no navegador, execute os seguintes comandos no terminal:
+
+` + "```" + `bash
+# 1. Compila para a web gerando o build estático
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist
+
+# 2. Inicia o servidor local leve de hospedagem
+harpia servir --diretorio=dist
+` + "```" + `
 `)
 
 			exibirSucessoCompleto(nomeProj, "monolito")
@@ -221,23 +316,31 @@ func comandoBackend() *cobra.Command {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("dominio", "README.md"), `# Domínio do Backend
+			escreverArquivo(nomeProj, filepath.Join("dominio", "README.md"), `# 🧬 Camada de Domínio do Backend (O Coração da API)
 
-Camada central onde estão as regras de negócio puras (entidades e modelos de domínio), sem acoplamento com banco de dados ou protocolo de transporte (HTTP/gRPC).
+Camada central onde residem as regras de negócio puras (entidades e modelos de domínio), livre de conexões com banco de dados ou protocolo de rede HTTP/gRPC.
+
+## 📌 Boas Práticas:
+1. **Modelagem de Domínio Rito**: Agregue lógicas, regras fiscais e validações diretamente nos métodos das entidades em "entidades/".
+2. **Independência Total**: O domínio define o que o sistema faz; ele nunca deve saber onde ou como os dados são salvos ou enviados.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("infra", "README.md"), `# Infraestrutura do Backend
+			escreverArquivo(nomeProj, filepath.Join("infra", "README.md"), `# 🔌 Camada de Infraestrutura do Backend (Detalhes Técnicos)
 
-Adaptadores de entrada/saída, conexões de banco de dados, drivers e clientes de APIs externas.
+Aqui residem as implementações concretas e adaptadores de entrada/saída (conexões de banco, clientes HTTP, envio de e-mails, etc.).
+
+## 📌 Boas Práticas:
+1. **Consultas e queries**: Mantenha as consultas brutas SQL e integrações externas focadas nesta camada.
+2. **Robustez de Rede**: Implemente disjuntores de circuito (circuit breakers) e lógicas de retentativa para garantir alta disponibilidade.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# Arquitetura de Backend Harpia
+			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# 🏛️ Arquitetura de Backend Harpia (Clean Architecture + DDD)
 
-Estrutura limpa voltada para o desenvolvimento de APIs robustas, microsserviços e concorrência orientada a eventos.
+Uma estrutura robusta e performática voltada para o desenvolvimento de microsserviços, APIs corporativas e concorrência orientada a eventos em português.
 
-- **dominio/**: Entidades de negócio e contratos de repositório.
-- **infra/**: Conectores de banco de dados e APIs externas.
-- **main.hrp**: Ponto de entrada que inicializa o servidor de microsserviço/API HTTP.
+- **dominio/**: Entidades de negócio ricas e tipadas, e definições de contratos.
+- **infra/**: Conectores e adaptadores físicos para banco de dados e APIs externas.
+- **main.hrp**: Ponto de entrada do executável que liga as rotas HTTP e inicializa o servidor.
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
@@ -257,6 +360,28 @@ api.obter("/api/produtos", funcao(req, res) {
 
 imprimir("Servidor backend ativo na porta 8080...")
 api.ouvir(8080)
+`)
+
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Backend Harpia)
+
+Este projeto de backend foi gerado de forma automática com foco em APIs lógicas, conectores de banco de dados e concorrência leve em português.
+
+---
+
+## 🧭 Como Navegar
+Consulte a pasta de documentação para guias e especificações de uso:
+* 🏛️ [Manual de Arquitetura](docs/arquitetura.md) — Explicação do fluxo de dados e portas de banco.
+* 🎮 [Guia de Comandos](docs/comandos.md) — Comandos do CLI, flags e necessidades.
+
+---
+
+## ⚡ Como Rodar o Servidor Backend
+Para executar o seu servidor backend imediatamente, execute no terminal:
+
+` + "```" + `bash
+# Executa o servidor na máquina local
+harpia executar main.hrp
+` + "```" + `
 `)
 
 			exibirSucessoCompleto(nomeProj, "backend")
@@ -282,6 +407,7 @@ func comandoFrontend() *cobra.Command {
 				nomeProj,
 				filepath.Join(nomeProj, "web"),
 				filepath.Join(nomeProj, "web", "rotas"),
+				filepath.Join(nomeProj, "web", "pages"),
 				filepath.Join(nomeProj, "web", "componentes"),
 				filepath.Join(nomeProj, "testes"),
 				filepath.Join(nomeProj, "docs"),
@@ -294,10 +420,35 @@ func comandoFrontend() *cobra.Command {
 				}
 			}
 
-			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "index.hrp"), `de "web" importe sinal, h;
-de "../componentes/estilos.hrp" importe Aplicacao, EntradaTexto;
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "web" importe h;
+de "../pages/Inicio.hrp" importe RotaInicio;
 
 exportar funcao RotaIndex() {
+	retorne <RotaInicio />;
+}
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "README.md"), conteudoRotasReadmeMd)
+
+			criarAssetsPadrao(nomeProj)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "global.estilos.hrp"), `exportar estilo TituloGlobal {
+	tamanhoFonte: "2.5rem";
+	alinhamentoTexto: "center";
+	cor: "#171e26";
+}
+
+exportar estilo CorpoGlobal {
+	margem: "0";
+	preenchimento: "0";
+	famíliaFonte: "sans-serif";
+}
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "web" importe sinal, h;
+de "./Inicio.estilo.hrp" importe Aplicacao, EntradaTexto;
+
+exportar funcao RotaInicio() {
 	var nomeSinal = sinal("");
 	var nome = nomeSinal[0];
 	var setNome = nomeSinal[1];
@@ -315,7 +466,7 @@ exportar funcao RotaIndex() {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "componentes", "estilos.hrp"), `exportar estilo Aplicacao {
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.estilo.hrp"), `exportar estilo Aplicacao {
 	famíliaFonte: "sans-serif";
 	padding: "40px";
 	alinhamentoTexto: "center";
@@ -332,29 +483,60 @@ exportar estilo EntradaTexto {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "README.md"), `# Web / Frontend
+			escreverArquivo(nomeProj, filepath.Join("web", "README.md"), `# 🌐 Camada Web e Apresentação (Frontend SPA)
 
-Esta pasta abriga os elements de renderização dinâmica no navegador (SPA), como rotas e componentes reutilizáveis baseados em Sinais Reativos e Virtual DOM.
+Esta pasta abriga os elementos de renderização dinâmica no navegador (SPA), como rotas e componentes de interface Virtual DOM com suporte a folhas de estilo declaradas em português.
 
-- **componentes/**: Blocos visuais reutilizáveis em HTML e estilos dinâmicos (.hrp).
-- **rotas/**: Telas, painéis e páginas de navegação com Sinais Reativos de estado (.hrp).
+- **pages/**: Estrutura de telas, painéis e páginas em HTML, estilos específicos e lógica associada. Cada página possui a tríade de arquivos integrada: ".hrp" (lógica), ".estilo.hrp" (estilos) e ".html" (marcação visual).
+- **componentes/**: Pasta vazia reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas. Também abriga o arquivo de estilos gerais "global.estilos.hrp".
+- **rotas/**: Telas, dashboards e páginas de roteamento SPA (.hrp).
+
+## 📌 Boas Práticas:
+1. **Controle de Estado Cirúrgico**: Faça o controle de dados reativos por meio de Sinais (sinal) para obter alta precisão e evitar renderizações pesadas do DOM.
+2. **Estilizações Reutilizáveis**: Evite escrever estilos inline extensos; centralize cores e layouts em "web/componentes/global.estilos.hrp" para reuso.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# Arquitetura Frontend Harpia
+			escreverArquivo(nomeProj, filepath.Join("docs", "arquitetura.md"), `# 🏛️ Arquitetura Frontend Harpia (SPA)
 
-Uma estrutura reativa cliente puramente SPA (Single Page Application) de altíssimo desempenho, alimentada pelo motor Virtual DOM do Harpia.
+Uma estrutura reativa focada no cliente SPA (Single Page Application) de altíssimo desempenho, alimentada integralmente pelo motor de Virtual DOM e Sinais Reativos do Harpia.
 
-- **web/componentes/**: Blocos de interface declarativos em HTML e arquivos de estilo (.hrp / .html).
-- **web/rotas/**: Telas, painéis e páginas de navegação com Sinais Reativos de estado.
-- **main.hrp**: Ponto de entrada que monta o componente raiz no documento.
+- **web/pages/**: Estrutura de telas e páginas completas. Cada página segue a arquitetura tripla e sintonizada: um arquivo de marcação ".html", um arquivo de folha de estilos ".estilo.hrp" e um arquivo lógico ".hrp" que integra ambos e gerencia os sinais locais.
+- **web/componentes/**: Blocos de interface declarativos, folhas de estilos gerais ("global.estilos.hrp") e componentes menores reutilizáveis criados futuramente.
+- **web/rotas/**: Telas e fluxos de navegação reativos baseados em rotas amigáveis ("rotas.hrp").
+- **main.hrp**: Ponto de entrada que carrega os estilos e monta o componente raiz na interface.
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
 
 			escreverArquivo(nomeProj, "main.hrp", `de "web" importe montar;
-de "./web/rotas/index.hrp" importe RotaIndex;
+de "./web/rotas/rotas.hrp" importe RotaIndex;
 
 montar(RotaIndex, Nulo);
+`)
+
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Frontend SPA Harpia)
+
+Este projeto de frontend reativo SPA foi gerado de forma automática com base em Virtual DOM e Sinais reativos de alto desempenho em português.
+
+---
+
+## 🧭 Como Navegar
+Consulte a pasta de documentação para guias e especificações de uso:
+* 🏛️ [Manual de Arquitetura](docs/arquitetura.md) — Explicação de componentes, rotas e sinais.
+* 🎮 [Guia de Comandos](docs/comandos.md) — Comandos do CLI, flags e necessidades.
+
+---
+
+## ⚡ Como Rodar a Aplicação
+Para compilar e servir o seu projeto no navegador, execute no seu terminal:
+
+` + "```" + `bash
+# 1. Compila para a web gerando o build estático
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist
+
+# 2. Inicia o servidor local leve de hospedagem
+harpia servir --diretorio=dist
+` + "```" + `
 `)
 
 			exibirSucessoCompleto(nomeProj, "frontend")
@@ -379,37 +561,66 @@ func comandoCrie() *cobra.Command {
 func comandoCrieRota() *cobra.Command {
 	return &cobra.Command{
 		Use:   "rota [nome]",
-		Short: "Gera uma nova rota de SPA no diretório correspondente",
+		Short: "Gera uma nova tríade de arquivos para uma página/rota de SPA",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nome := args[0]
 			nomeLimp := strings.Title(strings.ToLower(nome))
 
-			// Detecta se existe a pasta web/rotas ou rotas
-			pastaDest := "rotas"
-			if _, err := os.Stat("web/rotas"); err == nil {
-				pastaDest = "web/rotas"
+			// Detecta se existe a pasta web/pages ou pages
+			pastaPages := "pages"
+			if _, err := os.Stat("web/pages"); err == nil {
+				pastaPages = "web/pages"
 			} else {
-				os.MkdirAll("rotas", 0755)
+				os.MkdirAll("pages", 0755)
 			}
 
-			caminho := filepath.Join(pastaDest, strings.ToLower(nome)+".hrp")
-			conteudo := fmt.Sprintf(`de "web" importe sinal, h;
+			caminhoLogico := filepath.Join(pastaPages, nomeLimp+".hrp")
+			caminhoEstilo := filepath.Join(pastaPages, nomeLimp+".estilo.hrp")
+			caminhoVisual := filepath.Join(pastaPages, nomeLimp+".html")
+
+			conteudoEstilo := fmt.Sprintf(`exportar estilo Conteiner%s {
+	padding: "30px";
+	famíliaFonte: "sans-serif";
+}
+`, nomeLimp)
+
+			conteudoVisual := fmt.Sprintf(`<div class={Conteiner%s}>
+	<h1>Página %s ativa!</h1>
+	<p>Modifique a lógica em "%s.hrp", os estilos em "%s.estilo.hrp" e o layout em "%s.html".</p>
+</div>
+`, nomeLimp, nomeLimp, nomeLimp, nomeLimp, nomeLimp)
+
+			conteudoLogico := fmt.Sprintf(`de "web" importe sinal, importarHtml;
+de "./%s.estilo.hrp" importe Conteiner%s;
 
 exportar funcao Rota%s() {
-	retorne <div class="p-6">
-		<h1 class="text-2xl font-bold">Página %s</h1>
-		<p>Gerado automaticamente com o assistente do Harpia.</p>
-	</div>;
+	retorne importarHtml("./%s.html");
 }
-`, nomeLimp, nomeLimp)
+`, nomeLimp, nomeLimp, nomeLimp, nomeLimp)
 
-			if err := os.WriteFile(caminho, []byte(conteudo), 0644); err != nil {
-				fmt.Fprintf(os.Stderr, "Erro ao criar rota %s: %v\n", caminho, err)
+			if err := os.WriteFile(caminhoEstilo, []byte(conteudoEstilo), 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao criar estilo %s: %v\n", caminhoEstilo, err)
 				os.Exit(1)
 			}
 
-			fmt.Printf("✅ Rota '%s' gerada com sucesso em: %s\n", nomeLimp, caminho)
+			if err := os.WriteFile(caminhoVisual, []byte(conteudoVisual), 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao criar visual %s: %v\n", caminhoVisual, err)
+				os.Exit(1)
+			}
+
+			if err := os.WriteFile(caminhoLogico, []byte(conteudoLogico), 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao criar lógica %s: %v\n", caminhoLogico, err)
+				os.Exit(1)
+			}
+
+			injetarRotaEmRotasHrp(nomeLimp)
+
+			fmt.Printf("✅ Tríade de arquivos da página '%s' criada com sucesso em '%s/':\n", nomeLimp, pastaPages)
+			fmt.Printf("  - %s.hrp (Lógica e controle de sinais)\n", nomeLimp)
+			fmt.Printf("  - %s.estilo.hrp (Estilos locais em português)\n", nomeLimp)
+			fmt.Printf("  - %s.html (Marcação estrutural HTML)\n", nomeLimp)
+			fmt.Println("\nA rota foi injetada em web/rotas/rotas.hrp como <Rota" + nomeLimp + " />.")
 		},
 	}
 }
@@ -486,6 +697,77 @@ func escreverArquivo(basePath, subPath, conteudo string) {
 		fmt.Fprintf(os.Stderr, "Erro ao criar arquivo %s: %v\n", fullPath, err)
 		os.Exit(1)
 	}
+}
+
+const conteudoAssetsReadmeMd = `# 🖼️ Pasta de Assets Estáticos (web/assets/)
+
+Esta pasta centraliza todos os arquivos estáticos consumidos diretamente pelo navegador (imagens, fontes, favicons, manifestos visuais, etc.).
+
+## 📂 Estrutura Recomendada
+
+- **img/**: Imagens de uso geral do site (logos, banners, ilustrações, fotos).
+- **fontes/**: Arquivos de fontes externas (.woff2, .ttf, .otf). Importe via bloco 'estilo' ou '@import url(...)'.
+- **favicon/**: Ícones do site (favicon.ico, apple-touch-icon.png, etc.).
+
+## ⚙️ Como Funciona no Build
+
+Ao rodar 'harpia compilar --alvo=web' (ou 'harpia dev'), todo o conteúdo desta pasta é copiado automaticamente para 'dist/assets/', sem qualquer alteração. PNG/JPG podem ainda ser otimizados com a flag --otimizar-assets.
+
+## 📌 Boas Práticas
+
+1. **Nomenclatura**: Use kebab-case em português (ex: 'logo-principal.png', 'banner-promo.webp').
+2. **Formatos Leves**: Prefira '.svg' para ilustrações vetoriais e '.webp' para fotos (a flag --otimizar-assets cuida disso).
+3. **Sem Mistura com Código**: Esta pasta existe para isolar binários e mídias; nunca coloque '.hrp' aqui.
+`
+
+// injetarRotaEmRotasHrp adiciona o import e o uso da rotaRota<nome> dentro de web/rotas/rotas.hrp,
+// caso ainda não exista. É idempotente: rodar duas vezes não duplica import nem uso.
+func injetarRotaEmRotasHrp(nomeLimp string) {
+	caminho := "web/rotas/rotas.hrp"
+	conteudo, err := os.ReadFile(caminho)
+	if err != nil {
+		return
+	}
+	texto := string(conteudo)
+	linhaImport := fmt.Sprintf("de \"../pages/%s.hrp\" importe Rota%s;", nomeLimp, nomeLimp)
+	uso := fmt.Sprintf("<Rota%s />", nomeLimp)
+
+	if strings.Contains(texto, linhaImport) {
+		return
+	}
+	novo := texto
+	if idx := strings.Index(novo, "exportar funcao RotaIndex()"); idx != -1 {
+		novo = novo[:idx] + linhaImport + "\n\n" + strings.TrimLeft(novo[idx:], "\n")
+	} else {
+		novo += "\n" + linhaImport + "\n"
+	}
+	if !strings.Contains(novo, uso) {
+		chave := "retorne <RotaInicio />;"
+		novo = strings.Replace(novo, chave, "retorne "+uso+";", 1)
+		if !strings.Contains(novo, uso) {
+			novo += "\n\tuso adicional: " + uso + "\n"
+		}
+	}
+	if err := os.WriteFile(caminho, []byte(novo), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "Aviso: não foi possível auto-injetar em %s: %v\n", caminho, err)
+	}
+}
+
+// criarAssetsPadrao cria a pasta web/assets/ e suas subpastas convencionais.
+func criarAssetsPadrao(nomeProj string) {
+	diretorios := []string{
+		filepath.Join(nomeProj, "web", "assets"),
+		filepath.Join(nomeProj, "web", "assets", "img"),
+		filepath.Join(nomeProj, "web", "assets", "fontes"),
+		filepath.Join(nomeProj, "web", "assets", "favicon"),
+	}
+	for _, dir := range diretorios {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Erro ao criar pasta %s: %v\n", dir, err)
+			os.Exit(1)
+		}
+	}
+	escreverArquivo(nomeProj, filepath.Join("web", "assets", "README.md"), conteudoAssetsReadmeMd)
 }
 
 func comandoCrieModelo() *cobra.Command {
@@ -588,5 +870,62 @@ Assistente de geração rápida e assistida de novos arquivos estruturados de te
   * ` + "`" + `harpia crie rota [nome]` + "`" + `: Gera uma nova tela/página de roteamento SPA na pasta correspondente.
   * ` + "`" + `harpia crie componente [nome]` + "`" + `: Cria uma estrutura lógica e seu respectivo arquivo de estilo dinâmico (.hrp).
   * ` + "`" + `harpia crie modelo [nome]` + "`" + `: Gera um novo modelo de dados rico e tipado na camada de domínio.
+`
+
+const conteudoRotasReadmeMd = `# 🛣️ Pasta de Rotas (Roteamento SPA)
+
+Esta pasta gerencia as telas, painéis e páginas principais da sua aplicação Single Page Application (SPA), controlando quais componentes e páginas são renderizados de acordo com o fluxo de navegação.
+
+## 📁 O arquivo "rotas.hrp"
+Este é o controlador mestre das rotas visuais da sua aplicação. Nele você pode importar as páginas da pasta "pages/" e os componentes de "componentes/" para decidir o que exibir na interface.
+
+---
+
+## 💡 Exemplos Práticos de Roteamento
+
+### 1. Roteamento Simples Baseado em Estado (Sinais)
+Você pode gerenciar qual tela exibir usando um sinal de texto reativo simples no arquivo "rotas.hrp":
+
+` + "```" + `harpia
+de "web" importe sinal, h;
+
+exportar funcao RotaMestra() {
+	var telaSinal = sinal("inicio");
+	var tela = telaSinal[0];
+	var irPara = telaSinal[1];
+
+	retorne <div class="App">
+		<nav>
+			<button aoClicar={funcao() { irPara("inicio"); }}>Início</button>
+			<button aoClicar={funcao() { irPara("sobre"); }}>Sobre</button>
+		</nav>
+
+		<main>
+			<se condicao={tela() == "inicio"}>
+				<div class="PaginaInicio">
+					<h1>Página Inicial</h1>
+				</div>
+			</se>
+			<se condicao={tela() == "sobre"}>
+				<div class="PaginaSobre">
+					<h1>Sobre Nós</h1>
+				</div>
+			</se>
+		</main>
+	</div>;
+}
+` + "```" + `
+
+### 2. Importação e Renderização de Páginas HTML
+Recomenda-se manter o código visual separado na pasta "web/pages/" e carregá-lo dinamicamente de dentro das suas rotas com "importarHtml":
+
+` + "```" + `harpia
+de "web" importe sinal, importarHtml;
+
+exportar funcao RotaIndex() {
+	# Carrega a página estática de forma ultra veloz e acopla a lógica reativa local
+	retorne importarHtml("../pages/Layout.html");
+}
+` + "```" + `
 `
 

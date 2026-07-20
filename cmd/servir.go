@@ -71,7 +71,7 @@ func comandoServir() *cobra.Command {
 							return nil
 						}
 						if !info.IsDir() && info.ModTime().After(ultimoCheck) {
-							if strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".ptst") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
+							if strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
 								mudou = true
 								ultimoCheck = info.ModTime()
 							}
@@ -202,7 +202,7 @@ func comandoServir() *cobra.Command {
 
 			url := fmt.Sprintf("http://localhost:%d", porta)
 			fmt.Printf("\n📢 Dev Server rodando em %s\n", url)
-			fmt.Println("👉 Altere seus arquivos .ptst, .html ou .css e o navegador recarregará automaticamente!")
+			fmt.Println("👉 Altere seus arquivos .hrp, .html ou .css e o navegador recarregará automaticamente!")
 
 			server := &http.Server{
 				Addr:         fmt.Sprintf(":%d", porta),

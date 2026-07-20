@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -23,6 +23,7 @@ func comandoCompilar() *cobra.Command {
 	var saida string
 	var estrito bool
 	var otimizarAssets bool
+	var pularLinter bool
 
 	compilar := &cobra.Command{
 		Use:   "compilar",
@@ -49,8 +50,28 @@ func comandoCompilar() *cobra.Command {
 				os.Exit(1)
 			}
 
+			if !pularLinter {
+				ctxLint := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
+				_, astLint, errL := ctxLint.TransformarEmAst(entrada, false, cur)
+				if errL == nil {
+					if prog, ok := astLint.(*parser.Programa); ok && prog != nil {
+						linter := &Linter{Posicoes: prog.Posicoes}
+						linter.Escopo = &EscopoLinter{Variaveis: make(map[string]bool), Consts: make(map[string]bool)}
+						linter.Checar(prog)
+						if len(linter.Erros) > 0 {
+							fmt.Fprintf(os.Stderr, "HRP-LINT-002: %d erro(s) de linter em %s. Use --pular-linter para ignorar.\n", len(linter.Erros), entrada)
+							for _, e := range linter.Erros {
+								fmt.Fprintf(os.Stderr, "  %s: %s\n", e.Code, e.Message)
+							}
+							os.Exit(1)
+						}
+					}
+				}
+				ctxLint.Terminar()
+			}
+
 			if alvo == "nativo" || alvo == "wasm" || alvo == "wasi" {
-				ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+				ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
 				defer ctx.Terminar()
 
 				_, ast, err := ctx.TransformarEmAst(entrada, false, cur)
@@ -84,7 +105,7 @@ func comandoCompilar() *cobra.Command {
 					}
 				}
 
-				fmt.Printf("Compilando binário '%s' (alvo=%s)...\n", saidaBin, alvo)
+				fmt.Printf("Compilando arquivo '%s' (alvo=%s)...\n", saidaBin, alvo)
 
 				cmdBuild := exec.Command("go", "build", "-o", saidaBin, tmpGoFile)
 				cmdBuild.Stdout = os.Stdout
@@ -105,7 +126,7 @@ func comandoCompilar() *cobra.Command {
 				return
 			}
 
-			ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+			ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
 			defer ctx.Terminar()
 
 			// Transforma o código do arquivo de entrada em AST
@@ -123,7 +144,7 @@ func comandoCompilar() *cobra.Command {
 			jsOutput := transpiler.Transpile(ast)
 
 			// ponytail: garante visibilidade do componente raiz no bundle final.
-			// Caso o usuário tenha declarado `funcao MeuApp(...) { ... }` no main.ptst sem
+			// Caso o usuário tenha declarado `funcao MeuApp(...) { ... }` no main.hrp sem
 			// marcar como exportado, prefixamos a declaração com `export` para que o
 			// `<script>` de bootstrap no index.html consiga importá-lo.
 			// Deve rodar ANTES do bloco de rotas para que o `if len(rotas) > 0` abaixo
@@ -157,7 +178,7 @@ func comandoCompilar() *cobra.Command {
 			if rotasDir != "" {
 				err = filepath.Walk(rotasDir, func(path string, info os.FileInfo, err error) error {
 					ext := filepath.Ext(path)
-					if err != nil || info.IsDir() || (ext != ".hrp" && ext != ".ptst") {
+					if err != nil || info.IsDir() || ext != ".hrp" {
 						return nil
 					}
 					// Carrega e transpila o arquivo de rota
@@ -307,6 +328,7 @@ export function roteador(r) { return () => h('div', {}, 'Roteador fallback'); }`
 	compilar.Flags().StringVarP(&saida, "saida", "s", "dist", "Diretório de destino da compilação")
 	compilar.Flags().BoolVar(&estrito, "estrito", false, "Ativa anotações JSDoc para tipagem estática")
 	compilar.Flags().BoolVar(&otimizarAssets, "otimizar-assets", false, "Otimiza e comprime imagens de assets (PNG, JPG, JPEG) para a saída")
+	compilar.Flags().BoolVar(&pularLinter, "pular-linter", false, "Pula a checagem do linter antes de compilar")
 	return compilar
 }
 
@@ -388,12 +410,27 @@ func otimizarECopiarAssets(srcDir, destDir string, otimizar bool) error {
 		if otimizar && (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
 			err = otimizarImagemFisica(path, destPath, ext)
 			if err == nil {
+				gerarWebPSeDisponivel(path, destPath)
 				return nil
 			}
 		}
 
 		return copiarArquivo(path, destPath)
 	})
+}
+
+// ponytail: se 'cwebp' (Google) estiver disponível, gera arquivo .webp ao lado do destino.
+// Falha silenciosa — WebP é otimização opcional e não bloqueia o build.
+func gerarWebPSeDisponivel(origem, destino string) {
+	cwebp, err := exec.LookPath("cwebp")
+	if err != nil {
+		return
+	}
+	destinoWebp := destino + ".webp"
+	cmd := exec.Command(cwebp, "-q", "75", origem, "-o", destinoWebp)
+	if err := cmd.Run(); err != nil {
+		os.Remove(destinoWebp)
+	}
 }
 
 // ponytail: codificador/decodificador de imagens nativo com compressão síncrona

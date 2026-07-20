@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ func comandoTestar() *cobra.Command {
 			arquivosCodigos := make(map[string]string)
 
 			for _, arq := range caminhosAbs {
-				ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+				ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
 
 				// Carrega o arquivo e parseia em AST
 				_, ast, err := ctx.TransformarEmAst(arq, false, cur)
@@ -73,8 +73,8 @@ func comandoTestar() *cobra.Command {
 				}
 
 				// Inicializa o módulo mestre avaliando apenas as importações e funções normais
-				modulo, err := ctx.InicializarModulo(&ptst.ModuloImpl{
-					Info: ptst.ModuloInfo{Arquivo: arq},
+				modulo, err := ctx.InicializarModulo(&hrp.ModuloImpl{
+					Info: hrp.ModuloInfo{Arquivo: arq},
 					Ast:  &parser.Bloco{Declaracoes: declsNormais},
 				})
 
@@ -91,7 +91,7 @@ func comandoTestar() *cobra.Command {
 					// Cria um escopo isolado que herda as variáveis e funções globais do módulo
 					escopo := modulo.Escopo.NewEscopo()
 
-					interpret := &ptst.Interpretador{
+					interpret := &hrp.Interpretador{
 						Ast:      tNode.Corpo,
 						Contexto: ctx,
 						Escopo:   escopo,
@@ -291,7 +291,7 @@ func encontrarArquivosTeste(raiz string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && (strings.HasSuffix(caminho, ".hrp") || strings.HasSuffix(caminho, ".ptst") || strings.HasSuffix(caminho, ".pt")) {
+		if !d.IsDir() && (strings.HasSuffix(caminho, ".hrp") || strings.HasSuffix(caminho, ".pt")) {
 			arquivos = append(arquivos, caminho)
 		}
 		return nil

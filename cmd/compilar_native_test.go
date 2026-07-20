@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestTranspileNative(t *testing.T) {
@@ -18,7 +18,7 @@ func TestTranspileNative(t *testing.T) {
 	var soma = x + y
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -29,12 +29,12 @@ func TestTranspileNative(t *testing.T) {
 	transpiler := &TranspilerNative{}
 	goCode := transpiler.GenerateFullCode(ast)
 
-	if !strings.Contains(goCode, "ptst.Inteiro(10)") {
-		t.Errorf("Código Go esperado contendo 'ptst.Inteiro(10)' não encontrado. Recebido: %s", goCode)
+	if !strings.Contains(goCode, "hrp.Inteiro(10)") {
+		t.Errorf("Código Go esperado contendo 'hrp.Inteiro(10)' não encontrado. Recebido: %s", goCode)
 	}
 
-	if !strings.Contains(goCode, "ptst.Adiciona(") {
-		t.Errorf("Operação de soma esperada 'ptst.Adiciona(' não encontrada. Recebido: %s", goCode)
+	if !strings.Contains(goCode, "hrp.Adiciona(") {
+		t.Errorf("Operação de soma esperada 'hrp.Adiciona(' não encontrada. Recebido: %s", goCode)
 	}
 }
 
@@ -45,14 +45,14 @@ se (x == 10) {
 } senao {
 	var b = 2
 }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.Verdadeiro") {
+	if !strings.Contains(goCode, "hrp.Verdadeiro") {
 		t.Errorf("Expressão Se não gerou verificação de Verdadeiro. Recebido: %s", goCode)
 	}
 	if !strings.Contains(goCode, "} else {") {
@@ -65,7 +65,7 @@ func TestTranspileEnquanto(t *testing.T) {
 enquanto (i < 10) {
 	i = i + 1
 }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
@@ -86,14 +86,14 @@ func TestTranspileFuncao(t *testing.T) {
 }
 somar(1, 2)
 `
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.NewFuncaoNativa") {
+	if !strings.Contains(goCode, "hrp.NewFuncaoNativa") {
 		t.Errorf("DeclFuncao não gerou NewFuncaoNativa. Recebido: %s", goCode)
 	}
 	if !strings.Contains(goCode, "return") {
@@ -103,14 +103,14 @@ somar(1, 2)
 
 func TestTranspileLista(t *testing.T) {
 	codigo := `var lista = [1, 2, 3]`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.ListaVazia()") {
+	if !strings.Contains(goCode, "hrp.ListaVazia()") {
 		t.Errorf("ListaLiteral não gerou ListaVazia(). Recebido: %s", goCode)
 	}
 	if !strings.Contains(goCode, ".Adicionar(") {
@@ -120,15 +120,15 @@ func TestTranspileLista(t *testing.T) {
 
 func TestTranspileMapa(t *testing.T) {
 	codigo := `var m = { "chave": "valor" }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.Mapa{}") {
-		t.Errorf("MapaLiteral não gerou ptst.Mapa{}. Recebido: %s", goCode)
+	if !strings.Contains(goCode, "hrp.Mapa{}") {
+		t.Errorf("MapaLiteral não gerou hrp.Mapa{}. Recebido: %s", goCode)
 	}
 	if !strings.Contains(goCode, ".Definir(") {
 		t.Errorf("MapaLiteral não gerou .Definir(). Recebido: %s", goCode)
@@ -138,15 +138,15 @@ func TestTranspileMapa(t *testing.T) {
 func TestTranspileIndexacao(t *testing.T) {
 	codigo := `var x = [1, 2, 3]
 var y = x[0]`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.Indice(") {
-		t.Errorf("Indexacao não gerou ptst.Indice(). Recebido: %s", goCode)
+	if !strings.Contains(goCode, "hrp.Indice(") {
+		t.Errorf("Indexacao não gerou hrp.Indice(). Recebido: %s", goCode)
 	}
 }
 
@@ -154,7 +154,7 @@ func TestTranspilePare(t *testing.T) {
 	codigo := `para (x em [1, 2, 3]) {
 	pare
 }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
@@ -172,7 +172,7 @@ func TestTranspileClasse(t *testing.T) {
 		this.nome = nome
 	}
 }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
@@ -187,14 +187,14 @@ func TestTranspileClasse(t *testing.T) {
 func TestTranspileOpUnaria(t *testing.T) {
 	codigo := `var x = 5
 var y = -x`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
 		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 	goCode := (&TranspilerNative{}).GenerateFullCode(ast)
-	if !strings.Contains(goCode, "ptst.Multiplica(ptst.Inteiro(-1),") {
+	if !strings.Contains(goCode, "hrp.Multiplica(hrp.Inteiro(-1),") {
 		t.Errorf("OpUnaria negativa não gerou Multiplica(-1, x). Recebido: %s", goCode)
 	}
 }
@@ -207,7 +207,7 @@ func TestTranspileTente(t *testing.T) {
 } finalmente {
 	var z = 3
 }`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
 	if err != nil {
@@ -225,7 +225,7 @@ func TestTranspileTente(t *testing.T) {
 func TestComandoCompilarNativo(t *testing.T) {
 	tempDir := t.TempDir()
 	cur, _ := os.Getwd()
-	
+
 	// Vamos criar um script simples
 	scriptPath := filepath.Join(tempDir, "app.hrp")
 	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\n"), 0644)

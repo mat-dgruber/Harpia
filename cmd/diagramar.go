@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/spf13/cobra"
 )
 
@@ -85,14 +85,14 @@ func analisarDependencias(raizDir string) ([]ImportRel, []string) {
 	var rels []ImportRel
 	var violacoes []string
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	filepath.Walk(raizDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
-		if info.IsDir() || (!strings.HasSuffix(info.Name(), ".hrp") && !strings.HasSuffix(info.Name(), ".ptst")) {
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".hrp") {
 			return nil
 		}
 

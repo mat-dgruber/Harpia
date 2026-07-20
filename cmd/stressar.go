@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -57,11 +57,11 @@ func comandoStressar() *cobra.Command {
 						wg.Done()
 					}()
 
-					ctx := ptst.NewContexto(ptst.OpcsContexto{})
+					ctx := hrp.NewContexto(hrp.OpcsContexto{})
 					defer ctx.Terminar()
 
 					inicioExec := time.Now()
-					_, err := ptst.ExecutarString(ctx, codigoStr)
+					_, err := hrp.ExecutarString(ctx, codigoStr)
 					duracao := time.Since(inicioExec)
 
 					temposMu.Lock()

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -99,7 +99,7 @@ func serveRuntimeWeb(w http.ResponseWriter, r *http.Request) {
 
 func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	conteudo, err := os.ReadFile("playground/interface.hrp")
@@ -132,7 +132,7 @@ func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 
 func servePlaygroundCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	conteudo, err := os.ReadFile("playground/interface.hrp")
@@ -320,13 +320,13 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 	readP, writeP, _ := os.Pipe()
 	os.Stdout = writeP
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
-	escopo := ptst.NewEscopo()
+	escopo := hrp.NewEscopo()
 
 	// Compila a string de código para AST
-	ast, err := ctx.StringParaAst(req.Codigo, "playground.ptst")
+	ast, err := ctx.StringParaAst(req.Codigo, "playground.hrp")
 
 	var response ExecucaoPlaygroundResponse
 	if err != nil {
@@ -395,13 +395,13 @@ func ansiParaHtml(ansi string) string {
 	res = strings.ReplaceAll(res, " ", "&nbsp;")
 	res = strings.ReplaceAll(res, "\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
 	// Substituições simples de cores ANSI comuns para HTML formatado do playground
-	res = strings.ReplaceAll(res, "\u001b[31m", "<span class='text-red-400 font-bold'>") // vermelho
+	res = strings.ReplaceAll(res, "\u001b[31m", "<span class='text-red-400 font-bold'>")    // vermelho
 	res = strings.ReplaceAll(res, "\u001b[33m", "<span class='text-yellow-400 font-bold'>") // amarelo
-	res = strings.ReplaceAll(res, "\u001b[32m", "<span class='text-green-400'>") // verde
-	res = strings.ReplaceAll(res, "\u001b[36m", "<span class='text-cyan-400'>") // ciano
-	res = strings.ReplaceAll(res, "\u001b[35m", "<span class='text-pink-400'>") // magenta
-	res = strings.ReplaceAll(res, "\u001b[1m", "<span class='font-bold'>") // negrito
-	res = strings.ReplaceAll(res, "\u001b[0m", "</span>") // reset
+	res = strings.ReplaceAll(res, "\u001b[32m", "<span class='text-green-400'>")            // verde
+	res = strings.ReplaceAll(res, "\u001b[36m", "<span class='text-cyan-400'>")             // ciano
+	res = strings.ReplaceAll(res, "\u001b[35m", "<span class='text-pink-400'>")             // magenta
+	res = strings.ReplaceAll(res, "\u001b[1m", "<span class='font-bold'>")                  // negrito
+	res = strings.ReplaceAll(res, "\u001b[0m", "</span>")                                   // reset
 	return res
 }
 
@@ -498,25 +498,25 @@ user.apresentar()`,
 func apiDocsPlayground(w http.ResponseWriter, r *http.Request) {
 	palavra := r.URL.Query().Get("palavra")
 	docs := map[string]string{
-		"sinal": "### sinal(valor)\n\nCria um **Sinal Reativo** (Fine-Grained). Retorna uma lista de dois elementos:\n- `sinal[0]`: A função de leitura (getter) para obter o valor atual.\n- `sinal[1]`: A função de escrita (setter) para atualizar o valor.\n\n**Exemplo:**\n```portuscript\nvar contSinal = sinal(0);\nvar cont = contSinal[0];\nvar setCont = contSinal[1];\n```",
-		"funcao": "### funcao() / func()\n\nDeclara uma nova função ou bloco executável autônomo. Pode receber parâmetros e retornar valores usando `retorne`.\n\n**Exemplo:**\n```portuscript\nvar dobrar = funcao(n) {\n    retorne n * 2;\n}\n```",
-		"func": "### funcao() / func()\n\nDeclara uma nova função ou bloco executável autônomo. Pode receber parâmetros e retornar valores usando `retorne`.\n\n**Exemplo:**\n```portuscript\nvar dobrar = func(n) {\n    retorne n * 2;\n}\n```",
-		"estilo": "### estilo Nome {\n    propriedade: valor;\n}\n\nDeclara um bloco de estilos CSS reativo associado de forma exclusiva a uma classe de elemento no template.\n\n**Exemplo:**\n```portuscript\nestilo BotaoDestaque {\n    corDeFundo: \"#3b82f6\";\n    padding: \"8px 16px\";\n}\n```",
-		"aoClicar": "### aoClicar={funcao}\n\nAtributo de evento especial para vincular uma função ao clique do mouse em elementos HTML/JSX no Harpia.\n\n**Exemplo:**\n```portuscript\n<button aoClicar={incrementar}>Clique-me</button>\n```",
-		"retorne": "### retorne\n\nEncerra a execução da função atual e retorna o controle e o valor especificado para o chamador.",
-		"se": "### se condicao {\n    ...\n}\n\nEstrutura de controle condicional básica. Executa o bloco associado caso a condição seja avaliada como verdadeira.",
-		"senao": "### senao\n\nEstrutura complementar de decisão condicional. Executa o bloco caso a condição do `se` precedente falhe.",
-		"enquanto": "### enquanto condicao {\n    ...\n}\n\nCria um loop que executa continuamente o bloco de código enquanto a condição lógica especificada for verdadeira.",
-		"para": "### para item em colecao {\n    ...\n}\n\nEstrutura de repetição (iteração) para percorrer cada item em uma coleção ou lista especificada.",
-		"var": "### var\n\nDeclara uma nova variável mutável no escopo atual.",
-		"const": "### const / constante\n\nDeclara uma constante local de somente leitura. O valor atribuído não pode ser alterado posteriormente.",
-		"constante": "### const / constante\n\nDeclara uma constante local de somente leitura. O valor atribuído não pode ser alterado posteriormente.",
-		"classe": "### classe Nome {\n    ...\n}\n\nDefine uma classe de Objeto para programação orientada a objetos (POO), encapsulando propriedades e métodos.",
-		"importe": "### de \"modulo\" importe recurso;\n\nImporta funções ou dados de um módulo específico da biblioteca padrão do Harpia.",
-		"de": "### de \"modulo\" importe recurso;\n\nParte da instrução de importação para especificar o módulo de origem (ex: de \"web\" importe sinal;).",
+		"sinal":      "### sinal(valor)\n\nCria um **Sinal Reativo** (Fine-Grained). Retorna uma lista de dois elementos:\n- `sinal[0]`: A função de leitura (getter) para obter o valor atual.\n- `sinal[1]`: A função de escrita (setter) para atualizar o valor.\n\n**Exemplo:**\n```portuscript\nvar contSinal = sinal(0);\nvar cont = contSinal[0];\nvar setCont = contSinal[1];\n```",
+		"funcao":     "### funcao() / func()\n\nDeclara uma nova função ou bloco executável autônomo. Pode receber parâmetros e retornar valores usando `retorne`.\n\n**Exemplo:**\n```portuscript\nvar dobrar = funcao(n) {\n    retorne n * 2;\n}\n```",
+		"func":       "### funcao() / func()\n\nDeclara uma nova função ou bloco executável autônomo. Pode receber parâmetros e retornar valores usando `retorne`.\n\n**Exemplo:**\n```portuscript\nvar dobrar = func(n) {\n    retorne n * 2;\n}\n```",
+		"estilo":     "### estilo Nome {\n    propriedade: valor;\n}\n\nDeclara um bloco de estilos CSS reativo associado de forma exclusiva a uma classe de elemento no template.\n\n**Exemplo:**\n```portuscript\nestilo BotaoDestaque {\n    corDeFundo: \"#3b82f6\";\n    padding: \"8px 16px\";\n}\n```",
+		"aoClicar":   "### aoClicar={funcao}\n\nAtributo de evento especial para vincular uma função ao clique do mouse em elementos HTML/JSX no Harpia.\n\n**Exemplo:**\n```portuscript\n<button aoClicar={incrementar}>Clique-me</button>\n```",
+		"retorne":    "### retorne\n\nEncerra a execução da função atual e retorna o controle e o valor especificado para o chamador.",
+		"se":         "### se condicao {\n    ...\n}\n\nEstrutura de controle condicional básica. Executa o bloco associado caso a condição seja avaliada como verdadeira.",
+		"senao":      "### senao\n\nEstrutura complementar de decisão condicional. Executa o bloco caso a condição do `se` precedente falhe.",
+		"enquanto":   "### enquanto condicao {\n    ...\n}\n\nCria um loop que executa continuamente o bloco de código enquanto a condição lógica especificada for verdadeira.",
+		"para":       "### para item em colecao {\n    ...\n}\n\nEstrutura de repetição (iteração) para percorrer cada item em uma coleção ou lista especificada.",
+		"var":        "### var\n\nDeclara uma nova variável mutável no escopo atual.",
+		"const":      "### const / constante\n\nDeclara uma constante local de somente leitura. O valor atribuído não pode ser alterado posteriormente.",
+		"constante":  "### const / constante\n\nDeclara uma constante local de somente leitura. O valor atribuído não pode ser alterado posteriormente.",
+		"classe":     "### classe Nome {\n    ...\n}\n\nDefine uma classe de Objeto para programação orientada a objetos (POO), encapsulando propriedades e métodos.",
+		"importe":    "### de \"modulo\" importe recurso;\n\nImporta funções ou dados de um módulo específico da biblioteca padrão do Harpia.",
+		"de":         "### de \"modulo\" importe recurso;\n\nParte da instrução de importação para especificar o módulo de origem (ex: de \"web\" importe sinal;).",
 		"Verdadeiro": "### Verdadeiro\n\nValor lógico booleano verdadeiro.",
-		"Falso": "### Falso\n\nValor lógico booleano falso.",
-		"Nulo": "### Nulo\n\nRepresenta a ausência intencional de qualquer valor de objeto (similar a null/nil).",
+		"Falso":      "### Falso\n\nValor lógico booleano falso.",
+		"Nulo":       "### Nulo\n\nRepresenta a ausência intencional de qualquer valor de objeto (similar a null/nil).",
 	}
 
 	docText, ok := docs[palavra]

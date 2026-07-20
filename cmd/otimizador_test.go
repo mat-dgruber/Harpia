@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 func TestOtimizador_DCE_VariavelNaoReferenciada(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -41,7 +41,7 @@ func TestOtimizador_DCE_VariavelNaoReferenciada(t *testing.T) {
 }
 
 func TestOtimizador_BranchesConstantes(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -66,7 +66,7 @@ func TestOtimizador_BranchesConstantes(t *testing.T) {
 
 	t.Logf("CÓDIGO GERADO BRANCHES: %s", goCode)
 
-	if strings.Contains(goCode, "var_resultado = ptst.Inteiro(1)") {
+	if strings.Contains(goCode, "var_resultado = hrp.Inteiro(1)") {
 		t.Errorf("bloco 'se (Falso)' morto não deveria ter sido transpilado")
 	}
 

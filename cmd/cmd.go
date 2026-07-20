@@ -48,7 +48,7 @@ var (
 // os comandos secundários disponíveis:
 //   - `atualize`: Busca e instala novas releases binárias a partir do GitHub.
 //   - `executar` (exec): Interpreta arquivos Harpia (.pt) ou pequenos trechos passados diretamente via terminal.
-//   - `testar`: Varre o diretório em busca de arquivos `.ptst`/`.pt` e executa os blocos `teste`/blocos nativos.
+//   - `testar`: Varre o diretório em busca de arquivos `.hrp`/`.pt` e executa os blocos `teste`/blocos nativos.
 //   - `checar`: Linter estático — analisa a AST em busca de erros semânticos sem executar (escopo, redeclaração, constantes).
 //
 // Centralizar o registro de subcomandos nesta função simplifica consideravelmente a manutenção e legibilidade
@@ -76,4 +76,8 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoStressar())
 	raiz.AddCommand(comandoDepurar())
 	raiz.AddCommand(comandoCopiloto())
+	raiz.AddCommand(comandoGerar())
+	raiz.AddCommand(comandoMigrar())
+	raiz.AddCommand(comandoPwa())
+	raiz.AddCommand(comandoI18n())
 }

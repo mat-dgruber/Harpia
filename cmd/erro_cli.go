@@ -46,7 +46,7 @@ var explicacoes = map[string]ExplicacaoErro{
 	"PSC-0006": {
 		Nome:      "ImportacaoErro",
 		Descricao: "Ocorreu uma falha ao tentar importar um módulo físico ou símbolo de outro módulo, ou há uma importação cíclica/loop de dependências.",
-		Exemplo:   "de \"./modulo_inexistente.ptst\" importe soma # Gera ImportacaoErro",
+		Exemplo:   "de \"./modulo_inexistente.hrp\" importe soma # Gera ImportacaoErro",
 	},
 	"PSC-0007": {
 		Nome:      "ValorErro",
@@ -86,7 +86,7 @@ var explicacoes = map[string]ExplicacaoErro{
 	"PSC-0014": {
 		Nome:      "ArquivoNaoEncontradoErro",
 		Descricao: "O interpretador não conseguiu encontrar o arquivo especificado no caminho fornecido.",
-		Exemplo:   "de \"./arquivo_que_nao_existe.ptst\" importe modulo",
+		Exemplo:   "de \"./arquivo_que_nao_existe.hrp\" importe modulo",
 	},
 }
 

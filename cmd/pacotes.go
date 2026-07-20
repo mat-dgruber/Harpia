@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// PacoteManifest representa o arquivo pacote.ptst/json
+// PacoteManifest representa o arquivo pacote.hrp/json
 type PacoteManifest struct {
 	Dependencias map[string]string `json:"dependencias"`
 }
@@ -25,7 +25,7 @@ func comandoInstalar() *cobra.Command {
 	cmdInstalar := &cobra.Command{
 		Use:     "instalar [pacote-opcional] [url-ou-versao-opcional]",
 		Aliases: []string{"instale", "install"},
-		Short:   "Instala dependências do projeto registradas no pacote.ptst ou pacote.json",
+		Short:   "Instala dependências do projeto registradas no pacote.hrp ou pacote.json",
 		Run: func(cmd *cobra.Command, args []string) {
 			// Se o usuário passou argumentos diretamente, instala o pacote específico
 			if len(args) == 2 {
@@ -69,7 +69,7 @@ func comandoInstalar() *cobra.Command {
 			}
 
 			// Caso contrário, lê o manifesto
-			manifestoPath := "pacote.ptst"
+			manifestoPath := "pacote.hrp"
 			if _, err := os.Stat("pacote.json"); err == nil {
 				manifestoPath = "pacote.json"
 			}
@@ -307,4 +307,3 @@ func obterUrlDoRegistro(nome, versaoRestricao string) (string, error) {
 
 	return v.URL, nil
 }
-

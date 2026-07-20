@@ -9,7 +9,7 @@ import (
 
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -377,6 +377,7 @@ func (l *Linter) contemConcatenacaoOuVariavel(node parser.BaseNode) bool {
 func comandoChecar() *cobra.Command {
 	var formato string
 	var estrito bool
+	var estritoArquitetura bool
 
 	checar := &cobra.Command{
 		Use:   "checar [caminho]",
@@ -401,7 +402,7 @@ func comandoChecar() *cobra.Command {
 
 			totalErros := 0
 			totalAvisos := 0
-			ctx := ptst.NewContexto(ptst.OpcsContexto{CaminhosPadrao: []string{cur}})
+			ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
 			defer ctx.Terminar()
 
 			var diagnostics []LSPDiagnostic
@@ -426,6 +427,13 @@ func comandoChecar() *cobra.Command {
 
 				linter := &Linter{}
 				linter.Checar(ast)
+
+				if estritoArquitetura {
+					archErros := checarArquitetura(arq, ast)
+					for _, e := range archErros {
+						linter.Erros = append(linter.Erros, LinterError{Message: e.Message, Code: e.Code, Severity: 1, Node: e.Node})
+					}
+				}
 
 				if len(linter.Erros) > 0 {
 					for _, errObj := range linter.Erros {
@@ -486,5 +494,62 @@ func comandoChecar() *cobra.Command {
 
 	checar.Flags().StringVar(&formato, "formato", "texto", "Formato de saída dos erros: 'texto' ou 'json'")
 	checar.Flags().BoolVar(&estrito, "estrito", false, "Ativa a validação estrita de tipos na análise estática")
+	checar.Flags().BoolVar(&estritoArquitetura, "estrito-arquitetura", false, "Ativa validação de Clean Architecture: camadas não podem importar de camadas superiores (dominio<-infra<-web).")
 	return checar
+}
+
+// checarArquitetura valida regras de Clean Architecture com base nos imports relativos.
+// dominio/ e subpastas: pode importar apenas de si mesmo e da stdlib (sem caminho relativo).
+// infra/ e subpastas: não pode importar de web/.
+// web/ e subpastas: pode importar de qualquer camada.
+func checarArquitetura(arq string, node parser.BaseNode) []LinterError {
+	var erros []LinterError
+	arqNorm := filepath.ToSlash(filepath.Clean(arq))
+
+	camada := ""
+	switch {
+	case strings.HasPrefix(arqNorm, "dominio/"):
+		camada = "dominio"
+	case strings.HasPrefix(arqNorm, "infra/"):
+		camada = "infra"
+	case strings.HasPrefix(arqNorm, "web/"):
+		camada = "web"
+	default:
+		return nil
+	}
+
+	prog, ok := node.(*parser.Programa)
+	if !ok {
+		return nil
+	}
+	for _, decl := range prog.Declaracoes {
+		imp, ok := decl.(*parser.ImporteDe)
+		if !ok || imp.Caminho == nil {
+			continue
+		}
+		caminho := ""
+		if imp.Caminho != nil {
+			caminho = imp.Caminho.Valor
+		}
+		if !strings.HasPrefix(caminho, "../") && !strings.HasPrefix(caminho, "./") && !strings.HasPrefix(caminho, "/") {
+			continue
+		}
+		switch camada {
+		case "dominio":
+			erros = append(erros, LinterError{
+				Message: fmt.Sprintf("HRP-ARCH-001: camada 'dominio' não pode importar '%s' (use 'infra' para dependências externas)", caminho),
+				Code:    "HRP-ARCH-001",
+				Node:    imp,
+			})
+		case "infra":
+			if strings.Contains(caminho, "/web/") || strings.Contains(caminho, "../web") || strings.Contains(caminho, "web/") || strings.HasSuffix(strings.TrimPrefix(caminho, "./"), "web") {
+				erros = append(erros, LinterError{
+					Message: fmt.Sprintf("HRP-ARCH-002: camada 'infra' não pode importar da camada 'web' (%s)", caminho),
+					Code:    "HRP-ARCH-002",
+					Node:    imp,
+				})
+			}
+		}
+	}
+	return erros
 }

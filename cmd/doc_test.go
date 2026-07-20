@@ -25,7 +25,7 @@ classe Pessoa {
 constante PI = 3.1415
 `
 	dir := t.TempDir()
-	caminho := filepath.Join(dir, "teste.ptst")
+	caminho := filepath.Join(dir, "teste.hrp")
 	err := os.WriteFile(caminho, []byte(codigo), 0644)
 	if err != nil {
 		t.Fatalf("falha ao criar arquivo temporário: %v", err)

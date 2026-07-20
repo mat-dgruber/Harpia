@@ -40,7 +40,7 @@ func TestLSPDiagnosticsSyntax(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	processarDiagnosticosLSP("file:///teste.ptst", codigoInvalido)
+	processarDiagnosticosLSP("file:///teste.hrp", codigoInvalido)
 
 	w.Close()
 	os.Stdout = oldStdout
@@ -72,7 +72,7 @@ func TestLSPDiagnosticsSyntax(t *testing.T) {
 
 // TestLSPFormatting assevera que a requisição de formatação do LSP executa o formatador e devolve a resposta de substituição
 func TestLSPFormatting(t *testing.T) {
-	uri := "file:///teste.ptst"
+	uri := "file:///teste.hrp"
 	codigoSujo := "funcao App(){\nvar a = 10;\n}"
 	cacheArquivosLSP[uri] = codigoSujo
 
@@ -114,7 +114,7 @@ func TestLSPFormatting(t *testing.T) {
 // TestLSPCleanArchLinter assevera que o linter do LSP emite erro imediato se o domínio importar infraestrutura
 func TestLSPCleanArchLinter(t *testing.T) {
 	codigoIncorreto := `
-de "../infra/banco/conexao.ptst" importe obterBanco;
+de "../infra/banco/conexao.hrp" importe obterBanco;
 `
 
 	oldStdout := os.Stdout
@@ -122,7 +122,7 @@ de "../infra/banco/conexao.ptst" importe obterBanco;
 	os.Stdout = w
 
 	// Caminho sob '/dominio/' simulado
-	processarDiagnosticosLSP("file:///projeto/dominio/entidades/usuario.ptst", codigoIncorreto)
+	processarDiagnosticosLSP("file:///projeto/dominio/entidades/usuario.hrp", codigoIncorreto)
 
 	w.Close()
 	os.Stdout = oldStdout
@@ -166,7 +166,7 @@ func TestLSPCompletion(t *testing.T) {
 
 // TestLSPHover assevera que o hover em um símbolo declarado retorna a assinatura e a documentação especial '///'
 func TestLSPHover(t *testing.T) {
-	uri := "file:///teste_hover.ptst"
+	uri := "file:///teste_hover.hrp"
 	codigo := "/// Esta funcao soma dois valores\nfuncao somar(a, b) {\n    retorne a + b\n}"
 
 	// Alimenta o cache do AST processando diagnóstico
@@ -208,7 +208,7 @@ func TestLSPHover(t *testing.T) {
 
 // TestLSPDefinition assevera que a requisição de definição 'F12' retorna o range correto no arquivo
 func TestLSPDefinition(t *testing.T) {
-	uri := "file:///teste_def.ptst"
+	uri := "file:///teste_def.hrp"
 	codigo := "\n\nfuncao sub(a, b) {\n    retorne a - b\n}"
 
 	processarDiagnosticosLSP(uri, codigo)
@@ -257,7 +257,7 @@ func TestLSPSecurityLinter(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	processarDiagnosticosLSP("file:///projeto/teste_seguranca.ptst", codigoVuln)
+	processarDiagnosticosLSP("file:///projeto/teste_seguranca.hrp", codigoVuln)
 
 	w.Close()
 	os.Stdout = oldStdout
@@ -276,5 +276,3 @@ func TestLSPSecurityLinter(t *testing.T) {
 		t.Errorf("Esperava aviso de canal inseguro fora de contexto assíncrono 'HRP-SEC-003'. Obtido: %s", saida)
 	}
 }
-
-

@@ -18,7 +18,7 @@ func (t *TranspilerNative) newVar() string {
 
 func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 	if node == nil {
-		return "", "ptst.Nulo"
+		return "", "hrp.Nulo"
 	}
 
 	switch n := node.(type) {
@@ -35,29 +35,29 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		var sb strings.Builder
 		initCode, initVar := t.Transpile(n.Inicializador)
 		sb.WriteString(initCode)
-		
+
 		// Define o valor no escopo léxico nativo e como variável Go local
 		varName := fmt.Sprintf("var_%s", n.Nome)
 		sb.WriteString(fmt.Sprintf("\t%s := %s\n", varName, initVar))
-		sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", %s))\n", n.Nome, varName))
+		sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", n.Nome, varName))
 		return sb.String(), varName
 
 	case *parser.Reatribuicao:
 		var sb strings.Builder
 		valCode, valVar := t.Transpile(n.Expressao)
 		sb.WriteString(valCode)
-		
+
 		if id, ok := n.Objeto.(*parser.Identificador); ok {
 			varName := fmt.Sprintf("var_%s", id.Nome)
 			sb.WriteString(fmt.Sprintf("\t%s = %s\n", varName, valVar))
-			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", %s))\n", id.Nome, varName))
+			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", id.Nome, varName))
 			return sb.String(), varName
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.Identificador:
 		varName := t.newVar()
-		code := fmt.Sprintf(`	var %s ptst.Objeto
+		code := fmt.Sprintf(`	var %s hrp.Objeto
 	if val, errVal := escopo.ObterValor("%s"); errVal == nil {
 		%s = val
 	} else if val, errB := ctx.Modulos.Embutidos.M__obtem_attributo__("%s"); errB == nil {
@@ -74,17 +74,17 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if len(n.Valor) >= 2 {
 			valorLimpo = n.Valor[1 : len(n.Valor)-1]
 		}
-		code := fmt.Sprintf("\t%s := ptst.Texto(\"%s\")\n", varName, strings.ReplaceAll(valorLimpo, `"`, `\"`))
+		code := fmt.Sprintf("\t%s := hrp.Texto(\"%s\")\n", varName, strings.ReplaceAll(valorLimpo, `"`, `\"`))
 		return code, varName
 
 	case *parser.InteiroLiteral:
 		varName := t.newVar()
-		code := fmt.Sprintf("\t%s := ptst.Inteiro(%s)\n", varName, n.Valor)
+		code := fmt.Sprintf("\t%s := hrp.Inteiro(%s)\n", varName, n.Valor)
 		return code, varName
 
 	case *parser.DecimalLiteral:
 		varName := t.newVar()
-		code := fmt.Sprintf("\t%s := ptst.Decimal(%s)\n", varName, n.Valor)
+		code := fmt.Sprintf("\t%s := hrp.Decimal(%s)\n", varName, n.Valor)
 		return code, varName
 
 	case *parser.ConstanteLiteral:
@@ -92,11 +92,11 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		var val string
 		switch n.Valor {
 		case "Verdadeiro":
-			val = "ptst.Verdadeiro"
+			val = "hrp.Verdadeiro"
 		case "Falso":
-			val = "ptst.Falso"
+			val = "hrp.Falso"
 		default:
-			val = "ptst.Nulo"
+			val = "hrp.Nulo"
 		}
 		code := fmt.Sprintf("\t%s := %s\n", varName, val)
 		return code, varName
@@ -107,24 +107,24 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		dirCode, dirVar := t.Transpile(n.Dir)
 		sb.WriteString(esqCode)
 		sb.WriteString(dirCode)
-		
+
 		varName := t.newVar()
 		var opFunc string
 		switch n.Operador {
 		case "+":
-			opFunc = "ptst.Adiciona"
+			opFunc = "hrp.Adiciona"
 		case "-":
-			opFunc = "ptst.Subtrai"
+			opFunc = "hrp.Subtrai"
 		case "*":
-			opFunc = "ptst.Multiplica"
+			opFunc = "hrp.Multiplica"
 		case "/":
-			opFunc = "ptst.Divide"
+			opFunc = "hrp.Divide"
 		case "==":
-			opFunc = "ptst.Igual"
+			opFunc = "hrp.Igual"
 		default:
-			opFunc = "ptst.Adiciona" // fallback simples
+			opFunc = "hrp.Adiciona" // fallback simples
 		}
-		
+
 		sb.WriteString(fmt.Sprintf("\t%s, _ := %s(%s, %s)\n", varName, opFunc, esqVar, dirVar))
 		return sb.String(), varName
 
@@ -132,17 +132,17 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		var sb strings.Builder
 		targetCode, targetVar := t.Transpile(n.Identificador)
 		sb.WriteString(targetCode)
-		
+
 		var argVars []string
 		for _, arg := range n.Argumentos {
 			argCode, argVar := t.Transpile(arg)
 			sb.WriteString(argCode)
 			argVars = append(argVars, argVar)
 		}
-		
+
 		varName := t.newVar()
-		argsSlice := "ptst.Tupla{" + strings.Join(argVars, ", ") + "}"
-		sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.Chamar(%s, %s)\n", varName, targetVar, argsSlice))
+		argsSlice := "hrp.Tupla{" + strings.Join(argVars, ", ") + "}"
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Chamar(%s, %s)\n", varName, targetVar, argsSlice))
 		return sb.String(), varName
 
 	case *parser.ImporteDe:
@@ -152,14 +152,14 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if len(valorLimpo) >= 2 && (strings.HasPrefix(valorLimpo, `"`) || strings.HasPrefix(valorLimpo, `'`)) {
 			valorLimpo = valorLimpo[1 : len(valorLimpo)-1]
 		}
-		sb.WriteString(fmt.Sprintf("\t%s, err_%s := ptst.MaquinarioImporteModulo(ctx, \"%s\", escopo)\n", varName, varName, valorLimpo))
+		sb.WriteString(fmt.Sprintf("\t%s, err_%s := hrp.MaquinarioImporteModulo(ctx, \"%s\", escopo)\n", varName, varName, valorLimpo))
 		sb.WriteString(fmt.Sprintf("\tif err_%s != nil { panic(err_%s) }\n", varName, varName))
 		for _, nome := range n.Nomes {
 			nomeVar := t.newVar()
-			sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.ObtemAtributoS(%s, \"%s\")\n", nomeVar, varName, nome))
-			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", %s))\n", nome, nomeVar))
+			sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, \"%s\")\n", nomeVar, varName, nome))
+			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", nome, nomeVar))
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.Bloco:
 		var sb strings.Builder
@@ -167,7 +167,7 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 			code, _ := t.Transpile(decl)
 			sb.WriteString(code)
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.DeclFuncao:
 		var sb strings.Builder
@@ -177,16 +177,16 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		}
 		body, _ := t.Transpile(n.Corpo)
 		sb.WriteString(fmt.Sprintf("\t{\n"))
-		sb.WriteString(fmt.Sprintf("\t\tfn_%s := func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {\n", n.Nome))
+		sb.WriteString(fmt.Sprintf("\t\tfn_%s := func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {\n", n.Nome))
 		for i, p := range n.Parametros {
-			sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", args[%d]))\n", p.Nome, i))
+			sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", args[%d]))\n", p.Nome, i))
 		}
 		sb.WriteString(body)
-		sb.WriteString(fmt.Sprintf("\t\t\treturn ptst.Nulo, nil\n"))
+		sb.WriteString(fmt.Sprintf("\t\t\treturn hrp.Nulo, nil\n"))
 		sb.WriteString(fmt.Sprintf("\t\t}\n"))
-		sb.WriteString(fmt.Sprintf("\t\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", ptst.NewFuncaoNativa(\"%s\", fn_%s, %d)))\n", n.Nome, n.Nome, n.Nome, len(params)))
+		sb.WriteString(fmt.Sprintf("\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", hrp.NewFuncaoNativa(\"%s\", fn_%s, %d)))\n", n.Nome, n.Nome, n.Nome, len(params)))
 		sb.WriteString(fmt.Sprintf("\t}\n"))
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.ExpressaoSe:
 		var sb strings.Builder
@@ -197,14 +197,14 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if n.Alternativa != nil {
 			elseCode, _ = t.Transpile(n.Alternativa)
 		}
-		sb.WriteString(fmt.Sprintf("\tif %s == ptst.Verdadeiro {\n", condVar))
+		sb.WriteString(fmt.Sprintf("\tif %s == hrp.Verdadeiro {\n", condVar))
 		sb.WriteString(ifCode)
 		if elseCode != "" {
 			sb.WriteString(fmt.Sprintf("\t} else {\n"))
 			sb.WriteString(elseCode)
 		}
 		sb.WriteString("\t}\n")
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.Enquanto:
 		var sb strings.Builder
@@ -212,10 +212,10 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		body, _ := t.Transpile(n.Corpo)
 		sb.WriteString(fmt.Sprintf("\tfor {\n"))
 		sb.WriteString(condCode)
-		sb.WriteString(fmt.Sprintf("\t\tif %s != ptst.Verdadeiro { break }\n", condVar))
+		sb.WriteString(fmt.Sprintf("\t\tif %s != hrp.Verdadeiro { break }\n", condVar))
 		sb.WriteString(body)
 		sb.WriteString("\t}\n")
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.BlocoPara:
 		var sb strings.Builder
@@ -223,12 +223,12 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		sb.WriteString(iterCode)
 		body, _ := t.Transpile(n.Corpo)
 		loopVar := t.newVar()
-		sb.WriteString(fmt.Sprintf("\tif _lista_%s, ok_%s := %s.(ptst.Iteravel); ok_%s {\n", loopVar, loopVar, iterVar, loopVar))
+		sb.WriteString(fmt.Sprintf("\tif _lista_%s, ok_%s := %s.(hrp.Iteravel); ok_%s {\n", loopVar, loopVar, iterVar, loopVar))
 		sb.WriteString(fmt.Sprintf("\t\tfor _i_%s := 0; _i_%s < _lista_%s.Contagem(); _i_%s++ {\n", loopVar, loopVar, loopVar, loopVar))
-		sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", _lista_%s.ObtemItem(ptst.Inteiro(_i_%s))))\n", n.Identificador, loopVar, loopVar))
+		sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", _lista_%s.ObtemItem(hrp.Inteiro(_i_%s))))\n", n.Identificador, loopVar, loopVar))
 		sb.WriteString(body)
 		sb.WriteString("\t\t}\n\t}\n")
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.RetorneNode:
 		var sb strings.Builder
@@ -237,9 +237,9 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 			sb.WriteString(retCode)
 			sb.WriteString(fmt.Sprintf("\t\treturn %s, nil\n", retVar))
 		} else {
-			sb.WriteString("\t\treturn ptst.Nulo, nil\n")
+			sb.WriteString("\t\treturn hrp.Nulo, nil\n")
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.AcessoMembro:
 		var sb strings.Builder
@@ -248,7 +248,7 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		sb.WriteString(donoCode)
 		sb.WriteString(membroCode)
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.ObtemAtributoS(%s, %s.(ptst.Texto))\n", varName, donoVar, membroVar))
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, %s.(hrp.Texto))\n", varName, donoVar, membroVar))
 		return sb.String(), varName
 
 	case *parser.OpUnaria:
@@ -258,10 +258,10 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		varName := t.newVar()
 		switch n.Operador {
 		case "-":
-			sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.Multiplica(ptst.Inteiro(-1), %s)\n", varName, exprVar))
+			sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Multiplica(hrp.Inteiro(-1), %s)\n", varName, exprVar))
 		case "nao":
-			sb.WriteString(fmt.Sprintf("\t%s := ptst.Falso\n", varName))
-			sb.WriteString(fmt.Sprintf("\tif %s == ptst.Falso { %s = ptst.Verdadeiro }\n", exprVar, varName))
+			sb.WriteString(fmt.Sprintf("\t%s := hrp.Falso\n", varName))
+			sb.WriteString(fmt.Sprintf("\tif %s == hrp.Falso { %s = hrp.Verdadeiro }\n", exprVar, varName))
 		default:
 			sb.WriteString(fmt.Sprintf("\t%s := %s\n", varName, exprVar))
 		}
@@ -284,13 +284,13 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		dirCode, dirVar := t.Transpile(n.Dir)
 		sb.WriteString(dirCode)
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.Chamar(%s, ptst.Tupla{%s})\n", varName, dirVar, esqVar))
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Chamar(%s, hrp.Tupla{%s})\n", varName, dirVar, esqVar))
 		return sb.String(), varName
 
 	case *parser.ListaLiteral:
 		var sb strings.Builder
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s := ptst.ListaVazia()\n", varName))
+		sb.WriteString(fmt.Sprintf("\t%s := hrp.ListaVazia()\n", varName))
 		for _, elem := range n.Elementos {
 			eCode, eVar := t.Transpile(elem)
 			sb.WriteString(eCode)
@@ -307,7 +307,7 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 			sb.WriteString(eCode)
 			elems = append(elems, eVar)
 		}
-		sb.WriteString(fmt.Sprintf("\t%s := ptst.Tupla{%s}\n", varName, strings.Join(elems, ", ")))
+		sb.WriteString(fmt.Sprintf("\t%s := hrp.Tupla{%s}\n", varName, strings.Join(elems, ", ")))
 		return sb.String(), varName
 
 	case *parser.Indexacao:
@@ -317,21 +317,21 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		sb.WriteString(objCode)
 		sb.WriteString(idxCode)
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.Indice(%s, %s)\n", varName, objVar, idxVar))
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Indice(%s, %s)\n", varName, objVar, idxVar))
 		return sb.String(), varName
 
 	case *parser.PareNode:
-		return "\tbreak\n", "ptst.Nulo"
+		return "\tbreak\n", "hrp.Nulo"
 
 	case *parser.ContinueNode:
-		return "\tcontinue\n", "ptst.Nulo"
+		return "\tcontinue\n", "hrp.Nulo"
 
 	case *parser.NovaNode:
 		var sb strings.Builder
 		ctorCode, ctorVar := t.Transpile(n.Objeto)
 		sb.WriteString(ctorCode)
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s, _ := ptst.Chamar(%s, ptst.Tupla{})\n", varName, ctorVar))
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Chamar(%s, hrp.Tupla{})\n", varName, ctorVar))
 		return sb.String(), varName
 
 	case *parser.TenteCaptureFinalmente:
@@ -350,7 +350,7 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if n.FinalmenteBlock != nil {
 			sb.WriteString(finalmenteCode)
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.AguardeNode:
 		var sb strings.Builder
@@ -361,24 +361,24 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		return sb.String(), varName
 
 	case *parser.Anotacao:
-		return "", "ptst.Nulo"
+		return "", "hrp.Nulo"
 
 	case *parser.DeclClasse:
 		var sb strings.Builder
 		sb.WriteString(fmt.Sprintf("\t{\n"))
-		sb.WriteString(fmt.Sprintf("\t\ttipo_%s := &ptst.TipoClasse{Nome: \"%s\"}\n", n.Nome, n.Nome))
+		sb.WriteString(fmt.Sprintf("\t\ttipo_%s := &hrp.TipoClasse{Nome: \"%s\"}\n", n.Nome, n.Nome))
 		for _, metodo := range n.Metodos {
 			metCode, _ := t.Transpile(metodo)
 			sb.WriteString(metCode)
 		}
-		sb.WriteString(fmt.Sprintf("\t\tescopo.DefinirSimbolo(ptst.NewVarSimbolo(\"%s\", tipo_%s))\n", n.Nome, n.Nome))
+		sb.WriteString(fmt.Sprintf("\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", tipo_%s))\n", n.Nome, n.Nome))
 		sb.WriteString(fmt.Sprintf("\t}\n"))
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.MapaLiteral:
 		var sb strings.Builder
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s := ptst.Mapa{}\n", varName))
+		sb.WriteString(fmt.Sprintf("\t%s := hrp.Mapa{}\n", varName))
 		for _, par := range n.Entradas {
 			chaveCode, chaveVar := t.Transpile(par.Chave)
 			valorCode, valorVar := t.Transpile(par.Valor)
@@ -395,14 +395,14 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if n.Mensagem != nil {
 			msgCode, msgVar := t.Transpile(n.Mensagem)
 			sb.WriteString(msgCode)
-			sb.WriteString(fmt.Sprintf("\tif %s != ptst.Verdadeiro { panic(fmt.Sprintf(\"asserção falhou: %%v\", %s)) }\n", condVar, msgVar))
+			sb.WriteString(fmt.Sprintf("\tif %s != hrp.Verdadeiro { panic(fmt.Sprintf(\"asserção falhou: %%v\", %s)) }\n", condVar, msgVar))
 		} else {
-			sb.WriteString(fmt.Sprintf("\tif %s != ptst.Verdadeiro { panic(\"asserção falhou\") }\n", condVar))
+			sb.WriteString(fmt.Sprintf("\tif %s != hrp.Verdadeiro { panic(\"asserção falhou\") }\n", condVar))
 		}
-		return sb.String(), "ptst.Nulo"
+		return sb.String(), "hrp.Nulo"
 
 	case *parser.DeclExportar:
-		return "", "ptst.Nulo"
+		return "", "hrp.Nulo"
 
 	case *parser.TemplateLiteral:
 		var sb strings.Builder
@@ -419,27 +419,27 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		return t.Transpile(n.Expressao)
 	}
 
-	return "", "ptst.Nulo"
+	return "", "hrp.Nulo"
 }
 
 func (t *TranspilerNative) GenerateFullCode(ast parser.BaseNode) string {
 	body, _ := t.Transpile(ast)
-	
+
 	return fmt.Sprintf(`package main
 
 import (
 	"fmt"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func main() {
 	var _ = fmt.Printf
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
-	escopo := ptst.NewEscopo()
+	escopo := hrp.NewEscopo()
 
 %s
 }

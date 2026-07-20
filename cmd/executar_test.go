@@ -16,7 +16,7 @@ func TestCmdExecutarComPerfil(t *testing.T) {
 	}
 	`
 	dir := t.TempDir()
-	caminho := filepath.Join(dir, "teste_perfil.ptst")
+	caminho := filepath.Join(dir, "teste_perfil.hrp")
 	err := os.WriteFile(caminho, []byte(codigo), 0644)
 	if err != nil {
 		t.Fatalf("Erro ao criar arquivo temporário: %v", err)

@@ -62,7 +62,7 @@ func TestBaixarEExtrairPacote(t *testing.T) {
 	var buf bytes.Buffer
 	zipWriter := zip.NewWriter(&buf)
 
-	f, err := zipWriter.Create("main.ptst")
+	f, err := zipWriter.Create("main.hrp")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,9 +96,9 @@ func TestBaixarEExtrairPacote(t *testing.T) {
 	}
 
 	// Verifica se o arquivo extraído existe na pasta pt_modulos/teste_modulo/
-	caminhoArquivo := filepath.Join("pt_modulos", "teste_modulo", "main.ptst")
+	caminhoArquivo := filepath.Join("pt_modulos", "teste_modulo", "main.hrp")
 	if _, err := os.Stat(caminhoArquivo); os.IsNotExist(err) {
-		t.Errorf("Arquivo 'main.ptst' não foi extraído do zip do módulo")
+		t.Errorf("Arquivo 'main.hrp' não foi extraído do zip do módulo")
 	}
 
 	conteudo, err := os.ReadFile(caminhoArquivo)
@@ -171,4 +171,3 @@ func TestObterUrlDoRegistro(t *testing.T) {
 		t.Errorf("Esperava erro ao buscar versão inexistente")
 	}
 }
-

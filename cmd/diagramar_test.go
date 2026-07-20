@@ -21,21 +21,21 @@ func TestAnalisarDependenciasViolacao(t *testing.T) {
 	os.MkdirAll(domDir, 0755)
 	os.MkdirAll(infDir, 0755)
 
-	// 1. Cria infra/banco.ptst
-	err = os.WriteFile(filepath.Join(infDir, "banco.ptst"), []byte(`
+	// 1. Cria infra/banco.hrp
+	err = os.WriteFile(filepath.Join(infDir, "banco.hrp"), []byte(`
 	var banco = "sqlite"
 	`), 0644)
 	if err != nil {
-		t.Fatalf("Erro ao criar banco.ptst: %v", err)
+		t.Fatalf("Erro ao criar banco.hrp: %v", err)
 	}
 
-	// 2. Cria dominio/usuario.ptst importando incorretamente de infra/ (VIOLAÇÃO!)
-	err = os.WriteFile(filepath.Join(domDir, "usuario.ptst"), []byte(`
-	de "../infra/banco.ptst" importe banco;
+	// 2. Cria dominio/usuario.hrp importando incorretamente de infra/ (VIOLAÇÃO!)
+	err = os.WriteFile(filepath.Join(domDir, "usuario.hrp"), []byte(`
+	de "../infra/banco.hrp" importe banco;
 	var usuario = "Natan"
 	`), 0644)
 	if err != nil {
-		t.Fatalf("Erro ao criar usuario.ptst: %v", err)
+		t.Fatalf("Erro ao criar usuario.hrp: %v", err)
 	}
 
 	// Executa análise estática de dependências
@@ -83,7 +83,7 @@ func TestDiagramarHTMLExport(t *testing.T) {
 
 	// Prepara dados de teste
 	rels := []ImportRel{
-		{De: "dominio", Para: "infra", Arquivo: "dominio/usuario.ptst"},
+		{De: "dominio", Para: "infra", Arquivo: "dominio/usuario.hrp"},
 	}
 	violacoes := []string{
 		"camada 'dominio' importando 'infra'",
@@ -123,4 +123,3 @@ func TestDiagramarHTMLExport(t *testing.T) {
 		t.Errorf("Esperava a função de exportação para SVG interativo. Obtido:\n%s", conteudo)
 	}
 }
-

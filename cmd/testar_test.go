@@ -21,7 +21,7 @@ func TestComandoTestarComHTML(t *testing.T) {
 	}
 	`
 
-	testFile := filepath.Join(tempDir, "soma_test.ptst")
+	testFile := filepath.Join(tempDir, "soma_test.hrp")
 	err = os.WriteFile(testFile, []byte(codigo), 0644)
 	if err != nil {
 		t.Fatalf("Erro ao escrever arquivo de teste: %v", err)
@@ -32,7 +32,7 @@ func TestComandoTestarComHTML(t *testing.T) {
 	defer os.Chdir(oldWd)
 
 	cmd := comandoTestar()
-	cmd.SetArgs([]string{"soma_test.ptst", "--html"})
+	cmd.SetArgs([]string{"soma_test.hrp", "--html"})
 
 	err = cmd.Execute()
 	if err != nil {

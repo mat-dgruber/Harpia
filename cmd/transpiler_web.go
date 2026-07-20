@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // TranspilerWeb converte uma AST do Harpia para código JavaScript ES6 correspondente.
@@ -182,7 +182,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 				if err != nil {
 					return fmt.Sprintf("/* Erro ao carregar html de %s: %v */", caminho, err)
 				}
-				ctx := ptst.NewContexto(ptst.OpcsContexto{})
+				ctx := hrp.NewContexto(hrp.OpcsContexto{})
 				defer ctx.Terminar()
 				subAst, err := ctx.StringParaAst(string(conteudo), caminho)
 				if err != nil {
@@ -421,12 +421,12 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		if len(caminho) >= 2 {
 			caminho = caminho[1 : len(caminho)-1]
 		}
-		// ponytail: trata imports de estilos .estilo.ptst e os resolve para constantes locais
-		if strings.HasSuffix(caminho, ".estilo.ptst") {
+		// ponytail: trata imports de estilos .estilo.hrp e os resolve para constantes locais
+		if strings.HasSuffix(caminho, ".estilo.hrp") {
 			caminhoCompleto := filepath.Join(t.DiretorioBase, caminho)
 			conteudo, err := os.ReadFile(caminhoCompleto)
 			if err == nil {
-				ctx := ptst.NewContexto(ptst.OpcsContexto{})
+				ctx := hrp.NewContexto(hrp.OpcsContexto{})
 				defer ctx.Terminar()
 				styleAst, err := ctx.StringParaAst(string(conteudo), caminho)
 				if err == nil {
@@ -441,7 +441,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 
 		jsPath := caminho
-		if strings.HasSuffix(jsPath, ".ptst") {
+		if strings.HasSuffix(jsPath, ".hrp") {
 			jsPath = jsPath[:len(jsPath)-5] + ".js"
 		}
 		if !strings.HasPrefix(jsPath, ".") && !strings.HasPrefix(jsPath, "/") && !strings.Contains(jsPath, "://") {

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestTranspileWeb(t *testing.T) {
@@ -31,7 +31,7 @@ func TestTranspileWeb(t *testing.T) {
 		</div>;
 	}
 	`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -88,20 +88,20 @@ func TestComandoCompilarWeb(t *testing.T) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	ptstFile := filepath.Join(tempDir, "main.ptst")
-	err = os.WriteFile(ptstFile, []byte(`
+	hrpFile := filepath.Join(tempDir, "main.hrp")
+	err = os.WriteFile(hrpFile, []byte(`
 	funcao MeuApp() {
 		retorne <h1>Olá</h1>;
 	}
 	`), 0644)
 	if err != nil {
-		t.Fatalf("Erro ao criar main.ptst temporário: %v", err)
+		t.Fatalf("Erro ao criar main.hrp temporário: %v", err)
 	}
 
 	// Como criar os testes simulando a Cobra CLI seria complexo, podemos testar chamando a função de comando
 	cmd := comandoCompilar()
 	saidaDir := filepath.Join(tempDir, "dist")
-	cmd.SetArgs([]string{"--entrada", ptstFile, "--saida", saidaDir})
+	cmd.SetArgs([]string{"--entrada", hrpFile, "--saida", saidaDir})
 
 	err = cmd.Execute()
 	if err != nil {
@@ -126,7 +126,7 @@ func TestComandoCompilarWeb(t *testing.T) {
 	}
 
 	// ponytail: regressão do bug do "export function MeuApp" (PARTIAL do verifier).
-	// Quando o usuário escreve `funcao MeuApp() { ... }` no main.ptst sem marcar como
+	// Quando o usuário escreve `funcao MeuApp() { ... }` no main.hrp sem marcar como
 	// exportado, o bundler de saída precisa marcar a declaração como `export`, do
 	// contrário o `index.html` faz `import { MeuApp }` que vira undefined e cai no
 	// console.warn em vez de montar a página.
@@ -145,7 +145,7 @@ func TestRouterAndLinkTranspilation(t *testing.T) {
 		retorne <Link para="/contato">Fale conosco</Link>;
 	}
 	`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -166,16 +166,16 @@ func TestRouterAndLinkTranspilation(t *testing.T) {
 // de referência compilam sem panicar o transpiler e geram todos os assets finais.
 func TestCompilacaoExemplos(t *testing.T) {
 	exemplos := []string{
-		"../exemplos/frontend/contador/main.ptst",
-		"../exemplos/frontend/tarefas/main.ptst",
-		"../exemplos/frontend/formulario/main.ptst",
+		"../exemplos/frontend/contador/main.hrp",
+		"../exemplos/frontend/tarefas/main.hrp",
+		"../exemplos/frontend/formulario/main.hrp",
 	}
 
-	for _, ptstPath := range exemplos {
-		t.Run(ptstPath, func(t *testing.T) {
+	for _, hrpPath := range exemplos {
+		t.Run(hrpPath, func(t *testing.T) {
 			// Verifica se o arquivo físico existe primeiro
-			if _, err := os.Stat(ptstPath); os.IsNotExist(err) {
-				t.Skipf("Ignorando teste do exemplo '%s' (arquivo não encontrado)", ptstPath)
+			if _, err := os.Stat(hrpPath); os.IsNotExist(err) {
+				t.Skipf("Ignorando teste do exemplo '%s' (arquivo não encontrado)", hrpPath)
 			}
 
 			tempDir, err := os.MkdirTemp("", "Harpia_ex_build_*")
@@ -186,18 +186,18 @@ func TestCompilacaoExemplos(t *testing.T) {
 
 			cmd := comandoCompilar()
 			saidaDir := filepath.Join(tempDir, "dist")
-			cmd.SetArgs([]string{"--entrada", ptstPath, "--saida", saidaDir})
+			cmd.SetArgs([]string{"--entrada", hrpPath, "--saida", saidaDir})
 
 			err = cmd.Execute()
 			if err != nil {
-				t.Fatalf("Falha crítica ao compilar o exemplo '%s': %v", ptstPath, err)
+				t.Fatalf("Falha crítica ao compilar o exemplo '%s': %v", hrpPath, err)
 			}
 
 			// Valida assets
 			for _, file := range []string{"index.html", "app.js", "runtime-web.js", "estilos.css"} {
 				p := filepath.Join(saidaDir, file)
 				if _, err := os.Stat(p); os.IsNotExist(err) {
-					t.Errorf("Arquivo de build esperado '%s' não foi gerado para o exemplo '%s'", file, ptstPath)
+					t.Errorf("Arquivo de build esperado '%s' não foi gerado para o exemplo '%s'", file, hrpPath)
 				}
 			}
 		})
@@ -219,23 +219,23 @@ func TestComandoCompilarComRotas(t *testing.T) {
 	}
 
 	// Cria o arquivo principal
-	ptstFile := filepath.Join(tempDir, "main.ptst")
-	err = os.WriteFile(ptstFile, []byte(`
+	hrpFile := filepath.Join(tempDir, "main.hrp")
+	err = os.WriteFile(hrpFile, []byte(`
 	var principal = "app";
 	`), 0644)
 	if err != nil {
-		t.Fatalf("Erro ao criar main.ptst: %v", err)
+		t.Fatalf("Erro ao criar main.hrp: %v", err)
 	}
 
-	// Cria rotas: index.ptst e sobre.ptst
-	err = os.WriteFile(filepath.Join(rotasDir, "index.ptst"), []byte(`
+	// Cria rotas: index.hrp e sobre.hrp
+	err = os.WriteFile(filepath.Join(rotasDir, "index.hrp"), []byte(`
 	retorne <h1>Início</h1>;
 	`), 0644)
 	if err != nil {
 		t.Fatalf("Erro ao criar rota index: %v", err)
 	}
 
-	err = os.WriteFile(filepath.Join(rotasDir, "sobre.ptst"), []byte(`
+	err = os.WriteFile(filepath.Join(rotasDir, "sobre.hrp"), []byte(`
 	retorne <h2>Sobre nós</h2>;
 	`), 0644)
 	if err != nil {
@@ -244,7 +244,7 @@ func TestComandoCompilarComRotas(t *testing.T) {
 
 	cmd := comandoCompilar()
 	saidaDir := filepath.Join(tempDir, "dist")
-	cmd.SetArgs([]string{"--entrada", ptstFile, "--saida", saidaDir})
+	cmd.SetArgs([]string{"--entrada", hrpFile, "--saida", saidaDir})
 
 	// Executa a compilação de dentro do tempDir para que o compilador encontre as pastas
 	oldWd, _ := os.Getwd()
@@ -287,7 +287,7 @@ func TestComandoCompilarComRotas(t *testing.T) {
 
 // ponytail: assevera o funcionamento de TIPO-1 (geração de JSDoc em modo estrito para DX).
 func TestTranspileEstritoJSDoc(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -339,8 +339,8 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 		t.Fatalf("Erro ao criar arquivo HTML de teste: %v", err)
 	}
 
-	// Cria um arquivo .estilo.ptst para testar imports de estilo separados
-	estiloFile := filepath.Join(tempDir, "EstiloBotao.estilo.ptst")
+	// Cria um arquivo .estilo.hrp para testar imports de estilo separados
+	estiloFile := filepath.Join(tempDir, "EstiloBotao.estilo.hrp")
 	err = os.WriteFile(estiloFile, []byte(`
 	estilo CaixaBotao {
 		corDeFundo: "azul";
@@ -351,7 +351,7 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 	}
 
 	codigo := `
-	de "./EstiloBotao.estilo.ptst" importe CaixaBotao;
+	de "./EstiloBotao.estilo.hrp" importe CaixaBotao;
 
 	<!-- Comentário HTML Nativo no topo do arquivo -->
 	funcao App() {
@@ -366,7 +366,7 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 	}
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -377,7 +377,7 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 	transpiler := &TranspilerWeb{DiretorioBase: tempDir}
 	js := transpiler.Transpile(ast)
 
-	// 1. Valida constante de estilo gerada pelo import .estilo.ptst
+	// 1. Valida constante de estilo gerada pelo import .estilo.hrp
 	if !strings.Contains(js, "const CaixaBotao = \"CaixaBotao\";") {
 		t.Errorf("Esperava declaração de constante de estilo de import. Recebido: %s", js)
 	}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/playground"
-	"github.com/mat-dgruber/Harpia/ptst"
 	"github.com/mat-dgruber/Harpia/vm"
 
 	// A importação blank (_) é fundamental aqui: ela força a execução da função init()
@@ -43,7 +43,7 @@ var profilador bool
 //   - O diretório corrente (Working Directory) do processo atual é obtido via `os.Getwd()` no momento do disparo.
 //     Ele é adicionado por padrão aos caminhos de busca (`CaminhosPadrao`) do contexto do Harpia, garantindo que
 //     importações relativas de módulos (`importar modulo`) funcionem corretamente a partir de onde o usuário chamou a CLI.
-//   - Um novo contexto de máquina virtual é criado (`ptst.NewContexto`). O comando registra um `defer ctx.Terminar()`
+//   - Um novo contexto de máquina virtual é criado (`hrp.NewContexto`). O comando registra um `defer ctx.Terminar()`
 //     imediatamente após. Isso garante que a destruição controlada do contexto ocorra de forma segura, limpando caches,
 //     desalocando estruturas internas da VM e executando flush de streams pendentes, prevenindo vazamentos de recursos
 //     mesmo que a execução do script sofra interrupção abrupta ou pânico (panic).
@@ -52,7 +52,7 @@ var profilador bool
 //     para permitir que scripts ou bibliotecas de inicialização/configuração rodem antes de um snippet de teste rápido.
 //
 // Tratamento de Erros:
-//   - Falhas ocorridas dentro do ambiente de execução do interpretador são interceptadas e encaminhadas para `ptst.LancarErro(err)`.
+//   - Falhas ocorridas dentro do ambiente de execução do interpretador são interceptadas e encaminhadas para `hrp.LancarErro(err)`.
 //     Esta função de tratamento formata o erro em PT-BR amigável para o usuário, destacando visualmente a linha exata e a
 //     posição da sintaxe ou semântica que causou a quebra do programa (traceback).
 func comandoExecutar() *cobra.Command {
@@ -67,7 +67,7 @@ func comandoExecutar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			ctx := ptst.NewContexto(ptst.OpcsContexto{
+			ctx := hrp.NewContexto(hrp.OpcsContexto{
 				CaminhosPadrao: []string{cur},
 				Estrito:        estrito,
 			})
@@ -84,23 +84,23 @@ func comandoExecutar() *cobra.Command {
 				if rodarNaVM {
 					_, ast, errAst := ctx.TransformarEmAst(args[0], false, cur)
 					if errAst != nil {
-						ptst.LancarErro(errAst)
+						hrp.LancarErro(errAst)
 						return
 					}
 
 					comp := vm.NewCompilador()
 					prog, errComp := comp.Compilar(ast)
 					if errComp != nil {
-						ptst.LancarErro(errComp)
+						hrp.LancarErro(errComp)
 						return
 					}
 
 					mainModulo, errMod := ctx.ObterModulo("__main__")
-					var mainEscopo *ptst.Escopo
+					var mainEscopo *hrp.Escopo
 					if errMod == nil && mainModulo != nil {
 						mainEscopo = mainModulo.Escopo
 					} else {
-						mainEscopo = ptst.NewEscopo()
+						mainEscopo = hrp.NewEscopo()
 					}
 
 					virtualMachine := vm.NewVM(ctx)
@@ -108,16 +108,16 @@ func comandoExecutar() *cobra.Command {
 					frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil)
 					_, err = virtualMachine.Executar(frame)
 					if err != nil {
-						ptst.LancarErro(err)
+						hrp.LancarErro(err)
 						return
 					}
 					if virtualMachine.Perfil {
 						virtualMachine.ImprimirPerfil()
 					}
 				} else {
-					_, err = ptst.ExecutarArquivo(ctx, "", args[0], cur, false)
+					_, err = hrp.ExecutarArquivo(ctx, "", args[0], cur, false)
 					if err != nil {
-						ptst.LancarErro(err)
+						hrp.LancarErro(err)
 						return
 					}
 				}
@@ -125,9 +125,9 @@ func comandoExecutar() *cobra.Command {
 
 			// Cenário 3: Flag `-c` presente. Executa o snippet textual dentro do contexto já estabelecido.
 			if codigo != "" {
-				_, err = ptst.ExecutarString(ctx, codigo)
+				_, err = hrp.ExecutarString(ctx, codigo)
 				if err != nil {
-					ptst.LancarErro(err)
+					hrp.LancarErro(err)
 				}
 			}
 		},

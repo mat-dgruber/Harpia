@@ -56,6 +56,7 @@ func nomeOS() string {
 // Mapeia especificamente:
 //   - "amd64" para "x86_64"
 //   - "386" para "i386"
+//
 // Para outras arquiteturas (ex: arm64), retorna o próprio valor reportado pelo runtime Go.
 func nomeArch() string {
 	switch runtime.GOARCH {
@@ -158,7 +159,7 @@ func ultimaVersao() (string, error) {
 //
 // O arquivo temporário criado no disco é limpo e removido de forma garantida através do recurso defer.
 func downloadEInstalar(raizHarpia string) error {
-	f, err := os.CreateTemp("", "-ptst")
+	f, err := os.CreateTemp("", "-hrp")
 	if err != nil {
 		return fmt.Errorf("erro ao criar um diretorio temporário")
 	}

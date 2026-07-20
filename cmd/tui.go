@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +20,9 @@ type tuiModel struct {
 	largura    int
 	altura     int
 	ajuda      bool
-	ctx        *ptst.Contexto
-	escopo     *ptst.Escopo
-	foco       int // ponytail: 0 = editor, 1 = inspetor
+	ctx        *hrp.Contexto
+	escopo     *hrp.Escopo
+	foco       int  // ponytail: 0 = editor, 1 = inspetor
 	depurando  bool // ponytail: se o modo de depuração passo-a-passo está ativo
 	linhas     []string
 	linhaAtiva int
@@ -50,8 +50,8 @@ func inicializarTuiModel() tuiModel {
 	ta.SetWidth(40)
 	ta.SetHeight(20)
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
-	escopo := ptst.NewEscopo()
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	escopo := hrp.NewEscopo()
 
 	return tuiModel{
 		editor:    ta,
@@ -93,7 +93,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.depurando = true
 					m.linhas = strings.Split(codigo, "\n")
 					m.linhaAtiva = 0
-					m.escopo = ptst.NewEscopo() // reinicia o escopo local
+					m.escopo = hrp.NewEscopo() // reinicia o escopo local
 					m.saida = "=== MODO DEPURAÇÃO ATIVO ===\nPressione F7 para avançar linha por linha.\nPressione F8 para cancelar.\n"
 					m.variaveis = []string{"Nenhuma variável ainda."}
 				}
@@ -160,7 +160,7 @@ func (m *tuiModel) avancarPassoDepurador() {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	m.escopo = ptst.NewEscopo() // Limpa escopo local para re-avaliar o acumulado
+	m.escopo = hrp.NewEscopo() // Limpa escopo local para re-avaliar o acumulado
 	ast, err := m.ctx.StringParaAst(codigoAcumulado, "<tui-debugger>")
 	if err != nil {
 		w.Close()

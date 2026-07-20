@@ -11,6 +11,7 @@ import (
 // comandoFormatar inicializa o comando 'Harpia formatar'
 func comandoFormatar() *cobra.Command {
 	var escrever bool
+	var verificar bool
 	cmdFormatar := &cobra.Command{
 		Use:   "formatar [arquivo.hrp]",
 		Short: "Formata a identação e os blocos de um arquivo Harpia",
@@ -25,6 +26,15 @@ func comandoFormatar() *cobra.Command {
 
 			formatado := FormatarCodigoHarpia(string(conteudo))
 
+			if verificar {
+				if string(conteudo) != formatado {
+					fmt.Fprintf(os.Stderr, "HRP-FMT-001: %s não está formatado. Rode 'harpia formatar -w %s'.\n", caminho, caminho)
+					os.Exit(1)
+				}
+				fmt.Printf("%s já está formatado.\n", caminho)
+				return
+			}
+
 			if escrever {
 				err = os.WriteFile(caminho, []byte(formatado), 0644)
 				if err != nil {
@@ -38,6 +48,7 @@ func comandoFormatar() *cobra.Command {
 		},
 	}
 	cmdFormatar.Flags().BoolVarP(&escrever, "escrever", "w", false, "Salva as alterações de volta no arquivo original")
+	cmdFormatar.Flags().BoolVar(&verificar, "verificar", false, "Sai com código 1 se o arquivo não estiver formatado (uso em CI)")
 	return cmdFormatar
 }
 

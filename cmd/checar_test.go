@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestLinterShadowingWarning(t *testing.T) {
@@ -14,7 +14,7 @@ func TestLinterShadowingWarning(t *testing.T) {
 	}
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -45,7 +45,7 @@ func TestLinterShadowingErroMesmoEscopo(t *testing.T) {
 	var x = 20;
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
