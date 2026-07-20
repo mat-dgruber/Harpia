@@ -66,6 +66,7 @@ var globalsLinter = map[string]bool{
 	"injetar":          true,
 	"sinalPersistente": true,
 	"recurso":          true,
+	"tamanho":          true,
 }
 
 type EscopoLinter struct {
@@ -210,12 +211,14 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		l.Checar(n.Expressao)
 
 	case *parser.DeclFuncao:
-		if l.Escopo.DeclaradaLocal(n.Nome) {
-			l.registrarErro(fmt.Sprintf("Função '%s' conflita com declaração existente", n.Nome), "HRP-0002", 1, n)
-		} else if l.Escopo.Declarada(n.Nome) {
-			l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "HRP-0002", 2, n)
+		if n.Nome != "" {
+			if l.Escopo.DeclaradaLocal(n.Nome) {
+				l.registrarErro(fmt.Sprintf("Função '%s' conflita com declaração existente", n.Nome), "HRP-0002", 1, n)
+			} else if l.Escopo.Declarada(n.Nome) {
+				l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "HRP-0002", 2, n)
+			}
+			l.Escopo.Variaveis[n.Nome] = true
 		}
-		l.Escopo.Variaveis[n.Nome] = true
 
 		l.pushEscopo()
 		l.Escopo.Assincrono = n.Assincrono

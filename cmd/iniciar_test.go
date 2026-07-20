@@ -46,8 +46,11 @@ func TestComandoNovoMonolito(t *testing.T) {
 		filepath.Join("meu_monolito", "main.hrp"),
 		filepath.Join("meu_monolito", "dominio", "entidades", "usuario.hrp"),
 		filepath.Join("meu_monolito", "infra", "banco", "conexao.hrp"),
-		filepath.Join("meu_monolito", "web", "rotas", "index.hrp"),
-		filepath.Join("meu_monolito", "web", "componentes", "Layout.html"),
+		filepath.Join("meu_monolito", "web", "rotas", "rotas.hrp"),
+		filepath.Join("meu_monolito", "web", "componentes", "global.estilos.hrp"),
+		filepath.Join("meu_monolito", "web", "pages", "Inicio.hrp"),
+		filepath.Join("meu_monolito", "web", "pages", "Inicio.estilo.hrp"),
+		filepath.Join("meu_monolito", "web", "pages", "Inicio.html"),
 		filepath.Join("meu_monolito", "testes", "usuario_test.hrp"),
 	}
 
@@ -102,9 +105,10 @@ func TestComandoCrieAssistido(t *testing.T) {
 	os.Chdir(tempDir)
 	defer os.Chdir(oldWd)
 
-	// Simula a existência da pasta web/rotas e web/componentes para teste de detecção inteligente
+	// Simula a existência da pasta web/rotas, web/componentes e web/pages para teste de detecção inteligente
 	os.MkdirAll("web/rotas", 0755)
 	os.MkdirAll("web/componentes", 0755)
+	os.MkdirAll("web/pages", 0755)
 
 	// 1. Testa crie rota
 	cmdRota := comandoCrie()
@@ -113,9 +117,15 @@ func TestComandoCrieAssistido(t *testing.T) {
 		t.Fatalf("Erro ao executar crie rota: %v", err)
 	}
 
-	caminhoRota := filepath.Join("web", "rotas", "contato.hrp")
-	if _, err := os.Stat(caminhoRota); os.IsNotExist(err) {
-		t.Errorf("Arquivo de rota esperada '%s' não foi gerado", caminhoRota)
+	caminhosEsperados := []string{
+		filepath.Join("web", "pages", "Contato.hrp"),
+		filepath.Join("web", "pages", "Contato.estilo.hrp"),
+		filepath.Join("web", "pages", "Contato.html"),
+	}
+	for _, arq := range caminhosEsperados {
+		if _, err := os.Stat(arq); os.IsNotExist(err) {
+			t.Errorf("Arquivo de rota esperada '%s' não foi gerado", arq)
+		}
 	}
 
 	// 2. Testa crie componente
