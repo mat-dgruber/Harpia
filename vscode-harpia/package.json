@@ -2,7 +2,7 @@
   "name": "vscode-harpia",
   "displayName": "Harpia",
   "description": "Suporte oficial à linguagem Harpia para o VS Code. Oferece colorização de sintaxe rica, autocomplete e hover (LSP), depurador interativo e ferramentas CLI integradas.",
-  "version": "0.1.2",
+  "version": "1.2.0",
   "icon": "icons/logo.jpg",
   "publisher": "harpia",
   "license": "MIT",
