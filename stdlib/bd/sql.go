@@ -8,6 +8,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+const MaxLimiteRegistrosSQL = 1000000
+
 type ConexaoSQL struct {
 	db     *sql.DB
 	driver string
@@ -180,8 +182,8 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 			nVal := int64(n.(hrp.Inteiro))
-			if nVal < 0 || nVal > 1000000 {
-				return nil, fmt.Errorf("limite inválido")
+			if nVal < 0 || nVal > MaxLimiteRegistrosSQL {
+				return nil, hrp.NewErroF(hrp.ValorErro, "limite de registros SQL inválido (deve ser entre 0 e %d)", MaxLimiteRegistrosSQL)
 			}
 			q.limiteVal = int(nVal)
 			return q, nil

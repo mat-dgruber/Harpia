@@ -7,6 +7,11 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+const (
+	MaxLimiteDisjuntor       = 1000000
+	MaxTentativasRetentativa = 100
+)
+
 // Disjuntor (Circuit Breaker) — três estados: fechado, aberto, meio-aberto.
 type Disjuntor struct {
 	mu                 sync.Mutex
@@ -191,8 +196,8 @@ func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 	limVal := int64(limite.(hrp.Inteiro))
-	if limVal < 0 || limVal > 1000000 {
-		return nil, hrp.NewErroF(hrp.ValorErro, "limite de taxa inválido")
+	if limVal < 0 || limVal > MaxLimiteDisjuntor {
+		return nil, hrp.NewErroF(hrp.ValorErro, "limite de taxa inválido (deve ser entre 0 e %d)", MaxLimiteDisjuntor)
 	}
 	d := NovoDisjuntor(int(limVal), float64(timeout.(hrp.Decimal)))
 	return hrp.Texto(d.estado), nil
@@ -221,12 +226,14 @@ func met_nova_retentativa(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	r := NovaRetentativa()
 	if len(args) >= 1 {
 		t, err := hrp.NewInteiro(args[0])
-		if err == nil {
-			tVal := int64(t.(hrp.Inteiro))
-			if tVal >= 0 && tVal <= 100 {
-				r.Tentativas = int(tVal)
-			}
+		if err != nil {
+			return nil, err
 		}
+		tVal := int64(t.(hrp.Inteiro))
+		if tVal < 0 || tVal > MaxTentativasRetentativa {
+			return nil, hrp.NewErroF(hrp.ValorErro, "número de tentativas inválido (deve ser entre 0 e %d)", MaxTentativasRetentativa)
+		}
+		r.Tentativas = int(tVal)
 	}
 	if len(args) >= 2 {
 		b, err := hrp.NewDecimal(args[1])
