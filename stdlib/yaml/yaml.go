@@ -3,29 +3,29 @@ package yaml
 import (
 	"gopkg.in/yaml.v3"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-func converteParaGo(obj ptst.Objeto) any {
-	if obj == nil || obj == ptst.Nulo {
+func converteParaGo(obj hrp.Objeto) any {
+	if obj == nil || obj == hrp.Nulo {
 		return nil
 	}
 	switch v := obj.(type) {
-	case ptst.Texto:
+	case hrp.Texto:
 		return string(v)
-	case ptst.Inteiro:
+	case hrp.Inteiro:
 		return int64(v)
-	case ptst.Decimal:
+	case hrp.Decimal:
 		return float64(v)
-	case ptst.Booleano:
+	case hrp.Booleano:
 		return bool(v)
-	case *ptst.Lista:
+	case *hrp.Lista:
 		res := make([]any, len(v.Itens))
 		for i, item := range v.Itens {
 			res[i] = converteParaGo(item)
 		}
 		return res
-	case ptst.Mapa:
+	case hrp.Mapa:
 		res := make(map[string]any)
 		for chave, val := range v {
 			res[chave] = converteParaGo(val)
@@ -35,79 +35,79 @@ func converteParaGo(obj ptst.Objeto) any {
 	return nil
 }
 
-func converteParaPtst(dados any) ptst.Objeto {
+func converteParahrp(dados any) hrp.Objeto {
 	if dados == nil {
-		return ptst.Nulo
+		return hrp.Nulo
 	}
 	switch v := dados.(type) {
 	case string:
-		return ptst.Texto(v)
+		return hrp.Texto(v)
 	case int:
-		return ptst.Inteiro(int64(v))
+		return hrp.Inteiro(int64(v))
 	case int64:
-		return ptst.Inteiro(v)
+		return hrp.Inteiro(v)
 	case float64:
-		return ptst.Decimal(v)
+		return hrp.Decimal(v)
 	case bool:
-		return ptst.Booleano(v)
+		return hrp.Booleano(v)
 	case []any:
-		lista := &ptst.Lista{Itens: make([]ptst.Objeto, len(v))}
+		lista := &hrp.Lista{Itens: make([]hrp.Objeto, len(v))}
 		for i, item := range v {
-			lista.Itens[i] = converteParaPtst(item)
+			lista.Itens[i] = converteParahrp(item)
 		}
 		return lista
 	case map[string]any:
-		mapa := ptst.NewMapaVazio()
+		mapa := hrp.NewMapaVazio()
 		for k, val := range v {
-			mapa.M__define_item__(ptst.Texto(k), converteParaPtst(val))
+			mapa.M__define_item__(hrp.Texto(k), converteParahrp(val))
 		}
 		return mapa
 	}
-	return ptst.Nulo
+	return hrp.Nulo
 }
 
-func met_yaml_analisar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("analisar", false, args, 1, 1); err != nil {
+func met_yaml_analisar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("analisar", false, args, 1, 1); err != nil {
 		return nil, err
 	}
 
-	texto, err := ptst.NewTexto(args[0])
+	texto, err := hrp.NewTexto(args[0])
 	if err != nil {
 		return nil, err
 	}
 
 	var dados any
-	err = yaml.Unmarshal([]byte(texto.(ptst.Texto)), &dados)
+	err = yaml.Unmarshal([]byte(texto.(hrp.Texto)), &dados)
 	if err != nil {
-		return nil, ptst.NewErroF(ptst.ValorErro, "Erro ao analisar string YAML: %v", err)
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao analisar string YAML: %v", err)
 	}
 
-	return converteParaPtst(dados), nil
+	return converteParahrp(dados), nil
 }
 
-func met_yaml_serializar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("serializar", false, args, 1, 1); err != nil {
+func met_yaml_serializar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("serializar", false, args, 1, 1); err != nil {
 		return nil, err
 	}
 
 	goObj := converteParaGo(args[0])
 	bytes, err := yaml.Marshal(goObj)
 	if err != nil {
-		return nil, ptst.NewErroF(ptst.ValorErro, "Erro ao serializar objeto para YAML: %v", err)
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao serializar objeto para YAML: %v", err)
 	}
 
-	return ptst.Texto(bytes), nil
+	return hrp.Texto(bytes), nil
 }
 
 func init() {
-	ptst.RegistraModuloImpl(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Nome:    "yaml",
 			Arquivo: "stdlib/yaml",
 		},
-		Metodos: []*ptst.Metodo{
-			ptst.NewMetodoOuPanic("analisar", met_yaml_analisar, ""),
-			ptst.NewMetodoOuPanic("serializar", met_yaml_serializar, ""),
+		Metodos: []*hrp.Metodo{
+			hrp.NewMetodoOuPanic("analisar", met_yaml_analisar, ""),
+			hrp.NewMetodoOuPanic("serializar", met_yaml_serializar, ""),
 		},
 	})
 }

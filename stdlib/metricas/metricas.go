@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 type MetricaInfo struct {
@@ -25,64 +25,64 @@ type Contador struct {
 	info *MetricaInfo
 }
 
-var TipoContador = ptst.NewTipo("Contador", "Contador Prometheus para incrementar valores")
+var TipoContador = hrp.NewTipo("Contador", "Contador Prometheus para incrementar valores")
 
-func (c *Contador) Tipo() *ptst.Tipo {
+func (c *Contador) Tipo() *hrp.Tipo {
 	return TipoContador
 }
 
-func (c *Contador) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (c *Contador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "incrementar":
-		return ptst.NewMetodoOuPanic("incrementar", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+		return hrp.NewMetodoOuPanic("incrementar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			c.info.mu.Lock()
 			c.info.Valor += 1
 			c.info.mu.Unlock()
-			return ptst.Nulo, nil
+			return hrp.Nulo, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe no Contador", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Contador", nome)
 }
 
 type Medidor struct {
 	info *MetricaInfo
 }
 
-var TipoMedidor = ptst.NewTipo("Medidor", "Medidor Prometheus (Gauge) para alterar valores")
+var TipoMedidor = hrp.NewTipo("Medidor", "Medidor Prometheus (Gauge) para alterar valores")
 
-func (m *Medidor) Tipo() *ptst.Tipo {
+func (m *Medidor) Tipo() *hrp.Tipo {
 	return TipoMedidor
 }
 
-func (m *Medidor) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (m *Medidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "definir":
-		return ptst.NewMetodoOuPanic("definir", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-			if err := ptst.VerificaNumeroArgumentos("definir", false, args, 1, 1); err != nil {
+		return hrp.NewMetodoOuPanic("definir", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("definir", false, args, 1, 1); err != nil {
 				return nil, err
 			}
-			val, err := ptst.NewDecimal(args[0])
+			val, err := hrp.NewDecimal(args[0])
 			if err != nil {
 				return nil, err
 			}
 			m.info.mu.Lock()
-			m.info.Valor = float64(val.(ptst.Decimal))
+			m.info.Valor = float64(val.(hrp.Decimal))
 			m.info.mu.Unlock()
-			return ptst.Nulo, nil
+			return hrp.Nulo, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe no Medidor", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Medidor", nome)
 }
 
-func met_metricas_criarContador(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("criarContador", false, args, 2, 2); err != nil {
+func met_metricas_criarContador(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("criarContador", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	nome, _ := ptst.NewTexto(args[0])
-	desc, _ := ptst.NewTexto(args[1])
+	nome, _ := hrp.NewTexto(args[0])
+	desc, _ := hrp.NewTexto(args[1])
 
-	nomeStr := string(nome.(ptst.Texto))
-	descStr := string(desc.(ptst.Texto))
+	nomeStr := string(nome.(hrp.Texto))
+	descStr := string(desc.(hrp.Texto))
 
 	registroMu.Lock()
 	defer registroMu.Unlock()
@@ -96,15 +96,15 @@ func met_metricas_criarContador(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto,
 	return &Contador{info: info}, nil
 }
 
-func met_metricas_criarMedidor(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("criarMedidor", false, args, 2, 2); err != nil {
+func met_metricas_criarMedidor(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("criarMedidor", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	nome, _ := ptst.NewTexto(args[0])
-	desc, _ := ptst.NewTexto(args[1])
+	nome, _ := hrp.NewTexto(args[0])
+	desc, _ := hrp.NewTexto(args[1])
 
-	nomeStr := string(nome.(ptst.Texto))
-	descStr := string(desc.(ptst.Texto))
+	nomeStr := string(nome.(hrp.Texto))
+	descStr := string(desc.(hrp.Texto))
 
 	registroMu.Lock()
 	defer registroMu.Unlock()
@@ -118,7 +118,7 @@ func met_metricas_criarMedidor(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, 
 	return &Medidor{info: info}, nil
 }
 
-func met_metricas_expor(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_metricas_expor(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	registroMu.RLock()
 	defer registroMu.RUnlock()
 
@@ -130,23 +130,23 @@ func met_metricas_expor(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) 
 		sb.WriteString(fmt.Sprintf("%s %g\n", info.Nome, info.Valor))
 		info.mu.RUnlock()
 	}
-	return ptst.Texto(sb.String()), nil
+	return hrp.Texto(sb.String()), nil
 }
 
 func init() {
-	ptst.RegistraModuloImpl(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Nome:    "metricas",
 			Arquivo: "stdlib/metricas",
 		},
-		Constantes: ptst.Mapa{
+		Constantes: hrp.Mapa{
 			"Contador": TipoContador,
 			"Medidor":  TipoMedidor,
 		},
-		Metodos: []*ptst.Metodo{
-			ptst.NewMetodoOuPanic("criarContador", met_metricas_criarContador, "Cria um contador Prometheus."),
-			ptst.NewMetodoOuPanic("criarMedidor", met_metricas_criarMedidor, "Cria um medidor (Gauge) Prometheus."),
-			ptst.NewMetodoOuPanic("expor", met_metricas_expor, "Exprime todas as métricas registradas em formato Prometheus."),
+		Metodos: []*hrp.Metodo{
+			hrp.NewMetodoOuPanic("criarContador", met_metricas_criarContador, "Cria um contador Prometheus."),
+			hrp.NewMetodoOuPanic("criarMedidor", met_metricas_criarMedidor, "Cria um medidor (Gauge) Prometheus."),
+			hrp.NewMetodoOuPanic("expor", met_metricas_expor, "Exprime todas as métricas registradas em formato Prometheus."),
 		},
 	})
 }

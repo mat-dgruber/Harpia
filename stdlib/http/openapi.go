@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // gerar_openapi(servidor) -> gera JSON OpenAPI 3.0 simplificado a partir das rotas do servidor.
-func met_gerar_openapi(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("gerar_openapi", false, args, 1, 1); err != nil {
+func met_gerar_openapi(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("gerar_openapi", false, args, 1, 1); err != nil {
 		return nil, err
 	}
 
 	servidor, ok := args[0].(*Servidor)
 	if !ok {
-		return nil, ptst.NewErroF(ptst.TipagemErro, "esperava um objeto Servidor para gerar_openapi")
+		return nil, hrp.NewErroF(hrp.TipagemErro, "esperava um objeto Servidor para gerar_openapi")
 	}
 
 	paths := make(map[string]map[string]interface{})
@@ -55,8 +55,8 @@ func met_gerar_openapi(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 
 	bytes, err := json.MarshalIndent(spec, "", "  ")
 	if err != nil {
-		return nil, ptst.NewErroF(ptst.ErroDeSistema, "erro ao gerar JSON OpenAPI: %v", err)
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "erro ao gerar JSON OpenAPI: %v", err)
 	}
 
-	return ptst.Texto(bytes), nil
+	return hrp.Texto(bytes), nil
 }

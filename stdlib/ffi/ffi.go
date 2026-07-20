@@ -4,28 +4,28 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 type Biblioteca struct {
 	Caminho string
 }
 
-var TipoBiblioteca = ptst.NewTipo("Biblioteca", "Referência para uma biblioteca dinâmica carregada (FFI)")
+var TipoBiblioteca = hrp.NewTipo("Biblioteca", "Referência para uma biblioteca dinâmica carregada (FFI)")
 
-func (b *Biblioteca) Tipo() *ptst.Tipo {
+func (b *Biblioteca) Tipo() *hrp.Tipo {
 	return TipoBiblioteca
 }
 
-func (b *Biblioteca) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (b *Biblioteca) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "obterFuncao":
-		return ptst.NewMetodoOuPanic("obterFuncao", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-			if err := ptst.VerificaNumeroArgumentos("obterFuncao", false, args, 1, 1); err != nil {
+		return hrp.NewMetodoOuPanic("obterFuncao", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("obterFuncao", false, args, 1, 1); err != nil {
 				return nil, err
 			}
-			funcNome, _ := ptst.NewTexto(args[0])
-			funcNomeStr := string(funcNome.(ptst.Texto))
+			funcNome, _ := hrp.NewTexto(args[0])
+			funcNomeStr := string(funcNome.(hrp.Texto))
 
 			return &FuncaoFFI{
 				Nome:       funcNomeStr,
@@ -33,7 +33,7 @@ func (b *Biblioteca) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
 			}, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe na Biblioteca", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe na Biblioteca", nome)
 }
 
 type FuncaoFFI struct {
@@ -41,50 +41,50 @@ type FuncaoFFI struct {
 	Biblioteca *Biblioteca
 }
 
-var TipoFuncaoFFI = ptst.NewTipo("FuncaoFFI", "Função nativa importada via FFI")
+var TipoFuncaoFFI = hrp.NewTipo("FuncaoFFI", "Função nativa importada via FFI")
 
-func (f *FuncaoFFI) Tipo() *ptst.Tipo {
+func (f *FuncaoFFI) Tipo() *hrp.Tipo {
 	return TipoFuncaoFFI
 }
 
 // M__chame__ torna a função FFI chamável diretamente no Harpia.
 // Como FFI real requer montagem de registros de CPU dependendo da ABI, simulamos a ponte CGO/DLL,
 // retornando resultados simulados de exemplo se o arquivo de biblioteca física não existir de fato.
-func (f *FuncaoFFI) M__chame__(args ptst.Tupla) (ptst.Objeto, error) {
+func (f *FuncaoFFI) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
 	if _, err := os.Stat(f.Biblioteca.Caminho); os.IsNotExist(err) {
 		// Mock amigável para testes e DX quando rodando em ambientes sem a biblioteca C física compilada
 		if f.Nome == "soma" {
 			if len(args) == 2 {
-				a, _ := ptst.NewDecimal(args[0])
-				b, _ := ptst.NewDecimal(args[1])
-				return ptst.Decimal(float64(a.(ptst.Decimal)) + float64(b.(ptst.Decimal))), nil
+				a, _ := hrp.NewDecimal(args[0])
+				b, _ := hrp.NewDecimal(args[1])
+				return hrp.Decimal(float64(a.(hrp.Decimal)) + float64(b.(hrp.Decimal))), nil
 			}
 		}
 		return nil, fmt.Errorf("biblioteca dinâmica '%s' não pôde ser carregada ou não existe", f.Biblioteca.Caminho)
 	}
 
 	// Execução real da chamada FFI dinâmica
-	return ptst.Nulo, nil
+	return hrp.Nulo, nil
 }
 
-func met_ffi_abrir(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("abrir", false, args, 1, 1); err != nil {
+func met_ffi_abrir(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("abrir", false, args, 1, 1); err != nil {
 		return nil, err
 	}
-	caminho, _ := ptst.NewTexto(args[0])
-	caminhoStr := string(caminho.(ptst.Texto))
+	caminho, _ := hrp.NewTexto(args[0])
+	caminhoStr := string(caminho.(hrp.Texto))
 
 	return &Biblioteca{Caminho: caminhoStr}, nil
 }
 
 func init() {
-	ptst.RegistraModuloImpl(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Nome:    "ffi",
 			Arquivo: "stdlib/ffi",
 		},
-		Metodos: []*ptst.Metodo{
-			ptst.NewMetodoOuPanic("abrir", met_ffi_abrir, "Carrega uma biblioteca dinâmica (.so, .dll, .dylib) via FFI."),
+		Metodos: []*hrp.Metodo{
+			hrp.NewMetodoOuPanic("abrir", met_ffi_abrir, "Carrega uma biblioteca dinâmica (.so, .dll, .dylib) via FFI."),
 		},
 	})
 }

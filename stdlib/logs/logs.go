@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 var (
@@ -19,16 +19,16 @@ func formatarData() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-func logar(nivel string, cor string, args ptst.Tupla) (ptst.Objeto, error) {
+func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) == 0 {
-		return nil, ptst.NewErroF(ptst.TipagemErro, "esperava no mínimo 1 argumento (mensagem)")
+		return nil, hrp.NewErroF(hrp.TipagemErro, "esperava no mínimo 1 argumento (mensagem)")
 	}
 
 	msgStr := fmt.Sprintf("%v", args[0])
-	
+
 	var meta map[string]interface{}
 	if len(args) > 1 {
-		if mapa, ok := args[1].(ptst.Mapa); ok {
+		if mapa, ok := args[1].(hrp.Mapa); ok {
 			meta = make(map[string]interface{})
 			for k, v := range mapa {
 				meta[k] = fmt.Sprintf("%v", v)
@@ -65,51 +65,51 @@ func logar(nivel string, cor string, args ptst.Tupla) (ptst.Objeto, error) {
 		fmt.Printf("[%s] %s%s%s: %s%s\n", formatarData(), corInicio, nivel, corReset, msgStr, metaStr)
 	}
 
-	return ptst.Nulo, nil
+	return hrp.Nulo, nil
 }
 
-func met_logs_info(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_logs_info(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("INFO", "\x1b[1;34m", args) // Azul
 }
 
-func met_logs_alerta(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_logs_alerta(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("ALERTA", "\x1b[1;33m", args) // Amarelo
 }
 
-func met_logs_erro(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_logs_erro(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("ERRO", "\x1b[1;31m", args) // Vermelho
 }
 
-func met_logs_depurar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_logs_depurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("DEPURAR", "\x1b[1;36m", args) // Ciano
 }
 
-func met_logs_configurar(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_logs_configurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) >= 1 {
-		if fmtStr, ok := args[0].(ptst.Texto); ok {
+		if fmtStr, ok := args[0].(hrp.Texto); ok {
 			formatoLog = strings.ToLower(string(fmtStr))
 		}
 	}
 	if len(args) >= 2 {
-		if coresBool, ok := args[1].(ptst.Booleano); ok {
+		if coresBool, ok := args[1].(hrp.Booleano); ok {
 			usarCores = bool(coresBool)
 		}
 	}
-	return ptst.Nulo, nil
+	return hrp.Nulo, nil
 }
 
 func init() {
-	ptst.RegistraModuloImpl(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Nome:    "logs",
 			Arquivo: "stdlib/logs",
 		},
-		Metodos: []*ptst.Metodo{
-			ptst.NewMetodoOuPanic("info", met_logs_info, "Loga uma mensagem informativa."),
-			ptst.NewMetodoOuPanic("alerta", met_logs_alerta, "Loga um alerta."),
-			ptst.NewMetodoOuPanic("erro", met_logs_erro, "Loga uma mensagem de erro."),
-			ptst.NewMetodoOuPanic("depurar", met_logs_depurar, "Loga informações de depuração."),
-			ptst.NewMetodoOuPanic("configurar", met_logs_configurar, "Configura o formato ('texto' ou 'json') e uso de cores."),
+		Metodos: []*hrp.Metodo{
+			hrp.NewMetodoOuPanic("info", met_logs_info, "Loga uma mensagem informativa."),
+			hrp.NewMetodoOuPanic("alerta", met_logs_alerta, "Loga um alerta."),
+			hrp.NewMetodoOuPanic("erro", met_logs_erro, "Loga uma mensagem de erro."),
+			hrp.NewMetodoOuPanic("depurar", met_logs_depurar, "Loga informações de depuração."),
+			hrp.NewMetodoOuPanic("configurar", met_logs_configurar, "Configura o formato ('texto' ou 'json') e uso de cores."),
 		},
 	})
 }

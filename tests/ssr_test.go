@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestSSRBasico(t *testing.T) {
@@ -16,7 +16,7 @@ func TestSSRBasico(t *testing.T) {
 	</div>
 	var html = elemento
 	`
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(strings.ReplaceAll(codigo, "\r", ""), "<teste>")
@@ -24,10 +24,10 @@ func TestSSRBasico(t *testing.T) {
 		t.Fatalf("Erro ao compilar para AST: %v", err)
 	}
 
-	interpretador := &ptst.Interpretador{
+	interpretador := &hrp.Interpretador{
 		Ast:      ast,
 		Contexto: ctx,
-		Escopo:   ptst.NewEscopo(),
+		Escopo:   hrp.NewEscopo(),
 	}
 	_, err = interpretador.Inicializa()
 	if err != nil {
@@ -39,9 +39,9 @@ func TestSSRBasico(t *testing.T) {
 		t.Fatalf("Erro ao obter simbolo 'html': %v", err)
 	}
 
-	elementoJSX, ok := simbolo.(*ptst.ElementoJSX)
+	elementoJSX, ok := simbolo.(*hrp.ElementoJSX)
 	if !ok {
-		t.Fatalf("Esperava *ptst.ElementoJSX, obtido %T", simbolo)
+		t.Fatalf("Esperava *hrp.ElementoJSX, obtido %T", simbolo)
 	}
 
 	if elementoJSX.Tag != "div" {

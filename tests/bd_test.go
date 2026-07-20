@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func TestBDModulo(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -59,7 +59,7 @@ func TestBDModulo(t *testing.T) {
 	conn.fechar()
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script de teste de BD: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(valNome.(ptst.Texto)) != "Harpia" {
+	if string(valNome.(hrp.Texto)) != "Harpia" {
 		t.Errorf("Nome esperado 'Harpia', obteve '%v'", valNome)
 	}
 
@@ -76,7 +76,7 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(valIdade.(ptst.Inteiro)) != 3 {
+	if int(valIdade.(hrp.Inteiro)) != 3 {
 		t.Errorf("Idade esperada 3, obteve '%v'", valIdade)
 	}
 
@@ -84,7 +84,7 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(valTotal.(ptst.Inteiro)) != 2 {
+	if int(valTotal.(hrp.Inteiro)) != 2 {
 		t.Errorf("Total de usuários esperado 2, obteve '%v'", valTotal)
 	}
 
@@ -92,7 +92,7 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(valIdadeAt.(ptst.Inteiro)) != 14 {
+	if int(valIdadeAt.(hrp.Inteiro)) != 14 {
 		t.Errorf("Idade atualizada esperada 14, obteve '%v'", valIdadeAt)
 	}
 
@@ -100,13 +100,13 @@ func TestBDModulo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if int(valTotalDepois.(ptst.Inteiro)) != 1 {
+	if int(valTotalDepois.(hrp.Inteiro)) != 1 {
 		t.Errorf("Total depois de deletar esperado 1, obteve '%v'", valTotalDepois)
 	}
 }
 
 func TestBDModuloMySQL(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	// O driver de MySQL deve ser registrado com sucesso.
@@ -122,7 +122,7 @@ func TestBDModuloMySQL(t *testing.T) {
 	}
 	`
 
-	_, err := ptst.ExecutarString(ctx, codigo)
+	_, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com conector MySQL: %v", err)
 	}
@@ -159,7 +159,7 @@ func TestBDModuloQdrant(t *testing.T) {
 	}))
 	defer server.Close()
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := fmt.Sprintf(`
@@ -185,34 +185,34 @@ func TestBDModuloQdrant(t *testing.T) {
 	var deletado = cliente.deletar(1)
 	`, server.URL)
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com banco vetorial Qdrant: %v", err)
 	}
 
 	valInserido, _ := res.Escopo.ObterValor("inserido")
-	if valInserido != ptst.Verdadeiro {
+	if valInserido != hrp.Verdadeiro {
 		t.Errorf("Inserção no Qdrant deveria ter tido sucesso")
 	}
 
 	valTotal, _ := res.Escopo.ObterValor("totalResultados")
-	if int(valTotal.(ptst.Inteiro)) != 1 {
+	if int(valTotal.(hrp.Inteiro)) != 1 {
 		t.Errorf("Deveria retornar exatamente 1 resultado do Qdrant")
 	}
 
 	valNome, _ := res.Escopo.ObterValor("nome")
-	if string(valNome.(ptst.Texto)) != "Maria" {
+	if string(valNome.(hrp.Texto)) != "Maria" {
 		t.Errorf("Nome esperado 'Maria' no payload, obteve: %v", valNome)
 	}
 
 	valDeletado, _ := res.Escopo.ObterValor("deletado")
-	if valDeletado != ptst.Verdadeiro {
+	if valDeletado != hrp.Verdadeiro {
 		t.Errorf("Deleção no Qdrant deveria ter tido sucesso")
 	}
 }
 
 func TestBDModuloORMTipado(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -247,19 +247,18 @@ func TestBDModuloORMTipado(t *testing.T) {
 	conn.fechar()
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com ORM Tipado: %v", err)
 	}
 
 	valInexistente, _ := res.Escopo.ObterValor("erroCampoInexistente")
-	if valInexistente != ptst.Verdadeiro {
+	if valInexistente != hrp.Verdadeiro {
 		t.Errorf("Deveria levantar exceção para campo inexistente")
 	}
 
 	valTipoIncorreto, _ := res.Escopo.ObterValor("erroTipoIncorreto")
-	if valTipoIncorreto != ptst.Verdadeiro {
+	if valTipoIncorreto != hrp.Verdadeiro {
 		t.Errorf("Deveria levantar exceção para tipo de campo incorreto")
 	}
 }
-

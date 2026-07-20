@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
@@ -27,9 +27,9 @@ func TestRPCModulo(t *testing.T) {
 	depBytes, _ := json.Marshal(depConfig)
 	os.WriteFile("dependencias.json", depBytes, 0644)
 
-	// Cria pasta meu-backend e usuarios.ptst
+	// Cria pasta meu-backend e usuarios.hrp
 	os.Mkdir("meu-backend", 0755)
-	os.WriteFile(filepath.Join("meu-backend", "usuarios.ptst"), []byte("exportar funcao obterUsuario(id) {}"), 0644)
+	os.WriteFile(filepath.Join("meu-backend", "usuarios.hrp"), []byte("exportar funcao obterUsuario(id) {}"), 0644)
 
 	// Inicia um servidor HTTP em Go para simular o backend RPC
 	mux := http.NewServeMux()
@@ -37,7 +37,7 @@ func TestRPCModulo(t *testing.T) {
 		body, _ := io.ReadAll(r.Body)
 		var reqMap map[string]interface{}
 		json.Unmarshal(body, &reqMap)
-		
+
 		resMap := map[string]interface{}{
 			"retorno": "Ola ID " + reqMap["args"].([]interface{})[0].(string),
 		}
@@ -53,7 +53,7 @@ func TestRPCModulo(t *testing.T) {
 	go srv.ListenAndServe()
 	defer srv.Shutdown(context.Background())
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -62,7 +62,7 @@ func TestRPCModulo(t *testing.T) {
 	var resposta = obterUsuario("42")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar chamada RPC no Harpia: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestRPCModulo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if string(val.(ptst.Texto)) != "Ola ID 42" {
+	if string(val.(hrp.Texto)) != "Ola ID 42" {
 		t.Errorf("Retorno RPC incorreto, obteve '%v', esperava 'Ola ID 42'", val)
 	}
 }

@@ -3,15 +3,15 @@ package esquema
 import (
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestEsquemaValidacaoSucesso(t *testing.T) {
-	regras := ptst.Mapa{
-		"nome":  ptst.TipoTexto,
-		"idade": ptst.TipoInteiro,
+	regras := hrp.Mapa{
+		"nome":  hrp.TipoTexto,
+		"idade": hrp.TipoInteiro,
 	}
-	objEsquema, err := met_esquema_criar(nil, ptst.Tupla{regras})
+	objEsquema, err := met_esquema_criar(nil, hrp.Tupla{regras})
 	if err != nil {
 		t.Fatalf("Erro ao criar esquema: %v", err)
 	}
@@ -22,42 +22,42 @@ func TestEsquemaValidacaoSucesso(t *testing.T) {
 		t.Fatalf("Erro ao obter método analisar: %v", errAtt)
 	}
 
-	dadosValidos := ptst.Mapa{
-		"nome":  ptst.Texto("Carlos"),
-		"idade": ptst.Inteiro(30),
+	dadosValidos := hrp.Mapa{
+		"nome":  hrp.Texto("Carlos"),
+		"idade": hrp.Inteiro(30),
 	}
 
-	res, errCall := ptst.Chamar(analisarMetodo, ptst.Tupla{dadosValidos})
+	res, errCall := hrp.Chamar(analisarMetodo, hrp.Tupla{dadosValidos})
 	if errCall != nil {
 		t.Fatalf("Erro ao chamar analisar: %v", errCall)
 	}
 
-	lista := res.(*ptst.Lista)
-	if lista.Itens[0] == ptst.Nulo {
+	lista := res.(*hrp.Lista)
+	if lista.Itens[0] == hrp.Nulo {
 		t.Errorf("Esperava sucesso na validação, obteve erro: %v", lista.Itens[1])
 	}
 }
 
 func TestEsquemaValidacaoFalhaTipo(t *testing.T) {
-	regras := ptst.Mapa{
-		"nome": ptst.TipoTexto,
+	regras := hrp.Mapa{
+		"nome": hrp.TipoTexto,
 	}
-	objEsquema, _ := met_esquema_criar(nil, ptst.Tupla{regras})
+	objEsquema, _ := met_esquema_criar(nil, hrp.Tupla{regras})
 	esq := objEsquema.(*Esquema)
 	analisarMetodo, _ := esq.M__obtem_attributo__("analisar")
 
-	dadosInvalidos := ptst.Mapa{
-		"nome": ptst.Inteiro(123), // Tipo incorreto
+	dadosInvalidos := hrp.Mapa{
+		"nome": hrp.Inteiro(123), // Tipo incorreto
 	}
 
-	res, _ := ptst.Chamar(analisarMetodo, ptst.Tupla{dadosInvalidos})
-	lista := res.(*ptst.Lista)
+	res, _ := hrp.Chamar(analisarMetodo, hrp.Tupla{dadosInvalidos})
+	lista := res.(*hrp.Lista)
 
-	if lista.Itens[0] != ptst.Nulo {
+	if lista.Itens[0] != hrp.Nulo {
 		t.Fatalf("Esperava erro na validação devido a tipo incompatível")
 	}
 
-	erroStr := string(lista.Itens[1].(ptst.Texto))
+	erroStr := string(lista.Itens[1].(hrp.Texto))
 	if !stringsContains(erroStr, "deve ser do tipo Texto, obteve Inteiro") {
 		t.Errorf("Mensagem de erro inadequada: %s", erroStr)
 	}

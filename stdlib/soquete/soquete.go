@@ -8,37 +8,37 @@ package soquete
 import (
 	"syscall"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // familia define a relação das constantes nativas de rede mapeadas a partir das syscalls do sistema operacional.
-var familia = ptst.Mapa{
+var familia = hrp.Mapa{
 	// AF_INET define o protocolo de transporte IPv4 (Internet Protocol versão 4).
-	"AF_INET":     ptst.Inteiro(syscall.AF_INET),
+	"AF_INET": hrp.Inteiro(syscall.AF_INET),
 
 	// AF_INET6 define o protocolo de transporte IPv6 (Internet Protocol versão 6).
-	"AF_INET6":    ptst.Inteiro(syscall.AF_INET6),
+	"AF_INET6": hrp.Inteiro(syscall.AF_INET6),
 
 	// SOCK_STREAM representa um fluxo de dados contínuo, confiável e orientado a conexão (geralmente TCP).
-	"SOCK_STREAM": ptst.Inteiro(syscall.SOCK_STREAM),
+	"SOCK_STREAM": hrp.Inteiro(syscall.SOCK_STREAM),
 
 	// SOCK_DGRAM representa mensagens discretas (datagramas) de conexão não confiável e sem conexão (geralmente UDP).
-	"SOCK_DGRAM":  ptst.Inteiro(syscall.SOCK_DGRAM),
+	"SOCK_DGRAM": hrp.Inteiro(syscall.SOCK_DGRAM),
 }
 
 func init() {
 	// constantes define o dicionário de chaves exportadas do módulo soquete.
-	constantes := ptst.Mapa{
+	constantes := hrp.Mapa{
 		TipoSoquete.Nome: TipoSoquete, // Registra a classe do Objeto 'Soquete' no módulo.
 	}
 	constantes.Atualizar(familia, false)
 
-	metodos := []*ptst.Metodo{}
+	metodos := []*hrp.Metodo{}
 
 	// Registra o módulo 'soquete' no interpretador para importação.
-	ptst.RegistraModuloImpl(
-		&ptst.ModuloImpl{
-			Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(
+		&hrp.ModuloImpl{
+			Info: hrp.ModuloInfo{
 				Nome:    "soquete",
 				Arquivo: "stdlib/soquete",
 			},

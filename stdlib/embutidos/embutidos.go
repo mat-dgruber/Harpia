@@ -7,12 +7,12 @@
 package embutidos
 
 import (
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // registrarTipos é um utilitário interno para automatizar o mapeamento de tipos estruturais
 // e classes do Harpia diretamente no dicionário global de constantes do pacote.
-func registrarTipos(tipos []*ptst.Tipo, mapa ptst.Mapa) {
+func registrarTipos(tipos []*hrp.Tipo, mapa hrp.Mapa) {
 	for _, tipo := range tipos {
 		mapa[tipo.Nome] = tipo
 	}
@@ -20,41 +20,41 @@ func registrarTipos(tipos []*ptst.Tipo, mapa ptst.Mapa) {
 
 func init() {
 	// constantes define o escopo de constantes primordiais e classes de tipos mapeados globalmente.
-	constantes := ptst.Mapa{
-		"Verdadeiro": ptst.Verdadeiro, // O valor booleano positivo padrão
-		"Falso":      ptst.Falso,      // O valor booleano negativo padrão
-		"Nulo":       ptst.Nulo,       // A representação padrão de ausência de valor
+	constantes := hrp.Mapa{
+		"Verdadeiro": hrp.Verdadeiro, // O valor booleano positivo padrão
+		"Falso":      hrp.Falso,      // O valor booleano negativo padrão
+		"Nulo":       hrp.Nulo,       // A representação padrão de ausência de valor
 	}
 
 	// Registra todos os tipos primitivos básicos e classes de exceções padrão na tabela global de símbolos.
 	registrarTipos(
-		[]*ptst.Tipo{
-			ptst.TipoInteiro,
-			ptst.TipoDecimal,
-			ptst.TipoTexto,
-			// ptst.TipoLista,
-			// ptst.TipoTupla,
-			// ptst.TipoMapa,
-			ptst.TipoBooleano,
-			ptst.TipoBytes,
-			ptst.TipoCanal, // Primitiva de Concorrência CSP por Canais (Fase B)
+		[]*hrp.Tipo{
+			hrp.TipoInteiro,
+			hrp.TipoDecimal,
+			hrp.TipoTexto,
+			// hrp.TipoLista,
+			// hrp.TipoTupla,
+			// hrp.TipoMapa,
+			hrp.TipoBooleano,
+			hrp.TipoBytes,
+			hrp.TipoCanal, // Primitiva de Concorrência CSP por Canais (Fase B)
 
 			// Erros e Exceções estruturadas da VM
-			ptst.TipoErro,
-			ptst.SintaxeErro,
-			ptst.AtributoErro,
-			ptst.TipagemErro,
-			ptst.NomeErro,
-			ptst.ImportacaoErro,
-			ptst.ValorErro,
-			ptst.IndiceErro,
-			ptst.RuntimeErro,
-			ptst.FimIteracao,
-			ptst.ErroDeAsseguracao,
-			ptst.ConsultaErro,
-			ptst.ChaveErro,
-			ptst.ErroDeSistema,
-			ptst.ArquivoNaoEncontradoErro,
+			hrp.TipoErro,
+			hrp.SintaxeErro,
+			hrp.AtributoErro,
+			hrp.TipagemErro,
+			hrp.NomeErro,
+			hrp.ImportacaoErro,
+			hrp.ValorErro,
+			hrp.IndiceErro,
+			hrp.RuntimeErro,
+			hrp.FimIteracao,
+			hrp.ErroDeAsseguracao,
+			hrp.ConsultaErro,
+			hrp.ChaveErro,
+			hrp.ErroDeSistema,
+			hrp.ArquivoNaoEncontradoErro,
 		},
 		constantes,
 	)
@@ -65,7 +65,7 @@ func init() {
 	_emb_imprimir.Nome = "imprimir"
 
 	// metodos é o catálogo de funções utilitárias que residem no ambiente de execução global.
-	metodos := []*ptst.Metodo{
+	metodos := []*hrp.Metodo{
 		_emb_imprima,
 		&_emb_imprimir,
 		_emb_leia,
@@ -77,10 +77,10 @@ func init() {
 		_emb_sequencia,
 		_emb_mesmoTipo,
 		// tipo(objeto) retorna o ponteiro correspondente ao tipo de classe do objeto informado.
-		ptst.NewMetodoOuPanic(
+		hrp.NewMetodoOuPanic(
 			"tipo",
-			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-				if err := ptst.VerificaNumeroArgumentos("tipo", false, args, 1, 1); err != nil {
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("tipo", false, args, 1, 1); err != nil {
 					return nil, err
 				}
 
@@ -89,48 +89,48 @@ func init() {
 			"Obtem o tipo de um objeto",
 		),
 		// sinal(valorInicial) cria um sinal síncrono estático no backend para SSR
-		ptst.NewMetodoOuPanic(
+		hrp.NewMetodoOuPanic(
 			"sinal",
-			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-				if err := ptst.VerificaNumeroArgumentos("sinal", false, args, 1, 1); err != nil {
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("sinal", false, args, 1, 1); err != nil {
 					return nil, err
 				}
 				valor := args[0]
 				// getter apenas retorna o valor estático
-				getter := ptst.NewMetodoOuPanic("getter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
+				getter := hrp.NewMetodoOuPanic("getter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
 					return valor, nil
 				}, "")
 				// setter é um stub vazio
-				setter := ptst.NewMetodoOuPanic("setter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
-					return ptst.Nulo, nil
+				setter := hrp.NewMetodoOuPanic("setter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+					return hrp.Nulo, nil
 				}, "")
-				return ptst.Tupla{getter, setter}, nil
+				return hrp.Tupla{getter, setter}, nil
 			},
 			"Cria um sinal reativo estático para SSR no backend",
 		),
 		// efeito(funcao) executa imediatamente a função informada
-		ptst.NewMetodoOuPanic(
+		hrp.NewMetodoOuPanic(
 			"efeito",
-			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-				if err := ptst.VerificaNumeroArgumentos("efeito", false, args, 1, 1); err != nil {
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("efeito", false, args, 1, 1); err != nil {
 					return nil, err
 				}
-				return ptst.Chamar(args[0], nil)
+				return hrp.Chamar(args[0], nil)
 			},
 			"Executa um efeito reativo imediatamente no backend",
 		),
 		// derivado(funcao) executa e retorna o valor memoizado estático para SSR
-		ptst.NewMetodoOuPanic(
+		hrp.NewMetodoOuPanic(
 			"derivado",
-			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-				if err := ptst.VerificaNumeroArgumentos("derivado", false, args, 1, 1); err != nil {
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("derivado", false, args, 1, 1); err != nil {
 					return nil, err
 				}
-				res, err := ptst.Chamar(args[0], nil)
+				res, err := hrp.Chamar(args[0], nil)
 				if err != nil {
 					return nil, err
 				}
-				getter := ptst.NewMetodoOuPanic("getter", func(_ ptst.Objeto, _ ptst.Tupla) (ptst.Objeto, error) {
+				getter := hrp.NewMetodoOuPanic("getter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
 					return res, nil
 				}, "")
 				return getter, nil
@@ -138,10 +138,10 @@ func init() {
 			"Cria um valor derivado estático no backend",
 		),
 		// armazem(objeto) simplesmente retorna o objeto no backend
-		ptst.NewMetodoOuPanic(
+		hrp.NewMetodoOuPanic(
 			"armazem",
-			func(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-				if err := ptst.VerificaNumeroArgumentos("armazem", false, args, 1, 1); err != nil {
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("armazem", false, args, 1, 1); err != nil {
 					return nil, err
 				}
 				return args[0], nil
@@ -151,9 +151,9 @@ func init() {
 	}
 
 	// Registra o escopo agregador de embutidos na lista central de inicializações do interpretador.
-	ptst.RegistraModuloImpl(
-		&ptst.ModuloImpl{
-			Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(
+		&hrp.ModuloImpl{
+			Info: hrp.ModuloInfo{
 				Nome: "embutidos",
 			},
 			Constantes: constantes,

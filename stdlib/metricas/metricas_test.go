@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestContadorMetrica(t *testing.T) {
-	args := ptst.Tupla{ptst.Texto("requisicoes_total"), ptst.Texto("Total de requisições HTTP recebidas")}
+	args := hrp.Tupla{hrp.Texto("requisicoes_total"), hrp.Texto("Total de requisições HTTP recebidas")}
 	obj, err := met_metricas_criarContador(nil, args)
 	if err != nil {
 		t.Fatalf("Erro ao criar contador: %v", err)
@@ -20,7 +20,7 @@ func TestContadorMetrica(t *testing.T) {
 		t.Fatalf("Erro ao obter método de incremento: %v", errInc)
 	}
 
-	_, errCall := ptst.Chamar(incMetodo, ptst.Tupla{})
+	_, errCall := hrp.Chamar(incMetodo, hrp.Tupla{})
 	if errCall != nil {
 		t.Fatalf("Erro ao chamar incrementar: %v", errCall)
 	}
@@ -30,19 +30,19 @@ func TestContadorMetrica(t *testing.T) {
 	}
 
 	// Testa expor
-	exporObj, errExpor := met_metricas_expor(nil, ptst.Tupla{})
+	exporObj, errExpor := met_metricas_expor(nil, hrp.Tupla{})
 	if errExpor != nil {
 		t.Fatalf("Erro ao expor métricas: %v", errExpor)
 	}
 
-	exporStr := string(exporObj.(ptst.Texto))
+	exporStr := string(exporObj.(hrp.Texto))
 	if !strings.Contains(exporStr, "requisicoes_total 1") {
 		t.Errorf("Saída do expor incorreta, obtive:\n%s", exporStr)
 	}
 }
 
 func TestMedidorMetrica(t *testing.T) {
-	args := ptst.Tupla{ptst.Texto("uso_memoria"), ptst.Texto("Memória consumida")}
+	args := hrp.Tupla{hrp.Texto("uso_memoria"), hrp.Texto("Memória consumida")}
 	obj, err := met_metricas_criarMedidor(nil, args)
 	if err != nil {
 		t.Fatalf("Erro ao criar medidor: %v", err)
@@ -54,7 +54,7 @@ func TestMedidorMetrica(t *testing.T) {
 		t.Fatalf("Erro ao obter método definir: %v", errDef)
 	}
 
-	_, errCall := ptst.Chamar(defMetodo, ptst.Tupla{ptst.Decimal(512.5)})
+	_, errCall := hrp.Chamar(defMetodo, hrp.Tupla{hrp.Decimal(512.5)})
 	if errCall != nil {
 		t.Fatalf("Erro ao chamar definir: %v", errCall)
 	}

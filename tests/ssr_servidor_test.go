@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestSSRServidorCompleto(t *testing.T) {
@@ -46,7 +46,7 @@ func TestSSRServidorCompleto(t *testing.T) {
 		"s.servir_app(\"" + caminhoFormatado + "\", meuApp, Nulo)\n" +
 		"s.escutar(\"8084\")"
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste>")
@@ -54,10 +54,10 @@ func TestSSRServidorCompleto(t *testing.T) {
 		t.Fatalf("Erro ao compilar: %v", err)
 	}
 
-	interpretador := &ptst.Interpretador{
+	interpretador := &hrp.Interpretador{
 		Ast:      ast,
 		Contexto: ctx,
-		Escopo:   ptst.NewEscopo(),
+		Escopo:   hrp.NewEscopo(),
 	}
 	_, err = interpretador.Inicializa()
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func validarCampo(tipoEsperado string, valor interface{}) bool {
@@ -33,7 +33,7 @@ func validarCampo(tipoEsperado string, valor interface{}) bool {
 	return false
 }
 
-func ValidarResposta(esquema ptst.Mapa, resposta string) (bool, error) {
+func ValidarResposta(esquema hrp.Mapa, resposta string) (bool, error) {
 	var dados map[string]interface{}
 	err := json.Unmarshal([]byte(resposta), &dados)
 	if err != nil {
@@ -41,7 +41,7 @@ func ValidarResposta(esquema ptst.Mapa, resposta string) (bool, error) {
 	}
 
 	for chave, v := range esquema {
-		tipoEsp, ok := v.(ptst.Texto)
+		tipoEsp, ok := v.(hrp.Texto)
 		if !ok {
 			continue
 		}
@@ -59,28 +59,28 @@ func ValidarResposta(esquema ptst.Mapa, resposta string) (bool, error) {
 	return true, nil
 }
 
-func met_validar_resposta(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("validar_resposta", false, args, 2, 2); err != nil {
+func met_validar_resposta(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("validar_resposta", false, args, 2, 2); err != nil {
 		return nil, err
 	}
 
-	esquema, ok := args[0].(ptst.Mapa)
+	esquema, ok := args[0].(hrp.Mapa)
 	if !ok {
-		return nil, ptst.NewErroF(ptst.TipagemErro, "esperado um objeto Mapa para o esquema")
+		return nil, hrp.NewErroF(hrp.TipagemErro, "esperado um objeto Mapa para o esquema")
 	}
 
-	resposta, err := ptst.NewTexto(args[1])
+	resposta, err := hrp.NewTexto(args[1])
 	if err != nil {
 		return nil, err
 	}
 
-	valido, errVal := ValidarResposta(esquema, string(resposta.(ptst.Texto)))
+	valido, errVal := ValidarResposta(esquema, string(resposta.(hrp.Texto)))
 	if errVal != nil {
-		return ptst.Falso, ptst.NewErroF(ptst.ValorErro, "%v", errVal)
+		return hrp.Falso, hrp.NewErroF(hrp.ValorErro, "%v", errVal)
 	}
 
 	if valido {
-		return ptst.Verdadeiro, nil
+		return hrp.Verdadeiro, nil
 	}
-	return ptst.Falso, nil
+	return hrp.Falso, nil
 }

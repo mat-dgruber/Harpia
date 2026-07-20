@@ -6,19 +6,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestLogsOutput(t *testing.T) {
 	// Desativa cores para teste limpo
-	met_logs_configurar(nil, ptst.Tupla{ptst.Texto("texto"), ptst.Booleano(false)})
+	met_logs_configurar(nil, hrp.Tupla{hrp.Texto("texto"), hrp.Booleano(false)})
 
 	// Captura stdout
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	args := ptst.Tupla{ptst.Texto("Conexão estabelecida"), ptst.Mapa{"ip": ptst.Texto("10.0.0.1")}}
+	args := hrp.Tupla{hrp.Texto("Conexão estabelecida"), hrp.Mapa{"ip": hrp.Texto("10.0.0.1")}}
 	_, err := met_logs_info(nil, args)
 
 	w.Close()
@@ -42,20 +42,20 @@ func TestLogsOutput(t *testing.T) {
 
 func TestLogsConfigurarJSON(t *testing.T) {
 	// Muda para JSON
-	_, errConf := met_logs_configurar(nil, ptst.Tupla{ptst.Texto("json")})
+	_, errConf := met_logs_configurar(nil, hrp.Tupla{hrp.Texto("json")})
 	if errConf != nil {
 		t.Fatalf("Erro ao configurar logs: %v", errConf)
 	}
 	defer func() {
 		// Restaura para texto
-		met_logs_configurar(nil, ptst.Tupla{ptst.Texto("texto")})
+		met_logs_configurar(nil, hrp.Tupla{hrp.Texto("texto")})
 	}()
 
 	oldStdout := os.Stdout
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	args := ptst.Tupla{ptst.Texto("Acesso negado")}
+	args := hrp.Tupla{hrp.Texto("Acesso negado")}
 	_, err := met_logs_erro(nil, args)
 
 	w.Close()

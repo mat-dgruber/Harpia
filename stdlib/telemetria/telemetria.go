@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // Representação interna de Span do OpenTelemetry em formato JSON leve
@@ -22,20 +22,20 @@ type Span struct {
 	Status    string    `json:"status"`
 }
 
-var TipoSpan = ptst.TipoObjeto.NewTipo("Span", "Span de rastreamento de OpenTelemetry")
+var TipoSpan = hrp.TipoObjeto.NewTipo("Span", "Span de rastreamento de OpenTelemetry")
 
-func (s *Span) Tipo() *ptst.Tipo {
+func (s *Span) Tipo() *hrp.Tipo {
 	return TipoSpan
 }
 
-func (s *Span) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (s *Span) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "finalizar":
-		return ptst.NewMetodoOuPanic("finalizar", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+		return hrp.NewMetodoOuPanic("finalizar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			status := "OK"
 			if len(args) >= 1 {
-				st, _ := ptst.NewTexto(args[0])
-				status = string(st.(ptst.Texto))
+				st, _ := hrp.NewTexto(args[0])
+				status = string(st.(hrp.Texto))
 			}
 			s.Fim = time.Now()
 			s.DuracaoMs = s.Fim.Sub(s.Inicio).Milliseconds()
@@ -44,30 +44,30 @@ func (s *Span) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
 			// Exporta o Trace/Span em JSON estruturado para Stdout
 			bytes, _ := json.Marshal(s)
 			fmt.Fprintln(os.Stdout, string(bytes))
-			return ptst.Nulo, nil
+			return hrp.Nulo, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe em Span", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Span", nome)
 }
 
 type Tracer struct {
 	Servico string
 }
 
-var TipoTracer = ptst.TipoObjeto.NewTipo("Tracer", "Rastreador de traces de OpenTelemetry")
+var TipoTracer = hrp.TipoObjeto.NewTipo("Tracer", "Rastreador de traces de OpenTelemetry")
 
-func (t *Tracer) Tipo() *ptst.Tipo {
+func (t *Tracer) Tipo() *hrp.Tipo {
 	return TipoTracer
 }
 
-func (t *Tracer) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (t *Tracer) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "iniciar_span":
-		return ptst.NewMetodoOuPanic("iniciar_span", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-			if err := ptst.VerificaNumeroArgumentos("iniciar_span", false, args, 1, 1); err != nil {
+		return hrp.NewMetodoOuPanic("iniciar_span", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("iniciar_span", false, args, 1, 1); err != nil {
 				return nil, err
 			}
-			nomeSpan, err := ptst.NewTexto(args[0])
+			nomeSpan, err := hrp.NewTexto(args[0])
 			if err != nil {
 				return nil, err
 			}
@@ -79,13 +79,13 @@ func (t *Tracer) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
 			return &Span{
 				TraceID: traceID,
 				SpanID:  spanID,
-				Nome:    string(nomeSpan.(ptst.Texto)),
+				Nome:    string(nomeSpan.(hrp.Texto)),
 				Servico: t.Servico,
 				Inicio:  time.Now(),
 			}, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe em Tracer", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Tracer", nome)
 }
 
 type Metrica struct {
@@ -95,81 +95,81 @@ type Metrica struct {
 	mu      sync.Mutex
 }
 
-var TipoMetrica = ptst.TipoObjeto.NewTipo("Metrica", "Métrica quantitativa leve")
+var TipoMetrica = hrp.TipoObjeto.NewTipo("Metrica", "Métrica quantitativa leve")
 
-func (m *Metrica) Tipo() *ptst.Tipo {
+func (m *Metrica) Tipo() *hrp.Tipo {
 	return TipoMetrica
 }
 
-func (m *Metrica) M__obtem_attributo__(nome string) (ptst.Objeto, error) {
+func (m *Metrica) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "registrar":
-		return ptst.NewMetodoOuPanic("registrar", func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-			if err := ptst.VerificaNumeroArgumentos("registrar", false, args, 1, 2); err != nil {
+		return hrp.NewMetodoOuPanic("registrar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("registrar", false, args, 1, 2); err != nil {
 				return nil, err
 			}
-			val, err := ptst.NewDecimal(args[0])
+			val, err := hrp.NewDecimal(args[0])
 			if err != nil {
 				return nil, err
 			}
 			tag := "default"
 			if len(args) == 2 {
-				t, _ := ptst.NewTexto(args[1])
-				tag = string(t.(ptst.Texto))
+				t, _ := hrp.NewTexto(args[1])
+				tag = string(t.(hrp.Texto))
 			}
 
 			m.mu.Lock()
-			m.Valores[tag] += float64(val.(ptst.Decimal))
+			m.Valores[tag] += float64(val.(hrp.Decimal))
 			m.mu.Unlock()
 
 			// Emite métrica formatada
-			fmt.Printf("{\"metric\": \"%s\", \"type\": \"%s\", \"tag\": \"%s\", \"value\": %f}\n", m.Nome, m.Kind, tag, val.(ptst.Decimal))
-			return ptst.Nulo, nil
+			fmt.Printf("{\"metric\": \"%s\", \"type\": \"%s\", \"tag\": \"%s\", \"value\": %f}\n", m.Nome, m.Kind, tag, val.(hrp.Decimal))
+			return hrp.Nulo, nil
 		}, ""), nil
 	}
-	return nil, ptst.NewErroF(ptst.AtributoErro, "Atributo '%s' não existe em Metrica", nome)
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Metrica", nome)
 }
 
-func met_novo_tracer(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("novo_tracer", false, args, 1, 1); err != nil {
+func met_novo_tracer(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("novo_tracer", false, args, 1, 1); err != nil {
 		return nil, err
 	}
-	servico, err := ptst.NewTexto(args[0])
+	servico, err := hrp.NewTexto(args[0])
 	if err != nil {
 		return nil, err
 	}
-	return &Tracer{Servico: string(servico.(ptst.Texto))}, nil
+	return &Tracer{Servico: string(servico.(hrp.Texto))}, nil
 }
 
-func met_nova_metrica(_ ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
-	if err := ptst.VerificaNumeroArgumentos("nova_metrica", false, args, 2, 2); err != nil {
+func met_nova_metrica(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("nova_metrica", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	nome, err := ptst.NewTexto(args[0])
+	nome, err := hrp.NewTexto(args[0])
 	if err != nil {
 		return nil, err
 	}
-	tipo, err := ptst.NewTexto(args[1])
+	tipo, err := hrp.NewTexto(args[1])
 	if err != nil {
 		return nil, err
 	}
 	return &Metrica{
-		Nome:    string(nome.(ptst.Texto)),
-		Kind:    string(tipo.(ptst.Texto)),
+		Nome:    string(nome.(hrp.Texto)),
+		Kind:    string(tipo.(hrp.Texto)),
 		Valores: make(map[string]float64),
 	}, nil
 }
 
 func init() {
-	ptst.RegistraModuloImpl(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Nome:    "telemetria",
 			Arquivo: "stdlib/telemetria",
 			Doc:     "Módulo leve de observabilidade compatível com OpenTelemetry (Traces e Métricas)",
 		},
-		Metodos: []*ptst.Metodo{
-			ptst.NewMetodoOuPanic("novo_tracer", met_novo_tracer, "Cria um novo Tracer(servico)"),
-			ptst.NewMetodoOuPanic("nova_metrica", met_nova_metrica, "Cria uma nova Métrica(nome, tipo)"),
+		Metodos: []*hrp.Metodo{
+			hrp.NewMetodoOuPanic("novo_tracer", met_novo_tracer, "Cria um novo Tracer(servico)"),
+			hrp.NewMetodoOuPanic("nova_metrica", met_nova_metrica, "Cria uma nova Métrica(nome, tipo)"),
 		},
 	})
 }

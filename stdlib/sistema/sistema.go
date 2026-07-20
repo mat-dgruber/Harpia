@@ -8,26 +8,26 @@ package sistema
 import (
 	"runtime"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func init() {
-	// constantes expõe metadados estáticos do runtime do Go convertidos para ptst.Texto.
-	constantes := ptst.Mapa{
+	// constantes expõe metadados estáticos do runtime do Go convertidos para hrp.Texto.
+	constantes := hrp.Mapa{
 		// ARQUITETURA expõe a arquitetura de CPU onde o interpretador está compilado (ex: "amd64", "arm64").
-		"ARQUITETURA": ptst.Texto(runtime.GOARCH),
+		"ARQUITETURA": hrp.Texto(runtime.GOARCH),
 
 		// NOME expõe o identificador padrão do sistema operacional do computador hospedeiro (ex: "darwin", "linux", "windows").
-		"NOME": ptst.Texto(runtime.GOOS),
+		"NOME": hrp.Texto(runtime.GOOS),
 	}
 
 	// metodos é inicializado vazio, reservado para futuras expansões e comandos do sistema operacional (ex: 'saida', 'executa_comando').
-	metodos := []*ptst.Metodo{}
+	metodos := []*hrp.Metodo{}
 
 	// Registra o módulo 'sistema' na lista interna de módulos nativos do Harpia.
-	ptst.RegistraModuloImpl(
-		&ptst.ModuloImpl{
-			Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(
+		&hrp.ModuloImpl{
+			Info: hrp.ModuloInfo{
 				Nome:    "sistema",
 				Arquivo: "stdlib/sistema",
 			},

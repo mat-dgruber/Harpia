@@ -1,22 +1,22 @@
 package ia
 
 import (
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func init() {
 	// Registra o módulo 'ia' na tabela interna de módulos carregáveis da VM.
-	ptst.RegistraModuloImpl(
-		&ptst.ModuloImpl{
-			Info: ptst.ModuloInfo{
+	hrp.RegistraModuloImpl(
+		&hrp.ModuloImpl{
+			Info: hrp.ModuloInfo{
 				Nome:    "ia",
 				Arquivo: "stdlib/ia",
 			},
-			Constantes: ptst.Mapa{
+			Constantes: hrp.Mapa{
 				"Agente": TipoAgente,
 			},
-			Metodos: []*ptst.Metodo{
-				ptst.NewMetodoOuPanic("validar_resposta", met_validar_resposta, "Valida resposta JSON contra esquema"),
+			Metodos: []*hrp.Metodo{
+				hrp.NewMetodoOuPanic("validar_resposta", met_validar_resposta, "Valida resposta JSON contra esquema"),
 			},
 		},
 	)

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // cor define a estrutura de dados interna para mapeamento estático de cores hexadecimais.
@@ -19,13 +19,13 @@ type cor struct {
 //
 // Retorna uma closure que monta a string final adicionando a sequência ANSI de início de cor,
 // concatena todos os argumentos fornecidos convertidos para texto e anexa o código ANSI de redefinição (Reset).
-func criaRenderizadorDeCores(r, g, b ptst.Inteiro, background bool) func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func criaRenderizadorDeCores(r, g, b hrp.Inteiro, background bool) func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	codigo := InicioCodigo + RgbParaAnsi(r, g, b, background) + FimCodigo
 
-	return func(inst ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+	return func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		saida := codigo
 		for _, item := range args {
-			itemObj, err := ptst.NewTexto(item)
+			itemObj, err := hrp.NewTexto(item)
 			if err != nil {
 				return nil, err
 			}
@@ -33,19 +33,19 @@ func criaRenderizadorDeCores(r, g, b ptst.Inteiro, background bool) func(inst pt
 			saida = fmt.Sprintf("%s%s", saida, itemObj)
 		}
 
-		return ptst.Texto(saida + ResetCodigo), nil
+		return hrp.Texto(saida + ResetCodigo), nil
 	}
 }
 
 // HexParaRgb faz o parsing de uma string contendo cor no formato Hexadecimal (CSS, ex: "#ff0000" ou "fff")
 // e a decodifica de forma segura para os seus respectivos componentes de canal Vermelho, Verde e Azul (RGB)
-// representados como ptst.Inteiro.
+// representados como hrp.Inteiro.
 //
 // Suporta variações comuns de entrada:
 //   - Strings vazias (retorna erro)
 //   - Prefixos "#" ou "0x" (removidos de forma transparente)
 //   - Abreviações de 3 caracteres (ex: "ccc" é expandido internamente para "cccccc")
-func HexParaRgb(hex string) (r, g, b ptst.Inteiro, err error) {
+func HexParaRgb(hex string) (r, g, b hrp.Inteiro, err error) {
 	hex = strings.TrimSpace(hex)
 	if hex == "" {
 		err = fmt.Errorf("O código hex não pode ser vazio")
@@ -75,16 +75,16 @@ func HexParaRgb(hex string) (r, g, b ptst.Inteiro, err error) {
 	if i64, err := strconv.ParseInt(hex, 16, 32); err == nil {
 		color := int(i64)
 		// Realiza operações bitwise de máscara de bits (deslocamento) para obter r, g e b
-		r = ptst.Inteiro(color >> 16)
-		g = ptst.Inteiro((color & 0x00FF00) >> 8)
-		b = ptst.Inteiro(color & 0x0000FF)
+		r = hrp.Inteiro(color >> 16)
+		g = hrp.Inteiro((color & 0x00FF00) >> 8)
+		b = hrp.Inteiro(color & 0x0000FF)
 	}
 	return
 }
 
 // RgbParaAnsi formata os três canais de cor e constrói a string numérica de controle ANSI correspondente
 // (38;2;r;g;b para texto / 48;2;r;g;b para fundo).
-func RgbParaAnsi(r, g, b ptst.Inteiro, background bool) string {
+func RgbParaAnsi(r, g, b hrp.Inteiro, background bool) string {
 	if background {
 		return fmt.Sprintf(TplBgRGB, r, g, b)
 	}

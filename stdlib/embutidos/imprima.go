@@ -3,7 +3,7 @@ package embutidos
 import (
 	"fmt"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // met_emb_imprima implementa a lógica nativa para a função global 'imprima()'.
@@ -15,19 +15,19 @@ import (
 // Mecânica de Concatenação:
 // Ela obtém o método embutido de junta ("junta") de um objeto Texto (" ") e chama-o passando
 // a tupla de argumentos recebidos. Isso delega a lógica de concatenação para as regras otimizadas de strings.
-func met_emb_imprima(mod ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
+func met_emb_imprima(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	const (
-		final     = ptst.Texto("\n")
-		separador = ptst.Texto(" ")
+		final     = hrp.Texto("\n")
+		separador = hrp.Texto(" ")
 	)
 
-	junta, err := ptst.ObtemAtributoS(separador, "junta")
+	junta, err := hrp.ObtemAtributoS(separador, "junta")
 
 	if err != nil {
 		return nil, err
 	}
 
-	resultado, err := ptst.Chamar(
+	resultado, err := hrp.Chamar(
 		junta,
 		args,
 	)
@@ -41,7 +41,7 @@ func met_emb_imprima(mod ptst.Objeto, args ptst.Tupla) (ptst.Objeto, error) {
 }
 
 // _emb_imprima cria e define a assinatura do método 'imprima' exposto globalmente.
-var _emb_imprima = ptst.NewMetodoOuPanic(
+var _emb_imprima = hrp.NewMetodoOuPanic(
 	"imprima",
 	met_emb_imprima,
 	"imprima(...objetos) -> imprime a representação ou a conversão em string dos objetos separados por espaço",

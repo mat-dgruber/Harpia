@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
@@ -49,7 +49,7 @@ func TestModuloIA_Mockado(t *testing.T) {
 	os.Setenv("OLLAMA_HOST", mockServer.URL)
 	defer os.Unsetenv("OLLAMA_HOST")
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -67,28 +67,28 @@ func TestModuloIA_Mockado(t *testing.T) {
 	var resposta = assistente.perguntar("como compilar?")
 	`
 
-	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
+	res, err := hrp.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo ia: %v", err)
 	}
 
 	valNome, _ := res.Escopo.ObterValor("nome")
-	if string(valNome.(ptst.Texto)) != "HarpiaHelper" {
+	if string(valNome.(hrp.Texto)) != "HarpiaHelper" {
 		t.Errorf("Nome inválido, obteve: %v", valNome)
 	}
 
 	valProvedor, _ := res.Escopo.ObterValor("provedor")
-	if string(valProvedor.(ptst.Texto)) != "ollama" {
+	if string(valProvedor.(hrp.Texto)) != "ollama" {
 		t.Errorf("Provedor inválido, obteve: %v", valProvedor)
 	}
 
 	valModelo, _ := res.Escopo.ObterValor("modelo")
-	if string(valModelo.(ptst.Texto)) != "llama3" {
+	if string(valModelo.(hrp.Texto)) != "llama3" {
 		t.Errorf("Modelo inválido, obteve: %v", valModelo)
 	}
 
 	valResposta, _ := res.Escopo.ObterValor("resposta")
-	if !strings.Contains(string(valResposta.(ptst.Texto)), "como compilar?") {
+	if !strings.Contains(string(valResposta.(hrp.Texto)), "como compilar?") {
 		t.Errorf("Resposta simulada inválida, obteve: %v", valResposta)
 	}
 }
@@ -119,7 +119,7 @@ func TestModuloIA_ComunicacaoMultiAgente(t *testing.T) {
 	os.Setenv("OLLAMA_HOST", mockServer.URL)
 	defer os.Unsetenv("OLLAMA_HOST")
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -132,19 +132,19 @@ func TestModuloIA_ComunicacaoMultiAgente(t *testing.T) {
 	var conversa = agente1.comunicar(agente2, "revise esta linha")
 	`
 
-	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
+	res, err := hrp.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
 	if err != nil {
 		t.Fatalf("Erro ao executar script de comunicação multi-agente: %v", err)
 	}
 
 	valConversa, _ := res.Escopo.ObterValor("conversa")
-	if !strings.Contains(string(valConversa.(ptst.Texto)), "agente-codigo") {
+	if !strings.Contains(string(valConversa.(hrp.Texto)), "agente-codigo") {
 		t.Errorf("Erro na orquestração de resposta, obteve: %v", valConversa)
 	}
 }
 
 func TestModuloIA_ContratosSemanticos(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -166,18 +166,18 @@ func TestModuloIA_ContratosSemanticos(t *testing.T) {
 	}
 	`
 
-	res, err := ptst.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
+	res, err := hrp.ExecutarString(ctx, strings.ReplaceAll(codigo, "\r", ""))
 	if err != nil {
 		t.Fatalf("Erro ao executar script de contratos semânticos: %v", err)
 	}
 
 	valValido, _ := res.Escopo.ObterValor("valido")
-	if valValido != ptst.Verdadeiro {
+	if valValido != hrp.Verdadeiro {
 		t.Errorf("Esperava que o JSON fosse válido")
 	}
 
 	valInvalido, _ := res.Escopo.ObterValor("validoIncorreto")
-	if valInvalido != ptst.Verdadeiro {
+	if valInvalido != hrp.Verdadeiro {
 		t.Errorf("Esperava que o JSON inválido levantasse uma exceção/erro de validação")
 	}
 }

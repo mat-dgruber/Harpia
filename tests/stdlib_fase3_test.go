@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
@@ -13,7 +13,7 @@ func TestModuloArquivos(t *testing.T) {
 	tempDir := t.TempDir()
 	tempFile := filepath.Join(tempDir, "teste.txt")
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -23,7 +23,7 @@ func TestModuloArquivos(t *testing.T) {
 	var conteudo = ler("` + tempFile + `")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo arquivos: %v", err)
 	}
@@ -33,13 +33,13 @@ func TestModuloArquivos(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'conteudo' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Olá Harpia!" {
+	if string(val.(hrp.Texto)) != "Olá Harpia!" {
 		t.Errorf("Conteúdo lido inválido, obteve: %s", val)
 	}
 }
 
 func TestModuloJson(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -49,7 +49,7 @@ func TestModuloJson(t *testing.T) {
 	var nome = obj["nome"]
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo json: %v", err)
 	}
@@ -59,13 +59,13 @@ func TestModuloJson(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'nome' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Harpia" {
+	if string(val.(hrp.Texto)) != "Harpia" {
 		t.Errorf("Esperava 'Harpia', obteve: %v", val)
 	}
 }
 
 func TestModuloCripto(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -74,7 +74,7 @@ func TestModuloCripto(t *testing.T) {
 	var hash = sha256("Harpia")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo cripto: %v", err)
 	}
@@ -86,13 +86,13 @@ func TestModuloCripto(t *testing.T) {
 
 	// hash sha256 de "Harpia" (computado externamente e verificado com `echo -n 'Harpia' | shasum -a 256`)
 	esperado := "62fc8ed9f81594499fa4833bcaa3e44b5e79fe7e659af1824591b2ebda5a2ade"
-	if string(val.(ptst.Texto)) != esperado {
+	if string(val.(hrp.Texto)) != esperado {
 		t.Errorf("Hash SHA256 incorreto, obteve: %s, esperava: %s", val, esperado)
 	}
 }
 
 func TestModuloHttp(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -121,7 +121,7 @@ func TestModuloHttp(t *testing.T) {
 	server.fechar()
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script HTTP: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestModuloHttp(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'corpo' do escopo: %v", err)
 	}
 
-	if string(val.(ptst.Texto)) != "Ola Harpia" {
+	if string(val.(hrp.Texto)) != "Ola Harpia" {
 		t.Errorf("Resposta HTTP incorreta, obteve: %v, esperava 'Ola Harpia'", val)
 	}
 
@@ -140,13 +140,13 @@ func TestModuloHttp(t *testing.T) {
 		t.Fatalf("Não foi possível obter 'mwHeader' do escopo: %v", err)
 	}
 
-	if string(valMw.(ptst.Texto)) != "Ativo" {
+	if string(valMw.(hrp.Texto)) != "Ativo" {
 		t.Errorf("Header X-Middleware incorreto, obteve: %v", valMw)
 	}
 }
 
 func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -166,30 +166,30 @@ func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
 	var spec = gerar_openapi(server)
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script de testes HMAC/OpenAPI: %v", err)
 	}
 
 	valValido, _ := res.Escopo.ObterValor("valido")
-	if valValido != ptst.Verdadeiro {
+	if valValido != hrp.Verdadeiro {
 		t.Errorf("Assinatura HMAC deveria ser válida")
 	}
 
 	valInvalido, _ := res.Escopo.ObterValor("valido")
-	if valInvalido != ptst.Verdadeiro {
+	if valInvalido != hrp.Verdadeiro {
 		t.Errorf("Assinatura HMAC adulterada não deveria ser válida")
 	}
 
 	valSpec, _ := res.Escopo.ObterValor("spec")
-	specStr := string(valSpec.(ptst.Texto))
+	specStr := string(valSpec.(hrp.Texto))
 	if !strings.Contains(specStr, "/usuarios") || !strings.Contains(specStr, "get") || !strings.Contains(specStr, "post") {
 		t.Errorf("Especificação OpenAPI incorreta: %s", specStr)
 	}
 }
 
 func TestTelemetria(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -205,14 +205,14 @@ func TestTelemetria(t *testing.T) {
 	metrica.registrar(1, "sucesso")
 	`
 
-	_, err := ptst.ExecutarString(ctx, codigo)
+	_, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script de testes de telemetria: %v", err)
 	}
 }
 
 func TestModuloYaml(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -224,7 +224,7 @@ versao: 1")
 	var textoYaml = serializar({"nome": "Harpia"})
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo yaml: %v", err)
 	}
@@ -233,7 +233,7 @@ versao: 1")
 	if err != nil {
 		t.Fatalf("Não foi possível obter 'nome': %v", err)
 	}
-	if string(valNome.(ptst.Texto)) != "Harpia" {
+	if string(valNome.(hrp.Texto)) != "Harpia" {
 		t.Errorf("Nome esperado 'Harpia', obteve: %s", valNome)
 	}
 
@@ -241,13 +241,13 @@ versao: 1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(valYaml.(ptst.Texto)), "nome: Harpia") {
+	if !strings.Contains(string(valYaml.(hrp.Texto)), "nome: Harpia") {
 		t.Errorf("Serialização YAML incorreta: %s", valYaml)
 	}
 }
 
 func TestModuloXml(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	codigo := `
@@ -258,7 +258,7 @@ func TestModuloXml(t *testing.T) {
 	var textoXml = serializar({"nome": "Harpia"}, "usuario")
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script com módulo xml: %v", err)
 	}
@@ -267,7 +267,7 @@ func TestModuloXml(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Não foi possível obter 'nome': %v", err)
 	}
-	if string(valNome.(ptst.Texto)) != "Harpia" {
+	if string(valNome.(hrp.Texto)) != "Harpia" {
 		t.Errorf("Nome esperado 'Harpia', obteve: %s", valNome)
 	}
 
@@ -275,13 +275,13 @@ func TestModuloXml(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(valXml.(ptst.Texto)) != "<usuario><nome>Harpia</nome></usuario>" {
+	if string(valXml.(hrp.Texto)) != "<usuario><nome>Harpia</nome></usuario>" {
 		t.Errorf("Serialização XML incorreta, obteve: %s", valXml)
 	}
 }
 
 func TestSandboxBloqueioArquivos(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{
+	ctx := hrp.NewContexto(hrp.OpcsContexto{
 		BloquearArquivos: true, // Ativa o sandbox para arquivos
 	})
 	defer ctx.Terminar()
@@ -296,7 +296,7 @@ func TestSandboxBloqueioArquivos(t *testing.T) {
 	}
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script: %v", err)
 	}
@@ -306,13 +306,13 @@ func TestSandboxBloqueioArquivos(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if val != ptst.Verdadeiro {
+	if val != hrp.Verdadeiro {
 		t.Error("Esperava que o acesso ao arquivo fosse bloqueado pelo Sandbox, mas não foi!")
 	}
 }
 
 func TestSandboxBloqueioRede(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{
+	ctx := hrp.NewContexto(hrp.OpcsContexto{
 		BloquearRede: true, // Ativa o sandbox para rede
 	})
 	defer ctx.Terminar()
@@ -327,7 +327,7 @@ func TestSandboxBloqueioRede(t *testing.T) {
 	}
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script: %v", err)
 	}
@@ -337,13 +337,13 @@ func TestSandboxBloqueioRede(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if val != ptst.Verdadeiro {
+	if val != hrp.Verdadeiro {
 		t.Error("Esperava que as operações de rede fossem bloqueadas pelo Sandbox, mas não foram!")
 	}
 }
 
 func TestConcorrenciaPorCanaisCsp(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 
 	codigo := `
 	var meuCanal = nova Canal()
@@ -362,7 +362,7 @@ func TestConcorrenciaPorCanaisCsp(t *testing.T) {
 	produtor()
 	`
 
-	res, err := ptst.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script CSP: %v", err)
 	}
@@ -375,7 +375,7 @@ func TestConcorrenciaPorCanaisCsp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if string(val.(ptst.Texto)) != "Ola via Canal!" {
+	if string(val.(hrp.Texto)) != "Ola via Canal!" {
 		t.Errorf("Recebimento incorreto via Canal, obteve: %v, esperava 'Ola via Canal!'", val)
 	}
 }

@@ -3,20 +3,20 @@ package colorize
 import (
 	"fmt"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // Background representa o tipo de objeto nativo do Harpia usado para colorir o fundo do texto.
 type Background struct{}
 
 // TipoBackground define as propriedades e métodos associados à estrutura Background no interpretador.
-var TipoBackground = ptst.TipoObjeto.NewTipo(
+var TipoBackground = hrp.TipoObjeto.NewTipo(
 	"Background",
 	"",
 )
 
 // Tipo retorna a especificação de tipo da struct Background para a VM.
-func (b *Background) Tipo() *ptst.Tipo {
+func (b *Background) Tipo() *hrp.Tipo {
 	return TipoBackground
 }
 
@@ -24,13 +24,13 @@ func (b *Background) Tipo() *ptst.Tipo {
 type Foreground struct{}
 
 // TipoForeground define as propriedades e métodos associados à estrutura Foreground no interpretador.
-var TipoForeground = ptst.TipoObjeto.NewTipo(
+var TipoForeground = hrp.TipoObjeto.NewTipo(
 	"Foreground",
 	"",
 )
 
 // Tipo retorna a especificação de tipo da struct Foreground para a VM.
-func (f *Foreground) Tipo() *ptst.Tipo {
+func (f *Foreground) Tipo() *hrp.Tipo {
 	return TipoForeground
 }
 
@@ -57,7 +57,7 @@ func init() {
 			panic(err)
 		}
 
-		TipoBackground.Mapa[cor.Nome] = ptst.NewMetodoOuPanic(
+		TipoBackground.Mapa[cor.Nome] = hrp.NewMetodoOuPanic(
 			cor.Nome,
 			criaRenderizadorDeCores(
 				r, g, b,
@@ -66,7 +66,7 @@ func init() {
 			fmt.Sprintf("Define a cor %s ao fundo do texto", cor.Nome),
 		)
 
-		TipoForeground.Mapa[cor.Nome] = ptst.NewMetodoOuPanic(
+		TipoForeground.Mapa[cor.Nome] = hrp.NewMetodoOuPanic(
 			cor.Nome,
 			criaRenderizadorDeCores(
 				r, g, b,
