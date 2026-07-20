@@ -1,0 +1,196 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Harpia",
+  "scopeName": "source.harpia",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#constants" },
+    { "include": "#keywords" },
+    { "include": "#storage" },
+    { "include": "#builtins" },
+    { "include": "#modifiers" },
+    { "include": "#types" },
+    { "include": "#decorators" },
+    { "include": "#classes" },
+    { "include": "#functions" },
+    { "include": "#parameters" },
+    { "include": "#properties" },
+    { "include": "#variables" },
+    { "include": "#operators" },
+    { "include": "#punctuation" },
+    { "include": "#jsx-tags" },
+    { "include": "#html-tags" },
+    { "include": "#components" },
+    { "include": "#styles" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.number-sign.harpia", "match": "#.*$" },
+        { "name": "comment.line.double-slash.harpia", "match": "//.*$" },
+        { "name": "comment.block.harpia", "begin": "/\\*", "end": "\\*/" },
+        { "name": "comment.block.html.harpia", "begin": "<!--", "end": "-->" }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.harpia",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.harpia", "match": "\\\\." }
+          ]
+        },
+        {
+          "name": "string.quoted.single.harpia",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "name": "constant.character.escape.harpia", "match": "\\\\." }
+          ]
+        },
+        {
+          "name": "string.template.harpia",
+          "begin": "`",
+          "end": "`",
+          "patterns": [
+            { "name": "constant.character.escape.harpia", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.hex.harpia", "match": "\\b0x[0-9a-fA-F]+\\b" },
+        { "name": "constant.numeric.float.harpia", "match": "\\b\\d+\\.\\d+\\b" },
+        { "name": "constant.numeric.integer.harpia", "match": "\\b\\d+\\b" }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        { "name": "constant.language.boolean.harpia", "match": "\\b(Verdadeiro|Falso)\\b" },
+        { "name": "constant.language.null.harpia", "match": "\\b(Nulo|Indefinido)\\b" },
+        { "name": "constant.language.harpia", "match": "\\b(esteFim|esteInicio|esteArquivo)\\b" }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        { "name": "keyword.control.flow.harpia", "match": "\\b(se|senao|enquanto|para|de|retorne|pare|continue)\\b" },
+        { "name": "keyword.control.try.harpia", "match": "\\b(tente|capture|finalmente|assegura|lance)\\b" },
+        { "name": "keyword.control.import.harpia", "match": "\\b(importe|exporte|de|como|em)\\b" },
+        { "name": "keyword.control.conditional.harpia", "match": "\\b(novo|exclua)\\b" },
+        { "name": "keyword.operator.logical.harpia", "match": "\\b(e|ou|nao|xor)\\b" },
+        { "name": "keyword.control.harpia", "match": "\\b(super|isto)\\b" },
+        { "name": "keyword.other.harpia", "match": "\\b(istoMesmo|aquilo)\\b" }
+      ]
+    },
+    "storage": {
+      "patterns": [
+        { "name": "storage.type.harpia", "match": "\\b(constante|var|funcao|classe|interface|tipo|enum)\\b" },
+        { "name": "storage.modifier.harpia", "match": "\\b(publico|privado|protegido|estatico|abstrato|final|assincrono|espera)\\b" }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        { "name": "support.function.builtin.harpia", "match": "\\b(sinal|efeito|armazem|recurso|imprimir|escreva|leia|mostre)\\b" }
+      ]
+    },
+    "modifiers": {
+      "patterns": [
+        { "name": "storage.modifier.harpia", "match": "\\b(publico|privado|protegido|estatico|abstrato|final|assincrono|espera)\\b" }
+      ]
+    },
+    "types": {
+      "patterns": [
+        { "name": "support.type.primitive.harpia", "match": "\\b(Texto|Inteiro|Decimal|Booleano|Nulo|Canal|Lista|Mapa|Tupla|texto|numero|inteiro|real|booleano|binario|lista|vetor|matriz|dicionario|objeto|funcao_qualquer|nulo|qualquer)\\b" }
+      ]
+    },
+    "decorators": {
+      "patterns": [
+        { "name": "meta.decorator.harpia", "match": "@[a-zA-Z_][a-zA-Z0-9_]*" }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        { "name": "entity.name.function.harpia", "match": "(?<=funcao\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
+      ]
+    },
+    "classes": {
+      "patterns": [
+        { "name": "entity.name.type.class.harpia", "match": "(?<=classe\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "entity.name.type.interface.harpia", "match": "(?<=interface\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "entity.name.type.enum.harpia", "match": "(?<=enum\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
+      ]
+    },
+    "components": {
+      "patterns": [
+        { "name": "entity.name.type.component.harpia", "match": "(?<=componente\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "support.class.component.harpia", "match": "[A-Z][a-zA-Z0-9_]*" }
+      ]
+    },
+    "parameters": {
+      "patterns": [
+        { "name": "variable.parameter.harpia", "match": "(?<=\\(|,)\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*(?=:|\\)|,|=)" }
+      ]
+    },
+    "properties": {
+      "patterns": [
+        { "name": "variable.other.property.harpia", "match": "(?<=\\.)[a-zA-Z_][a-zA-Z0-9_]*" }
+      ]
+    },
+    "styles": {
+      "patterns": [
+        { "name": "entity.other.attribute-name.style.harpia", "match": "\\b([a-zA-Z-]+)(?=\\s*:\\s*)" },
+        { "name": "meta.property-value.css.harpia", "match": "(?<=:\\s)([^;]+)(?=[;}])" }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        { "name": "variable.other.readwrite.harpia", "match": "\\b[a-z_][a-zA-Z0-9_]*\\b" },
+        { "name": "variable.language.self.harpia", "match": "\\b(self|isto|super)\\b" }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        { "name": "keyword.operator.comparison.harpia", "match": "==|!=|<=|>=|<|>" },
+        { "name": "keyword.operator.assignment.harpia", "match": "=|\\+=|-=|\\*=|\\/=|%=" },
+        { "name": "keyword.operator.arithmetic.harpia", "match": "\\+|-|\\*|\\/|%|\\*\\*" },
+        { "name": "keyword.operator.logical.harpia", "match": "&&|\\|\\||!|->|=>|\\.\\.|\\.\\.\\." }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.definition.block.harpia", "match": "[{}]" },
+        { "name": "punctuation.definition.brackets.harpia", "match": "[\\[\\]]" },
+        { "name": "punctuation.definition.parenthesis.harpia", "match": "[\\(\\)]" },
+        { "name": "punctuation.separator.comma.harpia", "match": "," },
+        { "name": "punctuation.separator.semicolon.harpia", "match": ";" },
+        { "name": "punctuation.terminator.harpia", "match": ";|::" }
+      ]
+    },
+    "jsx-tags": {
+      "patterns": [
+        { "name": "keyword.control.tag.harpia", "match": "(?<=</?)(se|para)\\b" },
+        { "name": "entity.name.tag.harpia", "match": "(?<=</?)[a-zA-Z][a-zA-Z0-9:-]*(?=>|\\s|/?>)" },
+        { "name": "entity.other.attribute-name.modifier.harpia", "match": "(?<=ao[a-zA-Z]+)_(prevenir|parar)\\b" },
+        { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" },
+        { "name": "punctuation.definition.tag.harpia", "match": "</?|/?>" }
+      ]
+    },
+    "html-tags": {
+      "patterns": [
+        {
+          "name": "meta.tag.harpia",
+          "begin": "</?[a-zA-Z][a-zA-Z0-9:-]*",
+          "end": "/?>",
+          "patterns": [
+            { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "name": "vscode-harpia",
+  "displayName": "Harpia",
+  "description": "Suporte oficial à linguagem Harpia para o VS Code. Oferece colorização de sintaxe rica, autocomplete e hover (LSP), depurador interativo e ferramentas CLI integradas.",
+  "version": "0.1.1",
+  "icon": "icons/logo.jpg",
+  "publisher": "harpia",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/matheusdiniz/Harpia.git"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Formatters",
+    "Debuggers"
+  ],
+  "keywords": [
+    "harpia",
+    "portuguese",
+    "lsp",
+    "dap",
+    "syntax-highlighting"
+  ],
+  "activationEvents": [
+    "onLanguage:harpia"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "harpia",
+        "aliases": [
+          "Harpia",
+          "harpia"
+        ],
+        "extensions": [
+          ".hrp"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/harpia-file-icon.jpg",
+          "dark": "./icons/harpia-file-icon.jpg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "harpia",
+        "scopeName": "source.harpia",
+        "path": "./syntaxes/harpia.tmLanguage.json"
+      }
+    ],
+    "themes": [
+      {
+        "label": "Harpia Escuro",
+        "uiTheme": "vs-dark",
+        "path": "./themes/harpia-dark.json"
+      },
+      {
+        "label": "Harpia Claro",
+        "uiTheme": "vs",
+        "path": "./themes/harpia-light.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "harpia",
+        "path": "./snippets/snippets.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "harpia.criarRota",
+        "title": "Harpia: Criar Rota SPA"
+      },
+      {
+        "command": "harpia.criarComponente",
+        "title": "Harpia: Criar Componente UI"
+      },
+      {
+        "command": "harpia.criarModelo",
+        "title": "Harpia: Criar Modelo de Domínio"
+      },
+      {
+        "command": "harpia.formatar",
+        "title": "Harpia: Formatar Documento"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "harpia-explorer",
+          "title": "Harpia",
+          "icon": "$(terminal)"
+        }
+      ]
+    },
+    "views": {
+      "harpia-explorer": [
+        {
+          "type": "webview",
+          "id": "harpia.dashboard",
+          "name": "Painel de Controle"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "workbench.view.extension.harpia-explorer",
+        "key": "ctrl+alt+h",
+        "mac": "cmd+alt+h"
+      }
+    ],
+    "fileIconThemes": [
+      {
+        "id": "harpia-icons",
+        "label": "Harpia Icons",
+        "path": "./icons/harpia-icon-theme.json"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Harpia",
+      "properties": {
+        "editor.formatOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Formatar arquivos .hrp automaticamente ao salvar."
+        },
+        "[harpia]": {
+          "type": "object",
+          "default": {
+            "editor.defaultFormatter": "harpia",
+            "editor.formatOnSave": true
+          }
+        }
+      }
+    }
+  }
+}
