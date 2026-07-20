@@ -5,7 +5,7 @@ package main
 import (
 	"syscall/js"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 var (
@@ -24,10 +24,10 @@ func main() {
 		}
 		codigo := args[0].String()
 
-		ctx := ptst.NewContexto(ptst.OpcsContexto{})
+		ctx := hrp.NewContexto(hrp.OpcsContexto{})
 		defer ctx.Terminar()
 
-		_, err := ptst.ExecutarString(ctx, codigo)
+		_, err := hrp.ExecutarString(ctx, codigo)
 		if err != nil {
 			return "erro: " + err.Error()
 		}

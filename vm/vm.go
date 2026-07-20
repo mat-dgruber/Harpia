@@ -5,31 +5,32 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	"github.com/mat-dgruber/Harpia/ptst"
+
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 var poolPilha = sync.Pool{
 	New: func() interface{} {
-		return make([]ptst.Objeto, 0, 128)
+		return make([]hrp.Objeto, 0, 128)
 	},
 }
 
-type InstrucaoThreaded func(v *VM, frame *Frame) (ptst.Objeto, error)
+type InstrucaoThreaded func(v *VM, frame *Frame) (hrp.Objeto, error)
 
 // Frame representa um contexto isolado de execução de função ou módulo na pilha de chamadas da VM.
 type Frame struct {
 	Pai          *Frame
 	Bytecode     []byte
 	IP           int                 // Instrução corrente (Instruction Pointer)
-	Consts       []ptst.Objeto       // Referência ao pool de constantes do programa compilado
-	Pilha        []ptst.Objeto       // Pilha de operandos local
-	Escopo       *ptst.Escopo        // Tabela local de símbolos e fechamento léxico
+	Consts       []hrp.Objeto        // Referência ao pool de constantes do programa compilado
+	Pilha        []hrp.Objeto        // Pilha de operandos local
+	Escopo       *hrp.Escopo         // Tabela local de símbolos e fechamento léxico
 	ThreadedCode []InstrucaoThreaded // JIT de Traço (Fase F)
 }
 
 // NewFrame cria um frame isolado apontando para as constantes e escopo fornecidos.
-func NewFrame(bytecode []byte, consts []ptst.Objeto, escopo *ptst.Escopo, pai *Frame) *Frame {
-	pilha := poolPilha.Get().([]ptst.Objeto)
+func NewFrame(bytecode []byte, consts []hrp.Objeto, escopo *hrp.Escopo, pai *Frame) *Frame {
+	pilha := poolPilha.Get().([]hrp.Objeto)
 	return &Frame{
 		Pai:      pai,
 		Bytecode: bytecode,
@@ -41,15 +42,15 @@ func NewFrame(bytecode []byte, consts []ptst.Objeto, escopo *ptst.Escopo, pai *F
 }
 
 // push adiciona o elemento e incrementa suas referências.
-func (f *Frame) push(obj ptst.Objeto) {
+func (f *Frame) push(obj hrp.Objeto) {
 	f.Pilha = append(f.Pilha, obj)
-	ptst.ReterObjeto(obj)
+	hrp.ReterObjeto(obj)
 }
 
 // pop remove o elemento sem decrementar (transfere a posse do objeto para o receptor).
-func (f *Frame) pop() ptst.Objeto {
+func (f *Frame) pop() hrp.Objeto {
 	if len(f.Pilha) == 0 {
-		return ptst.Nulo
+		return hrp.Nulo
 	}
 	topoIdx := len(f.Pilha) - 1
 	val := f.Pilha[topoIdx]
@@ -76,13 +77,13 @@ type PerfilInfo struct {
 
 // VM representa o mecanismo do motor de execução da máquina virtual de pilha.
 type VM struct {
-	Contexto *ptst.Contexto
+	Contexto *hrp.Contexto
 	Perfil   bool
 	Metricas map[Opcode]*PerfilInfo
 }
 
 // NewVM instancia a máquina virtual associada a um contexto de execução de tipos e módulos.
-func NewVM(ctx *ptst.Contexto) *VM {
+func NewVM(ctx *hrp.Contexto) *VM {
 	return &VM{
 		Contexto: ctx,
 		Metricas: make(map[Opcode]*PerfilInfo),
@@ -115,15 +116,15 @@ func (v *VM) ImprimirPerfil() {
 }
 
 // Executar inicia o loop de threaded callbacks JIT sobre o frame fornecido.
-func (v *VM) Executar(frame *Frame) (ptst.Objeto, error) {
+func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 	if frame.ObterProfundidade() > 1000 {
-		return nil, ptst.NewErroF(ptst.ErroDePilha, "Limite máximo de recursão excedido (1000 frames)")
+		return nil, hrp.NewErroF(hrp.ErroDePilha, "Limite máximo de recursão excedido (1000 frames)")
 	}
 
 	defer func() {
 		// Limpeza de fim de frame: libera todos os operandos remanescentes na pilha
 		for len(frame.Pilha) > 0 {
-			ptst.LiberarObjeto(frame.pop())
+			hrp.LiberarObjeto(frame.pop())
 		}
 
 		// Limpa a fatia para evitar vazamentos de referências a objetos Go antes de devolver ao pool
@@ -135,11 +136,11 @@ func (v *VM) Executar(frame *Frame) (ptst.Objeto, error) {
 
 		// Limpeza de escopo: realiza a varredura cíclica e libera as referências retidas pelo escopo local
 		if frame.Escopo != nil {
-			ptst.ColetarCiclos(frame.Escopo)
+			hrp.ColetarCiclos(frame.Escopo)
 
 			for _, simb := range frame.Escopo.ObterSimbolosSeguro() {
 				if simb != nil {
-					ptst.LiberarObjeto(simb.ObterValor())
+					hrp.LiberarObjeto(simb.ObterValor())
 				}
 			}
 		}
@@ -160,7 +161,7 @@ func (v *VM) Executar(frame *Frame) (ptst.Objeto, error) {
 		opIdx := frame.IP
 		frame.IP++
 
-		var res ptst.Objeto
+		var res hrp.Objeto
 		var err error
 
 		if v.Perfil {
@@ -183,7 +184,7 @@ func (v *VM) Executar(frame *Frame) (ptst.Objeto, error) {
 	if len(frame.Pilha) > 0 {
 		return frame.pop(), nil
 	}
-	return ptst.Nulo, nil
+	return hrp.Nulo, nil
 }
 
 // compilarThreadedCode compila em tempo de execução o bytecode plano de 1 byte em fatias de ponteiros de funções (callbacks JIT).
@@ -202,223 +203,223 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 			idx := code[ip]
 			ip++
 			val := frame.Consts[idx]
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				frame.push(val)
 				return nil, nil
 			}
 
 		case OP_POP:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				val := frame.pop()
-				ptst.LiberarObjeto(val)
+				hrp.LiberarObjeto(val)
 				return nil, nil
 			}
 
 		case OP_DUP:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				val := frame.pop()
 				frame.push(val)
 				frame.push(val)
-				ptst.LiberarObjeto(val)
+				hrp.LiberarObjeto(val)
 				return nil, nil
 			}
 
 		case OP_ADD:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Adiciona(a, b)
+				res, err := hrp.Adiciona(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_SUB:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Subtrai(a, b)
+				res, err := hrp.Subtrai(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_MUL:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Multiplica(a, b)
+				res, err := hrp.Multiplica(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_DIV:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Divide(a, b)
+				res, err := hrp.Divide(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_DIV_INT:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.DivideInteiro(a, b)
+				res, err := hrp.DivideInteiro(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_MOD:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Mod(a, b)
+				res, err := hrp.Mod(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_EQ:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Igual(a, b)
+				res, err := hrp.Igual(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_NEQ:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.Diferente(a, b)
+				res, err := hrp.Diferente(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_LT:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.MenorQue(a, b)
+				res, err := hrp.MenorQue(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_LTE:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.MenorOuIgual(a, b)
+				res, err := hrp.MenorOuIgual(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_GT:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.MaiorQue(a, b)
+				res, err := hrp.MaiorQue(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_GTE:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				b := frame.pop()
 				a := frame.pop()
-				res, err := ptst.MaiorOuIgual(a, b)
+				res, err := hrp.MaiorOuIgual(a, b)
 				if err != nil {
-					ptst.LiberarObjeto(a)
-					ptst.LiberarObjeto(b)
+					hrp.LiberarObjeto(a)
+					hrp.LiberarObjeto(b)
 					return nil, err
 				}
 				frame.push(res)
-				ptst.LiberarObjeto(a)
-				ptst.LiberarObjeto(b)
+				hrp.LiberarObjeto(a)
+				hrp.LiberarObjeto(b)
 				return nil, nil
 			}
 
 		case OP_JMP:
 			addr := binary.BigEndian.Uint16(code[ip : ip+2])
 			ip += 2
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				frame.IP = int(addr)
 				return nil, nil
 			}
@@ -426,25 +427,25 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 		case OP_JMP_FALSO:
 			addr := binary.BigEndian.Uint16(code[ip : ip+2])
 			ip += 2
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				val := frame.pop()
-				if val == ptst.Falso || val == ptst.Nulo {
+				if val == hrp.Falso || val == hrp.Nulo {
 					frame.IP = int(addr)
 				}
-				ptst.LiberarObjeto(val)
+				hrp.LiberarObjeto(val)
 				return nil, nil
 			}
 
 		case OP_CARREGAR_VAR:
 			idx := code[ip]
 			ip++
-			nome := string(frame.Consts[idx].(ptst.Texto))
+			nome := string(frame.Consts[idx].(hrp.Texto))
 
 			// Monomorphic Inline Cache (MIC)
-			var cacheEscopo *ptst.Escopo = nil
-			var cacheSimbolo *ptst.Simbolo = nil
+			var cacheEscopo *hrp.Escopo = nil
+			var cacheSimbolo *hrp.Simbolo = nil
 
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				// Cache Hit: se o escopo for o mesmo, retorna o valor direto
 				if frame.Escopo == cacheEscopo && cacheSimbolo != nil {
 					frame.push(cacheSimbolo.Valor)
@@ -472,42 +473,42 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 		case OP_ARMAZENAR_VAR:
 			idx := code[ip]
 			ip++
-			nome := string(frame.Consts[idx].(ptst.Texto))
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			nome := string(frame.Consts[idx].(hrp.Texto))
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				valor := frame.pop()
 				simb, errS := frame.Escopo.ObterSimbolo(nome)
 				if errS == nil && simb != nil {
-					ptst.LiberarObjeto(simb.Valor)
+					hrp.LiberarObjeto(simb.Valor)
 					simb.Valor = valor
-					ptst.ReterObjeto(valor)
+					hrp.ReterObjeto(valor)
 				} else {
-					simbolo := ptst.NewVarSimbolo(nome, valor)
-					ptst.ReterObjeto(valor)
+					simbolo := hrp.NewVarSimbolo(nome, valor)
+					hrp.ReterObjeto(valor)
 					if errDef := frame.Escopo.DefinirSimbolo(simbolo); errDef != nil {
-						ptst.LiberarObjeto(valor)
+						hrp.LiberarObjeto(valor)
 						return nil, errDef
 					}
 				}
-				ptst.LiberarObjeto(valor)
+				hrp.LiberarObjeto(valor)
 				return nil, nil
 			}
 
 		case OP_CHAMAR:
 			aridade := code[ip]
 			ip++
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				objeto := frame.pop()
-				args := make(ptst.Tupla, aridade)
+				args := make(hrp.Tupla, aridade)
 				for i := int(aridade) - 1; i >= 0; i-- {
 					args[i] = frame.pop()
 				}
 
 				// Se o chamável for uma função assíncrona, interceptamos e retornamos uma Promessa
-				if fn, ok := objeto.(*ptst.Funcao); ok {
+				if fn, ok := objeto.(*hrp.Funcao); ok {
 					fn.SetContexto(v.Contexto)
 					fn.SetEscopo(frame.Escopo)
 					if fn.Assincrono {
-						prom := ptst.NewPromessa()
+						prom := hrp.NewPromessa()
 						if v.Contexto != nil {
 							v.Contexto.AdicionarTrabalho()
 						}
@@ -524,54 +525,54 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 								prom.Resolver(res)
 							}
 							for _, arg := range args {
-								ptst.LiberarObjeto(arg)
+								hrp.LiberarObjeto(arg)
 							}
-							ptst.LiberarObjeto(objeto)
+							hrp.LiberarObjeto(objeto)
 						}()
 						frame.push(prom)
 						return nil, nil
 					}
 				}
 
-				res, err := ptst.Chamar(objeto, args)
+				res, err := hrp.Chamar(objeto, args)
 				if err != nil {
-					ptst.LiberarObjeto(objeto)
+					hrp.LiberarObjeto(objeto)
 					for _, arg := range args {
-						ptst.LiberarObjeto(arg)
+						hrp.LiberarObjeto(arg)
 					}
 					return nil, err
 				}
 
 				frame.push(res)
-				ptst.LiberarObjeto(objeto)
+				hrp.LiberarObjeto(objeto)
 				for _, arg := range args {
-					ptst.LiberarObjeto(arg)
+					hrp.LiberarObjeto(arg)
 				}
 				return nil, nil
 			}
 
 		case OP_RETORNE:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				if len(frame.Pilha) > 0 {
 					val := frame.pop()
 					return val, nil
 				}
-				return ptst.Nulo, nil
+				return hrp.Nulo, nil
 			}
 
 		case OP_RETORNE_CONST:
 			idx := code[ip]
 			ip++
 			val := frame.Consts[idx]
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				return val, nil
 			}
 
 		case OP_RETORNE_VAR:
 			idx := code[ip]
 			ip++
-			nome := string(frame.Consts[idx].(ptst.Texto))
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			nome := string(frame.Consts[idx].(hrp.Texto))
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				val, err := frame.Escopo.ObterValor(nome)
 				if err != nil {
 					return nil, err
@@ -580,18 +581,18 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 			}
 
 		case OP_AWAIT:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				val := frame.pop()
-				prom, ok := val.(*ptst.Promessa)
+				prom, ok := val.(*hrp.Promessa)
 				if !ok {
 					frame.push(val)
-					ptst.LiberarObjeto(val)
+					hrp.LiberarObjeto(val)
 					return nil, nil
 				}
 
-				channel := make(chan ptst.Objeto, 1)
+				channel := make(chan hrp.Objeto, 1)
 				var errProm error
-				prom.Registre(func(res ptst.Objeto, err error) {
+				prom.Registre(func(res hrp.Objeto, err error) {
 					if err != nil {
 						errProm = err
 						channel <- nil
@@ -602,27 +603,27 @@ func (v *VM) compilarThreadedCode(frame *Frame) []InstrucaoThreaded {
 
 				res := <-channel
 				if errProm != nil {
-					ptst.LiberarObjeto(val)
+					hrp.LiberarObjeto(val)
 					return nil, errProm
 				}
 
 				frame.push(res)
-				ptst.LiberarObjeto(val)
+				hrp.LiberarObjeto(val)
 				return nil, nil
 			}
 
 		case OP_CRIAR_FUNCAO:
 			idxNome := code[ip]
 			ip++
-			nome := string(frame.Consts[idxNome].(ptst.Texto))
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
-				funcao := ptst.NewFuncao(nome, nil, v.Contexto, frame.Escopo)
+			nome := string(frame.Consts[idxNome].(hrp.Texto))
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
+				funcao := hrp.NewFuncao(nome, nil, v.Contexto, frame.Escopo)
 				frame.push(funcao)
 				return nil, nil
 			}
 
 		default:
-			threaded[currentIP] = func(v *VM, frame *Frame) (ptst.Objeto, error) {
+			threaded[currentIP] = func(v *VM, frame *Frame) (hrp.Objeto, error) {
 				return nil, fmt.Errorf("instrução opcode '0x%X' desconhecida ou não suportada no runtime da VM", op)
 			}
 		}

@@ -10,16 +10,16 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/peterh/liner"
 )
 
 // Cores ANSI de acordo com BRAND_GUIDELINES.md
 const (
-	CorOlhoHarpia   = "\033[1;33m" // Olho da Harpia em Negrito (#F2A900)
-	CorNevoManha    = "\033[3;90m"  // Névoa da Manhã em Itálico (#8C9B9E)
-	CorLinha        = "\033[90m"    // Cinza para linhas
-	CorTerracota    = "\033[38;2;212;93;52m" // Terracota (#D45D34)
+	CorOlhoHarpia   = "\033[1;33m"                                // Olho da Harpia em Negrito (#F2A900)
+	CorNevoManha    = "\033[3;90m"                                // Névoa da Manhã em Itálico (#8C9B9E)
+	CorLinha        = "\033[90m"                                  // Cinza para linhas
+	CorTerracota    = "\033[38;2;212;93;52m"                      // Terracota (#D45D34)
 	CorBarraAtalhos = "\033[48;2;23;30;38m\033[38;2;243;246;244m" // Fundo Rio Profundo e texto em Penagem Branca
 	CorReset        = "\033[0m"
 )
@@ -68,7 +68,7 @@ func ArquivoHistorico(escrita bool) (arquivo *os.File) {
 //  6. Ao fechar o bloco de código, envia o acumulado para processamento pela VM via 'ExecutarCodigo';
 //  7. Em caso de encerramento do console (por digitação de `sair()` ou interrupção via sinal como Ctrl+D),
 //     o defer garante a escrita de histórico acumulado de volta ao disco de forma persistente.
-func Inicializa(ctx *ptst.Contexto, version, datetime, commit string) {
+func Inicializa(ctx *hrp.Contexto, version, datetime, commit string) {
 	caminho := path.Join(homeDirectory(), ".historico_harpia")
 	arquivo, _ := os.OpenFile(caminho, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 
@@ -82,7 +82,7 @@ func Inicializa(ctx *ptst.Contexto, version, datetime, commit string) {
 
 	// Injeta a função nativa sair() no REPL de forma simples e amigável.
 	// Quando chamada pelo usuário no terminal, dispara a finalização do loop de forma graciosa.
-	exec.RegistrarMetodo(ptst.NewMetodoOuPanic("sair", func(_ ptst.Objeto, args ptst.Objeto) (ptst.Objeto, error) {
+	exec.RegistrarMetodo(hrp.NewMetodoOuPanic("sair", func(_ hrp.Objeto, args hrp.Objeto) (hrp.Objeto, error) {
 		finalizar()
 		return nil, nil
 	}, ""))
@@ -172,7 +172,7 @@ func Inicializa(ctx *ptst.Contexto, version, datetime, commit string) {
 					continue
 				}
 				temSimbolo = true
-				txtVal, _ := ptst.NewTexto(simbolo.Valor)
+				txtVal, _ := hrp.NewTexto(simbolo.Valor)
 				fmt.Printf("  var %s = %s\n", nome, txtVal)
 			}
 			if !temSimbolo {

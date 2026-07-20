@@ -3,27 +3,28 @@ package vm
 import (
 	"encoding/binary"
 	"fmt"
+
 	"github.com/mat-dgruber/Harpia/compartilhado"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/ptst"
 )
 
 // ProgramaCompilado agrupa o pool de constantes extraídas e o bytecode plano gerado para execução na VM.
 type ProgramaCompilado struct {
-	Constantes []ptst.Objeto
+	Constantes []hrp.Objeto
 	Bytecode   []byte
 }
 
 // Compilador realiza a tradução de passagem única (single-pass) da AST do Harpia para bytecode.
 type Compilador struct {
-	Constantes []ptst.Objeto
+	Constantes []hrp.Objeto
 	Bytecode   []byte
 }
 
 // NewCompilador inicializa uma nova instância ativa do compilador de bytecode.
 func NewCompilador() *Compilador {
 	return &Compilador{
-		Constantes: make([]ptst.Objeto, 0),
+		Constantes: make([]hrp.Objeto, 0),
 		Bytecode:   make([]byte, 0),
 	}
 }
@@ -65,7 +66,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		if err != nil {
 			return err
 		}
-		obj := ptst.Inteiro(val)
+		obj := hrp.Inteiro(val)
 		idx := c.internarConstante(obj)
 		c.emitir(OP_PUSH_CONST, idx)
 
@@ -74,32 +75,32 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		if err != nil {
 			return err
 		}
-		obj := ptst.Decimal(val)
+		obj := hrp.Decimal(val)
 		idx := c.internarConstante(obj)
 		c.emitir(OP_PUSH_CONST, idx)
 
 	case *parser.TextoLiteral:
 		// Strip aspas limitadoras do lexema do texto (exatamente como o interpretador faz na linha 256)
 		textoLimpo := n.Valor[1 : len(n.Valor)-1]
-		obj := ptst.Texto(textoLimpo)
+		obj := hrp.Texto(textoLimpo)
 		idx := c.internarConstante(obj)
 		c.emitir(OP_PUSH_CONST, idx)
 
 	case *parser.ConstanteLiteral:
 		switch n.Valor {
 		case "Verdadeiro":
-			idx := c.internarConstante(ptst.Verdadeiro)
+			idx := c.internarConstante(hrp.Verdadeiro)
 			c.emitir(OP_PUSH_CONST, idx)
 		case "Falso":
-			idx := c.internarConstante(ptst.Falso)
+			idx := c.internarConstante(hrp.Falso)
 			c.emitir(OP_PUSH_CONST, idx)
 		case "Nulo":
-			idx := c.internarConstante(ptst.Nulo)
+			idx := c.internarConstante(hrp.Nulo)
 			c.emitir(OP_PUSH_CONST, idx)
 		}
 
 	case *parser.Identificador:
-		idx := c.internarConstante(ptst.Texto(n.Nome))
+		idx := c.internarConstante(hrp.Texto(n.Nome))
 		c.emitir(OP_CARREGAR_VAR, idx)
 
 	case *parser.DeclVar:
@@ -109,11 +110,11 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 				return err
 			}
 		} else {
-			idx := c.internarConstante(ptst.Nulo)
+			idx := c.internarConstante(hrp.Nulo)
 			c.emitir(OP_PUSH_CONST, idx)
 		}
 
-		idx := c.internarConstante(ptst.Texto(n.Nome))
+		idx := c.internarConstante(hrp.Texto(n.Nome))
 		c.emitir(OP_ARMAZENAR_VAR, idx)
 
 	case *parser.Reatribuicao:
@@ -122,7 +123,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		}
 
 		if id, ok := n.Objeto.(*parser.Identificador); ok {
-			idx := c.internarConstante(ptst.Texto(id.Nome))
+			idx := c.internarConstante(hrp.Texto(id.Nome))
 			c.emitir(OP_ARMAZENAR_VAR, idx)
 		} else {
 			return fmt.Errorf("compilação de reatribuição para objetos complexos ainda não suportada na VM")
@@ -230,37 +231,37 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			// ponytail: Otimização de Fusão de Bytecodes (Super-Instruções - Fase D)
 			switch exp := n.Expressao.(type) {
 			case *parser.Identificador:
-				idx := c.internarConstante(ptst.Texto(exp.Nome))
+				idx := c.internarConstante(hrp.Texto(exp.Nome))
 				c.emitir(OP_RETORNE_VAR, idx)
 				return nil
 			case *parser.InteiroLiteral:
 				val, err := compartilhado.StringParaInt(exp.Valor)
 				if err == nil {
-					idx := c.internarConstante(ptst.Inteiro(val))
+					idx := c.internarConstante(hrp.Inteiro(val))
 					c.emitir(OP_RETORNE_CONST, idx)
 					return nil
 				}
 			case *parser.DecimalLiteral:
 				val, err := compartilhado.StringParaDec(exp.Valor)
 				if err == nil {
-					idx := c.internarConstante(ptst.Decimal(val))
+					idx := c.internarConstante(hrp.Decimal(val))
 					c.emitir(OP_RETORNE_CONST, idx)
 					return nil
 				}
 			case *parser.TextoLiteral:
 				textoLimpo := exp.Valor[1 : len(exp.Valor)-1]
-				idx := c.internarConstante(ptst.Texto(textoLimpo))
+				idx := c.internarConstante(hrp.Texto(textoLimpo))
 				c.emitir(OP_RETORNE_CONST, idx)
 				return nil
 			case *parser.ConstanteLiteral:
-				var obj ptst.Objeto
+				var obj hrp.Objeto
 				switch exp.Valor {
 				case "Verdadeiro":
-					obj = ptst.Verdadeiro
+					obj = hrp.Verdadeiro
 				case "Falso":
-					obj = ptst.Falso
+					obj = hrp.Falso
 				case "Nulo":
-					obj = ptst.Nulo
+					obj = hrp.Nulo
 				}
 				if obj != nil {
 					idx := c.internarConstante(obj)
@@ -273,7 +274,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 				return err
 			}
 		} else {
-			idx := c.internarConstante(ptst.Nulo)
+			idx := c.internarConstante(hrp.Nulo)
 			c.emitir(OP_RETORNE_CONST, idx)
 			return nil
 		}
@@ -296,7 +297,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 	case *parser.DeclFuncao:
 		// Para manter a VM de bytecode simples, as funções são registradas no pool de constantes como objetos Funcao nativos,
 		// ou compilados. Armazenamos uma representação do escopo local
-		funcao := ptst.NewFuncao(n.Nome, n.Corpo, nil, nil)
+		funcao := hrp.NewFuncao(n.Nome, n.Corpo, nil, nil)
 		nomes := make([]string, len(n.Parametros))
 		for idx, param := range n.Parametros {
 			nomes[idx] = param.Nome
@@ -308,7 +309,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		c.emitir(OP_PUSH_CONST, idxFuncao)
 
 		if n.Nome != "" {
-			idxNome := c.internarConstante(ptst.Texto(n.Nome))
+			idxNome := c.internarConstante(hrp.Texto(n.Nome))
 			c.emitir(OP_ARMAZENAR_VAR, idxNome)
 		}
 
@@ -335,7 +336,7 @@ func (c *Compilador) emitir(op Opcode, ops ...byte) {
 
 // internarConstante busca se o objeto já existe no pool de constantes.
 // Se existir, retorna seu índice; senão, adiciona-o ao pool e retorna o novo índice.
-func (c *Compilador) internarConstante(val ptst.Objeto) byte {
+func (c *Compilador) internarConstante(val hrp.Objeto) byte {
 	// Procura duplicações de valores de constantes de forma linear (lazy/ponytail)
 	for i, constVal := range c.Constantes {
 		// Comparações básicas estáveis para deduplicação
@@ -344,20 +345,20 @@ func (c *Compilador) internarConstante(val ptst.Objeto) byte {
 		}
 		// Fallback para tipos de valores literais suportados
 		switch v1 := constVal.(type) {
-		case ptst.Texto:
-			if v2, ok := val.(ptst.Texto); ok && v1 == v2 {
+		case hrp.Texto:
+			if v2, ok := val.(hrp.Texto); ok && v1 == v2 {
 				return byte(i)
 			}
-		case ptst.Inteiro:
-			if v2, ok := val.(ptst.Inteiro); ok && v1 == v2 {
+		case hrp.Inteiro:
+			if v2, ok := val.(hrp.Inteiro); ok && v1 == v2 {
 				return byte(i)
 			}
-		case ptst.Decimal:
-			if v2, ok := val.(ptst.Decimal); ok && v1 == v2 {
+		case hrp.Decimal:
+			if v2, ok := val.(hrp.Decimal); ok && v1 == v2 {
 				return byte(i)
 			}
-		case ptst.Booleano:
-			if v2, ok := val.(ptst.Booleano); ok && v1 == v2 {
+		case hrp.Booleano:
+			if v2, ok := val.(hrp.Booleano); ok && v1 == v2 {
 				return byte(i)
 			}
 		}

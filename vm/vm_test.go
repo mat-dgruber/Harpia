@@ -3,7 +3,7 @@ package vm
 import (
 	"testing"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
@@ -11,32 +11,32 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 	testes := []struct {
 		nome     string
 		codigo   string
-		esperado ptst.Objeto
+		esperado hrp.Objeto
 	}{
 		{
 			nome:     "Soma simples",
 			codigo:   "10 + 20;",
-			esperado: ptst.Inteiro(30),
+			esperado: hrp.Inteiro(30),
 		},
 		{
 			nome:     "Subtração e Multiplicação",
 			codigo:   "(10 - 2) * 3;",
-			esperado: ptst.Inteiro(24),
+			esperado: hrp.Inteiro(24),
 		},
 		{
 			nome:     "Texto e concatenação",
 			codigo:   `"Olá " + "Mundo";`,
-			esperado: ptst.Texto("Olá Mundo"),
+			esperado: hrp.Texto("Olá Mundo"),
 		},
 		{
 			nome:     "Comparação igualdade verdadeira",
 			codigo:   "10 == 10;",
-			esperado: ptst.Verdadeiro,
+			esperado: hrp.Verdadeiro,
 		},
 		{
 			nome:     "Comparação menor falsa",
 			codigo:   "10 < 5;",
-			esperado: ptst.Falso,
+			esperado: hrp.Falso,
 		},
 		{
 			nome: "Declaração e uso de variável",
@@ -44,7 +44,7 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			var x = 42;
 			x;
 			`,
-			esperado: ptst.Inteiro(42),
+			esperado: hrp.Inteiro(42),
 		},
 		{
 			nome: "Reatribuição de variável",
@@ -53,7 +53,7 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			x = 20;
 			x;
 			`,
-			esperado: ptst.Inteiro(20),
+			esperado: hrp.Inteiro(20),
 		},
 		{
 			nome: "Condicional se (Verdadeiro)",
@@ -66,7 +66,7 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			}
 			resultado;
 			`,
-			esperado: ptst.Inteiro(100),
+			esperado: hrp.Inteiro(100),
 		},
 		{
 			nome: "Condicional se (Falso)",
@@ -79,7 +79,7 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			}
 			resultado;
 			`,
-			esperado: ptst.Inteiro(200),
+			esperado: hrp.Inteiro(200),
 		},
 		{
 			nome: "Laço enquanto (loop)",
@@ -92,13 +92,13 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			}
 			acumulado;
 			`,
-			esperado: ptst.Inteiro(50),
+			esperado: hrp.Inteiro(50),
 		},
 	}
 
 	for _, tc := range testes {
 		t.Run(tc.nome, func(t *testing.T) {
-			ctx := ptst.NewContexto(ptst.OpcsContexto{})
+			ctx := hrp.NewContexto(hrp.OpcsContexto{})
 			defer ctx.Terminar()
 
 			ast, err := ctx.StringParaAst(tc.codigo, "<teste>")
@@ -113,11 +113,11 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			}
 
 			mainModulo, errMod := ctx.ObterModulo("__main__")
-			var mainEscopo *ptst.Escopo
+			var mainEscopo *hrp.Escopo
 			if errMod == nil && mainModulo != nil {
 				mainEscopo = mainModulo.Escopo
 			} else {
-				mainEscopo = ptst.NewEscopo()
+				mainEscopo = hrp.NewEscopo()
 			}
 
 			virtualMachine := NewVM(ctx)
@@ -128,12 +128,12 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 				t.Fatalf("Erro de execução na VM: %v", errExec)
 			}
 
-			igual, errCmp := ptst.Igual(resultado, tc.esperado)
+			igual, errCmp := hrp.Igual(resultado, tc.esperado)
 			if errCmp != nil {
 				t.Fatalf("Erro ao comparar resultado: %v", errCmp)
 			}
 
-			if igual != ptst.Verdadeiro {
+			if igual != hrp.Verdadeiro {
 				t.Errorf("Esperava %v, obteve %v (tipo esperado: %s, tipo obtido: %s)", tc.esperado, resultado, tc.esperado.Tipo().Nome, resultado.Tipo().Nome)
 			}
 		})
@@ -148,7 +148,7 @@ func BenchmarkInterpretadorLoop(b *testing.B) {
 	}
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<benchmark>")
@@ -158,8 +158,8 @@ func BenchmarkInterpretadorLoop(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		escopo := ptst.NewEscopo()
-		_, err = (&ptst.Interpretador{Ast: ast, Contexto: ctx, Escopo: escopo}).Inicializa()
+		escopo := hrp.NewEscopo()
+		_, err = (&hrp.Interpretador{Ast: ast, Contexto: ctx, Escopo: escopo}).Inicializa()
 		if err != nil {
 			b.Fatalf("Erro de execução: %v", err)
 		}
@@ -174,7 +174,7 @@ func BenchmarkVMLoop(b *testing.B) {
 	}
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<benchmark>")
@@ -190,7 +190,7 @@ func BenchmarkVMLoop(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		escopo := ptst.NewEscopo()
+		escopo := hrp.NewEscopo()
 		virtualMachine := NewVM(ctx)
 		frame := NewFrame(prog.Bytecode, prog.Constantes, escopo, nil)
 		_, err = virtualMachine.Executar(frame)
@@ -202,25 +202,25 @@ func BenchmarkVMLoop(b *testing.B) {
 
 func TestVMGCQuebraDeCiclos(t *testing.T) {
 	// Cria duas listas mutáveis
-	a := &ptst.Lista{Itens: make([]ptst.Objeto, 0)}
-	b := &ptst.Lista{Itens: make([]ptst.Objeto, 0)}
+	a := &hrp.Lista{Itens: make([]hrp.Objeto, 0)}
+	b := &hrp.Lista{Itens: make([]hrp.Objeto, 0)}
 
 	// Estabelece referências cruzadas circulares: a aponta para b, b aponta para a
 	a.Itens = append(a.Itens, b)
 	b.Itens = append(b.Itens, a)
 
 	// Incrementa referências de retenção de posse no grafo
-	ptst.ReterObjeto(a)
-	ptst.ReterObjeto(b)
+	hrp.ReterObjeto(a)
+	hrp.ReterObjeto(b)
 
 	// Registra as raízes em um escopo
-	escopo := ptst.NewEscopo()
-	escopo.DefinirSimbolo(ptst.NewVarSimbolo("lista_a", a))
-	escopo.DefinirSimbolo(ptst.NewVarSimbolo("lista_b", b))
+	escopo := hrp.NewEscopo()
+	escopo.DefinirSimbolo(hrp.NewVarSimbolo("lista_a", a))
+	escopo.DefinirSimbolo(hrp.NewVarSimbolo("lista_b", b))
 
 	// Como um contém o outro de forma cíclica fechada,
 	// se executarmos a coleta de ciclos, o coletor deve quebrar e desalocar os filhos
-	ptst.ColetarCiclos(escopo)
+	hrp.ColetarCiclos(escopo)
 
 	if a.Itens != nil {
 		t.Errorf("Esperava que o ciclo circular de 'a' fosse quebrado e Itens fosse limpo (nil)")
@@ -245,7 +245,7 @@ func TestVMConcorrenciaEDeclFuncao(t *testing.T) {
 	principal();
 	`
 
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	ast, err := ctx.StringParaAst(codigo, "<teste_vm_async>")
@@ -259,7 +259,7 @@ func TestVMConcorrenciaEDeclFuncao(t *testing.T) {
 		t.Fatalf("Erro ao compilar bytecode: %v", err)
 	}
 
-	escopo := ptst.NewEscopo()
+	escopo := hrp.NewEscopo()
 	virtualMachine := NewVM(ctx)
 	frame := NewFrame(prog.Bytecode, prog.Constantes, escopo, nil)
 	resultado, errExec := virtualMachine.Executar(frame)
@@ -267,21 +267,21 @@ func TestVMConcorrenciaEDeclFuncao(t *testing.T) {
 		t.Fatalf("Erro de execução na VM: %v", errExec)
 	}
 
-	if resultado != ptst.Inteiro(123) {
+	if resultado != hrp.Inteiro(123) {
 		t.Errorf("Esperava retorno 123 da execução assíncrona da VM, obtive: %v", resultado)
 	}
 }
 
 func TestVMRecursionGuard(t *testing.T) {
-	ctx := ptst.NewContexto(ptst.OpcsContexto{})
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
 
 	virtualMachine := NewVM(ctx)
-	
+
 	// Cria uma pilha encadeada de frames artificiais com profundidade de 1001 para disparar o estouro
 	var topo *Frame
 	for i := 0; i < 1002; i++ {
-		topo = NewFrame([]byte{OP_PUSH_CONST, 0, OP_RETORNE}, []ptst.Objeto{ptst.Inteiro(1)}, ptst.NewEscopo(), topo)
+		topo = NewFrame([]byte{OP_PUSH_CONST, 0, OP_RETORNE}, []hrp.Objeto{hrp.Inteiro(1)}, hrp.NewEscopo(), topo)
 	}
 
 	_, errExec := virtualMachine.Executar(topo)
@@ -289,12 +289,11 @@ func TestVMRecursionGuard(t *testing.T) {
 		t.Fatal("Esperava estouro de pilha/erro de recursão, mas a execução terminou com sucesso.")
 	}
 
-	if erroObj, ok := errExec.(*ptst.Erro); ok {
-		if erroObj.Base != ptst.ErroDePilha {
+	if erroObj, ok := errExec.(*hrp.Erro); ok {
+		if erroObj.Base != hrp.ErroDePilha {
 			t.Errorf("Esperava erro do tipo ErroDePilha, obteve: %v", erroObj.Base.Nome)
 		}
 	} else {
-		t.Errorf("Esperava erro do tipo ptst.Erro estruturado, obteve: %T", errExec)
+		t.Errorf("Esperava erro do tipo hrp.Erro estruturado, obteve: %T", errExec)
 	}
 }
-

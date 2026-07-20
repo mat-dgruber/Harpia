@@ -9,10 +9,10 @@ const (
 	OP_DUP        Opcode = 0x03 // Duplica o valor no topo da pilha.
 
 	// Aritmética e Operações Binárias
-	OP_ADD     Opcode = 0x04 // Polimorfismo ptst.Adiciona (a + b)
-	OP_SUB     Opcode = 0x05 // Polimorfismo ptst.Subtrai (a - b)
-	OP_MUL     Opcode = 0x06 // Polimorfismo ptst.Multiplica (a * b)
-	OP_DIV     Opcode = 0x07 // Polimorfismo ptst.Divide (a / b)
+	OP_ADD     Opcode = 0x04 // Polimorfismo hrp.Adiciona (a + b)
+	OP_SUB     Opcode = 0x05 // Polimorfismo hrp.Subtrai (a - b)
+	OP_MUL     Opcode = 0x06 // Polimorfismo hrp.Multiplica (a * b)
+	OP_DIV     Opcode = 0x07 // Polimorfismo hrp.Divide (a / b)
 	OP_DIV_INT Opcode = 0x08 // Divisão inteira (a // b)
 	OP_MOD     Opcode = 0x09 // Resto da divisão (a % b)
 

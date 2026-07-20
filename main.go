@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/cmd"
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -39,12 +39,12 @@ func main() {
 		// Importa a biblioteca padrão implicitamente
 		_ = "github.com/mat-dgruber/Harpia/stdlib"
 
-		ctx := ptst.NewContexto(ptst.OpcsContexto{})
+		ctx := hrp.NewContexto(hrp.OpcsContexto{})
 		defer ctx.Terminar()
 
-		_, err := ptst.ExecutarString(ctx, embeddedSource)
+		_, err := hrp.ExecutarString(ctx, embeddedSource)
 		if err != nil {
-			ptst.LancarErro(err)
+			hrp.LancarErro(err)
 			os.Exit(1)
 		}
 		os.Exit(0)

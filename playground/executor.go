@@ -4,30 +4,30 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mat-dgruber/Harpia/ptst"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // Executor é o componente responsável pelo gerenciamento de compilação rápida, isolamento de escopo
 // e avaliação sintática (interpretação) das entradas de código fornecidas no playground.
 type Executor struct {
 	// Contexto armazena a instância da máquina virtual e as opções compartilhadas de execução.
-	Contexto *ptst.Contexto
+	Contexto *hrp.Contexto
 
 	// Modulo é um escopo dinâmico isolado de execução simulando um arquivo físico virtualizado (<playground>).
 	// Isso permite que o usuário defina funções, variáveis e classes em uma linha e elas permaneçam
 	// vivas e acessíveis na linha seguinte do console interativo.
-	Modulo   *ptst.Modulo
+	Modulo *hrp.Modulo
 }
 
 // NovoExecutor é o construtor padrão da estrutura Executor.
 //
 // Ele inicializa um novo módulo virtualizado sob o nome especial "<playground>" e configura o seu respectivo escopo.
 // Quaisquer variáveis e métodos declarados no console REPL serão anexados ao escopo persistente deste módulo.
-func NovoExecutor(ctx *ptst.Contexto) *Executor {
+func NovoExecutor(ctx *hrp.Contexto) *Executor {
 	exec := new(Executor)
 	exec.Contexto = ctx
-	exec.Modulo, _ = ctx.InicializarModulo(&ptst.ModuloImpl{
-		Info: ptst.ModuloInfo{
+	exec.Modulo, _ = ctx.InicializarModulo(&hrp.ModuloImpl{
+		Info: hrp.ModuloInfo{
 			Arquivo: "<playground>",
 		},
 	})
@@ -52,14 +52,14 @@ func (e *Executor) ExecutarCodigo(codigo string) {
 		return
 	}
 
-	var resultado, texto ptst.Objeto
+	var resultado, texto hrp.Objeto
 
 	if resultado, err = e.Contexto.AvaliarAst(ast, e.Modulo.Escopo); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	if texto, err = ptst.NewTexto(resultado); err != nil {
+	if texto, err = hrp.NewTexto(resultado); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
@@ -71,9 +71,9 @@ func (e *Executor) ExecutarCodigo(codigo string) {
 // diretamente no escopo global acessível pelo console REPL.
 //
 // É utilizado pelo playground para expor comandos de utilidade geral do console (como `sair()`).
-func (e *Executor) RegistrarMetodo(metodo *ptst.Metodo) error {
+func (e *Executor) RegistrarMetodo(metodo *hrp.Metodo) error {
 	return e.Modulo.Escopo.DefinirSimbolo(
-		ptst.NewVarSimbolo(
+		hrp.NewVarSimbolo(
 			metodo.Nome,
 			metodo,
 		),
