@@ -24,6 +24,22 @@ Representada pela imponente águia-real das Américas, a marca simboliza **sober
 
 ---
 
+## 🚀 Instalação Rápida
+
+Instale o compilador Harpia em segundos no seu sistema operacional executando o comando correspondente no terminal:
+
+### Linux / macOS
+```bash
+curl -fsSL https://raw.githubusercontent.com/mat-dgruber/Harpia/main/Harpia/instalar.sh | bash
+```
+
+### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/mat-dgruber/Harpia/main/Harpia/instalar.ps1 | iex
+```
+
+---
+
 ## ⚡ Filosofia e Conceito: O Método Ponytail
 
 A linguagem é orientada pela **Filosofia Ponytail** (preguiçosa com o código redundante, atenta com a leitura e pragmática com a solução):
