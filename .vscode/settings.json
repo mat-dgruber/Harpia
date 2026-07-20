@@ -1,0 +1,15 @@
+{
+    "go.toolsEnvVars": {
+        "GOOS": "darwin",
+        "GOARCH": "arm64"
+    },
+    "go.buildTags": "",
+    "go.buildFlags": [],
+    "gopls": {
+        "build.env": {
+            "GOOS": "darwin",
+            "GOARCH": "arm64"
+        },
+        "build.buildFlags": []
+    }
+}
