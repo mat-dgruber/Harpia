@@ -1,0 +1,137 @@
+{
+  "Estrutura Condicional Se": {
+    "prefix": "se",
+    "body": [
+      "se ${1:condicao} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Cria um bloco condicional se"
+  },
+  "Estrutura Condicional Se Senao": {
+    "prefix": "senao",
+    "body": [
+      "senao {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Cria um bloco condicional senao"
+  },
+  "Laço Enquanto": {
+    "prefix": "enquanto",
+    "body": [
+      "enquanto (${1:condicao}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Cria um laço de repetição enquanto"
+  },
+  "Declaração de Função": {
+    "prefix": "funcao",
+    "body": [
+      "funcao ${1:nome}(${2:parametros}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Cria uma declaração de função"
+  },
+  "Declaração de Classe": {
+    "prefix": "classe",
+    "body": [
+      "classe ${1:NomeClasse} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Cria uma declaração de classe"
+  },
+  "Sinal Reativo": {
+    "prefix": "sinal",
+    "body": [
+      "var [${1:valor}, definir${1/(.*)/${1:/capitalize}/}] = sinal(${2:valorInicial})"
+    ],
+    "description": "Cria um sinal reativo para frontend"
+  },
+  "Efeito Reativo": {
+    "prefix": "efeito",
+    "body": [
+      "efeito(funcao() {",
+      "\t$0",
+      "})"
+    ],
+    "description": "Cria um efeito reativo para frontend"
+  },
+  "Importação de Módulo": {
+    "prefix": "importar",
+    "body": [
+      "importar { ${1:recursos} } de \"${2:caminho}\""
+    ],
+    "description": "Cria uma instrução de importação"
+  },
+  "Componente Reativo": {
+    "prefix": "componente",
+    "body": [
+      "importar { h } de \"web\"",
+      "",
+      "exportar funcao ${1:MeuComponente}(props) {",
+      "\tretorne (",
+      "\t\t<div estilo={{ padding: \"10px\" }}>",
+      "\t\t\t$0",
+      "\t\t</div>",
+      "\t);",
+      "}"
+    ],
+    "description": "Cria um componente reativo UI para frontend"
+  },
+  "Sinal Persistente": {
+    "prefix": "sinalPersistente",
+    "body": [
+      "var [${1:valor}, definir${1/(.*)/${1:/capitalize}/}] = sinalPersistente(\"${2:chave}\", ${3:valorInicial})"
+    ],
+    "description": "Cria um sinal reativo persistido automaticamente no Local Storage"
+  },
+  "Sinal com Debounce": {
+    "prefix": "sinalDebounce",
+    "body": [
+      "var [${1:valor}, definir${1/(.*)/${1:/capitalize}/}] = sinalDebounce(${2:valorInicial}, ${3:300})"
+    ],
+    "description": "Cria um sinal reativo com atraso de propagação (debounce)"
+  },
+  "Recurso Assíncrono": {
+    "prefix": "recurso",
+    "body": [
+      "var ${1:dados} = recurso(assincrono funcao() {",
+      "\tretorne ${2:requisicao};",
+      "})"
+    ],
+    "description": "Cria um recurso reativo assíncrono para consumo de APIs"
+  },
+  "Armazém de Estado Global": {
+    "prefix": "armazem",
+    "body": [
+      "exportar var ${1:armazemNome} = armazem({",
+      "\t${2:estado}: ${3:valorInicial}",
+      "})"
+    ],
+    "description": "Cria um contêiner reativo mutável compartilhado para estado global"
+  },
+  "Cenário de Teste Unitário": {
+    "prefix": "testar",
+    "body": [
+      "testar \"${1:cenario de teste}\" {",
+      "\tassegura(${2:condicao});$0",
+      "}"
+    ],
+    "description": "Cria um cenário de teste unitário integrado nativo"
+  },
+  "Estrutura Tente Capture": {
+    "prefix": "tente",
+    "body": [
+      "tente {",
+      "\t$1",
+      "} capture (erro) {",
+      "\timprimir(\"Erro:\", erro.mensagem)$0",
+      "}"
+    ],
+    "description": "Cria uma estrutura de tratamento de exceções tente/capture"
+  }
+}
