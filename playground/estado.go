@@ -15,7 +15,7 @@ type indicador string
 
 const (
 	// Normal é o prompt de entrada principal para novos comandos de linha única (">>> ").
-	Normal   indicador = ">>> "
+	Normal indicador = ">>> "
 
 	// Continua é o prompt secundário ("... ") que indica que o comando anterior possui
 	// delimitadores abertos (ex: parênteses, colchetes ou chaves) e requer continuação na próxima linha.

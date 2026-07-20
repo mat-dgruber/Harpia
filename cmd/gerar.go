@@ -98,13 +98,13 @@ func gerarEndereco() string {
 func gerarPessoa() map[string]interface{} {
 	nome := gerarNomeCompleto()
 	return map[string]interface{}{
-		"nome":      nome,
-		"email":     gerarEmail(nome),
-		"cpf":       gerarCPF(),
-		"telefone":  gerarTelefone(),
-		"idade":     18 + rand.Intn(70),
-		"cidade":    sortearLista(cidadesFake),
-		"uf":        sortearLista(ufsFake),
+		"nome":     nome,
+		"email":    gerarEmail(nome),
+		"cpf":      gerarCPF(),
+		"telefone": gerarTelefone(),
+		"idade":    18 + rand.Intn(70),
+		"cidade":   sortearLista(cidadesFake),
+		"uf":       sortearLista(ufsFake),
 	}
 }
 

@@ -13,10 +13,10 @@ import (
 // O Lexer lê a string de entrada incrementalmente, gerenciando o cursor físico, a linha
 // e a coluna atuais para alimentar diagnósticos precisos em caso de falhas de análise.
 type Lexer struct {
-	entrada string  // O código fonte completo em formato textual.
-	carater string  // O caractere Unicode (runa) sob análise corrente no cursor.
-	coluna  int     // O índice de coluna física do caractere sob análise (base 1).
-	linha   int     // O número da linha física correspondente no código fonte (base 1).
+	entrada string // O código fonte completo em formato textual.
+	carater string // O caractere Unicode (runa) sob análise corrente no cursor.
+	coluna  int    // O índice de coluna física do caractere sob análise (base 1).
+	linha   int    // O número da linha física correspondente no código fonte (base 1).
 
 	// Campos de suporte operacional
 	tamanho   int   // Quantidade conceitual total de caracteres Unicode (runas) na entrada.

@@ -29,7 +29,7 @@ func TestCmdStressar(t *testing.T) {
 
 	cmd := comandoStressar()
 	cmd.SetArgs([]string{caminho, "-c", "2", "-r", "5"})
-	
+
 	err = cmd.Execute()
 	w.Close()
 	os.Stdout = oldStdout

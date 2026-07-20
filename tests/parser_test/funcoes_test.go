@@ -210,9 +210,9 @@ func TestDeclareChameFuncaoComArgumentos(t *testing.T) {
 					Declaracoes: []parser.BaseNode{
 						&parser.RetorneNode{
 							Expressao: &parser.OpBinaria{
-								Esq: &parser.Identificador{Nome: "a"},
+								Esq:      &parser.Identificador{Nome: "a"},
 								Operador: "+",
-								Dir: &parser.Identificador{Nome: "b"},
+								Dir:      &parser.Identificador{Nome: "b"},
 							},
 						},
 					},
