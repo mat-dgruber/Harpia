@@ -81,7 +81,7 @@ func (b *Bytes) M__maior_ou_igual__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return NewBooleano(len(b.Itens) >= int(outroT.(Inteiro)))
+	return NewBooleano(int64(len(b.Itens)) >= int64(outroT.(Inteiro)))
 }
 
 // M__maior_que__ compara os comprimentos físicos dos bytes.
@@ -91,7 +91,7 @@ func (b *Bytes) M__maior_que__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return NewBooleano(len(b.Itens) > int(outroT.(Inteiro)))
+	return NewBooleano(int64(len(b.Itens)) > int64(outroT.(Inteiro)))
 }
 
 // M__menor_ou_igual__ compara os comprimentos físicos dos bytes.
@@ -101,7 +101,7 @@ func (b *Bytes) M__menor_ou_igual__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return NewBooleano(len(b.Itens) <= int(outroT.(Inteiro)))
+	return NewBooleano(int64(len(b.Itens)) <= int64(outroT.(Inteiro)))
 }
 
 // M__menor_que__ compara os comprimentos físicos dos bytes.
@@ -111,7 +111,7 @@ func (b *Bytes) M__menor_que__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return NewBooleano(len(b.Itens) < int(outroT.(Inteiro)))
+	return NewBooleano(int64(len(b.Itens)) < int64(outroT.(Inteiro)))
 }
 
 // M__tamanho__ retorna o comprimento físico total de bytes armazenados no array local.

@@ -849,7 +849,7 @@ function resolverPalavraEstendida(palavra, caminhoArquivo, root, arquivosProcess
         match = linha.match(regexClasse);
         if (match) {
             const pai = match[2];
-            let assinatura = linha.trim().replace('{', '').trim();
+            let assinatura = linha.trim().replace(/\{/g, '').trim();
             const comentarios = obterComentariosSuperiores(linhas, i);
 
             let cadeiaHeranca = [palavra];

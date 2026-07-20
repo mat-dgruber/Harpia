@@ -113,9 +113,12 @@ func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	switch obj := outro.(type) {
 	case Inteiro:
-		resultado := Texto(t)
-
-		for i := 0; i < int(obj)-1; i++ {
+		vezes := int64(obj)
+		if vezes <= 0 {
+			return Texto(""), nil
+		}
+		resultado := Texto("")
+		for i := int64(0); i < vezes; i++ {
 			resultado += t
 		}
 

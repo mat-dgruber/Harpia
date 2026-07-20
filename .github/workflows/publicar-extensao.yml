@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*' # Dispara automaticamente quando uma nova tag de versão for criada, ex: v0.1.1
 
+permissions:
+  contents: read
+
 jobs:
   publicar:
     runs-on: ubuntu-latest

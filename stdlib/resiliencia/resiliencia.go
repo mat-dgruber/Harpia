@@ -190,7 +190,11 @@ func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err != nil {
 		return nil, err
 	}
-	d := NovoDisjuntor(int(limite.(hrp.Inteiro)), float64(timeout.(hrp.Decimal)))
+	limVal := int64(limite.(hrp.Inteiro))
+	if limVal < 0 || limVal > 1000000 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "limite de taxa inválido")
+	}
+	d := NovoDisjuntor(int(limVal), float64(timeout.(hrp.Decimal)))
 	return hrp.Texto(d.estado), nil
 }
 
@@ -218,7 +222,10 @@ func met_nova_retentativa(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) >= 1 {
 		t, err := hrp.NewInteiro(args[0])
 		if err == nil {
-			r.Tentativas = int(t.(hrp.Inteiro))
+			tVal := int64(t.(hrp.Inteiro))
+			if tVal >= 0 && tVal <= 100 {
+				r.Tentativas = int(tVal)
+			}
 		}
 	}
 	if len(args) >= 2 {

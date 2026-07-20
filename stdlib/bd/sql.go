@@ -179,7 +179,11 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			q.limiteVal = int(n.(hrp.Inteiro))
+			nVal := int64(n.(hrp.Inteiro))
+			if nVal < 0 || nVal > 1000000 {
+				return nil, fmt.Errorf("limite inválido")
+			}
+			q.limiteVal = int(nVal)
 			return q, nil
 		}, ""), nil
 

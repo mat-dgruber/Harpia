@@ -104,9 +104,13 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 				vetor = append(vetor, float64(vDec.(hrp.Decimal)))
 			}
 
+			limVal := int64(limite.(hrp.Inteiro))
+			if limVal < 1 || limVal > 10000 {
+				limVal = 100 // default seguro
+			}
 			query := map[string]interface{}{
 				"vector":       vetor,
-				"limit":        int(limite.(hrp.Inteiro)),
+				"limit":        int(limVal),
 				"with_payload": true,
 			}
 

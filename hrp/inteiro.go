@@ -55,7 +55,8 @@ func NewInteiro(obj any) (Objeto, error) {
 		return Inteiro(b), nil
 	case int64:
 		if b >= int64(cacheInteirosMin) && b <= int64(cacheInteirosMax) {
-			return cacheInteiros[int(b)-cacheInteirosMin], nil
+			bInt := int(b)
+			return cacheInteiros[bInt-cacheInteirosMin], nil
 		}
 		return Inteiro(b), nil
 	case Inteiro:
