@@ -5,6 +5,8 @@
   "patterns": [
     { "include": "#comments" },
     { "include": "#strings" },
+    { "include": "#jsx-tags" },
+    { "include": "#styles" },
     { "include": "#numbers" },
     { "include": "#constants" },
     { "include": "#keywords" },
@@ -19,11 +21,7 @@
     { "include": "#properties" },
     { "include": "#variables" },
     { "include": "#operators" },
-    { "include": "#punctuation" },
-    { "include": "#jsx-tags" },
-    { "include": "#html-tags" },
-    { "include": "#components" },
-    { "include": "#styles" }
+    { "include": "#punctuation" }
   ],
   "repository": {
     "comments": {
@@ -89,13 +87,13 @@
     },
     "storage": {
       "patterns": [
-        { "name": "storage.type.harpia", "match": "\\b(constante|var|funcao|classe|interface|tipo|enum)\\b" },
+        { "name": "storage.type.harpia", "match": "\\b(constante|const|var|let|funcao|func|classe|estilo|interface|tipo|enum)\\b" },
         { "name": "storage.modifier.harpia", "match": "\\b(publico|privado|protegido|estatico|abstrato|final|assincrono|espera)\\b" }
       ]
     },
     "builtins": {
       "patterns": [
-        { "name": "support.function.builtin.harpia", "match": "\\b(sinal|efeito|armazem|recurso|imprimir|escreva|leia|mostre)\\b" }
+        { "name": "support.function.builtin.harpia", "match": "\\b(sinal|efeito|armazem|recurso|imprimir|imprima|escreva|leia|mostre)\\b" }
       ]
     },
     "modifiers": {
@@ -115,14 +113,15 @@
     },
     "functions": {
       "patterns": [
-        { "name": "entity.name.function.harpia", "match": "(?<=funcao\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
+        { "name": "entity.name.function.harpia", "match": "(?<=\\b(?:funcao|func)\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
       ]
     },
     "classes": {
       "patterns": [
-        { "name": "entity.name.type.class.harpia", "match": "(?<=classe\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
-        { "name": "entity.name.type.interface.harpia", "match": "(?<=interface\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
-        { "name": "entity.name.type.enum.harpia", "match": "(?<=enum\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
+        { "name": "entity.name.type.class.harpia", "match": "(?<=\\bclasse\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "entity.name.type.style.harpia", "match": "(?<=\\bestilo\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "entity.name.type.interface.harpia", "match": "(?<=\\binterface\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
+        { "name": "entity.name.type.enum.harpia", "match": "(?<=\\benum\\s+)[a-zA-Z_][a-zA-Z0-9_]*" }
       ]
     },
     "components": {
@@ -149,6 +148,7 @@
     },
     "variables": {
       "patterns": [
+        { "name": "variable.other.readwrite.declaration.harpia", "match": "(?<=\\b(?:var|const|constante|let)\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
         { "name": "variable.other.readwrite.harpia", "match": "\\b[a-z_][a-zA-Z0-9_]*\\b" },
         { "name": "variable.language.self.harpia", "match": "\\b(self|isto|super)\\b" }
       ]
@@ -173,21 +173,60 @@
     },
     "jsx-tags": {
       "patterns": [
-        { "name": "keyword.control.tag.harpia", "match": "(?<=</?)(se|para)\\b" },
-        { "name": "entity.name.tag.harpia", "match": "(?<=</?)[a-zA-Z][a-zA-Z0-9:-]*(?=>|\\s|/?>)" },
-        { "name": "entity.other.attribute-name.modifier.harpia", "match": "(?<=ao[a-zA-Z]+)_(prevenir|parar)\\b" },
-        { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" },
-        { "name": "punctuation.definition.tag.harpia", "match": "</?|/?>" }
-      ]
-    },
-    "html-tags": {
-      "patterns": [
         {
           "name": "meta.tag.harpia",
-          "begin": "</?[a-zA-Z][a-zA-Z0-9:-]*",
-          "end": "/?>",
+          "begin": "(</?)(se|para)\\b",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.tag.harpia" },
+            "2": { "name": "keyword.control.tag.harpia" }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.tag.harpia" }
+          },
           "patterns": [
-            { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" }
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "name": "entity.other.attribute-name.modifier.harpia", "match": "\\bao[a-zA-Z]+_(prevenir|parar)\\b" },
+            { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" },
+            { "name": "keyword.operator.assignment.harpia", "match": "=" },
+            {
+              "begin": "\\{",
+              "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.harpia" } },
+              "end": "\\}",
+              "endCaptures": { "0": { "name": "punctuation.section.embedded.end.harpia" } },
+              "patterns": [
+                { "include": "$self" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "meta.tag.harpia",
+          "begin": "(</?)([a-zA-Z][a-zA-Z0-9:-]*)",
+          "beginCaptures": {
+            "1": { "name": "punctuation.definition.tag.harpia" },
+            "2": { "name": "entity.name.tag.harpia" }
+          },
+          "end": "(/?>)",
+          "endCaptures": {
+            "1": { "name": "punctuation.definition.tag.harpia" }
+          },
+          "patterns": [
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "name": "entity.other.attribute-name.modifier.harpia", "match": "\\bao[a-zA-Z]+_(prevenir|parar)\\b" },
+            { "name": "entity.other.attribute-name.harpia", "match": "\\b[a-zA-Z][a-zA-Z0-9:-]*\\b" },
+            { "name": "keyword.operator.assignment.harpia", "match": "=" },
+            {
+              "begin": "\\{",
+              "beginCaptures": { "0": { "name": "punctuation.section.embedded.begin.harpia" } },
+              "end": "\\}",
+              "endCaptures": { "0": { "name": "punctuation.section.embedded.end.harpia" } },
+              "patterns": [
+                { "include": "$self" }
+              ]
+            }
           ]
         }
       ]
