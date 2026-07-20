@@ -326,6 +326,33 @@ No ecossistema do Harpia, existem três formas distintas e regulamentadas para g
 2. **Estilo Inline Reativo em PT (`estilo={{...}}`)**: Se houver necessidade de aplicar estilos inline dinâmicos e baseados em Sinais usando propriedades em português, passe obrigatoriamente um **Objeto/Dicionário** para o atributo `estilo` (ex: `estilo={{ "corDeFundo": "#ff0000", "cor": "white" }}`). O runtime do Harpia mapeará estas propriedades dinamicamente em tempo de execução. Strings contendo sintaxe CSS em português (como `classe="corDeFundo: ..."` ou `style="corDeFundo: ..."`) **não são válidas** e não serão interpretadas pelo browser.
 3. **Estilo Inline Padrão (`style="..."`)**: Se desejar escrever estilos inline convencionais como string crua tradicional, utilize o atributo nativo HTML `style` acompanhado de regras padrão em inglês (ex: `style="background-color: #ff0000; color: white;"`).
 
+### Gestão de SEO, Meta Tags, CDNs e Fontes na Web
+O Harpia possui soluções integradas e declarativas de DX (Developer Experience) para gerenciar o ranqueamento e o cabeçalho das suas aplicações:
+1. **O HTML Mestre Estático**: O comando `harpia compilar --alvo=web` cria o arquivo `dist/index.html` básico do zero. CDNs externas, scripts de análise (como Google Analytics) e imports padrão de fontes podem ser colados diretamente no cabeçalho do arquivo base de template.
+2. **Imports de Fontes**: É possível carregar fontes externas via CSS inline de importação dentro de arquivos de `estilo` do Harpia:
+   ```harpia
+   @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
+   ```
+3. **Controle de Meta Tags de SEO e Redes Sociais**: Através do objeto nativo global `documento`, o programador pode controlar de forma dinâmica as meta tags do documento nas transições de rotas SPA (ex: `documento.titulo = "Produto"; documento.definirMeta("description", "Descrição do Item"); documento.definirMeta("og:title", "Item")`).
+4. **Pré-renderização (SSG & SSR)**: Suporta a geração estática de rotas (Static Site Generation) durante o build ou renderização no servidor backend (Server-Side Rendering) integrada a um processo síncrono de hidratação reativa no navegador para máxima indexação em mecanismos de pesquisa e mídias sociais.
+
+### Design Responsivo e Media Queries em Português (`@tela`)
+O ecossistema do Harpia fornece suporte de fábrica para criar interfaces que escalam de forma fluida de celulares a grandes telas de computadores:
+1. **A Diretiva `@tela`**: Dentro dos blocos de `estilo` do Harpia, a palavra-chave `@tela` compila de forma estática para `@media` do CSS nativo, aceitando propriedades de largura traduzidas:
+   ```harpia
+   exportar estilo PainelDashboard {
+       exibir: "grid";
+       colunasGrid: "repetir(3, 1fr)";
+
+       # Breakpoint para celulares (largura menor que 768px)
+       @tela (larguraMaxima: 768px) {
+           colunasGrid: "1fr";
+       }
+   }
+   ```
+2. **Breakpoints Utilitários do Linter**: Suporta o prefixo de breakpoints reativos do estilo Tailwind em português nas classes JSX (ex: `celular:flex-coluna`, `tablet:p-4`).
+3. **Injeção do Viewport**: O compilador web insere de forma automática a tag `<meta name="viewport" content="width=device-width, initial-scale=1.0">` no `index.html` gerado para que a aplicação mantenha escala física real de 1:1 em dispositivos portáteis.
+
 ---
 
 ## 8. Biblioteca Padrão (Stdlib v1.2.0)
@@ -617,7 +644,11 @@ testar "soma com valores negativos" {
 ## 11. Comandos da CLI
 
 * **Executar script diretamente**: `harpia executar arquivo.hrp` (suporta flag `--estrito` para validação rigorosa de anotações de tipo e `--vm` para execução na máquina virtual de bytecode otimizada).
-* **Iniciar REPL de Terminal**: `harpia` (inicializa console e TUI didática baseada em Bubbletea com painéis para REPL de código, inspetor de escopo/pilha da VM e painel de logs de saída e atalhos de ajuda).
+* **Iniciar REPL de Terminal**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair instantaneamente, utilitário `clear` para limpar tela, e ferramentas didáticas integradas como `ajuda <funcao>` para obter referências detalhadas de primitivas globais e `escopo` para debugar variáveis locais em memória).
+* **Compilar e Transpilar**: `harpia compilar --alvo=web --entrada=main.hrp --saida=dist` (transpila a AST do Harpia para plataformas específicas. Alvos suportados: `web` para HTML/JS Virtual DOM, `nativo` para AOT local do SO, `wasm` para WebAssembly).
+* **Servidor Web de Desenvolvimento**: `harpia servir --diretorio=dist --porta=8080` (hospeda localmente arquivos estáticos e de runtime da SPA de forma veloz e otimizada).
+* **Gerador de Projetos (Scaffolding)**: `harpia novo [backend | frontend | monolito] [nome]` (inicializa árvores organizacionais em português sob Clean Architecture e DDD completas com documentos `docs/` e `README.md` explicativos).
+* **Gerador de Componentes**: `harpia crie [rota | componente | modelo] [nome]` (gerador dinâmico de templates lógicos e estilizações nativas `.hrp` de acordo com a Clean Architecture).
 * **Executar suíte de testes**: `harpia testar [caminho_ou_pasta]` (varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa).
 * **Servidor LSP Integrado**: `harpia lsp` (inicia servidor oficial LSP via stdio. Declara `"documentFormattingProvider": true` na inicialização em Go para responder síncronamente à requisição `textDocument/formatting` usando `FormatarCodigoHarpia(codigo)` de `cmd/formatar.go`. A extensão `vscode-harpia` instancia o cliente LSP via `LanguageClient` do `vscode-languageclient` em `extension.js`, registrando o formatador nativo no VS Code ao detectar o suporte do servidor. Habilita formatação com `Shift+Alt+F` / `Shift+Option+F` ou automática ao salvar com `"editor.formatOnSave": true`. Oferece autocompletar termos, linter Clean Arch, hover lendo `///` e definição F12).
 * **Análise Estática e Linter**: `harpia checar [caminho] [flags]` (linter semântico offline-friendly que valida redeclarações, reatribuição de `const`, parâmetros duplicados e emite diagnósticos amigáveis ou JSON padrão LSP).
@@ -625,7 +656,6 @@ testar "soma com valores negativos" {
 * **Gerador de Diagramas**: `harpia diagramar [diretorio] --formato=html --saida=diag.html` (Mapeia as relações de dependências estáticas do Clean Architecture gerando grafos Mermaid, colorindo violações arquiteturais em vermelho grossa e conexões saudáveis em verde, além de expor botão de download de imagem vetorial `.svg` no browser em 1 clique).
 * **Gerenciador de Pacotes e Dependências**: `harpia instalar [nome-pacote]` (resolve e baixa pacotes remotos consultando restrições Semver no índice JSON público do registro central em português, gravando o módulo de forma segura contra Zip Slip em `./pt_modulos/`).
 * **Extrair Documentação de Comentários de Três Barras (`///`)**: `harpia doc pasta/ --formato=markdown` (extração nativa de docstrings).
-* **Gerar Scaffolding de Código**: `harpia crie [rota | componente | modelo] nome` (assistente interativo de templates direcionados de Clean Architecture e DDD).
 * **Empacotar em Binário Nativo Único ou WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` (compila o script embutido em binário executável local do SO) e `harpia empacotar --so=js --arq=wasm` (compila o interpretador completo para WebAssembly gerando `docs/portal/harpia.wasm` e copiando o carregador JS portátil `wasm_exec.js` do GOROOT de forma automática).
 * **Publicar Extensão do VS Code (`vscode-harpia`)**: O processo de publicação e empacotamento oficial da extensão para o Marketplace do VS Code usa a CLI oficial `vsce`. Passos:
   1. Instalar ferramenta globalmente: `npm install -g @vscode/vsce`
@@ -634,18 +664,24 @@ testar "soma com valores negativos" {
   4. Realizar o login do publicador no terminal via `vsce login [id-publicador]` (colando o PAT gerado).
   5. Para publicar na nuvem Marketplace: rodar `vsce publish` dentro da pasta `vscode-harpia/`.
   6. Para apenas empacotar em um instalador local off-line: rodar `vsce package`, gerando o arquivo instalável `.vsix`.
-* **Especificação de Realce de Cores e DX do VS Code**: A extensão oficial (`vscode-harpia`) implementa regras refinadas do TextMate (`harpia.tmLanguage.json`) e configurações de produtividade para maior clareza visual:
+* **Especificação de Realce de Cores e DX do VS Code**: A extensão oficial (`vscode-harpia`) implementa regras refinadas do TextMate (`harpia.tmLanguage.json`) e configurações de produtividade de ponta para maior clareza visual e DX ideal:
   1. *Comentários Suaves*: Comentários `#` (linha única) ou `<!-- -->` (bloco XML/JSX) são processados no topo do arquivo TextMate, desabilitando colorizações indesejadas de palavras-chave como `funcao` ou `sinal` dentro de textos comentados.
-  2. *Tags XML/JSX*: Tags do Virtual DOM do frontend (como `<div>`, `<section>`, `<main>`) e seus delimitadores (`<`, `/>`, `</`) são coloridos sob a classe `entity.name.tag`.
-  3. *Chamadas de Funções*: Chamadas síncronas/reativas e métodos (`somar()`, `setCodigo()`, `imprimir()`) são identificados e coloridos em escopo de função `entity.name.function`.
-  4. *Propriedades de Objetos*: Atributos pós-ponto (como `self.nome` ou `carrinho.itens`) recebem o escopo `variable.other.property`.
-  5. *Suporte a Aspas Simples*: Strings de aspas simples (`'textos'`) são coloridas como strings de forma idêntica às aspas duplas.
-  6. *Error Lens Recomendado*: O projeto da extensão includes recomendações no arquivo `.vscode/extensions.json` para instalar o **Error Lens**, habilitando de forma síncrona a renderização de erros LSP inline no final de cada linha.
+  2. *Tags XML/JSX Estruturais*: Tags do Virtual DOM do frontend (como `<div>`, `<section>`) são coloridas sob a classe `entity.name.tag`. Tags estruturais compiladas do framework (como `<se>` e `<para>`) recebem realce especial de palavra-chave de controle de fluxo (`keyword.control.tag`).
+  3. *Modificadores de Eventos*: Modificadores de ações de eventos no JSX (como `_prevenir` e `_parar` em atributos `ao...`) são reconhecidos em escopo próprio de modificador para indicação clara de comportamento.
+  4. *Chamadas de Funções & Métodos*: Chamadas síncronas/reativas (`somar()`, `setCodigo()`, `imprimir()`) são identificadas e coloridas em escopo de função `entity.name.function`.
+  5. *Propriedades de Objetos*: Atributos pós-ponto (como `self.nome` ou `carrinho.itens`) recebem o escopo `variable.other.property`.
+  6. *Tipos Opcionais Estritos*: Tipos nativos com inicial maiúscula ou minúscula (como `Inteiro`, `Texto`, `Decimal`, `Booleano`, `Canal`, `Lista`, `Mapa`, etc.) são coloridos na classe `support.type.primitive.harpia`.
+  7. *Suporte a Aspas Simples*: Strings de aspas simples (`'textos'`) são coloridas como strings de forma idêntica às aspas duplas.
+  8. *Error Lens Recomendado*: O projeto recomenda o **Error Lens** no arquivo `.vscode/extensions.json` para habilitar a renderização síncrona de diagnósticos LSP inline.
+  9. *Autocomplete & Signature Help*: Fornece autocompletação inteligente (`CompletionItemProvider`) de módulos e funções stdlib ao importar, e ajuda de assinatura de parâmetros (`SignatureHelpProvider`) de funções locais/nativas em tempo real.
+  10. *Go to Definition & Hover*: Provedor de Hover avançado que lê comentários (`#` ou `//`), herança recursiva profunda (`estende`) e resolve importações em arquivos locais, casado ao `DefinitionProvider` para navegação rápida de código (F12).
+  11. *Code Lenses para Testes*: Link interativo flutuante `▶️ Executar teste` sobre blocos `testar` nativos para rodar cenários isoladamente.
+  12. *Color Picker Completo*: Exibe blocos coloridos e abre seletor dinâmico nativo para strings hexadecimais, funções `rgb()`, `rgba()`, `hsl()`, `hsla()` e cores nomeadas CSS tradicionais.
 
 ---
 
 ## 12. Máquina Virtual e Compilação de Bytecode
-
+hrp
 Para sistemas que exigem máxima performance, o Harpia oferece uma Máquina Virtual (VM) de pilha e um compilador estático dedicados e escritos em Go.
 
 ### Compilador e Bytecode (`.hrpc`)
@@ -675,7 +711,7 @@ Para expandir as capacidades de execução e atender aos requisitos corporativos
 ### ⚙️ 13.1 Transpilação Ahead-Of-Time (AOT)
 O utilitário de compilação embutido no compilador implementa um transpiler AOT de alta performance (`cmd/transpiler_native.go`).
 * **Tradutor AST-para-Go**: Em vez de interpretar nós de árvore de forma dinâmica e lenta, o transpiler varre recursivamente a AST Harpia e gera o respectivo código fonte Go nativo super otimizado.
-* **Preservação de Escopos Léxicos**: Variáveis locais e símbolos globais do Harpia são mapeados diretamente para estruturas de dados de alta localidade na VM nativa (`ptst.Escopo`), preservando fechamentos (closures) e permitindo interoperabilidade transparente com a biblioteca padrão escrita em Go.
+* **Preservação de Escopos Léxicos**: Variáveis locais e símbolos globais do Harpia são mapeados diretamente para estruturas de dados de alta localidade na VM nativa (`hrp.Escopo`), preservando fechamentos (closures) e permitindo interoperabilidade transparente com a biblioteca padrão escrita em Go.
 * **Template Stub de Referência**: O template gerador nativo injeta referências em branco (ex: `var _ = fmt.Printf`) para mitigar o problema clássico de imports de Go não utilizados que inviabilizavam compilações dinâmicas de pequenos trechos de scripts.
 
 ### 🗑️ 13.2 Otimizador Estático & Dead Code Elimination (DCE)
@@ -688,3 +724,181 @@ O Harpia suporta compilação cruzada completa do compilador/interpretador para 
 * **Tags de Compilação Condicional**: Para possibilitar builds leves no browser e evitar dependências problemáticas de CGO e chamadas nativas de sistema de arquivos incompatíveis com WASM (como as da biblioteca SQLite `modernc.org/libc`), a biblioteca padrão do Harpia adota isolamento de escopo no agregador de imports (`stdlib.go`).
 * **Módulos Nativos Isolados (`stdlib_native.go`)**: Através da diretiva condicional Go `//go:build !js && !wasm`, o compilador exclui de forma cirúrgica drivers relacionais pesados, interfaces direct socket (`soquete`) e outras chamadas a drivers do sistema operacional nativo em builds WebAssembly, mantendo o tamanho e a integridade da sandbox.
 * **Build Automatizado**: O comando `harpia empacotar --so=js --arq=wasm` realiza toda a coordenação do compilador Go, extraindo o carregador JavaScript síncrono `wasm_exec.js` correspondente do GOROOT de forma totalmente automatizada e transparente para o desenvolvedor.
+
+---
+
+## 14. Migrations SQLite Sem-CGO (`harpia migrar`)
+
+Sistema nativo de evolução de schema de banco de dados, implementado em `cmd/migrar.go`. Dispensa totalmente o uso de CGO através do driver `github.com/glebarez/go-sqlite` (puro Go, transpilado de SQLite amalgamation).
+
+### 📦 14.1 Comandos Suportados
+
+* **`harpia migrar criar <nome>`**: Cria arquivo timestamped `infra/migracoes/AAAA-MM-DD-HHmmss-<nome>.sql` com template contendo marcadores `-- +migrar ParaCima` (SQL de subida) e `-- +migrar ParaBaixo` (SQL de descida). Suporta diretórios `infra/migracoes/` ou `migracoes/` (primeiro encontrado vence; default `infra/migracoes/`).
+* **`harpia migrar aplicar`**: Lê todos os arquivos `.sql` em ordem alfabética, extrai o bloco `-- +migrar ParaCima`, ignora vazios, pula migrados, executa em transação por arquivo, registra na tabela `_migracoes (versao TEXT PRIMARY KEY, aplicada_em DATETIME)`. Aplica pragmas WAL e foreign_keys automaticamente via query string.
+* **`harpia migrar status`**: Lista todas as migrations em formato tabular `[VERSAO | ESTADO | ARQUIVO]` com `aplicada` ou `pendente`.
+* **`harpia migrar reverter [N]`**: Aplica o bloco `-- +migrar ParaBaixo` das últimas N migrations aplicadas (default 1) ordenadas por `aplicada_em DESC`, removendo-as do registro.
+
+### 🔖 14.2 Formato de Arquivo de Migration
+
+```sql
+-- +migrar ParaCima
+CREATE TABLE usuarios (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nome TEXT NOT NULL,
+  criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_usuarios_nome ON usuarios(nome);
+-- +migrar ParaBaixo
+DROP INDEX IF EXISTS idx_usuarios_nome;
+DROP TABLE IF EXISTS usuarios;
+```
+
+A função `extrairBloco(src, marcador)` varre linha-a-linha a partir de cada marcador, coletando conteúdo até o próximo marcador. Strings dentro do bloco são preservadas cruas.
+
+### ⚙️ 14.3 Detalhes Técnicos
+
+* **Driver CGO-Free**: `glebarez/go-sqlite` é uma reimplementação pura Go usando tradução direta do `SQLite amalgamation`, evitando todo o overhead de boundary-cross entre Go e C. Binário compilado roda em qualquer plataforma sem necessidade de gcc.
+* **Registro Protegido**: A tabela `_migracoes` é criada com `IF NOT EXISTS` em modo idempotente, permitindo re-execução segura.
+* **Mesmo arquivo em multi-alvo**: As migrations são agnósticas de banco; o driver `glebarez/go-sqlite` suporta PostgreSQL e MySQL via mesma interface, mas o foco atual é SQLite para ambientes de desenvolvimento e produção leves.
+
+---
+
+## 15. Progressive Web Apps (PWAs) Nativas (`harpia pwa`)
+
+Pipeline completo de geração de assets PWA para projetos Harpia que já fizeram build web, implementado em `cmd/pwa.go`. Não requer frameworks externos — usa apenas stdlib (`encoding/json`, `os`, `path/filepath`).
+
+### 📦 15.1 Comportamento
+
+O comando recebe como entrada o diretório de saída gerado por `harpia compilar --alvo=web`, tradicionalmente chamado `dist/` (configurável via `--dir`), e gera **três artefatos essenciais de PWA**:
+
+1. **`manifest.webmanifest`**: JSON formatado com `json.MarshalIndent` contendo:
+   * `name` / `short_name` (lidos de `dependencias.json` ou defaults)
+   * `start_url: "/"`, `display: "standalone"`
+   * `background_color` / `theme_color`
+   * Array `icons` com tamanhos 192x192 e 512x512 (PNG)
+
+2. **`sw.js`** (Service Worker): Estratégia **cache-first** com fallback network, implementada em JS puro (~30 linhas):
+   * Lista `PRECACHE` inclui `/`, `/index.html`, `/app.js`, `/runtime-web.js`, `/estilos.css`, `/manifest.webmanifest`
+   * Handler `install` popula cache inicial com `skipWaiting`
+   * Handler `fetch` consulta cache; em miss, faz `fetch()` e armazena cópia quando resposta é `200` e tipo `basic`. Fallback final: `/index.html` (offline shell).
+
+3. **Patch idempotente em `index.html`**:
+   * Injeta `<link rel="manifest" href="/manifest.webmanifest">` antes de `</head>` (se ausente)
+   * Injeta `<meta name="theme-color" content="<cor>">` se ausente
+   * Se flag `--registrar` for passada, injeta script antes de `</body>` que registra o `/sw.js` após `load` event, com `.catch(() => {})` silencioso
+
+### ⚙️ 15.2 Flags
+
+* `--dir` (default `dist`): diretório alvo dos assets
+* `--nome` / `--curto`: metadados da app (lidos de `dependencias.json` se vazios — leitura crude via `strings.Index`, sem schema)
+* `--cor-fundo` (default `#ffffff`) / `--cor-tema` (default `#3b82f6`): esquema de cores
+* `--registrar` (bool): ativa injeção do SW registration
+
+### 🔧 15.3 Filosofia de Design
+
+A geração de PWA é parte do pipeline de compilação por design: cada `harpia compilar --alvo=web` pode ser seguido por `harpia pwa` para promover o bundle web a uma SPA instalável, sem ferramentas JavaScript externas (Workbox, WebpackPwaPlugin, etc). A integração com `dependencias.json` permite que o nome/short_name da PWA derivem da identidade do projeto, mantendo coerência entre branding da landing page e PWA instalada.
+
+---
+
+## 16. Internacionalização (i18n) com Catálogos Gettext (`harpia i18n`)
+
+Sistema leve de tradução no formato gettext (`.pot` / `.po`), implementado em `cmd/i18n.go`. **Zero dependências externas** — usa apenas stdlib (`fmt`, `os`, `regexp`, `strings`).
+
+### 📦 16.1 Comandos
+
+* **`harpia i18n extrair <arquivo|dir>`**: Varre recursivamente arquivos `.ptst`/`.pt`. Para cada chamada compatível — `t("...")`, `i18n.texto("...")`, `tr("...")`, `traduzir("...")`, `texto("...")` — captura o primeiro argumento string literal como `msgid`. **Strip de comentários**: linhas começando com `--` (sintaxe Harpia) são removidas via regex antes da varredura, evitando match em exemplos falsos.
+* **`harpia i18n novo <idioma>`**: Cria `<idioma>.po` vazio no diretório de catálogos, copiando o cabeçalho do `.pot` se existir; senão usa header genérico sem PO entries.
+
+### 🔖 16.2 Formato `.pot` Gerado
+
+```
+# Catálogo POT (template) gerado por `harpia i18n extrair`
+# Domínio: harpia
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: pt\n"
+
+#: /path/to/arquivo.ptst:12
+msgid "olá mundo"
+msgstr ""
+
+#: /path/to/arquivo.ptst:18
+msgid "login bem-vindo"
+msgstr ""
+```
+
+* Entradas são deduplicadas por `msgid`. **Referências**: Cada entrada inclui os arquivos:linhas onde foi encontrada via comentário `#:` gettext padrão.
+* Saída é ordenada alfabeticamente por `msgid`, garantindo diffs estáveis em sistemas de controle de versão.
+
+### ⚠️ 16.3 Decisões de Design (Tradeoffs)
+
+* **Heurística Baseada em Regex**: A detecção atual usa `regexp.MustCompile` ao invés de AST walks. A regex captura chamadas no formato `(?:t|tr|i18n.texto|texto|traduzir)\s*\(\s*"((?:[^"\\]|\\.)*)"`. Tradeoff: velocidade 10x maior que parse+walk, mas pode capturar falsos positivos em strings dentro de comentários (mitigado por strip de `--`). **Refinar quando AST pública do parser** permitir visita sem custos adicionais de cache (marcado como deferral explícito, heuristic conhecida).
+* **Escape PO**: Suporta escapes `\\`, `\"`, `\n`, `\t`. Não suporta `\uXXXX` Unicode escapes (strings Harpia aceitam UTF-8 nativo, raramente necessário).
+* **Domínio Único por Build**: Suporta múltiplos domínios via flag `--dominio` (default `harpia`), mas não há multi-domínio simultâneo em um único projeto.
+
+### 💡 16.4 Integração com Stdlib `i18n` (Futuro)
+
+O comando CLI extrai msgsid de strings `t(..."...")`, mas a resolução runtime (`buscar(msgid, locale)`) deve residir em módulo stdlib `std/i18n.hrp` (não implementado ainda; tracked para Fase 6+). O catálogo `.po` será então compilado em bundle binário por `harpia compilar` e exposto via API `i18n.t("msgid", "lang_fallback")`.
+
+---
+
+## 17. Análise Estática Aprimorada do Copiloto (`harpia copiloto revisar | refatorar`)
+
+Estende o comando principal `harpia copiloto` (que usa Ollama para autocompletar) com dois subcomandos de análise estática 100% local e determinística (sem I/O de IA).
+
+### 🔍 17.1 `harpia copiloto revisar <arquivo>`
+
+Lê o arquivo `.ptst` e identifica violações de heurísticas simples mas práticas:
+
+* **Função longa**: qualquer `funcao nome(...) {` que ocupe mais de **80 linhas** (limite arbitrário baseado em cognitive load research)
+* **Muitos parâmetros**: assinatura com 5+ parâmetros
+* **Aninhamento profundo**: indentação > **4** níveis
+* **Variável `_` não usada**: nome começando com `_` que não é referenciado no escopo abaixo da declaração (heurística conservativa — nomes compostos `__doc` são ignorados)
+* **Comentários `TODO` / `FIXME`**: qualquer ocorrência textual, mesmo dentro de strings (tradeoff de simplicidade)
+
+**Saída**: lista `[ARQUIVO:linha] tipo → mensagem` em PT-BR, com sumário final.
+
+Exemplo:
+```
+[/path/to/arquivo.ptst:91] função-longa → função 'comandoMigrar' possui 184 linhas (limite 80)
+[/path/to/arquivo.ptst:91] aninhamento → função 'comandoMigrar' atinge profundidade 6 (limite 4)
+
+Sumário: 2 achado(s) em /path/to/arquivo.ptst.
+```
+
+### 🛠️ 17.2 `harpia copiloto refatorar <arquivo>`
+
+Para cada função > 80 linhas, sugere extração de helpers:
+
+1. Mostra `[linha N – linha M]` do bloco total
+2. Mostra as primeiras e últimas linhas do bloco para contexto
+3. Sugere um nome para o helper extraído: aplica heurística de **verbos + substantivo** sobre as 3 primeiras linhas do bloco
+   * Lista de verbos reconhecidos: `validar`, `calcular`, `processar`, `formatar`, `carregar`, `salvar`, `buscar`, `enviar`, `parsear`, `montar`
+   * Lista de substantivos comuns: `usuario`, `pedido`, `requisicao`, `resposta`, `config`, `parametro`
+   * Fallback: `helper_N` (sequencial numérico)
+
+### ⚙️ 17.3 Stack Técnico
+
+* **Lexer Regular**: `cmd/copiloto.go` usa scanner linha-a-linha com expressões regulares precompiladas para detectar boundaries de funções. Não usa AST parser — propositadamente separado para rodar em pré-build sem custo de construção das tabelas de símbolos.
+* **Determinístico**: output é byte-a-byte reproduzível, ideal para CI/pre-commit hooks.
+* **Sem Estado**: Cada invocação é independente. Não usa cache, não faz I/O paralelo.
+
+### 💡 17.4 Filosofia Local-First
+
+O copiloto preserva a filosofia do projeto de **zero dependências externas** para análise estática. Análises mais complexas (data-flow, type-check) continuam delegadas à IA Ollama opcional, mas casos triviais continuam resolúveis offline em <50ms.
+
+---
+
+## 18. Tabela Resumida: Comandos Adicionados na Iteração Atual
+
+| # | Comando              | Categoria         | Saída Principal                                    |
+| - | -------------------- | ----------------- | -------------------------------------------------- |
+| 13| `harpia migrar`      | Persistência      | Arquivos `.sql` + tabela `_migracoes`              |
+| 14| `harpia pwa`         | Web Moderno       | `manifest.webmanifest` + `sw.js` + patch HTML      |
+| 15| `harpia i18n`        | Localização       | `.pot` / `.po` deduplicados, com refs `#:`         |
+| 16| `harpia copiloto` (subs) | Qualidade de Código | Lista textual de achados em PT-BR                   |
+
+Todos implementados como arquivos únicos em `cmd/`, sem adição de novas dependências externas ao `go.mod`. Cada comando pode ser usado standalone via `go run . <comando> [flags]` durante desenvolvimento.

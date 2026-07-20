@@ -81,11 +81,13 @@ assincrono funcao consumidor(canal: Canal) {
 
 ## ⚛️ Reatividade e Frontend (SPA)
 
-Os arquivos em `/web/rotas/` determinam a rota (ex: `index.hrp` -> `/`).
+Os arquivos em `/web/rotas/` determinam a rota (ex: `rotas.hrp` -> `/`).
 
 ```harpia
 // Sinais e Efeitos (Devem ser declarados no ESCOPO GLOBAL fora dos componentes funcionais, prevenindo que sejam recriados e reiniciados a cada ciclo de renderização do efeito de reconciliação)
-var [contador, definirContador] = sinal(0)
+var contadorSinal = sinal(0)
+var contador = contadorSinal[0]
+var definirContador = contadorSinal[1]
 
 efeito(funcao() {
     imprimir("Contador mudou para: " + contador())
@@ -99,10 +101,12 @@ funcao BotaoContador() {
 }
 ```
 
-### 🎨 Estilização Inline e Classes
-* **Blocos `estilo`**: Recomendado declarar classes em português no topo do arquivo (ex: `estilo MeuCard { corDeFundo: "#ff0000" }`).
+### 🎨 Estilização, Fontes, SEO e Responsividade na Web
+* **Blocos `estilo`**: Recomendado declarar classes em português (ex: `estilo MeuCard { corDeFundo: "#ff0000" }`). Suporta importação de fontes externas via `@import url(...)` no cabeçalho das folhas de estilo.
 * **Estilo Inline em PT**: Deve ser passado como um **Objeto/Dicionário** para o atributo `estilo` (ex: `estilo={{ "corDeFundo": "#ff0000" }}`). Strings livres em português não são processadas.
 * **Estilo Inline Padrão**: Use o atributo `style` nativo do HTML com strings convencionais em inglês (ex: `style="background-color: #ff0000"`).
+* **SEO e Metadados**: O objeto nativo `documento` permite manipular dinamicamente o título e as meta tags de roteamento para SEO e redes sociais (ex: `documento.titulo = "Loja"; documento.definirMeta("og:title", "Item")`). Suporta pré-renderização estática (SSG) ou SSR no servidor para indexação robusta.
+* **Responsividade `@tela`**: A palavra-chave `@tela` é compilada estaticamente para `@media` do CSS nativo, permitindo o aninhamento direto de media-queries responsivas em português (ex: `@tela (larguraMaxima: 768px) { ... }`). O CLI compila de fábrica a tag `<meta name="viewport" ...>` no `index.html` para perfeita visualização de escala 1:1 em celulares e tablets.
 
 ---
 
@@ -142,11 +146,36 @@ meu-app/
 ---
 
 ## 🛠️ Comandos Principais da CLI
-* **REPL/TUI**: `harpia` (Console interativo Bubbletea/REPL didático).
-* **Executar script**: `harpia executar main.hrp` (ou `--vm` para bytecode de alta performance).
-* **Testes unitários**: `harpia testar [caminho]` (executa blocos `testar` isolados).
-* **Servidor LSP**: `harpia lsp` (autocomplete, linter, hover e **formatação automática ao salvar**).
+* **REPL de Terminal**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair instantaneamente, utilitário `clear` para limpar tela, e comandos didáticos integrados como `ajuda <funcao>` e `escopo` para debugar variáveis locais em memória).
+* **Executar script**: `harpia executar main.hrp` (ou `--vm` para bytecode otimizado, `--estrito` para validação rígida de tipos).
+* **Linter Estático**: `harpia checar arquivo.hrp` (análise semântica offline que detecta variáveis não declaradas, reatribuições e erros de sintaxe).
+* **Transpilação & Compilação**: `harpia compilar --alvo=web --entrada=main.hrp --saida=dist` (transpila para Virtual DOM / JavaScript puro. Alvos suportados: `web`, `nativo`, `wasm`).
+* **Servidor Web Local**: `harpia servir --diretorio=dist --porta=8080` (hospeda a SPA compilada localmente de forma extremamente ágil).
+* **Gerador de Projetos**: `harpia novo [backend | frontend | monolito] [nome]` (scaffolds completos em português seguindo Clean Architecture e DDD com guias de arquitetura ricos e `README.md` explicativos).
+* **Gerador de Templates**: `harpia crie [rota | componente | modelo] [nome]` (geração assistida de templates em português para projetos existentes).
+* **Testes unitários**: `harpia testar [caminho]` (executa blocos `testar` nativos).
+* **Servidor LSP**: `harpia lsp` (autocomplete, linter, hover lendo comentários `///`, e **formatação automática ao salvar**).
+* **Gerador de Diagramas**: `harpia diagramar` (gera grafo Mermaid interativo colorindo de vermelho as violações de Clean Arch e verde as conexões saudáveis).
+* **Gerenciador de Pacotes**: `harpia instalar [pacote]` (resolve versões semver do registro central em português).
 * **Otimização & DCE**: O otimizador estático (`cmd/otimizador.go`) realiza duas passadas na AST, removendo código morto e colapsando caminhos condicionais constantes antes do empacotamento.
 * **Transpilação AOT & WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` transpila a AST diretamente para código Go nativo (`cmd/transpiler_native.go`) de alta performance. Adicionar `--so=js --arq=wasm` compila para WebAssembly isolando drivers nativos via conditional build tags em `stdlib_native.go`.
-* **Gerador de Diagramas**: `harpia diagramar` (gera grafo Mermaid interativo local colorindo de vermelho grosso as violações de Clean Arch).
-* **Gerenciador de Pacotes**: `harpia instalar [pacote]` (resolve versões semver do registro central em português).
+* **Migrations SQLite (sem CGO)**: `harpia migrar criar <nome>` / `aplicar` / `status` / `reverter [N]` — driver `glebarez/go-sqlite`, marcador `-- +migrar ParaCima`/`ParaBaixo` para delimitar SQL de subida/descida.
+* **PWA a partir do build web**: `harpia pwa --dir=dist --registrar` — gera `manifest.webmanifest`, `sw.js` (cache-first) e patcha `index.html` com `<link rel="manifest">` + service worker opcional.
+* **Extração i18n (gettext)**: `harpia i18n extrair <arquivo|dir> --dir=traducoes --dominio=harpia` produz `.pot` deduplicado; `harpia i18n novo <idioma>` cria o `.po` correspondente. Sem dependências externas (apenas stdlib Go).
+* **Copiloto estático**: `harpia copiloto revisar <arquivo.ptst>` detecta função longa (>80 linhas), muitos parâmetros (>5), aninhamento (>4), vars `_` não usadas e TODO/FIXME. `harpia copiloto refatorar` sugere nomes de helpers.
+
+---
+
+## 🔌 Extensão Oficial do VS Code & Experiência do Desenvolvedor (DX)
+
+A extensão oficial **Harpia para VS Code** (`vscode-harpia`) é um pilar essencial para o desenvolvimento ágil, fornecendo inteligência avançada integrada para maximizar o foco e produtividade (DX) do desenvolvedor:
+
+1. **IntelliSense & Autocomplete Contextual**: Auto-completa diretivas de importação, detecta módulos nativos da stdlib (`"web"`, `"resiliencia"`, `"telemetria"`, `"ia"`, `"bd"`) e sugere automaticamente suas respectivas funções ao abrir chaves.
+2. **Ajuda de Assinatura de Parâmetros (Signature Help)**: Exibe balões de dicas interativos (`Ctrl+Shift+Space`) ao digitar argumentos de funções locais ou nativas, marcando o parâmetro ativo em negrito.
+3. **Hover de Documentação Rica & AST Local**: Mostra a documentação técnica oficial de palavras-chave ao passar o mouse. Caso o termo seja uma função, classe ou variável do usuário, a extensão analisa o código-fonte recursivamente, exibindo assinaturas e seus comentários de documentação (`#` ou `//`).
+4. **Resolução de Importações e Herança**: O Hover é capaz de resolver caminhos relativos de importações locais e varrer arquivos de destino para mapear cadeias complexas de herança de classes (`Cachorro ➔ Animal ➔ SerVivo`).
+5. **Navegação Inteligente (F12 — Go to Definition)**: Permite pular instantaneamente para o arquivo e linha exatos onde variáveis, funções ou classes locais/importadas foram declaradas.
+6. **Code Lenses para Testes Unitários**: Insere botões interativos **`▶️ Executar teste`** acima de cada bloco `testar` do arquivo, rodando cenários isoladamente de forma veloz no terminal com 1 clique.
+7. **Seletor de Cores Dinâmico (Color Picker)**: Detecta strings hexadecimais, formatos funcionais `rgb()`, `rgba()`, `hsl()`, `hsla()` e nomes de cores nomeadas CSS tradicionais, exibindo caixas de cores no editor e abrindo o seletor visual nativo para ajustes fáceis.
+8. **Formatação Inteligente**: Suporte a `Format on Save` integrado que aciona síncronamente `harpia formatar` na CLI para garantir estilo consistente do código.
+9. **Atalhos e Painel de Controle**: Teclas rápidas (`Ctrl+Alt+H` / `Cmd+Alt+H`) focam no webview lateral que permite gerenciar o servidor de desenvolvimento, gerar scaffolds de rota/componente/modelo e empacotar o software em 1 clique.
