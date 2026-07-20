@@ -100,7 +100,7 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		Text string `json:"text"`
 	}
 	type Content struct {
-		Role  string `Part` // 'user' ou 'model'
+		Role  string `json:"role"` // 'user' ou 'model'
 		Parts []Part `json:"parts"`
 	}
 
