@@ -18,6 +18,12 @@ Este arquivo é um guia exaustivo da linguagem Harpia, projetado para ser consum
 11. [Comandos da CLI](#11-comandos-da-cli)
 12. [Máquina Virtual e Compilação de Bytecode](#12-máquina-virtual-e-compilação-de-bytecode)
 13. [Compilação Ahead-Of-Time (AOT), Otimizador Estático (DCE) e WebAssembly (WASM)](#13-compilação-aot-otimizador-estático-dce-e-webassembly)
+14. [Migrations SQLite Sem-CGO](#14-migrations-sqlite-sem-cgo-harpia-migrar)
+15. [Progressive Web Apps (PWAs) Nativas](#15-progressive-web-apps-pwas-nativas-harpia-pwa)
+16. [Internacionalização (i18n) com Catálogos Gettext](#16-internacionalização-i18n-com-catálogos-gettext-harpia-i18n)
+17. [Análise Estática Aprimorada do Copiloto](#17-análise-estática-aprimorada-do-copiloto-harpia-copiloto-revisar--refatorar)
+18. [Tabela Resumida: Comandos Adicionados na Iteração Atual](#18-tabela-resumida-comandos-adicionados-na-iteração-atual)
+19. [Práticas de Segurança e Programação Defensiva](#19-práticas-de-segurança-e-programação-defensiva)
 
 ---
 
@@ -902,3 +908,45 @@ O copiloto preserva a filosofia do projeto de **zero dependências externas** pa
 | 16| `harpia copiloto` (subs) | Qualidade de Código | Lista textual de achados em PT-BR                   |
 
 Todos implementados como arquivos únicos em `cmd/`, sem adição de novas dependências externas ao `go.mod`. Cada comando pode ser usado standalone via `go run . <comando> [flags]` durante desenvolvimento.
+
+---
+
+## 19. Práticas de Segurança e Programação Defensiva
+
+Para manter o compilador, runtime e ferramentas do ecossistema Harpia blindados contra vulnerabilidades comuns de segurança (OWASP Top 10) e em conformidade estrita com auditorias avançadas (SAST / CodeQL), siga rigorosamente as diretrizes abaixo:
+
+### 19.1. Confinamento e Sanitização de Diretórios (Anti-Path Traversal)
+A leitura ou gravação de arquivos com base em parâmetros ou inputs vindo do usuário (como extrações de arquivos zip de bibliotecas ou downloads) introduz o risco de ataques de escape de diretório (Zip Slip / Path Traversal).
+- **Abordagem Insegura**: Confiar apenas em `filepath.Join(raiz, caminho)` ou `filepath.Clean`. Eles não impedem que um caminho contendo caminhos de subida como `..` escape e grave ou leia dados de pastas sensíveis do sistema de arquivos.
+- **Abordagem Segura (Canônica)**: Utilize sempre a função `filepath.Rel` para calcular o caminho relativo entre o diretório mestre autorizado e o caminho de destino resolvido. Interrompa a execução de forma síncrona com erro se o caminho resultante for absoluto ou apontar para cima (`..`):
+  ```go
+  rel, err := filepath.Rel(baseDir, arquivoDestino)
+  if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+      return nil, fmt.Errorf("caminho de arquivo ilegal e fora do diretório base")
+  }
+  ```
+
+### 19.2. Prevenção de Estouro e Conversão Insegura de Inteiros (CWE-190)
+Coerções de tipos inteiros de maior capacidade para tipos de menor capacidade (como de `int64` para `int`) sem validação de limites podem sofrer truncamento silencioso em plataformas de 32-bits, ocasionando loops infinitos ou falhas de estouro de memória.
+- **Abordagem Segura (Range Check)**: Certifique-se de que o número de 64-bits esteja contido de forma garantida e síncrona dentro dos limites de capacidade máxima e mínima do tipo de destino (`math.MinInt` e `math.MaxInt` em Go) antes de realizar o cast, ou utilize limites sensatos do seu negócio (como `1.000.000` registros ou `100` retentativas).
+- **Evitar Casts Desnecessários**: Se a biblioteca de destino (ex: serialização JSON do Qdrant) suportar o tipo original mais amplo (como `int64`), envie-o diretamente de forma estática sem realizar coerções.
+- **Constantes de Compilação para Análise Estática**: Ao criar pools ou fatias de cache de tamanho fixo, declare os limites superior e inferior usando constantes (`const`) em vez de variáveis (`var`). Isso permite que analisadores estáticos (como o CodeQL) comprovem em tempo de compilação a segurança dos limites e mitiga falsos positivos.
+
+### 19.3. Princípio de Privilégio Mínimo de Tokens de CI/CD (GitHub Actions)
+workflows do GitHub Actions herdam permissões de escrita por padrão que podem expor o repositório em caso de injeção ou comprometimento de dependências de terceiros.
+- **Abordagem Segura**: Declare de forma explícita o bloco de permissões globais no topo de cada workflow `.yml` de integração contínua (CI) e entrega contínua (CD), restringindo o `GITHUB_TOKEN` para permissões exclusivas de leitura de código para checkout:
+  ```yaml
+  permissions:
+    contents: read
+  ```
+
+### 19.4. Manipulações Cirúrgicas de Strings e Layouts (JS / Frontend)
+Substituições de strings com expressões regulares globais agressivas (como `.replace(/\{/g, '')`) podem inadvertidamente corromper trechos de código ou dados legítimos do usuário.
+- **Abordagem Segura**: Se o objetivo é remover apenas um caractere delimitador ou abertura de bloco no final ou início de uma declaração de linha, utilize métodos específicos de fronteira como `endsWith` combinado com fatiamento de string (`slice`):
+  ```javascript
+  let assinatura = linha.trim();
+  if (assinatura.endsWith('{')) {
+      assinatura = assinatura.slice(0, -1).trim();
+  }
+  ```
+

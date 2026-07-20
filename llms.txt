@@ -129,6 +129,11 @@ A partir da versão 1.2.0, o Harpia incorpora um conjunto completo de ferramenta
 ### 🤖 4. IA Generativa & Agentes (`importar ia`)
 - **Agentes de IA locais (Ollama)**: Integração nativa e validação semântica estrita de contratos de resposta via `validar_resposta(esquema, resposta_json)`.
 
+### 🔒 5. Segurança & Programação Defensiva Nativas
+- **Anti-Path Traversal**: Uso canônico e seguro de `filepath.Rel` para validar e confinar acessos ao sistema de arquivos dentro do diretório base pretendido.
+- **Validação de Limites de Inteiros**: Proteção estrita de fronteiras contra estouro de bits (CWE-190) e casts de inteiros inseguros utilizando constantes compiláveis.
+- **Privilégio Mínimo de Tokens de CI**: Declaração explícita de permissões de leitura do GITHUB_TOKEN em todos os workflows do GitHub Actions (`permissions: contents: read`).
+
 ---
 
 ## 📂 Estrutura de Clean Architecture e DDD

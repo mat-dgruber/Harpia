@@ -22,6 +22,16 @@ ocumento foi elaborado para servir tanto como um guia definitivo para desenvolve
 10. [Diagnósticos e Tratamento de Erros Ricos](#10-diagnósticos-e-tratamento-de-erros-ricos)
 11. [Console Interativo (REPL / Playground)](#11-console-interativo-repl--playground)
 12. [Guia de Sintaxe Rápida e Exemplos de Produção](#12-guia-de-sintaxe-rápida-e-exemplos-de-produção)
+13. [Desenvolvimento Frontend Reativo e SPA](#13-desenvolvimento-frontend-reativo-e-spa-sinais-jsx-estilos-e-ssr)
+14. [Segurança e Blindagem Corporativa](#capítulo-14--segurança-e-blindagem-corporativa-security-audit)
+15. [Otimizações Avançadas e Desempenho da Máquina Virtual](#capítulo-15--otimizações-avançadas-e-desempenho-da-máquina-virtual)
+16. [Novos Módulos Avançados da Biblioteca Padrão (Stdlib)](#capítulo-16--novos-módulos-avançados-da-biblioteca-padrão-stdlib)
+17. [Extensões de CLI, DevOps e DevOps DX](#capítulo-17--extensões-de-cli-devops-e-devops-dx)
+18. [Pacote de Inteligência Artificial e IA Generativa](#capítulo-18--pacote-de-inteligência-artificial-e-ia-generativa-de-ia)
+19. [Conectores de Banco de Dados Corporativos](#capítulo-19--conectores-de-banco-de-dados-corporativos-de-bd)
+20. [WebAssembly (WASM), WASI e Microsserviços Corporativos](#capítulo-20--webassembly-wasm-wasi-e-microsserviços-corporativos)
+21. [Documentação Ininterrupta e Estilo de Contribuição](#capítulo-21--documentação-ininterrupta-e-estilo-de-contribuição)
+22. [Práticas de Segurança e Programação Defensiva](#capítulo-22--práticas-de-segurança-e-programação-defensiva)
 
 ---
 
@@ -1411,3 +1421,50 @@ A linha mestra de desenvolvimento do Harpia se mantém desde a sua concepção:
 - **DX como prioridade**: Erros didáticos, mensagens contextuais e o comando `harpia erro explicar` integrado com LLMs locais.
 - **CLI consistente**: Nomes de comandos, flags e cláusulas escritos exclusivamente em português brasileiro (`--alvo`, `--estrito`, `--otimizar-assets`).
 - **Segurança por padrão**: Toda nova feature é auditada contra _path traversal_, condicional de corrida, DoS de payload e _race conditions_ em pipes assíncronos durante os testes de aceitação.
+
+---
+
+## Capítulo 22 — Práticas de Segurança e Programação Defensiva
+
+O ecossistema Harpia adota diretrizes estritas de desenvolvimento seguro de software para garantir conformidade em auditorias estáticas de código (SAST), auditorias de conformidade do GitHub Advanced Security (CodeQL) e mitigar vulnerabilidades comuns de infraestrutura e aplicação:
+
+### 22.1. Confinamento Robusto de Diretórios (Anti-Path Traversal)
+Operações de leitura ou escrita no sistema de arquivos a partir de parâmetros fornecidos pelo usuário representam o risco de ataques de "travessia de diretório" (Zip Slip ou Path Traversal). 
+- **Boas Práticas de Implementação**:
+  - Nunca confie apenas na concatenação de strings para caminhos (ex: `baseDir + caminho`).
+  - Sempre utilize a função `filepath.Rel` para calcular o caminho relativo entre o diretório raiz autorizado e o caminho final resolvido.
+  - Aborte a execução imediatamente se o caminho relativo gerado apontar para cima (`..`) ou for absoluto, impedindo que o atacante escape da raiz da aplicação para ler arquivos sensíveis do sistema:
+    ```go
+    rel, err := filepath.Rel(baseDir, p)
+    if err != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+        return nil, fmt.Errorf("caminho de arquivo ilegal e fora da raiz")
+    }
+    ```
+
+### 22.2. Prevenção de Estouro e Conversão Insegura de Inteiros (CWE-190)
+Coerções de tipos inteiros de maior capacidade para tipos de menor capacidade (como de `int64` para `int`) sem validação de limites podem sofrer truncamento em arquiteturas de 32-bits, ocasionando loops infinitos ou falhas de estouro silencioso.
+- **Boas Práticas de Implementação**:
+  - **Validação Estrita de Limites (Range Check)**: Certifique-se de que o número de 64-bits esteja contido de forma garantida e síncrona dentro dos limites de capacidade máxima e mínima do tipo de destino (`math.MinInt` e `math.MaxInt` em Go) antes de realizar o cast.
+  - **Evitar Casts Desnecessários**: Se o Query Builder, JSON, ou biblioteca de destino suportar o tipo de dados mais amplo (como `int64`), transmita-o diretamente de forma estática sem realizar coerções.
+  - **Uso de Constantes para Análise Estática**: Ao criar pools ou fatias de cache de tamanho fixo, declare os limites superior e inferior usando constantes (`const`) em vez de variáveis (`var`). Isso permite que analisadores de segurança (como o CodeQL) comprovem de forma estática e sem falsos positivos a segurança matemática das expressões.
+
+### 22.3. Princípio de Privilégio Mínimo de Tokens de CI/CD
+Contas de automação e robôs de entrega contínua (GitHub Actions) devem rodar com o escopo de segurança mais restritivo aplicável para o seu respectivo fluxo de trabalho, mitigando o risco de comprometimento do repositório por dependências de terceiros maliciosas.
+- **Boas Práticas de Implementação**:
+  - Declare de forma explícita e minimalista o bloco de permissões globais em todos os arquivos de workflows do Actions (`.yml`), definindo o token do GitHub para permissão síncrona exclusiva de leitura de código para checkout:
+    ```yaml
+    permissions:
+      contents: read
+    ```
+
+### 22.4. Manipulações Cirúrgicas de Strings e Layouts
+Substituições globais de strings ou expressões regulares agressivas de limpeza de caracteres especiais (como `.replace(/\{/g, '')` em JavaScript) podem inadvertidamente corromper códigos legítimos e assinaturas do usuário que contêm o caractere de forma sã.
+- **Boas Práticas de Implementação**:
+  - Seja específico. Se o objetivo é remover apenas um caractere delimitador ou abertura de bloco no final ou início da declaração de linha, utilize métodos específicos de fronteira como `endsWith` combinado com fatiamento de string (`slice`) em vez de varreduras agressivas:
+    ```javascript
+    let assinatura = linha.trim();
+    if (assinatura.endsWith('{')) {
+        assinatura = assinatura.slice(0, -1).trim();
+    }
+    ```
+
