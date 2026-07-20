@@ -23,3 +23,11 @@ __pycache__/
 # Teste de código (go test -c)
 *.test
 app-teste
+
+# Binários Locais do Harpia e Playground
+/harpia
+/main
+
+# Relatórios temporários e planos de sessões de IA
+202[0-9]-*.md
+PLANO_PUBLICACAO.md
