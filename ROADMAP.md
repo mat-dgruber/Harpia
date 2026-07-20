@@ -42,6 +42,10 @@ O Harpia foi concebido sob uma perspectiva dupla:
 - ✅ VM de pilha de alta velocidade integrada, suportando NaN-boxing e JIT dinâmico de traço
 - ✅ Concorrência cooperativa real com loop de eventos assíncronos (`assincrono`/`aguarde`) e canais CSP
 - ✅ Sinais / reatividade (Fase 4 - Frontend SPA concluída de ponta a ponta!)
+- ✅ Suporte a PWA (manifest + service worker) integrado ao output de `harpia compilar --alvo=web`
+- ✅ Sistema de migrations SQLite (`harpia migrar criar|aplicar|status|reverter`) sem CGO
+- ✅ Suporte a i18n via catálogos gettext (`harpia i18n extrair|novo`) sem dependências externas
+- ✅ Análise estática textual no Copiloto (`copiloto revisar` / `copiloto refatorar`)
 - ⚠️ LSP (Diagnósticos iniciais em formato JSON-LSP feitos no Sprint 8)
 
 ---
@@ -94,10 +98,10 @@ O Harpia identifica onde e como está rodando por meio de **Alvos de Compilaçã
 
 #### 1.4 — Erros visuais em português e guia de ajuda
 
-- [x] Struct `Erro` com: `mensagem`, `linha`, `coluna`, `trecho`, `sugestao`, `codigoErro` (Localizado em `ptst/erros.go`)
+- [x] Struct `Erro` com: `mensagem`, `linha`, `coluna`, `trecho`, `sugestao`, `codigoErro` (Localizado em `hrp/erros.go`)
 - [x] Output com sublinhado do trecho errado (estilo Elm) (Pronto e integrado via marcadores `^`)
 - [x] Sugestões contextuais (ex: "Você quis dizer `retorne`?")
-- [x] **Tratamento de Exceções em Runtime (`tente / capture / finalmente`):** Implementar o fluxo de tratamento de erros no interpretador para capturar erros em tempo de execução, permitindo que blocos `capture` tratem e previnam falhas do programa, com execução garantida do bloco `finalmente`. Implementado no Sprint 5: `tente { ... } capture (erro) { ... } finalmente { ... }` com escopo léxico isolado para o erro capturado, metadados geográficos propagados via `AdicionarContexto`, semântica Python/Java para erros em `finalmente` (substituem o original). Ver `ptst/excecoes_test.go` para cobertura.
+- [x] **Tratamento de Exceções em Runtime (`tente / capture / finalmente`):** Implementar o fluxo de tratamento de erros no interpretador para capturar erros em tempo de execução, permitindo que blocos `capture` tratem e previnam falhas do programa, com execução garantida do bloco `finalmente`. Implementado no Sprint 5: `tente { ... } capture (erro) { ... } finalmente { ... }` com escopo léxico isolado para o erro capturado, metadados geográficos propagados via `AdicionarContexto`, semântica Python/Java para erros em `finalmente` (substituem o original). Ver `hrp/excecoes_test.go` para cobertura.
 - [x] Sistema de ajuda interativa no CLI: `harpia erro [codigo]` para obter explicação educativa (Sprint 7).
 - [x] **Integração com IA Local (Opcional):** Comando `harpia erro explicar` que lê o contexto do último erro ocorrido e envia para um modelo de LLM local (via Ollama/Llama.cpp com modelo leve) para explicar de forma didática e em português como resolver o problema (Fase 1 finalizada com suporte a Ollama / fallback).
 - [x] Erros em PT em todo o lexer, parser e runtime
@@ -158,15 +162,15 @@ O Harpia identifica onde e como está rodando por meio de **Alvos de Compilaçã
 
 #### 2.4 — Modelo NaN-boxing
 
-- [x] `Valor` como `uint64` com bits de tag (YAGNI/Simplificado: Uso de ptst.Objeto direto na pilha Go por simplicidade extrema e performance 2.18x comprovada em benchmarks)
+- [x] `Valor` como `uint64` com bits de tag (YAGNI/Simplificado: Uso de hrp.Objeto direto na pilha Go por simplicidade extrema e performance 2.18x comprovada em benchmarks)
 - [x] Tags: `NULO`, `BOOLEANO`, `INTEIRO`, `DECIMAL`, `PONTEIRO`
 - [x] Benchmarks vs. tree-walk (VM é 2.18x mais rápida, gasta 75% menos memória e 64% menos alocações em loop de benchmark oficial)
 
 #### 2.5 — GC por contagem de referências
 
-- [x] Interface `ObjetoGC` e mixin `GCMixin` com contador de referências (`ptst/gc.go`)
+- [x] Interface `ObjetoGC` e mixin `GCMixin` com contador de referências (`hrp/gc.go`)
 - [x] `Reter()` e `Liberar()` nas operações de empilhamento, desempilhamento e variáveis locais/globais na VM (`vm/vm.go`)
-- [x] Detecção e quebra de ciclos simples (algoritmo _Trial Deletion_ simétrico em `ptst.ColetarCiclos`)
+- [x] Detecção e quebra de ciclos simples (algoritmo _Trial Deletion_ simétrico em `hrp.ColetarCiclos`)
 - [x] Integração com a VM (limpeza do frame e coleta cíclica disparados no encerramento de escopo local)
 
 ---
@@ -330,7 +334,7 @@ O Harpia identifica onde e como está rodando por meio de **Alvos de Compilaçã
 
 #### 5.5 — Gerenciador de pacotes
 
-- [x] `ptst instalar nome-do-pacote`
+- [x] `hrp instalar nome-do-pacote`
 - [x] Registro central em PT
 - [x] `pacote.hrp` com dependências e semver
 
@@ -479,7 +483,7 @@ A Fase 7 marca a abertura oficial do Harpia para o mundo. O foco é fornecer uma
 #### 7.3 — Registro Público de Pacotes (Central de Dependências)
 
 - [ ] Desenvolvimento da infraestrutura do registro central de pacotes onde a comunidade pode hospedar suas bibliotecas.
-- [ ] Integração segura com o comando `ptst instalar [nome]`: download direto com validação de hash SHA-256 e resolução de dependências com semver.
+- [ ] Integração segura com o comando `hrp instalar [nome]`: download direto com validação de hash SHA-256 e resolução de dependências com semver.
 - [ ] Interface web para buscar pacotes, ver estatísticas de download, documentações autogeradas e histórico de versões.
 
 #### 7.4 — Governança e Contribuição Aberta (RFCs em PT)
@@ -558,4 +562,4 @@ FUTURA: FASE 7 — Lançamento Público e Consolidação da Comunidade (PLANEJAD
 
 ---
 
-_Roadmap atualizado em 2026-07-16. Revisitar e atualizar após conclusão de cada fase._
+_Roadmap atualizado em 2026-07-19. Revisitar e atualizar após conclusão de cada fase._

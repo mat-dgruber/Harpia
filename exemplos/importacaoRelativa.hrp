@@ -3,7 +3,7 @@
 # ============================================================================
 # Este exemplo demonstra a modularidade e o reuso de código local:
 #   - Carrega e importa uma função ('darCor') declarada em um arquivo físico
-#     vizinho de script ('./importacao.ptst') de forma relativa.
+#     vizinho de script ('./importacao.hrp') de forma relativa.
 #   - Exibe os metadados dinâmicos implícitos que a VM injeta em qualquer
 #     escopo de arquivo carregado ('__arquivo__' e '__nome__').
 

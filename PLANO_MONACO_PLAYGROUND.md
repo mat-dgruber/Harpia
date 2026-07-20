@@ -225,12 +225,12 @@ O usuário pediu explicitamente manter o `app_teste.hrp` como default. Hoje o sn
 
 ## Riscos e Mitigações
 
-| Risco                                                | Mitigação                                                                         |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Monaco CDN lento / offline                           | Usar versão fixa (0.45.0), fallback para textarea se loader falhar                |
-| Loop infinito Monaco ↔ sinal                         | Flag `__psiLock` em cada direção de binding                                       |
-| Hover API lento                                      | Cache de docs no cliente (Map em JS), debounce de 300ms                           |
-| `interface.hrp` não compila (extensão .hrp vs .ptst) | Verificar se `servePlaygroundJS` lê `.ptst` — se `.hrp` renomear, ajustar handler |
+| Risco                                               | Mitigação                                                                        |
+| --------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Monaco CDN lento / offline                          | Usar versão fixa (0.45.0), fallback para textarea se loader falhar               |
+| Loop infinito Monaco ↔ sinal                        | Flag `__psiLock` em cada direção de binding                                      |
+| Hover API lento                                     | Cache de docs no cliente (Map em JS), debounce de 300ms                          |
+| `interface.hrp` não compila (extensão .hrp vs .hrp) | Verificar se `servePlaygroundJS` lê `.hrp` — se `.hrp` renomear, ajustar handler |
 
 ---
 

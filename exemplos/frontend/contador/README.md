@@ -11,6 +11,6 @@ SPA minimalista que demonstra o uso mais básico de Sinais e eventos DOM em Harp
 ## Como rodar
 
 ```bash
-harpia compilar --alvo=web --entrada=main.ptst --saida=dist
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 # Abra dist/index.html no browser
 ```

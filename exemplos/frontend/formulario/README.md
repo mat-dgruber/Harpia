@@ -11,6 +11,6 @@ SPA que demonstra validação reativa de campos com Sinais e eventos `aoMudar`.
 ## Como rodar
 
 ```bash
-harpia compilar --alvo=web --entrada=main.ptst --saida=dist
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 # Abra dist/index.html no browser
 ```

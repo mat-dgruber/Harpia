@@ -12,6 +12,6 @@ SPA minimalista que demonstra gerenciamento de estado reativo com Sinais, listas
 ## Como rodar
 
 ```bash
-harpia compilar --alvo=web --entrada=main.ptst --saida=dist
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 # Abra dist/index.html no browser
 ```

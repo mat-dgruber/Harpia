@@ -7,7 +7,7 @@
 
 # Declaração inicial
 var nome = "Harpia";
-const ano = 2023;
+const ano = 2026;
 
 imprima("nome:", nome)
 imprima("ano:", ano)

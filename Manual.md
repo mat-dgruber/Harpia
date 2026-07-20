@@ -14,7 +14,7 @@ ocumento foi elaborado para servir tanto como um guia definitivo para desenvolve
 2. [Interface de Linha de Comando (CLI)](#2-interface-de-linha-de-comando-cli)
 3. [Análise Léxica (Lexer)](#3-análise-léxica-lexer)
 4. [Análise Sintática (Parser &amp; AST)](#4-análise-sintática-parser--ast)
-5. [Máquina Virtual e Runtime (ptst)](#5-máquina-virtual-e-runtime-ptst)
+5. [Máquina Virtual e Runtime (hrp)](#5-máquina-virtual-e-runtime-hrp)
 6. [Tipos de Dados Primitivos](#6-tipos-de-dados-primitivos)
 7. [Biblioteca Padrão (Stdlib)](#7-biblioteca-padrão-stdlib)
 8. [Recursos Avançados da Linguagem](#8-recursos-avançados-da-linguagem)
@@ -42,7 +42,7 @@ harpia/
 ├── lexer/             -> Analisador léxico escrito à mão em Go
 ├── parser/            -> Analisador sintático de descida recursiva à mão
 ├── playground/        -> Console interativo de terminal REPL (Liner)
-├── ptst/              -> Núcleo do runtime (VM, tipos de dados, escopos)
+├── hrp/              -> Núcleo do runtime (VM, tipos de dados, escopos)
 ├── stdlib/            -> Biblioteca padrão da linguagem (embutidos, matematica, etc.)
 └── exemplos/          -> Demonstrações práticas e módulos externos
 ```
@@ -65,59 +65,136 @@ O pipeline de CI/CD (usando GoReleaser) injeta metadados na compilação do exec
 
 #### 1. `harpia` (ou `harpia executar` sem argumentos)
 
-Abre o REPL interativo com realce de sintaxe e controle de buffers multilinha.
+Abre o console de desenvolvimento interativo REPL (Playground) com realce de sintaxe, suporte multilinha e tratamento de sinais. Agora ele conta com ferramentas didáticas integradas como `ajuda <funcao>` (referência direta para todas as primitivas globais como `sinal`, `tamanho`, `tipo`, `sequencia`), `escopo` (visualização em tempo real das variáveis declaradas em memória) e `limpar` (para redefinir o buffer visual do terminal).
 
 #### 2. `harpia executar [arquivo.hrp] [flags]` (Alias: `exec`)
 
-Interpreta e executa um script físico.
+Interpreta e executa um script físico ou código inline de forma síncrona.
 
 - **Ordem de Carregamento**: Se uma string for fornecida pela flag `-c "codigo"`, o interpretador prioriza a execução do arquivo posicional e, em seguida, avalia o fragmento de código inline no mesmo contexto de execução.
 - **Flag `-c`, `--codigo`**: Executa um código direto no terminal (ex: `harpia executar -c "imprima('Olá!')"`).
+- **Flag `--estrito`**: Ativa a validação estrita de tipos em tempo de execução para anotações de tipo opcionais.
 
-#### 3. `harpia testar [caminho]`
+#### 3. `harpia compilar [flags]` (Alias: `compila`)
 
-Varre recursivamente o diretório em busca de arquivos com extensões `.hrp` ou `.hrp` e executa de forma isolada todos os blocos `testar` nativos definidos nos scripts, apresentando um relatório consolidado com o total de sucessos e falhas.
+Transpila ou compila o código-fonte Harpia para alvos específicos (como a Web ou nativo).
 
-#### 4. `harpia atualize`
+- **Uso:** `harpia compilar --alvo=web --entrada=main.hrp --saida=dist`
+- **Flag `-a`, `--alvo`**: Alvo da compilação. Valores suportados: `web` (padrão, transpila para Virtual DOM e JS puro), `nativo` (AOT via transpilação e build Go nativo), `wasm` (compilação para WebAssembly).
+- **Flag `-e`, `--entrada`**: Ponto de entrada/arquivo principal do projeto (ex: `main.hrp`).
+- **Flag `-s`, `--saida`**: Pasta destino onde os arquivos estáticos ou binários serão salvos (padrão: `dist`).
+
+#### 4. `harpia servir [flags]` (Alias: `serve`, `servidor`)
+
+Inicia um servidor web local extremamente leve e rápido para hospedar sua aplicação SPA compilada para a web.
+
+- **Uso:** `harpia servir --diretorio=dist --porta=8080`
+- **Flag `-d`, `--diretorio`**: Diretório raiz de arquivos estáticos a servir (padrão: `dist`).
+- **Flag `-p`, `--porta`**: Porta na qual o servidor HTTP escutará as requisições (padrão: `8080`).
+
+#### 5. `harpia novo [command] [flags]` (Alias: `iniciar`, `inicializar`)
+
+Inicializa uma nova estrutura de projeto corporativo pré-configurada seguindo as melhores práticas de Clean Architecture e DDD em Português.
+
+- **Uso:** `harpia novo [backend | frontend | monolito] [nome-do-projeto]`
+- **Subcomandos:**
+  - `backend`: Estrutura minimalista voltada para microsserviços, APIs lógicas, conectores de banco de dados e concorrência orientada a canais.
+  - `frontend`: Estrutura de cliente SPA reativa de alto desempenho baseada no motor de Sinais Reativos do Harpia.
+  - `monolito`: Estrutura completa integrando frontend e backend, acompanhada por diretórios de documentação e READMEs explicativos de cada camada.
+
+#### 6. `harpia crie [rota | componente | modelo] [nome]` (Alias: `criar`)
+
+Assistente interativo de scaffolding que gera templates estruturados de arquivos seguindo os padrões de Clean Architecture e DDD definidos para o ecossistema Harpia dentro de um projeto existente.
+
+- **Subcomandos:**
+  - `rota`: Cria uma nova página de rota SPA (.hrp).
+  - `componente`: Cria um componente de interface (.hrp) e seu correspondente arquivo de estilos dinâmicos (.estilo.hrp).
+  - `modelo`: Cria um novo modelo/entidade de dados rico e tipado (.hrp) na camada de domínio.
+
+#### 7. `harpia testar [caminho]`
+
+Varre recursivamente o diretório em busca de arquivos com extensão `.hrp` e executa de forma isolada todos os blocos `testar` nativos definidos nos scripts, apresentando um relatório consolidado com o total de sucessos e falhas.
+
+#### 8. `harpia atualize`
 
 Executa o auto-update do executável a partir do repositório no GitHub.
 
 - **Algoritmo de Resolução**: Monta o caminho de instalação sob o diretório do usuário (`~/.harpia/bin/harpia`). Compara a versão local (executando o binário com `-v`) com a última tag disponível via API do GitHub usando a biblioteca `semver/v3`. Se houver atualizações, usa o `curl` para baixar o binário comprimido adequado para a arquitetura do cliente (mapeando de forma inteligente arquiteturas como `amd64` para `x86_64` e SOs como `darwin` para `Darwin`) e o extrai. Se a versão local for `"dev"`, o processo de atualização automática é impedido para preservar builds de desenvolvimento.
 
-#### 5. `harpia doc [entrada] [flags]`
+#### 9. `harpia doc [entrada] [flags]`
 
 Varre um diretório ou arquivo extraindo comentários iniciados com três barras (`///`) de funções, classes e métodos, gerando documentação estruturada exportada em formato Markdown (`--formato=markdown`) ou HTML (`--formato=html`).
 
-#### 6. `harpia empacotar --entrada=[arquivo] --saida=[binario] [flags]`
+#### 10. `harpia empacotar --entrada=[arquivo] --saida=[binario] [flags]`
 
 Empacota um script Harpia e todos os seus recursos em um executável binário autônomo (Single Binary Bundle) sem dependências externas compilando dinamicamente o código Go subjacente via `go build` com suporte a cross-compilation (`--so` e `--arq`).
 
 - **Suporte a WebAssembly (WASM)**: Se `--so=js` e `--arq=wasm` forem especificados, o comando compila o interpretador completo para WebAssembly (`docs/portal/harpia.wasm`) e extrai o carregador JavaScript portátil `wasm_exec.js` correspondente do GOROOT do sistema.
 
-#### 6.1. `harpia diagramar [diretorio] [flags]`
+#### 11. `harpia diagramar [diretorio] [flags]`
 
 Analisa recursivamente a estrutura física do projeto para mapear e validar a hierarquia de importações entre as camadas do Clean Architecture.
 
 - **Flags**: `--formato` ou `-f` (`mermaid`, `html`, `svg`), `--saida` ou `-s`.
 - **Diagrama Interativo**: Se o formato for `html` (ou `svg`), gera um arquivo HTML standalone contendo o visualizador interativo Mermaid.js que colore de verde as importações válidas, de **vermelho grossa as violações arquiteturais**, e emite um botão para exportar diretamente o arquivo `.svg` correspondente.
 
-#### 6.2. `harpia instalar [nome-do-pacote] [versao-opcional]`
+#### 12. `harpia instalar [nome-do-pacote] [versao-opcional]`
 
 Gerenciador de pacotes e dependências assíncrono para o ecossistema Harpia.
 
 - **Resolução Remota Semver**: Permite baixar pacotes públicos e resolver restrições de versão semver (ex: `banco-dados: 1.0.0`) diretamente de um registro JSON remoto central em português, gravando o módulo na pasta local `pt_modulos/`.
 
-#### 7. `harpia stressar [arquivo] [flags]`
+#### 13. `harpia stressar [arquivo] [flags]`
 
 Utilitário CLI interno para benchmarking e testes de estresse concorrentes de aplicações locais ou remotas escritas em Harpia, detalhando estatísticas de tempo médio, mínimo, máximo e taxa de sucesso.
 
-#### 8. `harpia depurar [flags]`
+#### 14. `harpia depurar [flags]`
 
 Inicializa o servidor TCP nativo compatível com o protocolo Debug Adapter Protocol (DAP) na porta `4711` (ou customizada via `--porta`), viabilizando a depuração interativa integrada com editores modernos (VS Code).
 
-#### 9. `harpia crie [rota | componente | modelo] [nome]`
+#### 15. `harpia lsp`
 
-Assistente interativo de scaffolding que gera templates estruturados de arquivos seguindo os padrões de Clean Architecture e DDD definidos para o ecossistema Harpia.
+Inicia o servidor oficial LSP (Language Server Protocol) do Harpia via stdio, oferecendo suporte nativo para editores de código (como o VS Code) com autocomplete, hover lendo comentários de três barras (`///`), linter de arquitetura limpa e formatação automática de código ao salvar.
+
+#### 16. `harpia migrar [subcomando] [flags]` (Alias: `migrations`)
+
+Gerencia migrations SQL com SQLite para evolução do schema de banco. Não requer CGO (usa `glebarez/go-sqlite`).
+
+- Subcomandos:
+  - `criar <nome>`: cria arquivo timestamped em `infra/migracoes/AAAA-MM-DD-HHmmss-<nome>.sql` com marcadores `-- +migrar ParaCima` (subida) e `-- +migrar ParaBaixo` (descida).
+  - `aplicar`: aplica todas as pendentes em ordem alfabética, dentro de uma transação por arquivo, registrando na tabela `_migracoes (versao, aplicada_em)`.
+  - `status`: lista aplicadas e pendentes em formato tabular com caminho absoluto.
+  - `reverter [N]`: reverte as últimas N migrations aplicadas (default 1) executando o bloco `ParaBaixo`.
+- Flags:
+  - `--banco` (default `dados.db`): caminho do arquivo SQLite alvo.
+
+Cada bloco `ParaCima`/`ParaBaixo` é delimitado por comentários `-- +migrar ParaCima` e `-- +migrar ParaBaixo`. SQL entre os marcadores é extraído e executado; o resto do arquivo é ignorado.
+
+#### 17. `harpia pwa [--dir=dist] [flags]`
+
+Gera assets PWA (manifest + service worker) a partir do diretório de saída gerado por `harpia compilar --alvo=web`.
+
+- Gera `manifest.webmanifest` (JSON com `name`, `short_name`, `theme_color`, `background_color`, `icons` 192/512).
+- Gera `sw.js` com estratégia cache-first e precache de `/`, `index.html`, `app.js`, `runtime-web.js`, `estilos.css`.
+- Patcha `index.html` (idempotente): injeta `<link rel="manifest">`, `<meta name="theme-color">` e, se `--registrar`, o `<script>` de registro do service worker.
+
+Flags: `--dir` (default `dist`), `--nome`, `--curto`, `--cor-fundo`, `--cor-tema`, `--registrar`. Se `--nome`/`--curto` não forem passados, são lidos de `dependencias.json`.
+
+#### 18. `harpia i18n [extrair|novo] [flags]`
+
+Extrai e gerencia catálogos de tradução no formato gettext (`.pot`/`.po`), sem dependências externas.
+
+- `extrair <arquivo|dir>`: varre `.ptst`/`.pt` recursivamente, identifica strings traduzíveis em chamadas `t("...")`, `i18n.texto("...")`, `tr(..."...")` e dedupa por `msgid`, gerando `<dir>/<dominio>.pot` com cabeçalho e referências `#: arquivo:linha`.
+- `novo <idioma>`: cria `<idioma>.po` vazio no diretório de catálogos, copiando o cabeçalho do `.pot` quando existir.
+
+Flags: `--dir` (default `traducoes`), `--dominio` (default `harpia`). Atenção: a detecção atual é por regex literal (heurística simples marcada com `ponytail:`); refinar quando o parser expor uma função pública de visita à AST sem custos adicionais de cache.
+
+#### `harpia copiloto` (subcomandos)
+
+Além do autocompletar via IA local (Ollama), o comando `copiloto` expõe dois subcomandos de análise estática textual, sem dependências extras:
+
+- `copiloto revisar <arquivo.ptst>`: detecta funções com mais de 80 linhas, mais de 5 parâmetros, aninhamento > 4, variáveis prefixadas com `_` nunca referenciadas abaixo da declaração, e comentários `TODO`/`FIXME`. Saída PT-BR no formato `[ARQUIVO:linha] tipo → mensagem`, com sumário final.
+- `copiloto refatorar <arquivo.ptst>`: para cada função > 80 linhas, mostra `[linha N – linha M] → nome_sugerido` com primeira/última linha do bloco. O nome é sugerido a partir de verbos/substantivos presentes nas primeiras linhas (verbos: validar/calcular/processar/...; substantivos: usuario/pedido/requisicao/...), caindo para `helper_N` como fallback.
 
 ---
 
@@ -214,9 +291,9 @@ O Harpia permite omitir o uso de ponto e vírgula. O analisador trata `\n` (queb
 
 ---
 
-## 5. Máquina Virtual e Runtime (ptst)
+## 5. Máquina Virtual e Runtime (hrp)
 
-O pacote `ptst` gerencia a infraestrutura matemática, lógica, as tabelas de símbolos e a execução física da AST.
+O pacote `hrp` gerencia a infraestrutura matemática, lógica, as tabelas de símbolos e a execução física da AST.
 
 ### Interface Primordial `Objeto`
 
@@ -271,7 +348,7 @@ As variáveis ativas e constantes são mantidas em estruturas `Escopo`:
 - **Escopo Léxico (Lexical Scoping)**: Cada `Escopo` mantém um link de referência para seu escopo pai (`Pai *Escopo`).
 - **Algoritmo de Busca (`ObterValor`)**: Busca primeiro na tabela local de símbolos. Se a chave não constar, sobe de forma recursiva investigando o escopo do pai. Se atingir a raiz primordial sem sucesso, verifica o módulo de embutidos antes de lançar o erro controlado `NomeErro` (PSC-0005).
 - **Sincronização de Concorrência do Escopo**: Cada escopo de variáveis conta com seu próprio `sync.RWMutex` para sincronização fina de leitura e escrita concorrente. Isso previne colisões de mapas em Go durante execuções paralelas de corotinas em background que acessam variáveis comuns.
-- **Locks de Grão Fino em Símbolos**: Símbolos individuais do runtime (`ptst.Simbolo`) contam com bloqueios de mutex específicos (`sync.RWMutex`) para ler e definir seu valor de forma atômica e segura.
+- **Locks de Grão Fino em Símbolos**: Símbolos individuais do runtime (`hrp.Simbolo`) contam com bloqueios de mutex específicos (`sync.RWMutex`) para ler e definir seu valor de forma atômica e segura.
 - **Cooperação Segura com o Garbage Collector**: A listagem de símbolos pelo Garbage Collector utiliza o método seguro `ObterSimbolosSeguro()`, que gera uma cópia rasa estável da tabela de símbolos do escopo sob um lock de leitura, integrando com o algoritmo de varredura e quebra de ciclos de forma 100% thread-safe.
 
 ---
@@ -763,8 +840,8 @@ O histórico de comandos não é perdido ao fechar a sessão. Na inicialização
 Para que o desenvolvedor declare uma variável em uma linha e ela continue visível na linha seguinte, o playground inicializa um módulo virtual sob o arquivo inexistente `<playground>`:
 
 ```go
-exec.Modulo, _ = ctx.InicializarModulo(&ptst.ModuloImpl{
-    Info: ptst.ModuloInfo{Arquivo: "<playground>"},
+exec.Modulo, _ = ctx.InicializarModulo(&hrp.ModuloImpl{
+    Info: hrp.ModuloInfo{Arquivo: "<playground>"},
 })
 ```
 
@@ -817,10 +894,10 @@ Os testes de benchmark mostram ganhos espetaculares de performance medidos local
 
 A VM de pilha do Harpia conta com gerenciamento de memória explícito e determinístico:
 
-- **Protocolo de Referências Ativo**: Utiliza as interfaces `ObjetoGC` e `GCMixin` (`ptst/gc.go`) para controlar as referências de forma ativa nas instruções de empilhamento (`push`), desempilhamento (`pop`) e armazenamento de variáveis (`OP_ARMAZENAR_VAR`).
+- **Protocolo de Referências Ativo**: Utiliza as interfaces `ObjetoGC` e `GCMixin` (`hrp/gc.go`) para controlar as referências de forma ativa nas instruções de empilhamento (`push`), desempilhamento (`pop`) e armazenamento de variáveis (`OP_ARMAZENAR_VAR`).
 - **Imunidade de Singletons**: Globais, classes nativas e constantes singleton (`Nulo`, `Verdadeiro`, `Falso`) são inicializadas com `-1` referências de forma imune, garantindo no-ops em retenções e prevenindo coletas acidentais.
 - **Limpeza Ativa de Frames**: Símbolos locais e operandos remanescentes na pilha são desalocados e limpos de forma explícita imediatamente ao finalizar a execução de um frame (fim de chamada de função).
-- **Coletor e Quebrador de Ciclos (Trial Deletion)**: Referências circulares fechadas órfãs (ex: lista A contém lista B, e lista B contém lista A) são detectadas a partir de varreduras no grafo léxico do escopo ativo e quebradas de forma simétrica (`ptst.ColetarCiclos(escopo)`), prevenindo vazamentos de memória (memory leaks) e preservando a integridade do sistema.
+- **Coletor e Quebrador de Ciclos (Trial Deletion)**: Referências circulares fechadas órfãs (ex: lista A contém lista B, e lista B contém lista A) são detectadas a partir de varreduras no grafo léxico do escopo ativo e quebradas de forma simétrica (`hrp.ColetarCiclos(escopo)`), prevenindo vazamentos de memória (memory leaks) e preservando a integridade do sistema.
 - **Pool de Alocação Rápida / Eden Space para Inteiros Curtos (Fase E)**: Para mitigar o estresse e overhead de alocações sobre o Garbage Collector do Go durante iterações intensas (loops), o runtime pré-aloca estaticamente interfaces do Go para inteiros na faixa de `-100` a `2000`. Sempre que um inteiro nessa faixa é instanciado na VM, a mesma interface imutável pré-alocada é retornada instantaneamente em tempo constante $O(1)$, evitando novas alocações no heap e acelerando operações matemáticas de contagem de loops.
 
 ### 11.2. Primitivas de Concorrência & Event Loop Cooperativo (Sprints 9 e 10)
@@ -830,7 +907,7 @@ A VM de pilha do Harpia integra suporte nativo a concorrência assíncrona basea
 - **Palavras-Chave**: `assincrono` e `aguarde`.
 - **Mapeamento de Funções Assíncronas**: Funções marcadas com o modificador `assincrono funcao` têm seu flag `Assincrono` ativado pelo compilador de bytecode.
 - **Inovação de Loop de Eventos Baseado em Goroutines**: Ao disparar uma chamada de função assíncrona (`OP_CHAMAR`), a VM detecta o flag ativo e, em vez de bloquear o fluxo principal de execução, delega a sua execução em background a uma nova goroutine leve do Go, retornando imediatamente um objeto `Promessa`.
-- **Suspensão Cooperativa via `aguarde` (`OP_AWAIT`)**: Quando a instrução `aguarde` é executada sobre uma `Promessa` ativa, a execução do frame atual da VM cede cooperativamente. Ela registra um callback de encerramento na promessa (`prom.Registre`) e aguarda por meio de um canal seguro do Go (`chan ptst.Objeto`) até que a promessa seja resolvida com sucesso ou rejeitada por erro, garantindo que outras operações concorrentes em background progridam sem travar a VM.
+- **Suspensão Cooperativa via `aguarde` (`OP_AWAIT`)**: Quando a instrução `aguarde` é executada sobre uma `Promessa` ativa, a execução do frame atual da VM cede cooperativamente. Ela registra um callback de encerramento na promessa (`prom.Registre`) e aguarda por meio de um canal seguro do Go (`chan hrp.Objeto`) até que a promessa seja resolvida com sucesso ou rejeitada por erro, garantindo que outras operações concorrentes em background progridam sem travar a VM.
 - **Modelo CSP de Concorrência por Canais (Fase B)**: Integração do tipo nativo global `Canal` para troca sincronizada e thread-safe de dados entre goroutines (processos de background):
   - **`nova Canal()`**: Cria uma nova instância de canal de comunicação unificado.
   - **`meuCanal.enviar(dado)`**: Adiciona um dado no canal. Se houver algum processo assíncrono esperando na fila, entrega o dado instantaneamente (FIFO).
@@ -1144,14 +1221,58 @@ harpia iniciar meu_app
 O comando gerará os seguintes diretórios e arquivos de exemplo pré-configurados no disco:
 
 - `/main.hrp` (ponto de entrada que monta a aplicação)
-- `/web/rotas/index.hrp` (página de início demonstrando importações de arquivos)
+- `/web/rotas/rotas.hrp` (página de início demonstrando importações de arquivos)
 - `/web/componentes/Botao.hrp` (componente visual lógico)
 - `/web/componentes/Botao.estilo.hrp` (folha de estilo separada inteiramente em português)
-- `/web/componentes/Layout.html` (layout HTML separado demonstrando o uso de `importarHtml`)
+- `/web/pages/Layout.html` (layout HTML separado demonstrando o uso de `importarHtml`)
 
 ### 13.10. Novas Primitivas Avançadas e Sinais de Tempo
 
 - **Sinais com Debounce (`sinalDebounce`)**: O Harpia fornece a primitiva `sinalDebounce(valorInicial, tempoEmMs)` em seu runtime web. Ela atrasa de forma inteligente a atualização de estados reativos e expõe seu atualizador direto no getter (`ler.set`), integrando-se nativamente e sem boilerplates com o binding bidirecional `_ligar` em formulários de pesquisa.
+
+### 13.11. SEO, Meta Tags, Scripts e Fontes na Web
+
+O Harpia gerencia os aspectos cruciais de SEO, injeção de scripts externos, fontes e controle dinâmico de metadados na web de forma declarativa e sintonizada com a arquitetura SPA:
+
+1. **O index.html Estático**: O comando `harpia compilar --alvo=web` gera o esqueleto mestre `index.html` na pasta de saída `dist/`, configurando a tag `<head>` com links para estilos unificados em `estilos.css`. Scripts corporativos, analytics e CDNs externas podem ser injetados diretamente na tag `<head>` desse HTML base.
+2. **Importação de Fontes**: É possível fazer o carregamento de fontes (como Google Fonts) importando folha de estilos externas diretamente nas declarações de `estilo` do Harpia:
+   ```harpia
+   @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
+   ```
+3. **SEO Dinâmico Reativo**: Por meio do objeto nativo `documento` (DAP web), o Harpia permite alterar o título da aba e criar/atualizar meta tags (como Open Graph para redes sociais) em tempo de execução ao navegar de uma rota para outra:
+   ```harpia
+   documento.titulo = "Produto " + nome() + " | Loja Harpia";
+   documento.definirMeta("description", "Compre agora o produto!");
+   documento.definirMeta("og:title", nome());
+   ```
+4. **SSG e SSR**: Para otimização máxima de indexação em motores de busca mais simples que não rodam JavaScript, o compilador do Harpia possui suporte nativo para pré-renderização de rotas em HTML estático (Static Site Generation - SSG) ou renderização instantânea no servidor backend (Server-Side Rendering - SSR) com o processo de hidratação reativa síncrona no cliente de forma transparente.
+
+### 13.12. Responsividade Nativa (@tela) na Web
+
+O Harpia oferece suporte de fábrica para a criação de designs e layouts 100% responsivos adaptados para celulares, tablets e computadores, utilizando seletores em português:
+
+1. **A Diretiva `@tela`**: Nos blocos de `estilo` do Harpia, o compilador traduz de forma estática a diretiva `@tela` para `@media` do CSS nativo, permitindo o aninhamento direto de media queries responsivas dentro das classes:
+
+   ```harpia
+   exportar estilo PainelDashboard {
+       exibir: "grid";
+       colunasGrid: "repetir(3, 1fr)";
+       gap: "20px";
+
+       # Tablets (telas menores que 1024px)
+       @tela (larguraMaxima: 1024px) {
+           colunasGrid: "repetir(2, 1fr)";
+       }
+
+       # Celulares (telas menores que 768px)
+       @tela (larguraMaxima: 768px) {
+           colunasGrid: "1fr";
+       }
+   }
+   ```
+
+2. **Breakpoints Utilitários**: No JSX e nas classes do Tailwind em português, é possível prefixar os breakpoints utilitários correspondentes (ex: `celular:flex-coluna`, `tablet:p-4`).
+3. **Viewport de Fábrica**: Ao transpilar o projeto para a web (`harpia compilar`), o cabeçalho do `index.html` gerado recebe síncronamente a tag mestre `<meta name="viewport" content="width=device-width, initial-scale=1.0">` para garantir escala física real de 1:1 e impedir deformações visuais em dispositivos portáteis.
 
 ---
 

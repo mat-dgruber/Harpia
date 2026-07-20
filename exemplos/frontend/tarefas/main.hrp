@@ -1,7 +1,7 @@
 # Exemplo de Lista de Tarefas (Todo) usando Sinais, Loops JSX-like e Arrays no Harpia.
 #
 # Para rodar este exemplo:
-#   Harpia compilar --alvo=web --entrada=main.ptst --saida=dist
+#   Harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 #
 # Abra o arquivo dist/index.html gerado no seu navegador.
 
