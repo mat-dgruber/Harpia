@@ -110,7 +110,7 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 			}
 			query := map[string]interface{}{
 				"vector":       vetor,
-				"limit":        int(limVal),
+				"limit":        limVal,
 				"with_payload": true,
 			}
 
