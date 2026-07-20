@@ -13,10 +13,10 @@ import (
 
 // DocElement representa um elemento documentado extraído do código
 type DocElement struct {
-	Tipo       string   // "funcao", "classe", "constante", "variavel"
-	Nome       string   
-	Assinatura string   
-	Descricao  []string 
+	Tipo       string // "funcao", "classe", "constante", "variavel"
+	Nome       string
+	Assinatura string
+	Descricao  []string
 }
 
 // comandoDoc inicializa o comando 'Harpia doc'

@@ -310,4 +310,3 @@ func (*NoJSX) isExpr()       {}
 func (*NoSeJSX) isExpr()     {}
 func (*NoParaJSX) isExpr()   {}
 func (*DeclEstilo) isExpr()  {}
-

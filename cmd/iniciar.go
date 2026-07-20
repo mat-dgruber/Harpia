@@ -246,7 +246,7 @@ testar "deve instanciar um usuario de dominio com tipos corretos" {
 }
 `)
 
-			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Monolito Harpia)
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao `+nomeProj+` (Monolito Harpia)
 
 Este projeto monolito foi gerado de forma automática sob as premissas de **Clean Architecture** e **DDD** com termos em português.
 
@@ -262,13 +262,13 @@ Consulte a pasta de documentação para guias e especificações de uso:
 ## ⚡ Como Rodar a Aplicação
 Para compilar e servir o seu projeto no navegador, execute os seguintes comandos no terminal:
 
-` + "```" + `bash
+`+"```"+`bash
 # 1. Compila para a web gerando o build estático
 harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 
 # 2. Inicia o servidor local leve de hospedagem
 harpia servir --diretorio=dist
-` + "```" + `
+`+"```"+`
 `)
 
 			exibirSucessoCompleto(nomeProj, "monolito")
@@ -362,7 +362,7 @@ imprimir("Servidor backend ativo na porta 8080...")
 api.ouvir(8080)
 `)
 
-			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Backend Harpia)
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao `+nomeProj+` (Backend Harpia)
 
 Este projeto de backend foi gerado de forma automática com foco em APIs lógicas, conectores de banco de dados e concorrência leve em português.
 
@@ -378,10 +378,10 @@ Consulte a pasta de documentação para guias e especificações de uso:
 ## ⚡ Como Rodar o Servidor Backend
 Para executar o seu servidor backend imediatamente, execute no terminal:
 
-` + "```" + `bash
+`+"```"+`bash
 # Executa o servidor na máquina local
 harpia executar main.hrp
-` + "```" + `
+`+"```"+`
 `)
 
 			exibirSucessoCompleto(nomeProj, "backend")
@@ -514,7 +514,7 @@ de "./web/rotas/rotas.hrp" importe RotaIndex;
 montar(RotaIndex, Nulo);
 `)
 
-			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao ` + nomeProj + ` (Frontend SPA Harpia)
+			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao `+nomeProj+` (Frontend SPA Harpia)
 
 Este projeto de frontend reativo SPA foi gerado de forma automática com base em Virtual DOM e Sinais reativos de alto desempenho em português.
 
@@ -530,13 +530,13 @@ Consulte a pasta de documentação para guias e especificações de uso:
 ## ⚡ Como Rodar a Aplicação
 Para compilar e servir o seu projeto no navegador, execute no seu terminal:
 
-` + "```" + `bash
+`+"```"+`bash
 # 1. Compila para a web gerando o build estático
 harpia compilar --alvo=web --entrada=main.hrp --saida=dist
 
 # 2. Inicia o servidor local leve de hospedagem
 harpia servir --diretorio=dist
-` + "```" + `
+`+"```"+`
 `)
 
 			exibirSucessoCompleto(nomeProj, "frontend")
@@ -928,4 +928,3 @@ exportar funcao RotaIndex() {
 }
 ` + "```" + `
 `
-

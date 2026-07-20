@@ -28,25 +28,25 @@ import (
 // a cada chamada. Adicione aqui sempre que precisar de uma nova chave.
 var mapaChavesPT = map[string]string{
 	// cor / cores
-	"cor":              "color",
-	"corDeFundo":       "background-color",
-	"corBorda":         "border-color",
-	"corContorno":      "outline-color",
-	"corTexto":         "color",
+	"cor":         "color",
+	"corDeFundo":  "background-color",
+	"corBorda":    "border-color",
+	"corContorno": "outline-color",
+	"corTexto":    "color",
 	// layout
-	"exibir":      "display",
-	"exibirTipo":  "display",
-	"posicao":     "position",
-	"fluxo":       "flex-direction",
-	"flex":        "flex",
-	"grade":       "grid",
-	"alinhamento": "align-items",
-	"justificar":  "justify-content",
+	"exibir":       "display",
+	"exibirTipo":   "display",
+	"posicao":      "position",
+	"fluxo":        "flex-direction",
+	"flex":         "flex",
+	"grade":        "grid",
+	"alinhamento":  "align-items",
+	"justificar":   "justify-content",
 	"justificacao": "justify-content",
 	// caixa / box-model
 	"margem":       "margin",
 	"margemX":      "margin-inline",
-	"margemY":       "margin-block",
+	"margemY":      "margin-block",
 	"padding":      "padding",
 	"espacamentoX": "padding-inline",
 	"espacamentoY": "padding-block",
@@ -61,18 +61,18 @@ var mapaChavesPT = map[string]string{
 	"opacidade":    "opacity",
 	"transbordar":  "overflow",
 	// tipografia
-	"fonte":          "font-family",
-	"tamanhoFonte":   "font-size",
-	"pesoFonte":      "font-weight",
-	"alinhamentoTexto": "text-align",
-	"decoracaoTexto": "text-decoration",
+	"fonte":              "font-family",
+	"tamanhoFonte":       "font-size",
+	"pesoFonte":          "font-weight",
+	"alinhamentoTexto":   "text-align",
+	"decoracaoTexto":     "text-decoration",
 	"transformacaoTexto": "text-transform",
-	"espacamentoLetras": "letter-spacing",
-	"espacamentoLinhas": "line-height",
+	"espacamentoLetras":  "letter-spacing",
+	"espacamentoLinhas":  "line-height",
 	// animações
-	"transicao":   "transition",
+	"transicao":     "transition",
 	"transformacao": "transform",
-	"animacao":    "animation",
+	"animacao":      "animation",
 	// espaçamento de utilidades (atalhos)
 	"p":  "padding",
 	"px": "padding-inline",
@@ -142,13 +142,15 @@ func processaEstiloLinha(chave, valor string) (string, string) {
 // `.Nome tag { ... }`).
 //
 // Formato de entrada:
-//   cor: "azul";
-//   borda: 1px;
-//   botao:hover { opacidade: 0.8; }
+//
+//	cor: "azul";
+//	borda: 1px;
+//	botao:hover { opacidade: 0.8; }
 //
 // Saída:
-//   .Nome { color: azul; border: 1px; ... }
-//   .Nome botao:hover { opacity: 0.8; }
+//
+//	.Nome { color: azul; border: 1px; ... }
+//	.Nome botao:hover { opacity: 0.8; }
 func processaBlocoEstilo(nome string, corpo string) string {
 	var sb strings.Builder
 

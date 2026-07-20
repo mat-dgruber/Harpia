@@ -57,4 +57,3 @@ func TestConverterPlaceholdersMysql(t *testing.T) {
 		t.Errorf("Erro ao converter placeholders para Mysql (deveria manter '?').\nEsperado: %s\nObtido:   %s", queryEsperada, resultado)
 	}
 }
-

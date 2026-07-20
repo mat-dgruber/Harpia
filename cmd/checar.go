@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
-	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/spf13/cobra"
 )
 
@@ -109,7 +109,6 @@ func (e *EscopoLinter) NoContextoAssincrono() bool {
 	}
 	return false
 }
-
 
 type DiagnosticRange struct {
 	Start DiagnosticPosition `json:"start"`

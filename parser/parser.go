@@ -1617,4 +1617,3 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 
 	return node, nil
 }
-

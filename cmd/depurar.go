@@ -12,13 +12,13 @@ import (
 )
 
 type DapMessage struct {
-	Seq      int    `json:"seq"`
-	Type     string `json:"type"`
-	Command  string `json:"command,omitempty"`
-	Event    string `json:"event,omitempty"`
-	Request  string `json:"request_seq,omitempty"`
-	Success  bool   `json:"success,omitempty"`
-	Body     any    `json:"body,omitempty"`
+	Seq     int    `json:"seq"`
+	Type    string `json:"type"`
+	Command string `json:"command,omitempty"`
+	Event   string `json:"event,omitempty"`
+	Request string `json:"request_seq,omitempty"`
+	Success bool   `json:"success,omitempty"`
+	Body    any    `json:"body,omitempty"`
 }
 
 func comandoDepurar() *cobra.Command {
@@ -70,7 +70,7 @@ func lidarComDap(conn net.Conn) {
 				var msg DapMessage
 				if err := json.Unmarshal([]byte(corpo), &msg); err == nil {
 					fmt.Printf("[DAP] Recebido comando: %s\n", msg.Command)
-					
+
 					// Resposta de exemplo/handshake de sucesso
 					resposta := DapMessage{
 						Seq:     msg.Seq + 1,
@@ -78,7 +78,7 @@ func lidarComDap(conn net.Conn) {
 						Request: fmt.Sprintf("%d", msg.Seq),
 						Success: true,
 					}
-					
+
 					switch msg.Command {
 					case "initialize":
 						resposta.Body = map[string]any{
@@ -86,7 +86,7 @@ func lidarComDap(conn net.Conn) {
 							"supportsStepBack":                 false,
 						}
 					}
-					
+
 					respBytes, _ := json.Marshal(resposta)
 					header := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(respBytes))
 					_, _ = conn.Write([]byte(header + string(respBytes)))
