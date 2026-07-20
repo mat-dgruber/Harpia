@@ -1,0 +1,68 @@
+name: Release Oficial (Linguagem & Extensão)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  # 1. Compilação e publicação dos binários da linguagem Harpia (Go)
+  release-compiler:
+    name: Build & Release Harpia Compiler
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.2'
+          cache: true
+
+      - name: Executar GoReleaser (Gera binários, tags e release)
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 2. Publicação automática da extensão VS Code no Marketplace oficial
+  release-extension:
+    name: Publish VS Code Extension
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./vscode-harpia/package-lock.json
+
+      - name: Instalar Dependências da Extensão
+        run: |
+          cd vscode-harpia
+          npm ci
+
+      - name: Sincronizar Versão da Extensão com a Tag do Git
+        run: |
+          # Extrai o número da versão da tag (ex: refs/tags/v1.0.0 -> 1.0.0)
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Sincronizando package.json para a versão $TAG_VERSION"
+          cd vscode-harpia
+          npm version $TAG_VERSION --no-git-tag-version
+
+      - name: Publicar no VS Code Marketplace
+        run: |
+          cd vscode-harpia
+          npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }}

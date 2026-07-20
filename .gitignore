@@ -30,4 +30,15 @@ app-teste
 
 # Relatórios temporários e planos de sessões de IA
 202[0-9]-*.md
+
+# Extensão VS Code (se integrada ao monorepo)
+/vscode-harpia/node_modules/
+/vscode-harpia/out/
+/vscode-harpia/*.vsix
+/vscode-harpia/.vscode-test/
+PLANO_MONACO_PLAYGROUND.md
+PLANO_FASE_6.md
+metas.md
+instalar_local.sh
+2026-07-17-165536-quero-fazer-melhorias-na-extenso-melhores-forma.md
 PLANO_PUBLICACAO.md
