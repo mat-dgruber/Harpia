@@ -99,8 +99,9 @@ func TestModuloHttp(t *testing.T) {
 	de "http" importe Servidor, requisitar
 
 	var server = nova Servidor()
-	server.usar(funcao(req, res) {
+	server.usar(funcao(req, res, proximo) {
 		res.definir_cabecalho("X-Middleware", "Ativo")
+		proximo()
 	})
 
 	server.obter("/ola/:nome", funcao(req, res) {

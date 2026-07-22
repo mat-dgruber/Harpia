@@ -6,36 +6,6 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-// converteParaGo converte recursivamente objetos Harpia para tipos Go primitivos analisáveis pelo encoding/json.
-func converteParaGo(obj hrp.Objeto) any {
-	if obj == nil || obj == hrp.Nulo {
-		return nil
-	}
-	switch v := obj.(type) {
-	case hrp.Texto:
-		return string(v)
-	case hrp.Inteiro:
-		return int64(v)
-	case hrp.Decimal:
-		return float64(v)
-	case hrp.Booleano:
-		return bool(v)
-	case *hrp.Lista:
-		res := make([]any, len(v.Itens))
-		for i, item := range v.Itens {
-			res[i] = converteParaGo(item)
-		}
-		return res
-	case hrp.Mapa:
-		res := make(map[string]any)
-		for chave, val := range v {
-			res[chave] = converteParaGo(val)
-		}
-		return res
-	}
-	return nil
-}
-
 // converteParahrp converte recursivamente dados tipados de volta em tipos Harpia nativos.
 func converteParahrp(dados any) hrp.Objeto {
 	if dados == nil {
@@ -94,7 +64,7 @@ func met_json_serializar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	goObj := converteParaGo(args[0])
+	goObj := hrp.ConverteParaGo(args[0])
 	bytes, err := json.Marshal(goObj)
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao serializar objeto para JSON: %v", err)
@@ -103,9 +73,6 @@ func met_json_serializar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(bytes), nil
 }
 
-var _analisar = hrp.NewMetodoOuPanic("analisar", met_json_analisar, "")
-var _serializar = hrp.NewMetodoOuPanic("serializar", met_json_serializar, "")
-
 func init() {
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
@@ -113,8 +80,8 @@ func init() {
 			Arquivo: "stdlib/json",
 		},
 		Metodos: []*hrp.Metodo{
-			_analisar,
-			_serializar,
+			hrp.NewMetodoOuPanic("analisar", met_json_analisar, "Decodifica uma string JSON em um objeto Harpia."),
+			hrp.NewMetodoOuPanic("serializar", met_json_serializar, "Codifica um objeto Harpia em uma string JSON."),
 		},
 	})
 }

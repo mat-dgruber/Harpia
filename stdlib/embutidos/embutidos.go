@@ -150,6 +150,33 @@ func init() {
 		),
 	}
 
+	// Adiciona objeto Roteador SPA nativo no escopo de embutidos
+	roteadorObj := hrp.NewMapaVazio()
+	rotasCadastradas := hrp.NewMapaVazio()
+	caminhoAtualSignal, _ := hrp.NewTexto("/")
+	
+	roteadorObj.M__define_item__(hrp.Texto("definir"), hrp.NewMetodoOuPanic("definir", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+		if err := hrp.VerificaNumeroArgumentos("definir", false, args, 2, 2); err != nil {
+			return nil, err
+		}
+		rotasCadastradas.M__define_item__(args[0], args[1])
+		return hrp.Nulo, nil
+	}, "Cadastra uma rota no Roteador SPA (caminho, componente)"))
+
+	roteadorObj.M__define_item__(hrp.Texto("navegar"), hrp.NewMetodoOuPanic("navegar", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+		if err := hrp.VerificaNumeroArgumentos("navegar", false, args, 1, 1); err != nil {
+			return nil, err
+		}
+		caminhoAtualSignal = args[0].(hrp.Texto)
+		return hrp.Nulo, nil
+	}, "Navega para uma URL no SPA sem recarregar a página"))
+
+	roteadorObj.M__define_item__(hrp.Texto("obterRota"), hrp.NewMetodoOuPanic("obterRota", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+		return caminhoAtualSignal, nil
+	}, "Retorna a rota ativa atual"))
+
+	constantes["roteador"] = roteadorObj
+
 	// Registra o escopo agregador de embutidos na lista central de inicializações do interpretador.
 	hrp.RegistraModuloImpl(
 		&hrp.ModuloImpl{

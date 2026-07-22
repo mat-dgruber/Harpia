@@ -2,9 +2,11 @@ package http
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +21,8 @@ type Requisicao struct {
 	Cabecalho  hrp.Mapa
 	Corpo      hrp.Texto
 	Parametros hrp.Mapa
+	Query      hrp.Mapa   // Parâmetros de consulta (query string)
+	CorpoJson  hrp.Objeto // Body deserializado de JSON automaticamente (Nulo se não for JSON)
 }
 
 var TipoRequisicao = hrp.NewTipo("Requisicao", "Objeto que representa uma requisição HTTP")
@@ -39,6 +43,13 @@ func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		return r.Corpo, nil
 	case "parametros":
 		return r.Parametros, nil
+	case "query":
+		return r.Query, nil
+	case "corpoJson":
+		if r.CorpoJson != nil {
+			return r.CorpoJson, nil
+		}
+		return hrp.Nulo, nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Requisicao", nome)
 }
@@ -100,6 +111,53 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			r.Cabecalho.M__define_item__(k, v)
 			return hrp.Nulo, nil
 		}, ""), nil
+	case "enviarJson":
+		return hrp.NewMetodoOuPanic("enviarJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("enviarJson", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			goObj := hrp.ConverteParaGo(args[0])
+			bytes, err := json.Marshal(goObj)
+			if err != nil {
+				return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao serializar objeto para JSON: %v", err)
+			}
+			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
+			r.Corpo = hrp.Texto(bytes)
+			return hrp.Nulo, nil
+		}, "Serializa e envia o objeto como JSON, definindo Content-Type automaticamente"), nil
+
+	case "definirStatus":
+		return hrp.NewMetodoOuPanic("definirStatus", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("definirStatus", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			statusInt, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
+			r.Status = statusInt.(hrp.Inteiro)
+			return hrp.Nulo, nil
+		}, "Define o código de status HTTP da resposta (ex: res.definirStatus(404))"), nil
+
+	case "erroJson":
+		return hrp.NewMetodoOuPanic("erroJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("erroJson", false, args, 2, 2); err != nil {
+				return nil, err
+			}
+			statusInt, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
+			r.Status = statusInt.(hrp.Inteiro)
+			goObj := map[string]any{"erro": hrp.ConverteParaGo(args[1])}
+			bytes, jsonErr := json.Marshal(goObj)
+			if jsonErr != nil {
+				return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao serializar mensagem de erro: %v", jsonErr)
+			}
+			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
+			r.Corpo = hrp.Texto(bytes)
+			return hrp.Nulo, nil
+		}, "Envia uma resposta de erro JSON com status e mensagem (ex: res.erroJson(404, \"Não encontrado\"))"), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Resposta", nome)
 }
@@ -210,13 +268,14 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 	case "escutar":
 		return hrp.NewMetodoOuPanic("escutar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if hrp.ContextoAtivo != nil {
-				if err := hrp.ContextoAtivo.VerificarPermissaoRede(); err != nil {
+			ctx := hrp.ObterContextoAtivo()
+			if ctx != nil {
+				if err := ctx.VerificarPermissaoRede(); err != nil {
 					return nil, err
 				}
 			}
 
-			if err := hrp.VerificaNumeroArgumentos("escutar", false, args, 1, 1); err != nil {
+			if err := hrp.VerificaNumeroArgumentos("escutar", false, args, 1, 2); err != nil {
 				return nil, err
 			}
 			porta, err := hrp.NewTexto(args[0])
@@ -224,14 +283,42 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 
+			bloquear := false
+			if len(args) > 1 {
+				if b, ok := args[1].(hrp.Booleano); ok {
+					bloquear = bool(b)
+				}
+			}
+
 			mux := http.NewServeMux()
 			mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 				defer func() {
 					if r := recover(); r != nil {
+						fmt.Fprintf(os.Stderr, "\n🔥 Erro interno no Servidor HTTP (Pânico):\n  ➔ %v\n\n", r)
 						w.WriteHeader(http.StatusInternalServerError)
 						w.Write(fmt.Appendf(nil, "Erro interno do servidor (Pânico): %v", r))
 					}
 				}()
+
+				// Injeção dos cabeçalhos OWASP de Segurança Padrão
+				w.Header().Set("X-Content-Type-Options", "nosniff")
+				w.Header().Set("X-Frame-Options", "DENY")
+				w.Header().Set("X-XSS-Protection", "1; mode=block")
+				w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+
+				// ponytail: suporte transparente a CORS Preflight OPTIONS global para facilitar desenvolvimento de SPA
+				if req.Method == "OPTIONS" {
+					w.Header().Set("Access-Control-Allow-Origin", "*")
+					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+					if reqHeaders := req.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
+						w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+					} else {
+						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+					}
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+
 
 				s.mu.RLock()
 				rotasMetodo := s.rotas[req.Method]
@@ -269,12 +356,30 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					reqParams.M__define_item__(hrp.Texto(k), hrp.Texto(v))
 				}
 
+				// Parse automático do corpo JSON quando Content-Type indica JSON
+				var corpoJsonParsed hrp.Objeto = hrp.Nulo
+				contentType := req.Header.Get("Content-Type")
+				if len(bodyBytes) > 0 && strings.Contains(contentType, "application/json") {
+					var rawJson any
+					if jsonErr := json.Unmarshal(bodyBytes, &rawJson); jsonErr == nil {
+						corpoJsonParsed = hrp.ConverteDeGo(rawJson)
+					}
+				}
+
+				// Parse dos query parameters
+				reqQuery := hrp.NewMapaVazio()
+				for k, vals := range req.URL.Query() {
+					reqQuery.M__define_item__(hrp.Texto(k), hrp.Texto(strings.Join(vals, ", ")))
+				}
+
 				reqObj := &Requisicao{
 					Metodo:     hrp.Texto(req.Method),
 					Caminho:    hrp.Texto(req.URL.Path),
 					Cabecalho:  reqHeaders,
 					Corpo:      hrp.Texto(bodyBytes),
 					Parametros: reqParams,
+					Query:      reqQuery,
+					CorpoJson:  corpoJsonParsed,
 				}
 
 				resObj := &Resposta{
@@ -283,28 +388,58 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					Corpo:     hrp.Texto(""),
 				}
 
-				// Roda middlewares
+				// Roda middlewares encadeados
 				s.mu.RLock()
 				mws := make([]hrp.Objeto, len(s.middlewares))
 				copy(mws, s.middlewares)
 				s.mu.RUnlock()
 
-				for _, mw := range mws {
-					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj})
-					if errMw != nil {
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write([]byte(errMw.Error()))
-						return
+				var executarProximo func(idx int) error
+				executarProximo = func(idx int) error {
+					if idx >= len(mws) {
+						// Finalizou os middlewares: executa o handler principal
+						_, errHandler := hrp.Chamar(handler, hrp.Tupla{reqObj, resObj})
+						return errHandler
 					}
+
+					mw := mws[idx]
+					proximoCb := hrp.NewMetodoOuPanic("proximo", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+						err := executarProximo(idx + 1)
+						if err != nil {
+							return nil, err
+						}
+						return hrp.Nulo, nil
+					}, "Avança para o próximo middleware ou handler")
+
+					// Tenta chamar o middleware com (req, res, proximo)
+					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj, proximoCb})
+					if errMw != nil {
+						// Se o erro foi por falta de argumento (middleware declarou só 2 params req, res), chama com 2 params e avança
+						if strings.Contains(errMw.Error(), "esperava no máximo 2 argumentos") {
+							_, errMw2 := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj})
+							if errMw2 != nil {
+								return errMw2
+							}
+							return executarProximo(idx + 1)
+						}
+						return errMw
+					}
+					return nil
 				}
 
-				// Roda o handler principal
-				_, errHandler := hrp.Chamar(handler, hrp.Tupla{reqObj, resObj})
-				if errHandler != nil {
+				if errChain := executarProximo(0); errChain != nil {
+					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]:\n", req.Method, req.URL.Path)
+					hrp.LancarErro(errChain)
+					fmt.Fprintln(os.Stderr)
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(errHandler.Error()))
+					w.Write([]byte(errChain.Error()))
 					return
 				}
+
+				// ponytail: adiciona cabeçalhos CORS por padrão nas respostas normais
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 				// Escreve cabecalhos de resposta
 				for k, v := range resObj.Cabecalho {
@@ -321,6 +456,13 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				ReadTimeout:  5 * time.Second,
 				WriteTimeout: 10 * time.Second,
 				IdleTimeout:  120 * time.Second,
+			}
+
+			if bloquear {
+				if errListen := s.server.ListenAndServe(); errListen != nil && errListen != http.ErrServerClosed {
+					return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao escutar porta: %v", errListen)
+				}
+				return hrp.Nulo, nil
 			}
 
 			// Inicia o servidor em background para manter concorrência cooperativa/assíncrona
@@ -399,8 +541,9 @@ func matchRoute(pattern, path string) (bool, map[string]string) {
 
 // met_http_requisitar realiza uma requisição HTTP Cliente.
 func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-	if hrp.ContextoAtivo != nil {
-		if err := hrp.ContextoAtivo.VerificarPermissaoRede(); err != nil {
+	ctx := hrp.ObterContextoAtivo()
+	if ctx != nil {
+		if err := ctx.VerificarPermissaoRede(); err != nil {
 			return nil, err
 		}
 	}
@@ -470,6 +613,26 @@ func init() {
 		},
 		Constantes: hrp.Mapa{
 			"Servidor": TipoServidor,
+			"Status": hrp.Mapa{
+				"OK":                  hrp.Inteiro(200),
+				"Criado":              hrp.Inteiro(201),
+				"Aceito":              hrp.Inteiro(202),
+				"SemConteudo":         hrp.Inteiro(204),
+				"MovidoPara":          hrp.Inteiro(301),
+				"NaoModificado":       hrp.Inteiro(304),
+				"RequisicaoRuim":      hrp.Inteiro(400),
+				"NaoAutorizado":       hrp.Inteiro(401),
+				"Proibido":            hrp.Inteiro(403),
+				"NaoEncontrado":       hrp.Inteiro(404),
+				"MetodoInvalido":      hrp.Inteiro(405),
+				"Conflito":            hrp.Inteiro(409),
+				"EntidadeGrande":      hrp.Inteiro(413),
+				"NaoProcessavel":      hrp.Inteiro(422),
+				"MuitasRequisicoes":   hrp.Inteiro(429),
+				"ErroInterno":         hrp.Inteiro(500),
+				"NaoImplementado":     hrp.Inteiro(501),
+				"ServicoIndisponivel": hrp.Inteiro(503),
+			},
 		},
 		Metodos: []*hrp.Metodo{
 			hrp.NewMetodoOuPanic("requisitar", met_http_requisitar, ""),

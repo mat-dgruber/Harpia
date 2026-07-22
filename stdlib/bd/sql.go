@@ -114,6 +114,32 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}, nil
 		}, ""), nil
 
+	case "transacao":
+		return hrp.NewMetodoOuPanic("transacao", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("transacao", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			fnCallback := args[0]
+
+			tx, errBegin := c.db.Begin()
+			if errBegin != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao iniciar transação: %v", errBegin)
+			}
+
+			txObj := &TransacaoSQL{tx: tx, driver: c.driver}
+			_, errExec := hrp.Chamar(fnCallback, hrp.Tupla{txObj})
+			if errExec != nil {
+				tx.Rollback()
+				return nil, errExec
+			}
+
+			if errCommit := tx.Commit(); errCommit != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao efetivar (commit) transação: %v", errCommit)
+			}
+
+			return hrp.Nulo, nil
+		}, "Executa uma transação atômica em banco de dados; executa rollback automático se houver falha."), nil
+
 	case "fechar":
 		return hrp.NewMetodoOuPanic("fechar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			c.db.Close()
@@ -122,6 +148,88 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em ConexaoSQL", nome)
+}
+
+// TransacaoSQL representa uma transação ativa em um banco de dados relacional.
+type TransacaoSQL struct {
+	tx     *sql.Tx
+	driver string
+}
+
+var TipoTransacaoSQL = hrp.NewTipo("TransacaoSQL", "Transação de Banco de Dados SQL")
+
+func (t *TransacaoSQL) Tipo() *hrp.Tipo {
+	return TipoTransacaoSQL
+}
+
+func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	switch nome {
+	case "executar":
+		return hrp.NewMetodoOuPanic("executar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) < 1 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "executar esperava no mínimo 1 argumento (query)")
+			}
+			query, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			var goArgs []interface{}
+			for _, arg := range args[1:] {
+				goArgs = append(goArgs, toGoType(arg))
+			}
+			_, errExec := t.tx.Exec(string(query.(hrp.Texto)), goArgs...)
+			if errExec != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL na transação: %v", errExec)
+			}
+			return hrp.Nulo, nil
+		}, ""), nil
+
+	case "consultar":
+		return hrp.NewMetodoOuPanic("consultar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) < 1 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "consultar esperava no mínimo 1 argumento (query)")
+			}
+			query, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			var goArgs []interface{}
+			for _, arg := range args[1:] {
+				goArgs = append(goArgs, toGoType(arg))
+			}
+			rows, errQuery := t.tx.Query(string(query.(hrp.Texto)), goArgs...)
+			if errQuery != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar consulta SQL na transação: %v", errQuery)
+			}
+			defer rows.Close()
+
+			cols, errCols := rows.Columns()
+			if errCols != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao obter colunas: %v", errCols)
+			}
+
+			lista := &hrp.Lista{}
+			for rows.Next() {
+				columns := make([]interface{}, len(cols))
+				columnPointers := make([]interface{}, len(cols))
+				for i := range columns {
+					columnPointers[i] = &columns[i]
+				}
+				if errScan := rows.Scan(columnPointers...); errScan != nil {
+					return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao ler linha: %v", errScan)
+				}
+				m := hrp.NewMapaVazio()
+				for i, colName := range cols {
+					val := columns[i]
+					m.M__define_item__(hrp.Texto(colName), toPtObject(val))
+				}
+				lista.Itens = append(lista.Itens, m)
+			}
+			return lista, nil
+		}, ""), nil
+	}
+
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em TransacaoSQL", nome)
 }
 
 type QueryBuilder struct {

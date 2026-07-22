@@ -177,6 +177,10 @@ export function h(tag, props, ...filhos) {
  * @returns {Node} Elemento do DOM físico
  */
 export function criarNo(vno) {
+  if (vno === null || vno === undefined || vno === false) {
+    return document.createTextNode('');
+  }
+
   if (typeof vno === 'function') {
     return criarNo(vno());
   }
@@ -185,23 +189,31 @@ export function criarNo(vno) {
     return document.createTextNode(vno);
   }
 
+  if (!vno || typeof vno !== 'object') {
+    return document.createTextNode(String(vno || ''));
+  }
+
   if (typeof vno.tag === 'function') {
     const vnodeRendido = vno.tag(vno.props);
     vno._componenteInstancia = vnodeRendido;
     return criarNo(vnodeRendido);
   }
 
-  const el = document.createElement(vno.tag);
+  const el = document.createElement(vno.tag || 'div');
+
   vno.el = el;
 
   atualizarAtributos(el, {}, vno.props);
 
-  vno.children.forEach(filho => {
-    el.appendChild(criarNo(filho));
+  (vno.children || []).forEach(filho => {
+    if (filho !== null && filho !== undefined && filho !== false) {
+      el.appendChild(criarNo(filho));
+    }
   });
 
   return el;
 }
+
 
 function atualizarAtributos(el, velhosProps, novosProps) {
   // Remover velhos props
@@ -222,10 +234,10 @@ function atualizarAtributos(el, velhosProps, novosProps) {
     const velhoValor = velhosProps[chave];
 
     if (valor !== velhoValor) {
-      if (chave === '_ligar') {
+      if (chave === '_ligar' || chave === 'ligar') {
         const lerSinal = valor;
         efeito(() => {
-          const val = lerSinal();
+          const val = typeof lerSinal === 'function' ? lerSinal() : lerSinal;
           if (el.type === 'checkbox') {
             el.checked = !!val;
           } else {
@@ -234,13 +246,14 @@ function atualizarAtributos(el, velhosProps, novosProps) {
         });
         const eventoTipo = el.type === 'checkbox' ? 'change' : 'input';
         el.addEventListener(eventoTipo, (e) => {
-          const setter = lerSinal.set || lerSinal[1];
+          const setter = lerSinal ? (lerSinal.set || lerSinal[1]) : null;
           if (setter) {
             setter(el.type === 'checkbox' ? e.target.checked : e.target.value);
           }
         });
         continue;
       }
+
 
       if (chave === 'innerHTML') {
         el.innerHTML = valor;
@@ -250,8 +263,15 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       if (chave.startsWith('ao')) {
         const evento = mapearEvento(chave);
         if (velhoValor) el.removeEventListener(evento, velhoValor);
-        el.addEventListener(evento, valor);
+        const listener = (e) => {
+          if (el.tagName === 'A') {
+            e.preventDefault();
+          }
+          valor(e);
+        };
+        el.addEventListener(evento, listener);
       } else if (chave === 'estilo' && typeof valor === 'object') {
+
         Object.assign(el.style, valor);
       } else {
         const attrName = mapearAtributo(chave);
@@ -301,66 +321,94 @@ function mapearAtributo(nome) {
  * @param {number} index - Posição do nó físico no pai
  */
 export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
+  if (!pai) return;
+
   if (typeof velhoVNo === 'function') velhoVNo = velhoVNo();
   if (typeof novoVNo === 'function') novoVNo = novoVNo();
 
-  const noFisico = pai.childNodes[index];
+  if (velhoVNo && typeof velhoVNo.tag === 'function') {
+    velhoVNo = velhoVNo.tag(velhoVNo.props);
+  }
+  if (novoVNo && typeof novoVNo.tag === 'function') {
+    novoVNo = novoVNo.tag(novoVNo.props);
+  }
+
+  const noFisico = pai.childNodes ? pai.childNodes[index] : null;
 
   if (!velhoVNo) {
-    pai.appendChild(criarNo(novoVNo));
+    if (novoVNo) pai.appendChild(criarNo(novoVNo));
     return;
   }
 
   if (!novoVNo) {
-    pai.removeChild(noFisico);
+    if (noFisico && pai.removeChild) pai.removeChild(noFisico);
     return;
   }
 
   if (mudou(velhoVNo, novoVNo)) {
-    pai.replaceChild(criarNo(novoVNo), noFisico);
+    if (noFisico && pai.replaceChild) {
+      pai.replaceChild(criarNo(novoVNo), noFisico);
+    } else {
+      pai.appendChild(criarNo(novoVNo));
+    }
     return;
   }
 
   if (typeof novoVNo === 'object') {
-    if (typeof novoVNo.tag === 'function') {
-      const vnodeRendido = novoVNo.tag(novoVNo.props);
-      novoVNo._componenteInstancia = vnodeRendido;
-      reconciliar(pai, velhoVNo._componenteInstancia, vnodeRendido, index);
-      return;
+    if (noFisico && noFisico.nodeType === 1) {
+      atualizarAtributos(noFisico, (velhoVNo && velhoVNo.props) || {}, novoVNo.props || {});
+      novoVNo.el = noFisico;
     }
 
-    atualizarAtributos(noFisico, velhoVNo.props, novoVNo.props);
-    novoVNo.el = noFisico;
+    const velhosFilhos = (velhoVNo && velhoVNo.children) || [];
+    const novosFilhos = (novoVNo && novoVNo.children) || [];
 
-    const velhosFilhos = velhoVNo.children || [];
-    const novosFilhos = novoVNo.children || [];
-    const max = Math.max(velhosFilhos.length, novosFilhos.length);
+    const temChaves = novosFilhos.some(f => f && f.props && (f.props.chave !== undefined || f.props.key !== undefined));
 
-    const chavesVelhas = {};
-    velhosFilhos.forEach((c, idx) => {
-      if (c && c.props && c.props.chave !== undefined) {
-        chavesVelhas[c.props.chave] = { no: c, idx };
-      }
-    });
+    if (temChaves && noFisico) {
+      const mapaVelhos = new Map();
+      velhosFilhos.forEach((vno, idx) => {
+        const k = vno && vno.props ? (vno.props.chave ?? vno.props.key) : idx;
+        const noChild = noFisico.childNodes ? noFisico.childNodes[idx] : null;
+        if (k !== undefined && noChild) {
+          mapaVelhos.set(k, { vno, el: noChild });
+        }
+      });
 
-    for (let i = 0; i < max; i++) {
-      let velhoF = velhosFilhos[i];
-      let novoF = novosFilhos[i];
+      novosFilhos.forEach((novoChildVNo, i) => {
+        const k = novoChildVNo && novoChildVNo.props ? (novoChildVNo.props.chave ?? novoChildVNo.props.key) : i;
+        const correspondencia = mapaVelhos.get(k);
 
-      if (novoF && novoF.props && novoF.props.chave !== undefined) {
-        const achado = chavesVelhas[novoF.props.chave];
-        if (achado) {
-          velhoF = achado.no;
-          const noFis = noFisico.childNodes[achado.idx];
-          if (noFis && noFisico.childNodes[i] !== noFis) {
-            noFisico.insertBefore(noFis, noFisico.childNodes[i]);
+        if (correspondencia) {
+          reconciliar(noFisico, correspondencia.vno, novoChildVNo, i);
+          mapaVelhos.delete(k);
+        } else {
+          const novoEl = criarNo(novoChildVNo);
+          if (noFisico.childNodes && noFisico.childNodes[i]) {
+            noFisico.insertBefore(novoEl, noFisico.childNodes[i]);
+          } else {
+            noFisico.appendChild(novoEl);
           }
         }
+      });
+
+      mapaVelhos.forEach(({ el }) => {
+        if (el && el.parentNode === noFisico) {
+          noFisico.removeChild(el);
+        }
+      });
+    } else {
+      const max = Math.max(velhosFilhos.length, novosFilhos.length);
+      for (let i = 0; i < max; i++) {
+        reconciliar(noFisico, velhosFilhos[i], novosFilhos[i], i);
       }
-      reconciliar(noFisico, velhoF, novoF, i);
     }
   }
 }
+
+
+
+
 
 function mudou(no1, no2) {
   return (
@@ -380,18 +428,24 @@ function mudou(no1, no2) {
 export function montar(appComponente, elementoAlvo) {
   let velhoVNo = null;
 
-  if (elementoAlvo && elementoAlvo.childNodes.length > 0) {
-    const vnoInicial = typeof appComponente === 'function' ? appComponente() : appComponente;
-    vincularNos(elementoAlvo.firstElementChild || elementoAlvo, vnoInicial);
-    velhoVNo = vnoInicial;
+  if (typeof elementoAlvo === 'string') {
+    elementoAlvo = document.getElementById(elementoAlvo);
   }
 
+  if (elementoAlvo) {
+    elementoAlvo.innerHTML = '';
+  }
+
+  const obterVNo = typeof appComponente === 'function' ? appComponente : () => appComponente;
+
   efeito(() => {
-    const novoVNo = typeof appComponente === 'function' ? appComponente() : appComponente;
+    const novoVNo = obterVNo();
     reconciliar(elementoAlvo, velhoVNo, novoVNo);
     velhoVNo = novoVNo;
   });
 }
+
+
 
 function vincularNos(elFisico, vno) {
   if (!vno || !elFisico) return;
@@ -413,7 +467,7 @@ function vincularNos(elFisico, vno) {
     }
 
     const filhosFisicos = elFisico.childNodes;
-    const max = Math.min(filhosFisicos.length, vno.children.length);
+    const max = Math.min(filhosFisicos.length, vno.children ? vno.children.length : 0);
     for (let i = 0; i < max; i++) {
       vincularNos(filhosFisicos[i], vno.children[i]);
     }
@@ -451,10 +505,40 @@ if (typeof window !== 'undefined') {
 export function roteador(rotas) {
   return () => {
     const path = urlAtiva();
-    const componente = rotas[path] || rotas['/404'] || (() => h('div', {}, '404 - Página Não Encontrada'));
-    return h(componente, {});
+    let componente = rotas[path];
+    let parametros = {};
+
+    if (!componente) {
+      for (const rotaDef in rotas) {
+        if (!rotaDef.includes(':')) continue;
+        const partesDef = rotaDef.split('/').filter(Boolean);
+        const partesPath = path.split('/').filter(Boolean);
+
+        if (partesDef.length === partesPath.length) {
+          let corresponde = true;
+          const paramsTemp = {};
+          for (let i = 0; i < partesDef.length; i++) {
+            if (partesDef[i].startsWith(':')) {
+              paramsTemp[partesDef[i].slice(1)] = partesPath[i];
+            } else if (partesDef[i] !== partesPath[i]) {
+              corresponde = false;
+              break;
+            }
+          }
+          if (corresponde) {
+            componente = rotas[rotaDef];
+            parametros = paramsTemp;
+            break;
+          }
+        }
+      }
+    }
+
+    componente = componente || rotas['/404'] || (() => h('div', {}, '404 - Página Não Encontrada'));
+    return h(componente, { parametros });
   };
 }
+
 
 // ============================================================================
 // 4. PRIMITIVAS DE ESTADO CORPORATIVAS E COMPONENTES DE UI NATIVOS (Fase 4-C)
@@ -513,12 +597,244 @@ export function recurso(funcaoAsync) {
   executar();
 
   const ler = () => dados();
-  ler.carregando = carregando;
-  ler.erro = erro;
+  const fnCarregando = () => carregando();
+  fnCarregando.set = setCarregando;
+  const fnErro = () => erro();
+  fnErro.set = setErro;
+
+  ler.dados = dados;
+  ler.carregando = fnCarregando;
+  ler.erro = fnErro;
   ler.ok = () => !carregando() && !erro();
   ler.recarregar = executar;
-  return [ler];
+
+  const res = ler;
+  res.dados = dados;
+  res.carregando = fnCarregando;
+  res.erro = fnErro;
+  res.recarregar = executar;
+  return res;
 }
+
+/**
+ * Gestor de formulários reativos no Harpia (usarFormulario).
+ */
+export function usarFormulario(config) {
+  const valoresIniciais = config.valoresIniciais || {};
+  const [valores, setValores] = sinal({ ...valoresIniciais });
+  const [erros, setErros] = sinal({});
+
+  function campo(nome) {
+    return {
+      value: valores()[nome] || '',
+      onInput: (e) => {
+        const novos = { ...valores(), [nome]: e.target.value };
+        setValores(novos);
+        if (config.validar) {
+          setErros(config.validar(novos) || {});
+        }
+      }
+    };
+  }
+
+  function submeter(aoSubmeter) {
+    return (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      const errs = config.validar ? config.validar(valores()) : {};
+      setErros(errs);
+      if (Object.keys(errs).length === 0) {
+        aoSubmeter(valores());
+      }
+    };
+  }
+
+  return { valores, erros, campo, submeter };
+}
+
+/**
+ * Cache global e hook de consulta HTTP inteligente (usarConsulta / SWR).
+ */
+const cacheGlobalConsultas = new Map();
+
+export function usarConsulta(url, opcoes = {}) {
+  const [dados, setDados] = sinal(cacheGlobalConsultas.get(url) || null);
+  const [carregando, setCarregando] = sinal(!cacheGlobalConsultas.has(url));
+  const [erro, setErro] = sinal(null);
+
+  async function buscar() {
+    try {
+      setCarregando(true);
+      const res = await fetch(url);
+      const data = await res.json();
+      cacheGlobalConsultas.set(url, data);
+      setDados(data);
+      setErro(null);
+    } catch (err) {
+      setErro(err.message || 'Erro ao carregar consulta');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  efeito(() => {
+    buscar();
+  });
+
+  return { dados, carregando, erro, mutarOtimista: (novo) => setDados(novo), recarregar: buscar };
+}
+
+/**
+ * Componente de animações e transições nativas (Animacao).
+ */
+export function Animacao(props) {
+  const tipo = props.tipo || 'fade';
+  const duracao = props.duracao || '300ms';
+  return h('div', {
+    estilo: {
+      transition: `all ${duracao} ease-in-out`,
+      animation: `${tipo} ${duracao}`
+    }
+  }, props.children);
+}
+
+/**
+ * Componente de imagem otimizada com lazy loading (ImagemWeb).
+ */
+export function ImagemWeb(props) {
+  return h('img', {
+    src: props.caminho || props.src,
+    alt: props.alt || '',
+    loading: 'lazy',
+    width: props.largura,
+    height: props.altura,
+    classe: props.classe || ''
+  });
+}
+
+/**
+ * Carregador assíncrono de Micro-Frontends (moduloRemoto).
+ */
+export function moduloRemoto(url, nomeComponente) {
+  return function ComponenteRemoto(props) {
+    const [comp, setComp] = sinal(null);
+    efeito(() => {
+      import(/* webpackIgnore: true */ url).then(mod => {
+        setComp(() => mod[nomeComponente] || mod.default);
+      });
+    });
+    return () => {
+      const C = comp();
+      return C ? h(C, props) : h('div', { classe: 'carregando-remoto' }, 'Carregando Módulo Remoto...');
+    };
+  };
+}
+
+/**
+ * Gestor de Tema Escuro/Claro (usarTema).
+ */
+export function usarTema(chave = 'harpia_tema', padrao = 'sistema') {
+  const preferEscuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const salvo = localStorage.getItem(chave);
+  const inicial = salvo || (padrao === 'sistema' ? (preferEscuro ? 'escuro' : 'claro') : padrao);
+  const [tema, setTema] = sinal(inicial);
+
+  efeito(() => {
+    const atual = tema();
+    localStorage.setItem(chave, atual);
+    if (atual === 'escuro') {
+      document.documentElement.classList.add('escuro');
+    } else {
+      document.documentElement.classList.remove('escuro');
+    }
+  });
+
+  const alternar = () => setTema(tema() === 'escuro' ? 'claro' : 'escuro');
+  return [tema, alternar, setTema];
+}
+
+/**
+ * Componente Portal para renderização direta no document.body (Portal).
+ */
+export function Portal(props) {
+  const el = document.createElement('div');
+  el.className = 'harpia-portal';
+  efeito(() => {
+    document.body.appendChild(el);
+    montar(h('div', {}, props.children), el);
+    return () => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    };
+  });
+  return null;
+}
+
+/**
+ * Hook para Drag-and-Drop e Gestos Touch (usarArrastar).
+ */
+export function usarArrastar(aoSoltar) {
+  let itemArrastado = null;
+  return {
+    aoIniciarArrasto: (item) => (e) => {
+      itemArrastado = item;
+      if (e.dataTransfer) e.dataTransfer.setData('text/plain', JSON.stringify(item));
+    },
+    aoSobrepor: (e) => e.preventDefault(),
+    aoSoltar: (itemAlvo) => (e) => {
+      if (e.preventDefault) e.preventDefault();
+      if (aoSoltar && itemArrastado) {
+        aoSoltar(itemArrastado, itemAlvo);
+      }
+    }
+  };
+}
+
+/**
+ * Barra de progresso visual no topo do navegador (BarraDeProgresso).
+ */
+export function BarraDeProgresso(props) {
+  const [carregando, setCarregando] = sinal(false);
+  return h('div', {
+    estilo: {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      height: '3px',
+      width: carregando() ? '100%' : '0%',
+      backgroundColor: props.cor || '#3b82f6',
+      transition: 'width 300ms ease-in-out',
+      zIndex: '99999'
+    }
+  });
+}
+
+/**
+ * Sistema de notificações tostadas reativas (usarNotificacao).
+ */
+const [notificacoes, setNotificacoes] = sinal([]);
+
+export function usarNotificacao() {
+  function adicionar(mensagem, tipo = 'info', duracao = 3000) {
+    const id = Date.now();
+    const item = { id, mensagem, tipo };
+    setNotificacoes([...notificacoes(), item]);
+    setTimeout(() => {
+      setNotificacoes(notificacoes().filter(n => n.id !== id));
+    }, duracao);
+  }
+
+  return {
+    sucesso: (msg) => adicionar(msg, 'sucesso'),
+    erro: (msg) => adicionar(msg, 'erro'),
+    info: (msg) => adicionar(msg, 'info'),
+    avisar: (msg) => adicionar(msg, 'aviso'),
+    lista: notificacoes
+  };
+}
+
+
+
+
+
 
 const mapaContextos = new Map();
 
@@ -564,9 +880,83 @@ export function FronteiraDeErro(props) {
 }
 
 /**
+ * Componente nativo de navegação SPA sem recarregamento de página.
+ */
+export function Link(props) {
+  const { para, children, ...restanteProps } = props || {};
+  const aoClicarOriginal = restanteProps.aoClicar;
+  restanteProps.aoClicar = (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (para) navegar(para);
+    if (aoClicarOriginal) aoClicarOriginal(e);
+  };
+  restanteProps.href = para || '#';
+  return h('a', restanteProps, children);
+}
+
+/**
+ * Componente nativo de Suspense/Aguardar para dados assíncronos e recursos.
+ */
+export function Aguardar(props) {
+  const { recurso: res, carregando, erro: renderErro, children } = props || {};
+  if (!res) return typeof children === 'function' ? children(null) : children;
+
+  if (typeof res.carregando === 'function' && res.carregando()) {
+    return carregando || h('p', { class: 'carregando' }, '⌛ Carregando...');
+  }
+
+  if (typeof res.erro === 'function' && res.erro()) {
+    const err = res.erro();
+    return typeof renderErro === 'function'
+      ? renderErro(err)
+      : (renderErro || h('p', { class: 'erro' }, `❌ Erro: ${err}`));
+  }
+
+  const dados = typeof res.dados === 'function' ? res.dados() : res.dados;
+  if (typeof children === 'function') {
+    return children(dados);
+  }
+  return children;
+}
+
+/**
+ * Construto nativo de Pattern Matching de UI (Escolha/Caso/Padrao).
+ */
+export function Escolha(props) {
+  const valorAlvo = typeof props.valor === 'function' ? props.valor() : props.valor;
+  const filhos = Array.isArray(props.children) ? props.children : [props.children];
+  let casoCorrespondente = null;
+  let casoPadrao = null;
+
+  for (const filho of filhos) {
+    if (!filho) continue;
+    if (filho.tag === Caso || (filho.props && filho.props.valor !== undefined)) {
+      if (filho.props.valor === valorAlvo) {
+        casoCorrespondente = filho;
+        break;
+      }
+    } else if (filho.tag === Padrao || (filho.props && filho.props.isPadrao)) {
+      casoPadrao = filho;
+    }
+  }
+
+  const escolhido = casoCorrespondente || casoPadrao;
+  return escolhido ? (escolhido.children || escolhido) : null;
+}
+
+export function Caso(props) {
+  return props.children || null;
+}
+
+export function Padrao(props) {
+  return props.children || null;
+}
+
+/**
  * Componente de lista virtualizada de alta performance para renderizar coleções massivas.
  */
 export function ListaVirtual(props) {
+
   const [inicio, setInicio] = sinal(0);
   const total = props.itens ? props.itens.length : 0;
   const alturaLinha = props.alturaLinha || 40;
@@ -672,4 +1062,79 @@ export function Suspense(props) {
     return pronto ? props.children : (props.fallback || h('div', {}, 'Carregando...'));
   };
 }
+
+/**
+ * Realiza requisições HTTP assíncronas (fetch) e retorna o resultado.
+ */
+export async function requisitar(metodo, url, dados = null, cabecalhos = {}) {
+  const opcoes = {
+    method: metodo,
+    headers: {
+      'Content-Type': 'application/json',
+      ...cabecalhos
+    }
+  };
+  if (dados) {
+    opcoes.body = typeof dados === 'string' ? dados : JSON.stringify(dados);
+  }
+  const resposta = await fetch(url, opcoes);
+  if (!resposta.ok) {
+    throw new Error(`Erro na requisição: ${resposta.status} ${resposta.statusText}`);
+  }
+  const contentType = resposta.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return resposta.json();
+  }
+  return resposta.text();
+}
+
+// ponytail: vincula as primitivas ao escopo global do navegador para compatibilidade de transpilação
+if (typeof window !== 'undefined') {
+  Object.assign(window, {
+    Nulo: null,
+    Verdadeiro: true,
+    Falso: false,
+
+    sinal,
+    sinalDebounce,
+    efeito,
+    derivado,
+    armazem,
+    h,
+    criarNo,
+    reconciliar,
+    montar,
+    navegar,
+    roteador,
+    sinalPersistente,
+    recurso,
+    Provedor,
+    injetar,
+    FronteiraDeErro,
+    ListaVirtual,
+    GradeDeDados,
+    preguicoso,
+    Suspense,
+    requisitar,
+
+    Link,
+    Aguardar,
+    Escolha,
+    Caso,
+    Padrao,
+    usarFormulario,
+    Animacao,
+    ImagemWeb,
+    moduloRemoto,
+    usarTema,
+    Portal,
+    usarArrastar,
+    BarraDeProgresso,
+    usarNotificacao
+  });
+}
+
+
+
+
 
