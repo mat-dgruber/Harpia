@@ -1,5 +1,6 @@
 //go:build !js || !wasm
 
+// Package main é o ponto de entrada da CLI nativa/desktop do Harpia.
 package main
 
 import (
@@ -13,11 +14,15 @@ import (
 )
 
 var (
+	// Commit armazena a hash do git commit injetada dinamicamente via LDFLAGS durante a compilação.
 	Commit   string = "-"
+	// Datetime armazena o carimbo de data/hora de geração do binário injetado via LDFLAGS.
 	Datetime string = "0000-00-00T00:00:00"
+	// Version armazena a tag de versão semântica do compilador injetada via LDFLAGS.
 	Version  string = "dev"
 )
 
+// LongDescription descreve o manifesto filosófico da linguagem Harpia exibido na ajuda da CLI.
 const LongDescription = `
 	Uma linguagem reativa orientada a objetos e eventos completamente em português que visa
 facilitar os estudos por parte de novos aventureiros no mundo da programação
@@ -26,14 +31,18 @@ com foco em Clean Architecture e DDD, sem ficar apenas criando códigos sem uso 
 	A documentação completa pode ser encontrada em https://github.com/mat-dgruber/Harpia
 `
 
+// init inicializa as variáveis compartilhadas de build e release no pacote de comandos da CLI.
 func init() {
 	cmd.Commit = Commit
 	cmd.Datetime = Datetime
 	cmd.Version = Version
 }
 
+// embeddedSource armazena o código-fonte Harpia embutido estaticamente no binário durante empacotamentos AOT de distribuição única.
 var embeddedSource string
 
+// main é a função principal que gerencia o ciclo de vida do interpretador Harpia,
+// executando scripts embutidos diretamente ou inicializando os comandos da interface de linha de comando (CLI) baseada no Cobra.
 func main() {
 	if embeddedSource != "" {
 		// Importa a biblioteca padrão implicitamente

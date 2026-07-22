@@ -1,5 +1,9 @@
 # Exemplo de App Harpia SPA Reativo com Sinais e Estilos
+# Este arquivo demonstra a união de estilos CSS nativos em português,
+# componentes funcionais de UI, estados reativos por sinais (Signals)
+# e renderização condicional baseada na reconciliação da árvore VDOM.
 
+# estilo MeuApp define a aparência visual do componente usando propriedades CSS mapeadas para o português.
 estilo MeuApp {
     corDeFundo: "#f4f4f9";
     padding: "20px";
@@ -7,26 +11,34 @@ estilo MeuApp {
     famíliaFonte: "sans-serif";
 }
 
+# MeuApp é o componente funcional raiz da página que orquestra a renderização e o estado reativo.
 funcao MeuApp() {
+    # Inicializa um sinal reativo contendo o valor inteiro de partida de 10.
+    # Os sinais devem ser lidos como funções para rastreamento de dependências.
     var contadorSinal = sinal(10);
-    var contador = contadorSinal[0];
-    var definirContador = contadorSinal[1];
+    var contador = contadorSinal[0];          # Função leitora do estado reativo: contador()
+    var definirContador = contadorSinal[1];    # Função escritora/mutadora de estado: definirContador(novoValor)
 
+    # incrementar aumenta o valor do contador reativo em 1 unidade.
     funcao incrementar() {
         definirContador(contador() + 1);
     }
 
+    # decrementar diminui o valor do contador reativo em 1 unidade.
     funcao decrementar() {
         definirContador(contador() - 1);
     }
 
+    # Retorna o Virtual DOM reativo associando eventos, classes de estilo e nós filhos.
     retorne <div classe="MeuApp">
         <h1>Meu App Harpia</h1>
         <p>Contador atual: <strong>{contador()}</strong></p>
 
+        # Vincula as ações de clique do usuário às funções mutadoras correspondentes
         <button aoClicar={incrementar}>Incrementar (+)</button>
         <button aoClicar={decrementar}>Decrementar (-)</button>
 
+        # Renderização condicional nativa: renderiza o parágrafo de sucesso apenas se o contador exceder 15.
         <se condicao={contador() > 15}>
             <p style="color: green;">Incrível! O contador está bem alto!</p>
         </se>
