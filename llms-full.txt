@@ -380,6 +380,20 @@ O ecossistema do Harpia fornece suporte de fábrica para criar interfaces que es
 2. **Breakpoints Utilitários do Linter**: Suporta o prefixo de breakpoints reativos do estilo Tailwind em português nas classes JSX (ex: `celular:flex-coluna`, `tablet:p-4`).
 3. **Injeção do Viewport**: O compilador web insere de forma automática a tag `<meta name="viewport" content="width=device-width, initial-scale=1.0">` no `index.html` gerado para que a aplicação mantenha escala física real de 1:1 em dispositivos portáteis.
 
+### 🌐 Integração RPC Transparente e Desacoplada com o Backend (`@backend/`)
+O Harpia remove barreiras tradicionais entre frontend e backend de forma revolucionária através do ecossistema de RPC nativo embutido:
+1. **Intercepção de Módulo `@backend/`**: No código frontend, importações que usem o prefixo `@backend/` (ex: `de "@backend/tarefas" importe salvarTarefa`) são detectadas pelo sistema de compilação.
+2. **Análise Estática via AST**: O interpretador localiza o arquivo `.hrp` de backend correspondente no disco, lê e constrói a árvore sintática (AST) em busca das funções reais de exportação. Isso garante um contrato de API ultra-preciso diretamente baseado no código-fonte, sem geração de artefatos adicionais.
+3. **Proxies Dinâmicos de Rede**: Com base nas assinaturas de funções do backend, a engine gera em tempo de execução um proxy JavaScript que expõe as mesmas funções no frontend. Quando essas funções são executadas, elas efetuam de forma invisível requisições POST HTTP para as rotas autogeradas do backend.
+4. **Resolução de Dependências**: O arquivo `dependencias.json` na raiz do projeto indica de onde as rotas devem ser servidas:
+   ```json
+   {
+     "conectarBackend": "../meu-backend",
+     "urlBackend": "http://localhost:8083"
+   }
+   ```
+5. **Tratamento de CORS e Payload JSON**: O servidor HTTP nativo trata automaticamente requisições preflight `OPTIONS` respondendo com status `200 OK` e injetando cabeçalhos genéricos de CORS (`Access-Control-Allow-Origin: *`). Configurações no mapa `res.cabecalho` (como `res.cabecalho["Access-Control-Allow-Origin"] = "https://origem-confiavel.com"`) têm total precedência. Payloads JSON recebidos são desserializados de forma transparente e disponibilizados diretamente em `req.corpoJson` como mapas do Harpia.
+
 ---
 
 ## 8. Biblioteca Padrão (Stdlib v1.2.0)
@@ -741,24 +755,34 @@ testar "soma com valores negativos" {
 
 ## 11. Comandos da CLI
 
+* **REPL / Playground Interativo**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair, utilitário `clear` para limpar tela, e ferramentas didáticas integradas como `ajuda <funcao>` para obter referências detalhadas de primitivas globais e `escopo` para debugar variáveis locais em memória).
 * **Executar script diretamente**: `harpia executar` (Zero-Config com auto-detecção do arquivo de entrada e spinner animado no terminal; suporta `--estrito` para validação de tipos, `--vm` para bytecode e `--assistir` para Hot Reload).
-* **Iniciar REPL de Terminal**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair instantaneamente, utilitário `clear` para limpar tela, e ferramentas didáticas integradas como `ajuda <funcao>` para obter referências detalhadas de primitivas globais e `escopo` para debugar variáveis locais em memória).
+* **Atualização Automática**: `harpia atualize` (Busca e instala novas releases binárias oficiais diretamente do repositório no GitHub de forma segura).
+* **Suíte de Testes**: `harpia testar [caminho_ou_pasta]` (varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa).
+* **Análise Estática e Linter**: `harpia checar [caminho] [flags]` (linter semântico offline-friendly que valida redeclarações, reatribuição de `const`, parâmetros duplicados e emite diagnósticos amigáveis ou JSON padrão LSP, imune a vazamentos em dependências circulares com uso < 25 MB).
+* **Guia e Dicionário de Erros**: `harpia erro [codigo]` (consultas a códigos de erro regulamentados como `PSC-0005`, suportando `harpia erro explicar [codigo]` para obter auxílio assistido por inteligência artificial local via Ollama/Gemma).
 * **Compilar e Transpilar**: `harpia compilar` (Zero-Config para entrada `main.hrp` e saída `dist`; suporta `--alvo=web|nativo|wasm`, `--entrada` e `--saida`).
 * **Servidor Web de Desenvolvimento**: `harpia servir` (Zero-Config com compilação automática, spinner de progresso e Hot Reload via SSE na porta 3000).
-* **Análise Estática e Linter**: `harpia checar [caminho]` (linter semântico otimizado, sem vazamentos de memória em dependências circulares com uso < 25 MB).
-
 * **Gerador de Projetos (Scaffolding)**: `harpia novo [backend | frontend | monolito] [nome]` (inicializa árvores organizacionais em português sob Clean Architecture e DDD completas com documentos `docs/` e `README.md` explicativos).
 * **Gerador de Componentes**: `harpia crie [rota | componente | modelo] [nome]` (gerador dinâmico de templates lógicos e estilizações nativas `.hrp` de acordo com a Clean Architecture).
-* **Executar suíte de testes**: `harpia testar [caminho_ou_pasta]` (varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa).
-* **Servidor LSP Integrado**: `harpia lsp` (inicia servidor oficial LSP via stdio. Declara `"documentFormattingProvider": true` na inicialização em Go para responder síncronamente à requisição `textDocument/formatting` usando `FormatarCodigoHarpia(codigo)` de `cmd/formatar.go`. A extensão `vscode-harpia` instancia o cliente LSP via `LanguageClient` do `vscode-languageclient` em `extension.js`, registrando o formatador nativo no VS Code ao detectar o suporte do servidor. Habilita formatação com `Shift+Alt+F` / `Shift+Option+F` ou automática ao salvar com `"editor.formatOnSave": true`. Oferece autocompletar termos, linter Clean Arch, hover lendo `///` e definição F12).
-* **Análise Estática e Linter**: `harpia checar [caminho] [flags]` (linter semântico offline-friendly que valida redeclarações, reatribuição de `const`, parâmetros duplicados e emite diagnósticos amigáveis ou JSON padrão LSP).
-* **Guia e Dicionário de Erros**: `harpia erro [codigo]` (consultas a códigos de erro regulamentados como `PSC-0005`, suportando `harpia erro explicar [codigo]` para obter auxílio assistido por inteligência artificial local via Ollama/Gemma).
+* **Servidor LSP Integrado**: `harpia lsp` (inicia servidor oficial LSP via stdio. Declara `"documentFormattingProvider": true` na inicialização em Go para responder síncronamente à requisição `textDocument/formatting` usando `FormatarCodigoHarpia(codigo)` de `cmd/formatar.go`. A extensão `vscode-harpia` registra o formatador nativo no VS Code ao detectar o suporte do servidor. Habilita formatação com `Shift+Alt+F` / `Shift+Option+F` ou automática ao salvar com `"editor.formatOnSave": true`).
+* **Playground Web Local**: `harpia playground` (Inicia uma interface gráfica local interativa do Sandbox diretamente no navegador offline com Monaco Editor integrado para escrever e testar códigos).
+* **Formatar Código**: `harpia formatar [arquivo] [-w]` (higieniza e alinha recuos do código fonte baseando-se em contagens de delimitadores e chaves, com suporte a escrita em disco com a flag `-w`).
+* **Gerenciador de Módulos**: `harpia instalar [nome-pacote]` (resolve e baixa pacotes remotos consultando restrições Semver no índice JSON público do registro central em português, gravando o módulo de forma segura contra Zip Slip em `./pt_modulos/`).
 * **Gerador de Diagramas**: `harpia diagramar [diretorio] --formato=html --saida=diag.html` (Mapeia as relações de dependências estáticas do Clean Architecture gerando grafos Mermaid, colorindo violações arquiteturais em vermelho grossa e conexões saudáveis em verde, além de expor botão de download de imagem vetorial `.svg` no browser em 1 clique).
-* **Gerenciador de Pacotes e Dependências**: `harpia instalar [nome-pacote]` (resolve e baixa pacotes remotos consultando restrições Semver no índice JSON público do registro central em português, gravando o módulo de forma segura contra Zip Slip em `./pt_modulos/`).
-* **Gerador de Documentação OpenAPI/Swagger 3.0**: `harpia docs [servidor.hrp]` (analisa a AST do servidor HTTP da aplicação backend e extrai endpoints, parâmetros de consulta/rota e verbos REST, gerando a especificação `swagger.json` em OpenAPI 3.0.0).
-* **Auditor Estático de Segurança (OWASP Top 10)**: `harpia auditar [caminho]` (varre arquivos `.hrp` auditando segredos em texto puro, concatenações brutas de SQL e falhas de configuração de segurança).
-* **Motor de Deploy em Nuvem e Docker**: `harpia publicar [alvo]` (gera Dockerfile otimizado multi-stage para Go/Alpine ou constrói artefatos compilados de produção em `dist/app-producao`).
-* **Empacotar em Binário Nativo Único ou WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` (compila o script embutido em binário executável local do SO) e `harpia empacotar --so=js --arq=wasm` (compila o interpretador completo para WebAssembly gerando `docs/portal/harpia.wasm` e copiando o carregador JS portátil `wasm_exec.js` do GOROOT de forma automática).
+* **Interface de Terminal (TUI)**: `harpia tui` (inicia a interface gráfica baseada em texto para terminal construída sobre o framework Bubbletea e estilizada com Lipgloss para monitoramento de rotas e logs).
+* **Gerador de Documentação**: `harpia doc [arquivo.hrp] --formato=html` (varre arquivos extraindo comentários especiais iniciados com `///` para gerar APIs e documentações estruturadas em Markdown ou HTML responsivo).
+* **Empacotar em Binário Nativo Único**: `harpia empacotar --entrada=main.hrp --saida=meu-app` (compila o script embutido em binário executável local do SO) e `harpia empacotar --so=js --arq=wasm` (compila o interpretador completo para WebAssembly gerando `docs/portal/harpia.wasm` e copiando o carregador JS portátil `wasm_exec.js` do GOROOT de forma automática).
+* **Testes de Estresse e Carga**: `harpia stressar [url]` (realiza testes de estresse e carga de alta performance com controle de concorrência massiva e relatórios visuais de taxa de sucesso e latência no terminal).
+* **Depurador Integrado DAP**: `harpia depurar --porta=[porta]` (inicia o servidor de Debug Adapter Protocol (DAP) integrado via TCP para depuração de código passo a passo, breakpoints e inspeção de escopo em IDEs).
+* **Copiloto de IA**: `harpia copiloto` (revisa e refatora código fonte de forma offline e determinística, ou sugere complementação inteligente via IA local do Ollama).
+* **Emissor e Serializador AST**: `harpia gerar` (auxilia ferramentas de compilação na serialização e exportação de dados estruturados da AST para fins de cache e otimizações).
+* **Migrations SQLite**: `harpia migrar` (Gerenciador de migrations SQL sem CGO utilizando a biblioteca SQLite, com suporte a criar, aplicar, status e reverter).
+* **PWA Builder**: `harpia pwa` (Gera manifesto de rede `manifest.webmanifest`, service worker `sw.js` com estratégia cache-first e patch no `index.html` de forma automática).
+* **Internacionalização (i18n)**: `harpia i18n` (Varre o código e extrai strings traduzíveis para gerar catálogos Template POT gettext deduplicados, ou cria novos catálogos PO locais).
+* **Documentação de APIs OpenAPI**: `harpia docs [servidor.hrp]` (ou `swagger`, gera especificação OpenAPI 3.0 no arquivo `swagger.json` analisando a AST da aplicação backend).
+* **Auditor de Segurança**: `harpia auditar [caminho]` (Varre arquivos `.hrp` com analisador estático de segurança (SAST) em busca de SQL injection por concatenação, exposição de credenciais e más práticas).
+* **Engine de Deploy / Publicação**: `harpia publicar [alvo]` (gera Dockerfile otimizado multi-stage para Go/Alpine ou constrói artefatos de deploy).
 
 
 * **Publicar Extensão do VS Code (`vscode-harpia`)**: O processo de publicação e empacotamento oficial da extensão para o Marketplace do VS Code usa a CLI oficial `vsce`. Passos:
@@ -785,10 +809,126 @@ testar "soma com valores negativos" {
 ---
 
 ## 12. Máquina Virtual e Compilação de Bytecode
-hrp
+
 Para sistemas que exigem máxima performance, o Harpia oferece uma Máquina Virtual (VM) de pilha e um compilador estático dedicados e escritos em Go.
 
-### Compilador e Bytecode (`.hrpc`)
+### 📜 12.1.0 Especificação Gramatical e Léxica Formal (ANTLR4)
+
+O repositório do Harpia mantém especificações gramaticais formais escritas no padrão do gerador de compiladores **ANTLR4** na pasta `gramatica/`. Embora o compilador do Harpia utilize analisadores léxicos e sintáticos de descida recursiva escritos inteiramente à mão em Go (por motivos de performance de rede/execução, tratamento correto e resiliente de UTF-8 e tracebacks pedagógicos em português), estas especificações formais servem como o contrato e manual de engenharia sintática da linguagem:
+
+-   **`HarpiaLexer.g4` (Especificação Léxica)**:
+    -   **Tokens Primordiais**: Mapeia literais estáveis (`Falso`, `Verdadeiro`, `Nulo`).
+    -   **Palavras-Chave Reservadas**: Define termos reservados para declarações (`var`, `const`, `func`), controle de fluxo (`se`, `senao`, `para`, `em`, `retorne`, `pare`, `continue`), modularidade (`importe`, `de`), orientação a objetos (`nova`) e testes (`assegura`).
+    -   **Operadores e Símbolos**: Define operadores de atribuição compostos (`OPERADOR_REATRIBUICAO`), aritméticos (`+`, `-`, `*`, `/`, `//`, `%`, `**`), relacionais (`==`, `!=`, `<`, `<=`, `>`, `>=`), bitwise (`|`, `^`, `&`, `~`, `<<`, `>>`) e delimitadores de escopo (`( )`, `{ }`, `[ ]`, `;`, `,`, `:`, `.`).
+    -   **Literais Dinâmicos**: Define identificadores (`ID`) e literais textuais com suporte a escapes de barra (`TEXTO`).
+-   **`HarpiaParser.g4` (Especificação Sintática)**:
+    -   **Entrada Geral (`programa`)**: Declara que arquivos físicos Harpia são sequências de diretivas instrucionais opcionais seguidas de EOF.
+    -   **Nós Sintáticos e Declarações**: Define regras para blocos condicionais (`se/senao`), repetição iterativa (`para-em`), definições funcionais (`func` com anotações opcionais de tipo em parâmetros), imports (`importe` e `de-importe`) e instruções de retorno/controle.
+    -   **Precedência de Operadores**: Modela a hierarquia estrita de resolução de expressões lógicas e aritméticas de forma aninhada (níveis de precedência de 11 a 0).
+    -   **Nós Terminais e Primários (`primario`, `atomo`)**: Representa chamadas de função, fatiamentos e indexações de vetores, além de inicializadores e estruturas de dados literais (tuplas, listas, mapas).
+
+---
+
+### 🔍 12.1 Analisador Léxico de Alta Performance (`lexer/`)
+
+O analisador léxico (lexer/tokenizer) é o primeiro estágio do compilador do Harpia. Desenvolvido inteiramente sob medida em Go (sem geradores de lexer de terceiros ou expressões regulares lentas), ele realiza varredura linear em tempo $O(N)$ dos caracteres de entrada codificados em UTF-8.
+
+* **Representação Geográfica Rígidamente Controlada (`PosicaoToken`)**:
+  Cada token produzido carrega de forma estrita sua localização no código-fonte através da struct `PosicaoToken`:
+  * `Coluna`: índice na linha atual (base 1) para posicionamento de ponteiros de erro dinâmicos.
+  * `Linha`: linha física corrente no documento (base 1).
+  * `Indice`: offset em bytes absoluto do caractere no arquivo (base 0) para manipulação rápida de fatiamento.
+
+* **Tabelas de Correspondência Estática em Tempo Constante $O(1)$**:
+  Em `helpers.go`, o lexer define dicionários de consulta direta para evitar cadeias condicionais aninhadas gigantescas:
+  * `tokensSimples`: mapeia símbolos especiais e operadores simples (ex: `+`, `//`, `|>`, `??`, `?.`).
+  * `tokensIdentificadores`: atua como tabela de palavras-chave da linguagem (ex: `se`, `func`, `enquanto`, `sinal`). Se o lexema consumido coincidir com uma chave desta tabela, ele é promovido ao token dedicado. Caso contrário, permanece como identificador comum de variável ou método.
+
+* **Estratégias de Lookahead e Consumo Guloso**:
+  O analisador faz lookahead de 1 caractere (`proximoCarater()`) e lookahead arbitrário (`caraterRelativo()`) para suportar operadores compostos e recursos complexos como comentários HTML no JSX (`<!-- -->`). Seus leitores de literais primitivos — `lerIdentificador()`, `lerNumero()` (que diferencia de forma transparente inteiros de decimais) e `lerTexto()` (que escapa aspas internas) — garantem a criação limpa de tokens atômicos para o Parser.
+
+### 🌳 12.1.1 Analisador Sintático de Descida Recursiva (`parser/`)
+
+O analisador sintático (Parser) consome os tokens gerados pelo Lexer e os organiza hierarquicamente na Árvore de Sintaxe Abstrata (AST) do Harpia. Desenvolvido inteiramente como um parser de descida recursiva manual em Go, ele se destaca pela robustez, velocidade de compilação e diagnóstico pedagógico de erros.
+
+* **Base Sintática Polimórfica (`BaseNode`)**:
+  Todos os nós da AST (definidos em `ast_nodes.go`) implementam a interface de marcação `BaseNode` (`type BaseNode interface { isExpr() }`). Isso permite que structs como `DeclVar`, `DeclFuncao`, `OpBinaria`, `ExpressaoSe`, `NoJSX` e `DeclClasse` se comportem de forma fortemente tipada dentro da árvore semântica.
+
+* **Padrão Genérico de Precedência `parseEsqLst`**:
+  Para eliminar duplicações de laços de operadores associativos à esquerda (como adição, multiplicação, comparações e operações de bitwise), o parser utiliza a closure genérica `parseEsqLst`. Ela aceita a função do nível de precedência superior subsequente e uma closure para testar e consumir o operador corrente, construindo de forma limpa nós do tipo `OpBinaria`.
+
+* **Navegação Segura, Coalescência e Desestruturação**:
+  Suporta operadores modernos da linguagem como coalescência nula `??` (`parseCoalescenciaNula`), navegabilidade segura opcional `?.` (`AcessoMembroOpcional`), encadeamento via pipe `|>` (`OpPipe`), e desestruturação de variáveis em atalhos de atribuição (`DeclVarDestructuring`).
+
+* **Delimitação Flexível e Associação de Coordenadas (`posicoes`)**:
+  A função `consome(";")` aceita `;` explícito ou trata a quebra de linha `\n` e `EOF` como separadores e terminadores implícitos de instrução. Conforme os nós da AST são construídos, o método `registrar()` mapeia cada nó ao seu token físico em `Parser.posicoes`. Esse registro é aproveitado pela VM em tempo de execução para gerar tracebacks gráficos e detalhados em Português.
+
+
+### 📦 12.1.2 Pacote de Utilitários Compartilhados (`compartilhado/`)
+
+Para apoiar o Lexer, Parser e a VM na manipulação de caracteres multibyte e conversão de tipos primitivos de forma eficiente, sem vazamentos de memória e de forma thread-safe, o Harpia expõe o pacote `compartilhado`. Suas funções internas e APIs incluem:
+
+*   **`IndiceBytePorCarater(str string) []int`**: Varre a string de entrada decodificando runas via `utf8.DecodeRuneInString` e pré-calcula a tabela de mapeamento entre índices conceituais e byte offsets físicos. Retorna `[]int` com tamanho $RuneCount + 1$, com a posição final contendo `len(str)` (marcação segura para fatiamento inclusivo e EOF).
+    *   **Cache e Desempenho**: Strings $< 4\text{KB}$ são salvas em um cache global (`map[string][]int`) protegido por `sync.RWMutex`. O cache é limpo de forma simples (LRU pragmático) ao passar de 2048 entradas para conter consumo excessivo de heap.
+*   **`LimparCacheUnicode()`**: Limpa de forma síncrona o cache global (`cacheUnicode`) para liberação forçada de memória.
+*   **`IndiceCaraterParaByte(str string, indice int, cache []int) int`**: Resolve o byte offset físico correspondente ao índice do caractere conceitual. Se um slice de cache pré-calculado for passado, opera em $O(1)$; caso contrário, executa busca linear $O(N)$ chamando `IndiceCaraterParaByteSemCache`.
+*   **`ObtemCaraterPorIndice(str string, indice int, cache []int) string`**: Retorna a runa individual na posição indicada sem risco de pânicos ou estouros de fatiamento (`slice bounds out of range`).
+*   **`ContemApenasLetras(str string) bool`**: Retorna `true` se a string for composta exclusivamente por caracteres de letras segundo a classificação Unicode.
+*   **`ContemApenasDigitos(str string) bool`**: Retorna `true` se todos os caracteres presentes na string forem dígitos decimais.
+*   **`ContemApenasAlfaNum(str string) bool`**: Executa a composição lógica `ContemApenasLetras(str) || ContemApenasDigitos(str)` para verificar se a palavra é estritamente alfanumérica.
+*   **`StringParaInt(s string) (int64, error)`**: Converte um literal numérico em representação textual para um inteiro assinado de 64 bits (`int64`), tratando overflow.
+*   **`StringParaDec(s string) (float64, error)`**: Converte números decimais com ou sem notação científica para ponto flutuante de dupla precisão (`float64`), usado para representar os decimais nativos do Harpia.
+
+### 📦 12.1.3 Ambiente do Console Interativo e REPL (`playground/`)
+
+Para fornecer uma experiência interativa completa de terminal (TUI) e web, o Harpia encapsula a lógica do REPL no pacote `playground`, estruturado de forma desacoplada:
+
+*   **`playground.go` (Orquestrador do Loop)**: Configura a biblioteca externa Liner, lê/persiste o histórico no disco oculto (`~/.historico_harpia`), exibe o banner oficial e injeta comandos interativos de auxílio:
+    *   `ajuda` / `ajuda <funcao>`: Mostra instruções e documentações nativas de primitivas.
+    *   `escopo` / `vars`: Lista os símbolos declarados ativos no escopo em tempo real.
+    *   `limpar` / `clear`: Limpa o terminal com sequências de escape ANSI.
+    *   Injeção de `sair()`: Permite fechar a sessão graciosamente do próprio interpretador.
+*   **`estado.go` (Máquina de Estados de Buffer)**: Realiza análise léxica preliminar para balancear delimitadores de blocos:
+    *   Compara a contagem de `[`, `(`, `{` com seus pares de fechamento correspondentes.
+    *   Se a abertura for maior, muda o prompt de `>>> ` para `... ` e adia a execução até o fechamento de todos os delimitadores.
+*   **`executor.go` (Compilação e Persistência de Escopo)**: Conecta o console à VM de pilha do Harpia:
+    *   Utiliza um arquivo virtual fictício `<playground>` para criar um escopo de módulo persistente (`e.Modulo.Escopo`), preservando dados entre linhas.
+    *   Compila as linhas para AST e as executa, interceptando exceções léxicas ou sintáticas de forma a exibi-las no Stderr sem interromper a sessão.
+*   **`interface.hrp` (Playground SPA Frontend)**: Aplicação Web reativa escrita inteiramente em Harpia SPA, rodando no navegador:
+    *   Gerencia estados por Sinais: `codigoSinal`, `saidaSinal`, `erroHtmlSinal`, `variaveisSinal`, `executandoSinal` e `abaAtivaSinal`.
+    *   Possui controlador `executar()` que invoca o transpiler e a VM síncronamente via API HTTP, renderizando saídas de logs, erros com ANSI-to-HTML e a introspecção de variáveis do escopo reativamente na tabela `<GradeDeDados>`.
+    *   Conecta-se à ponte do Monaco Editor para permitir hover explicativo, autocomplete e carregamento de templates didáticos de forma instantânea.
+
+### 📦 12.1.4 A Galeria Oficial de Exemplos e Demonstrações (Pasta `exemplos/`)
+
+Para fins pedagógicos de aprendizado e verificação prática de todas as capacidades de sua linguagem, compilador e runtime, o Harpia disponibiliza um catálogo completo de scripts e aplicações organizados na pasta `exemplos/`:
+
+*   **Demonstrações de Fundamentos e Sintaxe**:
+    *   `olaMundo.hrp`: Ponto de entrada básico demonstrando a impressão de console via a primitiva global `imprima()`.
+    *   `variaveis.hrp`: Demonstração didática das regras de escopo local, reatribuição e mutabilidade do interpretador, diferenciando as diretivas `var` (mutável) e `const` (imutável).
+    *   `aritmetica.hrp` e `booleanos.hrp`: Demonstração prática de operadores aritméticos (incluindo divisão inteira `//` e exponenciação `**`), precedência algébrica e lógica de curto-circuito dos operadores booleanos (`e`, `ou`, `nao`).
+    *   `condicionais.hrp`: Desvios condicionais de tomada de decisão usando a estrutura condicional nativa do Harpia (`se`, `senao se`, `senao`), sem uso de parênteses em condições.
+    *   `entradaSaida.hrp`: Interatividade síncrona com o usuário via terminal, capturando dados textuais do teclado com a primitiva `leia()` e aplicando coerção de tipos em runtime.
+    *   `funcao.hrp`: Declaração de sub-rotinas e funções puras, manipulação de parâmetros posicionais, escopo léxico e retornos tipados opcionais.
+    *   `fatorial.hrp`: Demonstração de funções recursivas puras resolvendo o cálculo clássico de fatorial matemático.
+    *   `acessaMembros.hrp`: Introdução de POO e reflexão dinâmica do interpretador de escopo, inspecionando metadados de objetos e classes via o atributo de reflexão especial em português `__doc__`.
+    *   `lacosDeRepeticao.hrp` e `testeFor.hrp`: Estruturas de controle iterativo por laços condicionais (`enquanto`) e laços baseados na sintaxe para-em (`para item em colecao`).
+    *   `importacao.hrp` e `importacaoRelativa.hrp`: Ilustração da arquitetura modular do Harpia, carregando submódulos de arquivos locais e desestruturando itens de pacotes embutidos da biblioteca padrão (`matematica`).
+    *   `atm.hrp`: Aplicação interativa completa de caixa eletrônico com menus de loop infinito, depósitos, saques simulados e interrupção do laço por meio do comando `pare`.
+
+*   **Programação de Redes de Alto Desempenho (`soquetes/`)**:
+    *   `soquetes/servidor.hrp`: Inicializa um socket IPv4 TCP, define-o como não-bloqueante no loop de eventos do runtime e inicia escuta na porta `3000` atuando como um servidor de eco (echo server) robusto.
+    *   `soquetes/cliente.hrp`: Estabelece conexão ao servidor de eco local TCP, solicita uma mensagem textual do console via `leia()`, envia-a encapsulada em bytes na rede e imprime a resposta de eco retornada.
+
+*   **Extensões Dinâmicas Compiladas (`modExterno/`)**:
+    *   `modExterno/main.go` e `modExterno/main.hrp`: Revela a arquitetura de plugins nativos de alto desempenho do Harpia. Define uma extensão em Go compilada como biblioteca compartilhada (`.so` / `.dll` / `.dylib`) que exporta um método `.exiba()`, e a carrega de forma assíncrona usando reflexão dentro da VM Harpia.
+
+*   **Aplicações Web Reativas SPA (`frontend/`)**:
+    *   `frontend/contador/main.hrp`: Componente funcional reativo que demonstra o uso da primitiva fundamental de reatividade fina de Sinais (`sinal`) para ligar interações de botão JSX ao incremento de valor numérico na tela, aplicandostyles locais declarativos de classe CSS via `definirEstilo`.
+    *   `frontend/formulario/main.hrp`: Formulário de contato rico com validações em tempo real do tamanho de nome e estrutura de e-mail por meio de estados reativos compostos calculados e memoizados (`derivado`).
+    *   `frontend/tarefas/main.hrp`: Aplicação SPA de lista de tarefas (Todo list) de alta complexidade. Demonstra a reatividade granular de arrays dinâmicos (adição e remoção de registros), manipulação de eventos complexos e renderização de coleções diretamente na árvore do Virtual DOM através da diretiva sintática especial `<para item em lista={...}>`.
+
+### ⚙️ 12.2 Compilador e Bytecode (`.hrpc`)
 * **Análise e Geração Estática**: O compilador traduz a árvore sintática abstrata (AST) em um conjunto linear de instruções (Bytecode) altamente otimizado, empacotando e salvando a árvore serializada como arquivos compilados binários de extensão `.hrpc`.
 * **Pool de Constantes**: Agrupa de forma unificada e limpa strings, floats e literais complexos indexados por offsets rápidos de 16 bits para evitar alocações duplicadas.
 
@@ -797,10 +937,10 @@ Para sistemas que exigem máxima performance, o Harpia oferece uma Máquina Virt
 * **Vantagem**: Reduz o overhead de estruturas boxeadas tradicionais e desvios de ponteiro da CPU, resultando em localidade de cache extraordinária.
 
 ### Engine de Execução e Otimizações de CPU
-* **Threaded Interpretive Loop**: Abandona laços de dispatch `switch` gigantes convencionais que causam falhas constantes de predição de desvios na CPU, adotando um despacho baseado em tabelas de saltos diretos e cache de instruções.
-* **Super-instruções**: Fusão estática e dinâmica de padrões de instruções comuns (ex: fundir `CARREGAR_VARIAVEL` + `ADICIONAR_IMEDIATO` em um único opcode `SUPER_SOMA_IMEDIATA`), poupando ciclos de CPU.
-* **Morphic Inline Caching (MIC)**: Guarda em cache o tipo concreto e os offsets de memória do último acesso a métodos e propriedades de instâncias de classes, acelerando acessos dinâmicos subsequentes de $O(N)$ para tempo de busca constante $O(1)$.
-* **Pre-alocação da Operand Stack**: Pilhas de avaliação pré-alocadas no Heap na inicialização da VM para conter o escopo ativo, prevenindo alocações e liberações de slices a cada chamada de função.
+* **Direct-Threaded Code JIT (Fase F)**: Abandona loops de dispatch `switch/case` centralizados (que causam branch mispredictions no pipeline físico da CPU), compilando em tempo de carregamento do frame o bytecode plano em um array de ponteiros de funções (`[]InstrucaoThreaded`). Os operandos e constantes são pré-capturados e embutidos diretamente nos fechamentos (closures) Go, disparando a execução síncrona de alta performance.
+* **Super-instruções (Fase D)**: Fusão estática de padrões sequenciais frequentes de opcodes de carregamento e retorno no compilador em instruções compostas atômicas de alta velocidade (como `OP_RETORNE_CONST` e `OP_RETORNE_VAR`), poupando ciclos preciosos de decodificação de instruções da VM.
+* **Morphic Inline Caching (MIC)**: Guarda em cache o escopo léxico e os símbolos resolvidos do último acesso dinâmico de variáveis (`OP_CARREGAR_VAR`). Caso o escopo ativo seja idêntico ao do ciclo anterior, retorna o símbolo diretamente da memória, reduzindo buscas complexas de tabelas hash de $O(N)$ para tempo constante $O(1)$.
+* **Pre-alocação e Reutilização da Operand Stack**: Pilhas de operandos locais dos frames ativos são gerenciadas por meio de um pool sincronizado de alta performance (`sync.Pool` em Go). Ao final do frame, a pilha é limpa e devolvida ao pool global (`poolPilha`), eliminando alocações dinâmicas no heap e reduzindo a carga do Garbage Collector de Go a zero em caminhos de execução normais.
 
 ### Coletor de Lixo Híbrido (Garbage Collector)
 * **Contagem de Referências**: Gerenciamento síncrono e instantâneo de desalocações de memória com overhead zero de pausas de execução ("Stop the World").

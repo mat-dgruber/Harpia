@@ -14,8 +14,9 @@ Ele permite que programadores testem expressões, declarem variáveis, criem fun
 3. [Executor de Expressões (Persistência de Escopo)](#-executor-de-expressões-persistência-de-escopo)
 4. [Persistência de Histórico de Comandos](#-persistência-de-histórico-de-comandos)
 5. [Injeção Dinâmica de Funções Auxiliares](#-injeção-dinâmica-de-funções-auxiliares)
-6. [Diagrama do Ciclo do Loop do REPL](#-diagrama-do-ciclo-do-loop-do-repl)
-7. [Exemplos de Interações no Console](#-exemplos-de-interações-no-console)
+6. [API de Métodos e Estruturas Internas](#-api-de-métodos-e-estruturas-internas)
+7. [Diagrama do Ciclo do Loop do REPL](#-diagrama-do-ciclo-do-loop-do-repl)
+8. [Exemplos de Interações no Console](#-exemplos-de-interações-no-console)
 
 ---
 
@@ -124,6 +125,53 @@ O principal método injetado é a função `sair()`.
   }, ""))
   ```
 - **Comportamento**: A chamada para `sair()` no console altera uma flag booleana local (`finalizou = true`), fazendo com que o loop principal do terminal termine de maneira limpa, salvando o histórico e encerrando o processo graciosamente.
+
+---
+
+## 💻 API de Métodos e Estruturas Internas
+
+O ecossistema interno do `playground` está dividido estruturalmente em três arquivos Go e um arquivo Harpia, detalhados abaixo:
+
+### 1. Orquestrador do Loop REPL (`playground.go`)
+
+*   **`Inicializa(ctx *hrp.Contexto, version, datetime, commit string)`**:
+    *   **Função**: Orquestra a montagem, exibição do banner e o loop iterativo principal de captura e avaliação do console.
+    *   **Parâmetros**:
+        *   `ctx *hrp.Contexto`: O contexto unificado de execução da VM do Harpia.
+        *   `version string`, `datetime string`, `commit string`: Metadados injetados no build do compilador.
+*   **`homeDirectory() string`**:
+    *   **Função**: Obtém de forma resiliente o caminho absoluto da pasta home do usuário utilizando `user.Current()` com fallback na variável de ambiente `$HOME`.
+*   **`ArquivoHistorico(escrita bool) *os.File`**:
+    *   **Função**: Abre ou cria o arquivo oculto de histórico `~/.historico_harpia` no diretório home do usuário. Se `escrita == true` abre em modo append; caso contrário, em modo leitura.
+
+### 2. Máquina de Estado do Buffer (`estado.go`)
+
+*   **`struct Estado`**:
+    *   **Campos**:
+        *   `Indicador indicador`: Prompt visual corrente (`Normal` ou `Continua`).
+        *   `Continua bool`: Sinaliza se existem blocos de código pendentes de fechamento.
+        *   `Codigo string`: Buffer de string acumulado.
+*   **`NewEstado() *Estado`**:
+    *   **Função**: Cria e retorna uma nova instância limpa de monitoramento do prompt REPL.
+*   **`RecalcularEstado(cod string)`**:
+    *   **Função**: Anexa a nova entrada ao buffer de código e atualiza as flags de continuação e indicadores visuais com base no balanceamento de símbolos.
+*   **`continuaEmNovaLinha(abre, fecha string) bool`**:
+    *   **Função**: Retorna verdadeiro se a contagem do delimitador `abre` for maior que `fecha` no buffer.
+
+### 3. Máquina Virtual e Escopo Persistente (`executor.go`)
+
+*   **`struct Executor`**:
+    *   **Campos**:
+        *   `Contexto *hrp.Contexto`: Referência à VM do Harpia.
+        *   `Modulo *hrp.Modulo`: Módulo virtual `<playground>` com tabela de símbolos persistentes.
+*   **`NovoExecutor(ctx *hrp.Contexto) *Executor`**:
+    *   **Função**: Construtor padrão que inicializa a estrutura do executor com o escopo do módulo virtual.
+*   **`ExecutarCodigo(codigo string)`**:
+    *   **Função**: Compila a string de código para AST e a executa sob o escopo isolado e persistente do módulo virtual do playground, imprimindo retornos ou erros no terminal.
+*   **`RegistrarMetodo(metodo *hrp.Metodo) error`**:
+    *   **Função**: Permite a injeção dinâmica de métodos nativos do Go no escopo global da sessão interativa (como `sair()`).
+*   **`Terminar()`**:
+    *   **Função**: Libera caches e encerra a VM interna do interpretador.
 
 ---
 

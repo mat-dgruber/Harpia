@@ -150,6 +150,17 @@ A partir da versão 1.2.0, o Harpia incorpora um conjunto completo de ferramenta
 - **Parâmetros Dinâmicos de Rotas (`req.parametros`)**: Parâmetros nomeados extraídos diretamente de rotas dinâmicas como `/api/tarefas/:id`.
 - **Desserialização de JSON Automática (`req.corpoJson`)**: O corpo da requisição é interpretado e convertido para mapas do Harpia de forma nativa e automática quando o cabeçalho `Content-Type` é do tipo JSON.
 
+### 🔌 7. Integração e Contratos RPC Decoupled Nativos (`@backend/`)
+- **Importações Remotas**: O compilador intercepta importações com prefixo `@backend/` (ex: `de "@backend/tarefas" importe salvarTarefa`), gerando em tempo de execução proxies HTTP POST dinâmicos apontados para o endereço de `dependencias.json`.
+- **Análise Estática via AST**: O contrato é validado diretamente contra a AST do arquivo `.hrp` do backend, garantindo segurança e verificação de assinaturas sem necessidade de geração de boilerplate.
+
+### 💾 8. Máquina Virtual de Bytecode de Alta Performance (Fase 2 & F)
+- **Motor de Pilha Nativo (`vm`)**: Substitui o interpretador clássico por uma VM de pilha compacta rodando bytecode `.hrpc` gerado por um compilador de passagem única (single-pass).
+- **Direct-Threaded Code JIT**: Traduz de forma transparente o bytecode plano de 1 byte em um array síncrono de closures de ponteiros de funções (`[]InstrucaoThreaded`), anulando o custo centralizado de loops dispatch `switch/case` e prevenindo branch mispredictions.
+- **Monomorphic Inline Cache (MIC)**: Otimização de tempo constante $O(1)$ para resolução dinâmica de variáveis em loops quentes via cache de escopo e símbolo local (`OP_CARREGAR_VAR`).
+- **Pilha Reutilizável via `sync.Pool`**: Reaproveita fatias de memória da pilha de operandos dos frames ativos no Heap por meio de pooling síncrono em Go, mitigando a alocação de memória no heap e reduzindo a pressão do GC a zero para fluxos normais.
+- **Otimização de Fusão de Opcodes (Fase D)**: Colapsa instruções sequenciais frequentes de carregamento e retorno em super-instruções atômicas como `OP_RETORNE_CONST` e `OP_RETORNE_VAR`, reduzindo pela metade as decodificações da VM.
+
 ---
 
 ## 📂 Estrutura de Clean Architecture e DDD
@@ -185,10 +196,19 @@ meu-app/
 
 * **Otimização & DCE**: O otimizador estático (`cmd/otimizador.go`) realiza duas passadas na AST, removendo código morto e colapsando caminhos condicionais constantes antes do empacotamento.
 * **Transpilação AOT & WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` transpila a AST diretamente para código Go nativo (`cmd/transpiler_native.go`) de alta performance. Adicionar `--so=js --arq=wasm` compila para WebAssembly isolando drivers nativos via conditional build tags em `stdlib_native.go`.
+* **Especificações de Referência ANTLR4 (`gramatica/`)**: Descreve formalmente as regras léxicas (`HarpiaLexer.g4`) de palavras-chave, delimitadores e operadores, e as regras sintáticas (`HarpiaParser.g4`) que organizam a precedência (níveis de 11 a 0) e declarações. Atua como o contrato oficial de engenharia para os analisadores escritos à mão em Go.
+* **Análise Léxica de Alta Performance (`lexer/`)**: O pacote `lexer/` implementa o analisador léxico sob medida em Go. Ele consome a entrada em runas UTF-8 mantendo precisão posicional (`PosicaoToken`) com linha/coluna física e índice de bytes para tracebacks de diagnósticos e LSP, servindo tokens classificados via lookahead de runa simples (`proximoCarater`) e mapeamentos estáticos $O(1)$ (`tokensSimples` e `tokensIdentificadores`).
+* **Análise Sintática de Descida Recursiva (`parser/`)**: O pacote `parser/` constrói a AST fortemente tipada (`BaseNode`) a partir dos tokens lógicos do `lexer/`. Implementa o algoritmo de descida recursiva manual com precedência Pratt-like via closure genérica `parseEsqLst`, registro automático de coordenadas geográficas (`map[BaseNode]*lexer.Token`) para tracebacks visuais ricas da VM, suporte a comandos/expressões assíncronas (`assincrono`/`aguarde`), blocos JSX reativos, desestruturação de variáveis (`var [a, b] = ...`), coalescência nula `??`, navegação opcional `?.` e tratamento flexível de instruções com término implícito por quebras de linha (`\n`).
+*   **Utilitários Compartilhados (`compartilhado/`)**: Centraliza funções para indexação segura de strings Unicode UTF-8 (`IndiceBytePorCarater` com cache protegido por `sync.RWMutex`, `IndiceCaraterParaByte` em $O(1)$/$O(N)$, `ObtemCaraterPorIndice`), predicados de caracteres (`ContemApenasLetras`, `ContemApenasDigitos`, `ContemApenasAlfaNum`), e conversões de números robustas de 64 bits (`StringParaInt` e `StringParaDec`).
+*   **Console Interativo e REPL (`playground/`)**: Orquestra a sessão interativa TUI (Liner) e Web (SPA Reativa). Oferece controle multilinha baseado em pareamento de delimitadores (`estado.go`), escopo de variáveis persistente no módulo virtual `<playground>` (`executor.go`), comandos de introspecção e ajuda em tempo real (`ajuda`, `escopo`), e um frontend SPA em Harpia reativo com VDOM e introspecção tabular de símbolos (`interface.hrp`).
+*   **A Galeria Oficial de Exemplos (`exemplos/`)**: Catálogo didático contendo demonstrações de fundamentos sintáticos, programação de redes IPv4 não-bloqueantes (`soquetes/`), carregamento dinâmico assíncrono de plugins em Go via reflexão (`modExterno/`) e aplicações SPA ricas em Sinais e reconciliação de Virtual DOM (`frontend/` com contador, formulário e tarefas).
 * **Migrations SQLite (sem CGO)**: `harpia migrar criar <nome>` / `aplicar` / `status` / `reverter [N]` — driver `glebarez/go-sqlite`, marcador `-- +migrar ParaCima`/`ParaBaixo` para delimitar SQL de subida/descida.
 * **PWA a partir do build web**: `harpia pwa --dir=dist --registrar` — gera `manifest.webmanifest`, `sw.js` (cache-first) e patcha `index.html` com `<link rel="manifest">` + service worker opcional.
 * **Extração i18n (gettext)**: `harpia i18n extrair <arquivo|dir> --dir=traducoes --dominio=harpia` produz `.pot` deduplicado; `harpia i18n novo <idioma>` cria o `.po` correspondente. Sem dependências externas (apenas stdlib Go).
 * **Copiloto estático**: `harpia copiloto revisar <arquivo.ptst>` detecta função longa (>80 linhas), muitos parâmetros (>5), aninhamento (>4), vars `_` não usadas e TODO/FIXME. `harpia copiloto refatorar` sugere nomes de helpers.
+* **Testes de Estresse**: `harpia stressar [url]` realiza testes de estresse de alta concorrência.
+* **Depurador DAP**: `harpia depurar --porta=[porta]` expõe o servidor do protocolo DAP nativamente para IDEs.
+* **TUI de Terminal**: `harpia tui` inicia uma interface rica de terminal via Bubbletea/Lipgloss.
 
 ---
 

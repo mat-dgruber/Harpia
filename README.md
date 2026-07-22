@@ -29,11 +29,13 @@ Representada pela imponente águia-real das Américas, a marca simboliza **sober
 Instale o compilador Harpia em segundos no seu sistema operacional executando o comando correspondente no terminal:
 
 ### Linux / macOS
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mat-dgruber/Harpia/main/Harpia/instalar.sh | bash
 ```
 
 ### Windows (PowerShell)
+
 ```powershell
 irm https://raw.githubusercontent.com/mat-dgruber/Harpia/main/Harpia/instalar.ps1 | iex
 ```
@@ -51,7 +53,6 @@ A linguagem é orientada pela **Filosofia Ponytail** (preguiçosa com o código 
 5. **Suíte Completa de Produção:** Suporte nativo a Segurança OWASP Top 10 (`seguranca`, `autenticacao`, `cripto.cifrar/decifrar`), manipulação de datas (`tempo`), e-mails (`email`), background jobs (`fila`), gerador PDF (`pdf`) e UI avançada (`usarTema`, `<Portal>`, `usarArrastar`, `usarNotificacao`).
 
 ---
-
 
 ## 🏗️ Clean Architecture e DDD Nativo
 
@@ -176,8 +177,6 @@ Gera Dockerfiles otimizados e artefatos compilados de produção para deploy em 
 Inicia o servidor oficial LSP (Language Server Protocol) do Harpia via stdio, oferecendo suporte nativo para editores de código (como o VS Code) com autocomplete, hover lendo comentários de três barras (`///`), linter de arquitetura limpa e formatação automática de código ao salvar.
 
 - **Uso:** `harpia lsp`
-
-
 
 ---
 

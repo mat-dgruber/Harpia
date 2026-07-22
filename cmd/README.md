@@ -18,13 +18,10 @@ Este pacote encapsula toda a lógica de tratamento de entrada de terminal, orque
    - [Mapeamento de Sistema e Arquitetura](#mapeamento-de-sistema-e-arquitetura)
    - [Fluxo de Atualização Semântica](#fluxo-de-atualização-semântica)
    - [Baixando e Instalando Releases](#baixando-e-instalando-releases)
-6. [Subcomando: `atualize`](#-subcomando-atualize)
-   - [Mapeamento de Sistema e Arquitetura](#mapeamento-de-sistema-e-arquitetura)
-   - [Fluxo de Atualização Semântica](#fluxo-de-atualização-semântica)
-   - [Baixando e Instalando Releases](#baixando-e-instalando-releases)
-7. [Subcomando: `testar`](#-subcomando-testar)
-8. [Subcomando: `checar` — Linter Estático](#-subcomando-checar--linter-estático)
-9. [Exemplo de Uso Prático](#-exemplo-de-uso-prático)
+6. [Subcomando: `testar`](#-subcomando-testar)
+7. [Subcomando: `checar` — Linter Estático](#-subcomando-checar--linter-estático)
+8. [Exemplo de Uso Prático](#-exemplo-de-uso-prático)
+9. [Novas Ferramentas de Tooling e Ecossistema](#-novas-ferramentas-de-tooling-e-ecossistema-fase-5-5-b--5-c)
 
 ---
 
@@ -468,3 +465,150 @@ O comando `empacotar` permite compilar scripts Harpia unificando interpretador e
 - **Executáveis Standalone**: Compila e embute um script Harpia específico de forma a rodá-lo diretamente como binário executável local do SO (Windows, Linux ou macOS).
 - **Compilação Cruzada para WebAssembly (WASM)**: Suporta `--so=js --arq=wasm` para compilar o interpretador Harpia completo para rodar de forma dinâmica 100% no cliente direto no navegador (`docs/portal/harpia.wasm`).
 - **Loader Portátil `wasm_exec.js`**: Copia dinamicamente do GOROOT do seu sistema a biblioteca Javascript correta correspondente à versão instalada de Go na sua máquina para carregar o binário compilado.
+
+### 20. Subcomando: `compilar` — Transpilação e Compilação
+
+O comando `compilar` realiza o processo de build do projeto, convertendo os arquivos fonte `.hrp` para os alvos de distribuição:
+
+- **Alvo `web`** (Padrão): Transpila o frontend reativo em Harpia para JavaScript otimizado (`transpiler_web.go`), pronto para execução direta em navegadores.
+- **Alvo `nativo`**: Realiza a compilação Ahead-Of-Time (AOT), convertendo a árvore de sintaxe do Harpia diretamente em código Go nativo e em seguida gerando o binário executável específico da plataforma.
+- **Alvo `wasm`**: Gera o interpretador com o seu script compilado para WebAssembly, permitindo a execução de códigos Harpia de forma nativa e isolada no cliente.
+
+```bash
+harpia compilar --alvo=web --entrada=main.hrp --saida=dist/
+```
+
+### 21. Subcomando: `servir` — Servidor de Desenvolvimento Web
+
+Inicia um servidor web local com auto-detecção de alterações, Live Reload e Hot-Reload dinâmico (via Server-Sent Events - SSE):
+
+- Escuta por padrão na porta `3000` (com fallback automático se a porta já estiver em uso).
+- Reconstrói e recarrega os componentes do navegador de forma transparente ao salvar qualquer arquivo lógico ou folha de estilo `.hrp` / `.ptst`.
+
+```bash
+harpia servir --porta=3000
+```
+
+### 22. Subcomando: `tui` — Terminal User Interface
+
+Inicia uma interface interativa diretamente no seu terminal utilizando o ecossistema reativo do framework **Bubbletea** e estilizações robustas via **Lipgloss**:
+
+- Proporciona um painel elegante em formato TUI para depuração rápida, controle de logs do servidor e visualização do estado do seu projeto sem sair do terminal.
+
+```bash
+harpia tui
+```
+
+### 23. Subcomando: `stressar` — Teste de Carga e Estresse
+
+Ferramenta integrada de benchmark e teste de carga de alta performance para APIs e rotas web desenvolvidas no ecossistema Harpia:
+
+- Executa requisições de forma concorrente e assíncrona.
+- Controla cenários de concorrência massiva e realiza diagnósticos para identificar gargalos e vazamentos de memória (leaks) em ambiente de teste.
+
+```bash
+harpia stressar http://localhost:3000/api/usuarios --concorrencia=50 --requisicoes=1000
+```
+
+### 24. Subcomando: `depurar` — Depurador Integrado DAP
+
+Fornece o protocolo oficial **Debug Adapter Protocol (DAP)** que permite integrar depuradores modernos diretamente na sua IDE (VS Code, Cursor, etc.):
+
+- Permite execução passo a passo do código Harpia.
+- Suporta definição de breakpoints dinâmicos, inspeção da pilha de chamadas (call stack), consulta do escopo e variáveis locais de forma nativa.
+
+```bash
+harpia depurar --porta=5005
+```
+
+### 25. Subcomando: `copiloto` — Assistente de IA e Auditoria Estética
+
+Um copiloto estático e integrado de inteligência artificial local conectado com o modelo Ollama:
+
+- **Revisar (`harpia copiloto revisar`)**: Analisa o código fonte em busca de más práticas, tais como funções excessivamente longas (mais de 80 linhas), número excessivo de parâmetros, aninhamentos profundos, além de variáveis não utilizadas ou pendências de comentários `TODO` / `FIXME`.
+- **Refatorar (`harpia copiloto refatorar`)**: Sugere reescritas, otimizações de escopo e nomes didáticos para funções e variáveis locais de forma síncrona.
+
+```bash
+harpia copiloto revisar ./infra/repositorio.hrp
+```
+
+### 26. Subcomando: `gerar` — Emissor e Serializador
+
+O utilitário de suporte que auxilia as ferramentas de compilação na serialização e exportação de dados da AST estruturados de forma otimizada para fins de caching, otimização por DCE (Dead Code Elimination) ou troca de representação com o servidor LSP.
+
+### 27. Subcomando: `migrar` — Gerenciamento de Migrações SQLite
+
+Sistema de versionamento e migrações SQL sem CGO utilizando a biblioteca SQLite (`glebarez/go-sqlite`):
+
+- **`criar`**: Cria um novo arquivo timestamped com a estrutura pronta para definição de subida e descida.
+- **`aplicar`**: Executa todas as migrações que ainda não foram aplicadas ao banco físico em ordem cronológica.
+- **`status`**: Exibe a lista de todas as migrações divididas entre aplicadas e pendentes.
+- **`reverter`**: Reverte as últimas N migrações aplicando a reversão do bloco inferior de forma segura.
+
+Utiliza os comentários demarcadores especiais `-- +migrar ParaCima` e `-- +migrar ParaBaixo` para delimitar e fracionar as instruções de subida e descida no arquivo `.sql`.
+
+```bash
+harpia migrar criar adicionar-usuarios
+harpia migrar aplicar --banco=dados.db
+harpia migrar status
+harpia migrar reverter 1
+```
+
+### 28. Subcomando: `pwa` — Progressive Web App Builder
+
+Gera a infraestrutura e os arquivos necessários para transformar o seu build web do Harpia em uma aplicação progressiva instalável (PWA) de forma nativa:
+
+- Cria automaticamente o manifesto de rede (`manifest.webmanifest`).
+- Configura o Service Worker local (`sw.js`) utilizando estratégias de caching inteligentes (Cache-First).
+- Injeta o loader de registro do Service Worker diretamente no arquivo de build principal `index.html`.
+
+```bash
+harpia pwa --dir=dist/ --registrar
+```
+
+### 29. Subcomando: `i18n` — Gestor de Traduções (Gettext)
+
+Sistema integrado de extração e tradução internacional baseada na especificação do GNU Gettext (completamente implementado utilizando a biblioteca padrão de Go, livre de dependências adicionais):
+
+- **`extrair`**: Varre as funções traduzíveis `t()`, `tr()`, ou `i18n.texto()` no código fonte e gera o catálogo master `.pot` (Template PO) devidamente deduplicado.
+- **`novo`**: Cria um catálogo localizado `.po` inicial para um determinado idioma (ex: `en.po`), copiando os metadados do cabeçalho do template master.
+
+```bash
+harpia i18n extrair ./web --dominio=meu_app
+harpia i18n novo en
+```
+
+### 30. Subcomando: `swagger` — Documentação de APIs
+
+Gera automaticamente a documentação das rotas e endpoints HTTP do seu projeto em conformidade com a especificação **OpenAPI 3.0.0**:
+
+- Varre recursivamente os controladores e definições HTTP do diretório `/infra` ou `/web`.
+- Mapeia parâmetros de entrada, tipos de dados de resposta e gera o arquivo estruturado de documentação standalone `swagger.json` consumível por visualizadores Swagger.
+
+```bash
+harpia swagger --entrada=./infra/api.hrp --saida=docs/swagger.json
+```
+
+### 31. Subcomando: `auditar` — Scanner de Segurança
+
+Realiza análise estática avançada de segurança (SAST) em todo o projeto em busca de falhas conhecidas de conformidade com a OWASP Top 10 e más práticas:
+
+- **SQL Injection**: Detecta concatenação insegura de strings dinâmicas em operações de consultas com o banco de dados.
+- **Exposição de Credenciais**: Verifica a presença de chaves estáticas, senhas ou tokens expostos em variáveis ou constantes em arquivos de código.
+- **Canais Inseguros**: Adverte sobre a utilização inadequada de operações bloqueantes de canal em escopos síncronos.
+
+```bash
+harpia auditar ./src
+```
+
+### 32. Subcomando: `publicar` — Engine de Deploy e Produção
+
+Simplifica e orquestra o processo de publicação e deploy das aplicações desenvolvidas em Harpia para a nuvem de forma automatizada:
+
+- Analisa o tipo do projeto (monolito, backend ou frontend SPA).
+- Emite e escreve arquivos de configuração e Dockerfile otimizados multi-stage para produção.
+- Realiza o empacotamento das dependências locais e compila o binário de execução pronto para deploy.
+
+```bash
+harpia publicar --alvo=nuvem
+```

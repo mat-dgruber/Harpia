@@ -13,7 +13,8 @@ O lexer também rastreia as coordenadas geográficas exatas de cada token, prove
 3. [Algoritmo Operacional e Máquina de Estados](#-algoritmo-operacional-e-máquina-de-estados)
    - [Cursor e Lookahead (Espreitadela)](#cursor-e-lookahead-espreitadela)
    - [Leitores de Cadeias Complexas](#leitores-de-cadeias-complexas)
-4. [Exemplo de Integração em Go](#-exemplo-de-integração-en-go)
+4. [Documentação de Métodos e Funções](#-documentação-de-métodos-e-funções)
+5. [Exemplo de Integração em Go](#-exemplo-de-integração-em-go)
 
 ---
 
@@ -82,7 +83,7 @@ O arquivo principal `lexer.go` implementa a estrutura de processamento central:
 Caractere Operador?    Aspas " ou '?          Letras ou _?  |
       │                      │                      │       |
 Consome de forma       lerTexto()             lerIdentificador()
-gulosa (composto?)           │                      │       |
+      │                      │                      │       |
       │                      │                 Consulta se  |
       │                      │                 é keyword    |
       │                      │                      │       |
@@ -105,6 +106,54 @@ gulosa (composto?)           │                      │       |
 
 ---
 
+## 🛠️ Documentação de Métodos e Funções
+
+Abaixo estão descritos todos os métodos implementados na estrutura `Lexer`:
+
+### `NewLexer(entrada string) *Lexer`
+Aloca e prepara uma nova instância operacional de `Lexer` para o código-fonte fornecido. Normaliza as quebras de linha substituindo retornos de carro (`\r`), calcula o tamanho total em runas do texto e cria o cache indexado de bytes para permitir saltos rápidos e seguros sem vazamentos ou estouro de inteiros.
+
+### `fimDeArquivo() bool`
+Verifica se o cursor de leitura atingiu ou ultrapassou os limites do código-fonte, garantindo a prevenção de estouros de array ao tentar ler além do EOF.
+
+### `proximoCarater() string`
+Espreita o próximo caractere sem deslocar o cursor físico do lexer. É a base de suporte para algoritmos gulosos de correspondência de caracteres (lookahead 1).
+
+### `caraterRelativo(offset int) string`
+Permite um lookahead arbitrário (positivo ou de recuo) para dar suporte à análise de sequências complexas como comentários JSX (`<!-- -->`).
+
+### `ignorarComentarioHTML()`
+Varre e consome silenciosamente todo o conteúdo de comentários HTML (`<!-- ... -->`) encontrados em arquivos JSX do ecossistema do Harpia.
+
+### `avancar()`
+Incrementa o cursor físico de leitura em exatamente uma posição Unicode e atualiza os campos `linha` e `coluna` com base na presença de caracteres especiais como `\n`.
+
+### `posicaoAtual() *PosicaoToken`
+Retorna as coordenadas geométricas instantâneas onde o caractere sob análise se encontra no documento.
+
+### `ignorarEspacos()`
+Avança o cursor descartando caracteres irrelevantes de formatação como espaço simples (` `) e tabulações (`\t`), sem consumir a quebra de linha `\n` que delimita instruções.
+
+### `ignorarComentario()`
+Consome caracteres sequencialmente após encontrar um indicador de comentário (`#` ou `//`), parando ao atingir uma quebra de linha ou o EOF.
+
+### `subString(inicio, fim int) string`
+Extrai de forma ultra rápida a substring Unicode delimitada pelos índices de início e fim conceitual usando o `byteCache` para conversão imediata de runas para offsets de bytes.
+
+### `lerIdentificador() *Token`
+Lê uma sequência consecutiva de caracteres permitidos para identificadores. Faz o lookup automático contra a tabela de palavras reservadas `tokensIdentificadores` e promove o token para a constante do compilador se coincidir.
+
+### `lerNumero() *Token`
+Consome dígitos e pontos para discernir e instanciar tokens de tipo `TokenInteiro` ou `TokenDecimal`.
+
+### `lerTexto() *Token`
+Instancia literais textuais escapando delimitadores correspondentes de forma segura.
+
+### `ProximoToken() *Token`
+O coração do lexer. Executa a máquina de estados consumindo a entrada e retornando um objeto `Token` por chamada, que é consumido sequencialmente pelo Parser do compilador Harpia.
+
+---
+
 ## 💻 Exemplo de Integração em Go
 
 Abaixo está um snippet demonstrando como instanciar e processar tokens a partir de um trecho de código em Harpia usando Go:
@@ -114,7 +163,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/natanfeitosa/harpia/lexer"
+	"github.com/mat-dgruber/Harpia/lexer"
 )
 
 func main() {
@@ -128,8 +177,8 @@ func main() {
 		
 		// Imprime as propriedades do token formatadas
 		fmt.Printf(
-			"Token: %-18s | Valor: %-8s | Linha: %d Coluna: %d\n",
-			getEnumName(tok.Tipo), // utilitário conceitual de exibição
+			"Token Tipo: %-4d | Valor: %-15s | Linha: %d Coluna: %d\n",
+			tok.Tipo,
 			tok.Valor,
 			tok.Inicio.Linha,
 			tok.Inicio.Coluna,

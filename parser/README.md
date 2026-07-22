@@ -184,9 +184,48 @@ Durante a execução na Máquina Virtual, se um nó sintático causar uma exceç
 
 ---
 
-## 💻 Exemplo de Visualização de AST
+## 💻 Exemplo de Uso e Visualização de AST em Go
 
-Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de depuração `Ast2string` serializa o nó raiz gerando a seguinte árvore hierárquica estruturada:
+Abaixo está um snippet demonstrando como instanciar o Parser a partir de um trecho de código em Harpia e exportar sua AST formatada em JSON:
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/mat-dgruber/Harpia/parser"
+)
+
+func main() {
+	codigo := `
+		var x = 10 + 20 * 3
+		se x > 50 {
+			imprimir("Valor alto!")
+		}
+	`
+
+	// Instancia o analisador sintático a partir do código-fonte
+	p := parser.NewParserFromString(codigo, "exemplo.hrp")
+
+	// Constrói a Árvore de Sintaxe Abstrata (AST)
+	ast, err := p.Parse()
+	if err != nil {
+		log.Fatalf("Erro de compilação sintática: %v", err)
+	}
+
+	// Converte a AST em JSON formatado para inspeção
+	jsonAst, err := parser.Ast2string(ast)
+	if err != nil {
+		log.Fatalf("Erro ao serializar AST: %v", err)
+	}
+
+	fmt.Println(string(jsonAst))
+}
+```
+
+Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de depuração `Ast2string` serializa o nó gerando a seguinte árvore hierárquica estruturada:
 
 ```json
 {
@@ -207,3 +246,4 @@ Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de d
 ```
 
 Como observado no JSON acima, o nó de multiplicação `*` foi corretamente aninhado como filho direito do nó de soma `+`. Isso prova que a ordem de precedência gramatical do Harpia foi perfeitamente executada, garantindo que `20 * 3` seja avaliado prioritariamente antes da adição de `10`.
+

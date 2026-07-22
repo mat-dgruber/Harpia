@@ -216,3 +216,37 @@ Durante a interpretação física de um script, as etapas operacionais de baixo 
            ▼
      [Objetos Go de hrp.Objeto Gerados]
 ```
+
+---
+
+## 🛑 Diagnósticos Educativos Ricos (`erros.go`)
+
+O Harpia foi concebido para ser uma linguagem altamente didática e amigável. Por isso, a engine de erros em `erros.go` oferece diagnósticos de nível industrial para auxiliar o desenvolvedor:
+
+- **Códigos de Erros Estruturados (PSC-xxxx)**: Cada categoria de falha possui um identificador unívoco padrão (ex: `PSC-0001` para erro de nome, `PSC-0002` para erro de tipo, etc.). Isso facilita buscas de solução na documentação e fóruns.
+- **Tracebacks com Apontadores Espaciais (`^^^^`)**: Em vez de apenas exibir a linha e coluna do erro, o motor lê o arquivo-fonte, isola o trecho problemático e imprime no terminal a linha de código afetada acompanhada de marcadores de sublinhado coloridos via ANSI no terminal, destacando o local exato do token causador.
+- **Sugestor Ortográfico por Distância de Levenshtein**: Quando ocorre um erro de nome (`NomeErro`), a VM varre as variáveis, funções e tipos acessíveis no escopo léxico ativo, calcula a distância de edição de Levenshtein entre o termo desconhecido e os símbolos válidos, e sugere automaticamente a correção mais provável (ex: *"Erro de Nome: 'contdor' não foi definido. Você quis dizer: 'contador'?"*).
+
+---
+
+## ⚡ RPC e Proxy HTTP Dinâmico (`rpc.go`)
+
+A integração entre Frontend e Backend no Harpia é simplificada de maneira inédita através do módulo RPC nativo:
+
+- **Módulo de Importação Especial `@backend/`**: No frontend, ao declarar `importar { salvarTarefa } de "@backend/tarefas"`, o runtime intercepta a requisição através de `CarregarModuloRPC`.
+- **Compilação e Servidor Automático**: A VM compila o arquivo correspondente no servidor e expõe automaticamente suas funções públicas como endpoints HTTP POST sob demanda.
+- **Tratamento Transparente de CORS**: O servidor HTTP de backend lida de forma autônoma com requisições de preflight (`OPTIONS`), respondendo instantaneamente com `200 OK` e injetando cabeçalhos genéricos de CORS (`Access-Control-Allow-Origin: *`).
+- **Sobrescrita e Precedência de Cabeçalhos**: Caso o desenvolvedor decida customizar as políticas de CORS, ele pode definir o cabeçalho no mapa `res.cabecalho` (ex: `res.cabecalho["Access-Control-Allow-Origin"] = "https://meusite.com"`). Essas configurações personalizadas possuem prioridade e sobrescrevem as automáticas do sistema.
+- **Desserialização JSON Automática**: O payload das requisições JSON recebidas pelo backend sob o cabeçalho `Content-Type: application/json` é convertido nativamente em dicionários/mapas do Harpia sem qualquer necessidade de parsing manual.
+
+---
+
+## 🎨 Renderização de Virtual DOM e JSX para SSR (`vdom_backend.go`)
+
+O Harpia suporta componentes nativos reativos e renderização do lado do servidor (SSR):
+
+- **Estruturação de Tags via `ElementoJSX`**: Arquivos contendo trechos JSX/HTML são compilados para representações estruturadas na struct `ElementoJSX`, composta por:
+  - `Tag`: Nome da tag HTML (ex: `"div"`, `"button"`).
+  - `Atributos`: Mapa contendo propriedades, estilos e classes css (ex: `{"classe": "MeuCard"}`).
+  - `Filhos`: Coleção ordenada de objetos filhos (texto puro ou outros elementos JSX).
+- **Serialização Server-Side (SSR)**: No backend, essas estruturas de dados de árvore virtual (VDOM) são serializadas em tempo real em strings HTML válidas de alta performance. Isso possibilita que os mecanismos de SEO e indexação leiam a página perfeitamente renderizada diretamente no primeiro fluxo HTTP.
