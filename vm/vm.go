@@ -9,12 +9,18 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// poolPilha é um pool de memória sincronizado (sync.Pool) que gerencia fatias de objetos Go reutilizáveis.
+// Ele é essencial para mitigar a alocação frequente e desalocação de fatias de memória (heap allocation)
+// na pilha de operandos de cada Frame, reduzindo drasticamente a pressão sobre o coletor de lixo (Garbage Collector).
 var poolPilha = sync.Pool{
 	New: func() interface{} {
 		return make([]hrp.Objeto, 0, 128)
 	},
 }
 
+// InstrucaoThreaded representa uma assinatura de função de callback JIT JIT de Traço (Fase F).
+// Ela permite que cada instrução decodificada seja executada diretamente como um salto de ponteiro
+// de função, eliminando o overhead do tradicional switch-case no loop de despacho.
 type InstrucaoThreaded func(v *VM, frame *Frame) (hrp.Objeto, error)
 
 // Frame representa um contexto isolado de execução de função ou módulo na pilha de chamadas da VM.

@@ -13,6 +13,12 @@ var novaTarefa = sinal("");
 var lerNova = novaTarefa[0];
 var definirNova = novaTarefa[1];
 
+# adicionarTarefa é o controlador reativo encarregado de ler o sinal de texto da nova
+# tarefa digitada e, caso seja válido, anexá-lo à lista de tarefas ativa.
+#
+# Regras de Negócio:
+#   - Impede adição de tarefas com string vazia ("").
+#   - Altera os sinais `listaDeTarefas` e `novaTarefa` de forma a reconciliar o VDOM da tela.
 funcao adicionarTarefa() {
 	var tarefasAtuais = lerTarefas();
 	var conteudoDigitado = lerNova();
@@ -22,17 +28,23 @@ funcao adicionarTarefa() {
 	}
 }
 
+# excluirTarefa remove um item específico da lista de tarefas reativa.
+#
+# Parâmetros:
+#   - item: O objeto de texto da tarefa que deve ser filtrada e removida da lista.
 funcao excluirTarefa(item) {
 	var tarefasAtuais = lerTarefas();
 	definirTarefas(tarefasAtuais.remover(item));
 }
 
-estilo ListaApp {
-	corDeFundo: "#ffffff";
-	padding: "1.5rem";
-	largura: "400px";
-}
+definirEstilo(ListaApp, {
+	corDeFundo: "#ffffff",
+	padding: "1.5rem",
+	largura: "400px"
+})
 
+# MeuApp é o componente SPA reativo raiz que renderiza a estrutura de formulário e a lista.
+# Utiliza a diretiva sintática especial `<para item em lista>` para gerar nós filhos VDOM.
 funcao MeuApp() {
 	retorne <div classe="ListaApp flex-coluna p-6 fundo-branco raio-grande borda">
 			<h2 classe="texto-azul"> Minhas Tarefas </h2>

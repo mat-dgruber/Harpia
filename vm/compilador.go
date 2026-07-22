@@ -41,6 +41,10 @@ func (c *Compilador) Compilar(node parser.BaseNode) (*ProgramaCompilado, error) 
 	}, nil
 }
 
+// visite percorre a árvore de sintaxe abstrata (AST) recursivamente em uma única passagem (single-pass).
+// Conforme visita cada tipo de nó específico (declarações, literais, chamadas, condicionais, etc.),
+// ele gera a respectiva sequência de bytes (bytecodes/opcodes) no buffer e adiciona as literais
+// extraídas ao pool global de constantes do programa compilado.
 func (c *Compilador) visite(node parser.BaseNode) error {
 	if node == nil {
 		return nil

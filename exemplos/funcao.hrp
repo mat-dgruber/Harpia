@@ -4,18 +4,42 @@
 # Este exemplo demonstra a declaração de múltiplas funções que agem de forma
 # parametrizada e retornam resultados matemáticos para os chamadores.
 
+# soma realiza a adição aritmética de dois operandos.
+# Parâmetros:
+#   - a: Primeiro termo numérico.
+#   - b: Segundo termo numérico.
+# Retorna:
+#   - A soma dos parâmetros (a + b).
 func soma(a, b) {
     retorne a + b;
 }
 
+# subtrai realiza a subtração aritmética entre o primeiro e o segundo operando.
+# Parâmetros:
+#   - a: Minuendo.
+#   - b: Subtraendo.
+# Retorna:
+#   - A diferença aritmética (a - b).
 func subtrai(a, b) {
     retorne a - b;
 }
 
+# divide realiza a divisão real de dois operandos.
+# Parâmetros:
+#   - a: Dividendo.
+#   - b: Divisor (não deve ser zero).
+# Retorna:
+#   - O quociente de ponto flutuante de dupla precisão (a / b).
 func divide(a, b) {
     retorne a / b;
 }
 
+# multiplica realiza a multiplicação matemática clássica de dois operandos.
+# Parâmetros:
+#   - a: Primeiro fator.
+#   - b: Segundo fator.
+# Retorna:
+#   - O produto matemático resultante (a * b).
 func multiplica(a, b) {
     retorne a * b;
 }

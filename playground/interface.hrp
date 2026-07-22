@@ -23,7 +23,7 @@ exportar funcao PlaygroundApp() {
 	var executando = executandoSinal[0]
 	var setExecutando = executandoSinal[1]
 
-	# Controle de abas da direita
+	# Controle de abas da direita (determina qual painel exibir no inspector)
 	var abaAtivaSinal = sinal("console")
 	var abaAtiva = abaAtivaSinal[0]
 	var setAbaAtiva = abaAtivaSinal[1]
@@ -31,7 +31,8 @@ exportar funcao PlaygroundApp() {
 	# ponytail: conecta com a ponte JS do Monaco de forma limpa e sem erros de sintaxe
 	var ponte = registrarPontePlayground(setCogo, executar)
 
-	/// Executa o código fonte digitado no editor enviando-o síncronamente para a API em Go
+	# Executa o código fonte digitado no editor enviando-o síncronamente para a API em Go.
+	# Atualiza os sinais de saída, erros e introspecção de variáveis do REPL para reconciliar o VDOM.
 	funcao executar() {
 		setExecutando(Verdadeiro)
 		executarCodigoHarpia(codigo(), funcao(dados) {
@@ -45,11 +46,14 @@ exportar funcao PlaygroundApp() {
 		})
 	}
 
-	/// Funções de Abas
+	# Funções de Controle de Abas
+	# Permitem navegar entre o console, inspeção de variáveis locais da VM e o guia rápido DX.
 	funcao verConsole() { setAbaAtiva("console"); }
 	funcao verVariaveis() { setAbaAtiva("variaveis"); }
 	funcao verGuia() { setAbaAtiva("guia"); }
 
+	# Funções de estilo condicional de abas baseadas no estado reativo corrente.
+	# Retornam classes do Tailwind CSS dinamicamente.
 	funcao classeAbaConsole() {
 		se (abaAtiva() == "console") {
 			retorne "px-4 py-2 bg-slate-800 text-blue-400 rounded-md transition text-xs font-bold"
@@ -71,7 +75,7 @@ exportar funcao PlaygroundApp() {
 		retorne "px-4 py-2 hover:bg-slate-800/40 text-slate-400 hover:text-slate-200 rounded-md transition text-xs font-medium"
 	}
 
-	/// Funções de carregamento de exemplos rápidos (DX)
+	# Funções de carregamento de exemplos rápidos de código (DX) no editor Monaco.
 	funcao carregarContador() {
 		carregarExemploNoMonaco("contador")
 	}
@@ -84,7 +88,7 @@ exportar funcao PlaygroundApp() {
 		carregarExemploNoMonaco("classes")
 	}
 
-	/// Limpa as impressões acumuladas no painel do console
+	# Limpa as impressões e logs acumulados no painel do console.
 	funcao limparConsole() {
 		setSaida("")
 	}

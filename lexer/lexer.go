@@ -26,8 +26,16 @@ type Lexer struct {
 
 // NewLexer aloca e prepara uma nova instância operacional de Lexer para o código fonte informado.
 //
-// Na inicialização, calcula o número total de runas e gera a tabela de mapeamento de bytes
-// (byteCache) para garantir fatiamentos ágeis de strings e, por fim, carrega o primeiro caractere.
+// O construtor realiza as seguintes etapas de pré-processamento:
+//  1. Normalização de quebras de linha (substitui \r\n ou \r por \n puro).
+//  2. Cálculo de quantidade de runas em UTF-8 nativo para dar suporte correto a caracteres acentuados.
+//  3. Construção do cache de índices de bytes para permitir mapeamento ultra veloz O(1) de caracteres para bytes.
+//  4. Inicialização de coordenadas e carregamento do caractere inicial via avancar().
+//
+// Parâmetros:
+//   - entrada: string contendo o código-fonte bruto do script Harpia.
+//
+// Retorna um ponteiro para a struct Lexer pronta para iniciar a tokenização.
 func NewLexer(entrada string) *Lexer {
 	entrada = strings.ReplaceAll(entrada, "\r", "")
 	l := &Lexer{
@@ -45,6 +53,9 @@ func NewLexer(entrada string) *Lexer {
 
 // fimDeArquivo verifica se o cursor de leitura do interpretador atingiu ou passou o limite físico
 // de caracteres Unicode presentes no código fonte.
+//
+// Retorna true se o índice atual for maior ou igual ao tamanho total de runas, indicando que não há
+// mais caracteres disponíveis para leitura.
 func (l *Lexer) fimDeArquivo() bool {
 	return l.indice >= l.tamanho
 }
@@ -53,6 +64,8 @@ func (l *Lexer) fimDeArquivo() bool {
 //
 // Permite que o analisador tome decisões condicionais de desvio de fluxo (como diferenciar
 // o operador de atribuição '=' de igualdade '==' ou reatribuição '+='), sem avançar o cursor físico.
+//
+// Retorna uma string contendo o caractere seguinte em UTF-8 ou uma string vazia se atingir o EOF.
 func (l *Lexer) proximoCarater() string {
 	if l.indice+1 >= l.tamanho {
 		return ""
@@ -61,7 +74,13 @@ func (l *Lexer) proximoCarater() string {
 	return compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice+1, l.byteCache)
 }
 
-// caraterRelativo espreita um caractere em uma posição relativa ao cursor atual de forma segura
+// caraterRelativo espreita um caractere em uma posição relativa ao cursor atual de forma segura,
+// fornecendo lookahead arbitrário (positivo ou negativo) sem alterar o estado interno do cursor.
+//
+// Parâmetros:
+//   - offset: o deslocamento em relação à posição atual (ex: 2 para espreitar dois caracteres à frente).
+//
+// Retorna o caractere na coordenada calculada ou uma string vazia se estiver fora dos limites do arquivo.
 func (l *Lexer) caraterRelativo(offset int) string {
 	if l.indice+offset >= l.tamanho || l.indice+offset < 0 {
 		return ""
@@ -70,6 +89,9 @@ func (l *Lexer) caraterRelativo(offset int) string {
 }
 
 // ignorarComentarioHTML pula todos os caracteres até encontrar a sequência de fechamento de comentário HTML '-->'
+//
+// Este método é útil para dar suporte a comentários HTML dentro de blocos de marcação JSX
+// que são compilados de forma transparente no Harpia.
 func (l *Lexer) ignorarComentarioHTML() {
 	// Avança os 4 caracteres iniciais '<!--'
 	l.avancar() // consome '<'
@@ -112,12 +134,14 @@ func (l *Lexer) avancar() {
 	l.coluna += 1
 }
 
-// posicaoAtual captura as coordenadas geográficas (linha, coluna, índice) do caractere corrente no código.
+// posicaoAtual captura as coordenadas geográficas (linha, coluna, índice absoluto)
+// do caractere corrente no código, retornando um objeto *PosicaoToken alocado dinamicamente.
 func (l *Lexer) posicaoAtual() *PosicaoToken {
 	return &PosicaoToken{l.coluna, l.linha, l.indice}
 }
 
 // ignorarEspacos avança o cursor descartando e pulando caracteres inofensivos de espaço em branco e tabulação.
+// Não pula quebras de linha '\n', que são tratadas como tokens separadores lógicos de instruções no Harpia.
 func (l *Lexer) ignorarEspacos() {
 	for (l.carater == " " || l.carater == "\t") && !l.fimDeArquivo() {
 		l.avancar()
@@ -134,7 +158,13 @@ func (l *Lexer) ignorarComentario() {
 }
 
 // subString é um fatiador seguro que extrai uma partição da string original delimitada
-// por posições em caracteres Unicode, convertendo-as de forma segura e rápida em offsets de bytes.
+// por posições conceituais em caracteres Unicode, convertendo-as de forma segura e rápida em offsets de bytes.
+//
+// Parâmetros:
+//   - inicio: o índice conceitual da runa de início (base 0).
+//   - fim: o índice conceitual da runa de fim (limite exclusivo).
+//
+// Retorna a substring correspondente.
 func (l *Lexer) subString(inicio, fim int) string {
 	inicioByte := compartilhado.IndiceCaraterParaByte(l.entrada, inicio, l.byteCache)
 	fimByte := compartilhado.IndiceCaraterParaByte(l.entrada, fim, l.byteCache)
@@ -142,10 +172,12 @@ func (l *Lexer) subString(inicio, fim int) string {
 }
 
 // lerIdentificador consome sequencialmente caracteres alfanuméricos ou sublinhas (_) que compõem
-// o nome de uma variável ou instrução.
+// o nome de uma variável, classe, função ou palavra reservada.
 //
 // Ao final da leitura, faz a verificação na tabela de palavras reservadas (tokensIdentificadores).
 // Se coincidir, o token genérico é promovido à palavra-chave correspondente (ex: TokenSe).
+//
+// Retorna um Token classificado como TokenIdentificador ou como a palavra-chave correspondente.
 func (l *Lexer) lerIdentificador() *Token {
 	inicio := l.posicaoAtual()
 
@@ -175,6 +207,8 @@ func (l *Lexer) lerIdentificador() *Token {
 // lerNumero consome sequencialmente dígitos e o caractere separador decimal '.' para fatiar literais numéricos.
 //
 // Diferencia de forma automatizada números inteiros (TokenInteiro) de dízimas ou reais (TokenDecimal).
+//
+// Retorna um Token estruturado correspondente ao tipo numérico identificado.
 func (l *Lexer) lerNumero() *Token {
 	inicio := l.posicaoAtual()
 
@@ -199,6 +233,8 @@ func (l *Lexer) lerNumero() *Token {
 
 // lerTexto consome uma cadeia literal delimitada por aspas simples (') ou aspas duplas ("),
 // tratando de forma transparente sequências de escape do delimitador (ex: \" ou \').
+//
+// Retorna um Token classificado como TokenTexto contendo a string extraída (incluindo as aspas delimitadoras).
 func (l *Lexer) lerTexto() *Token {
 	inicio := l.posicaoAtual()
 	delimitador := l.carater
@@ -225,6 +261,8 @@ func (l *Lexer) lerTexto() *Token {
 // Executa a máquina de transições lógica: ignora espaços em branco, lida com comentários,
 // avalia caracteres únicos nos dicionários estáticos de operadores, consome números, strings,
 // identificadores de palavras-chave e retorna a próxima estrutura Token de forma sequencial.
+//
+// Retorna um Token alocado contendo as informações completas de classificação e localização física.
 func (l *Lexer) ProximoToken() *Token {
 	l.ignorarEspacos()
 

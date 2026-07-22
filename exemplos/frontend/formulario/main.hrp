@@ -22,11 +22,13 @@ var erroEmail = derivado(funcao() {
 	retorne "";
 });
 
-estilo FormularioApp {
-	largura: "450px";
-	padding: "2rem";
-}
+definirEstilo(FormularioApp, {
+	largura: "450px",
+	padding: "2rem"
+})
 
+# MeuApp é o componente funcional de formulário que monitora e valida dados de contato.
+# Utiliza condicionais sintáticas `<se condicao={...}>` para renderizar avisos de validação dinâmicos.
 funcao MeuApp() {
 	retorne <div classe="FormularioApp flex-coluna p-8 fundo-branco raio-grande borda">
 			<h2 classe="texto-azul m-0"> Fale Conosco </h2>

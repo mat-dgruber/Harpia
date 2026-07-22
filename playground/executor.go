@@ -21,6 +21,13 @@ type Executor struct {
 
 // NovoExecutor é o construtor padrão da estrutura Executor.
 //
+// Parâmetros:
+//   - ctx: Ponteiro para o contexto corrente de runtime do Harpia (*hrp.Contexto).
+//
+// Retorna:
+//   - *Executor: Estrutura pronta para orquestrar e interpretar código sob escopo persistente.
+//
+// Detalhes:
 // Ele inicializa um novo módulo virtualizado sob o nome especial "<playground>" e configura o seu respectivo escopo.
 // Quaisquer variáveis e métodos declarados no console REPL serão anexados ao escopo persistente deste módulo.
 func NovoExecutor(ctx *hrp.Contexto) *Executor {
@@ -37,6 +44,10 @@ func NovoExecutor(ctx *hrp.Contexto) *Executor {
 
 // ExecutarCodigo realiza o ciclo completo de interpretação e saída visual de uma entrada de código no REPL:
 //
+// Parâmetros:
+//   - codigo: String contendo o script ou expressão Harpia digitado pelo programador.
+//
+// Fluxo Interno:
 //  1. Recebe a string de código e compila dinamicamente para uma Árvore de Sintaxe Abstrata (AST)
 //     referenciando a origem virtual "<playground>";
 //  2. Avalia a AST no ambiente da VM sob o escopo isolado e persistente do módulo virtual do playground;
@@ -70,6 +81,13 @@ func (e *Executor) ExecutarCodigo(codigo string) {
 // RegistrarMetodo permite injetar métodos auxiliares e funções embutidas personalizadas
 // diretamente no escopo global acessível pelo console REPL.
 //
+// Parâmetros:
+//   - metodo: Instância de método estruturado do Harpia (*hrp.Metodo) contendo a assinatura e lógica Go nativa.
+//
+// Retorna:
+//   - error: Nil em caso de sucesso, ou erro de definição caso o símbolo colida ou seja inválido.
+//
+// Aplicação:
 // É utilizado pelo playground para expor comandos de utilidade geral do console (como `sair()`).
 func (e *Executor) RegistrarMetodo(metodo *hrp.Metodo) error {
 	return e.Modulo.Escopo.DefinirSimbolo(

@@ -215,20 +215,23 @@ type ArgumentoNomeado struct {
 	Valor BaseNode
 }
 
+// DeclTeste representa o bloco de teste unitário integrado ('testar "nome" { ... }').
 type DeclTeste struct {
-	Nome  string
-	Corpo *Bloco
+	Nome  string // Descrição ou nome do caso de teste unitário.
+	Corpo *Bloco // Escopo contendo as asserções e instruções do teste.
 }
 
+// TenteCaptureFinalmente representa a estrutura de tratamento de exceções ('tente ... capture (erro) ... finalmente ...').
 type TenteCaptureFinalmente struct {
-	TenteBlock      *Bloco
-	NomeErro        string
-	CaptureBlock    *Bloco
-	FinalmenteBlock *Bloco
+	TenteBlock      *Bloco // Bloco protegido de execução primária.
+	NomeErro        string // Identificador da variável que recebe a exceção capturada no bloco 'capture'.
+	CaptureBlock    *Bloco // Bloco de tratamento de erros disparado caso ocorra uma exceção.
+	FinalmenteBlock *Bloco // Bloco opcional de limpeza final executado incondicionalmente ao término.
 }
 
+// DeclExportar representa a instrução de exportação de símbolos ('exportar <expr>').
 type DeclExportar struct {
-	Expressao BaseNode
+	Expressao BaseNode // Nó ou declaração a ser exportada para outros módulos.
 }
 
 func (*Programa) isExpr()            {}

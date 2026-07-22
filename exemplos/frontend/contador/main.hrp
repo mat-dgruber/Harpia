@@ -9,13 +9,16 @@ var contadorSinal = sinal(0);
 var contador = contadorSinal[0];
 var setContador = contadorSinal[1];
 
-estilo MeuContador {
-	corDeFundo: "#f3f4f6";
-	padding: "2rem";
-	raio-grande: true;
-	textAlign: "center";
-}
+definirEstilo(MeuContador, {
+	corDeFundo: "#f3f4f6",
+	padding: "2rem",
+	raioGrande: true,
+	textAlign: "center"
+})
 
+# MeuApp é o componente funcional reativo raiz que gerencia o contador.
+# Ele retorna um bloco HTML/JSX-like reativo que vincula dinamicamente a leitura do sinal `{contador()}`
+# e o gatilho de reatividade `aoClicar` para atualizar o valor corrente do sinal.
 funcao MeuApp() {
 	retorne <div classe="MeuContador flex-coluna itens-centro p-8 fundo-cinza raio-grande">
 			<h1 classe="texto-azul"> Contador Reativo </h1>

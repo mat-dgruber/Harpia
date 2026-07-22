@@ -36,6 +36,9 @@ type Estado struct {
 }
 
 // NewEstado é o construtor padrão para a estrutura Estado do playground, inicializando-a em modo normal.
+//
+// Retorna:
+//   - *Estado: Nova instância inicializada com o prompt Normal (">>> "), sem continuação e buffer de código vazio.
 func NewEstado() *Estado {
 	return &Estado{Normal, false, ""}
 }
@@ -43,11 +46,14 @@ func NewEstado() *Estado {
 // RecalcularEstado atualiza o buffer de código com o novo trecho fornecido pelo usuário e analisa se
 // a expressão está sintaticamente completa ou se possui delimitadores não pareados (abertos).
 //
+// Parâmetros:
+//   - cod: Novo bloco ou linha de texto digitado no prompt do REPL.
+//
 // Regra de Negócio:
-// A função varre o buffer em busca de colchetes, parênteses e chaves. Se o número de símbolos de abertura
+// A função varre o buffer acumulado em busca de colchetes, parênteses e chaves. Se o número de símbolos de abertura
 // for estritamente maior do que o de fechamento, a flag 'Continua' é ativada e o indicador visual
 // muda para "... ", sinalizando ao REPL que a instrução lógica continua em uma nova linha.
-// Assim que todos os pares são devidamente fechados, o estado retorna ao modo Normal e o acumulado
+// Assim que todos os pares são devidamente fechados, o estado retorna ao modo Normal (">>> ") e o acumulado
 // fica elegível para execução pela VM.
 func (e *Estado) RecalcularEstado(cod string) {
 	e.Codigo += cod
@@ -66,8 +72,18 @@ func (e *Estado) RecalcularEstado(cod string) {
 	e.Indicador = Normal
 }
 
-// continuaEmNovaLinha faz uma comparação simples e rápida usando strings.Count para verificar se o delimitador
-// de abertura ('abre') possui mais ocorrências ativas do que o delimitador correspondente de fechamento ('fecha').
+// continuaEmNovaLinha verifica se o delimitador de abertura possui mais ocorrências ativas
+// do que o delimitador correspondente de fechamento dentro do buffer acumulado.
+//
+// Parâmetros:
+//   - abre: String correspondente ao delimitador de abertura (ex: "{", "[", "(").
+//   - fecha: String correspondente ao delimitador de fechamento (ex: "}", "]", ")").
+//
+// Retorna:
+//   - bool: true se a quantidade de caracteres de abertura superar os de fechamento.
+//
+// Detalhes de Implementação:
+// Faz uma comparação simples e rápida usando strings.Count do pacote Go standard library.
 func (e *Estado) continuaEmNovaLinha(abre, fecha string) bool {
 	return strings.Count(e.Codigo, abre) > strings.Count(e.Codigo, fecha)
 }

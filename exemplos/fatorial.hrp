@@ -4,10 +4,19 @@
 # Este exemplo demonstra a definição de funções customizadas pelo usuário,
 # suporte a passagem de argumentos, retorno de valores ('retorne') e recursividade.
 
-# Função recursiva para calcular o fatorial de um número
+# fatorial calcula recursivamente o produto de todos os inteiros positivos menores ou iguais a n.
+#
+# Parâmetros:
+#   - n: O número inteiro do qual se deseja calcular o fatorial (ex: 5).
+#
+# Retorna:
+#   - O resultado fatorial calculado (Inteiro de 64 bits).
+#
+# Exceções:
+#   - Pode causar estouro de pilha (Stack Overflow) na VM caso n seja negativo devido a recursão infinita.
 func fatorial(n) {
     se (n == 0 ou n == 1) {
-        # Caso base: o fatorial de 0 e 1 é 1
+        # Caso base: o fatorial de 0 e 1 é imutavelmente 1
         retorne 1;
     } senao {
         # Caso geral/recursivo: n! = n * (n-1)!

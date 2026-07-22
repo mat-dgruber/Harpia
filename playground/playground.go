@@ -26,8 +26,13 @@ const (
 
 // homeDirectory resolve e retorna de forma resiliente o caminho absoluto da pasta Home do usuário atual.
 //
+// Retorna:
+//   - string: Caminho absoluto do diretório Home do usuário.
+//
+// Detalhes de Funcionamento:
 // Tenta primeiro utilizar o utilitário nativo de sistema 'user.Current()' para recuperar de forma segura.
-// Em caso de falhas ou ambientes com permissões isoladas, recorre ao fallback da variável de ambiente "$HOME".
+// Em caso de falhas ou ambientes com permissões isoladas (containers/sandboxes), recorre ao fallback
+// da variável de ambiente "$HOME" para evitar falhas silenciosas na inicialização.
 func homeDirectory() string {
 	usr, err := user.Current()
 	if err == nil {
@@ -38,8 +43,16 @@ func homeDirectory() string {
 
 // ArquivoHistorico gerencia de maneira simplificada a abertura de fluxo de leitura ou escrita do histórico de comandos.
 //
+// Parâmetros:
+//   - escrita: booleano indicando se o arquivo deve ser aberto para gravação/append (true) ou leitura (false).
+//
+// Retorna:
+//   - *os.File: ponteiro do arquivo histórico oculto ".historico_harpia" localizado sob o diretório Home.
+//
+// Detalhes de Design:
 // O histórico é salvo em um arquivo oculto chamado `.historico_harpia` no diretório Home do usuário.
-// Se 'escrita' for verdadeiro, abre o arquivo em modo append/create. Caso contrário, abre em modo somente leitura.
+// Se 'escrita' for verdadeiro, abre o arquivo em modo append/create com permissão de leitura/escrita de proprietário (0666).
+// Caso contrário, abre em modo somente leitura (os.Open). O fechamento do arquivo deve ser gerenciado pela função chamadora.
 func ArquivoHistorico(escrita bool) (arquivo *os.File) {
 	caminho := path.Join(homeDirectory(), ".historico_harpia")
 
@@ -58,10 +71,16 @@ func ArquivoHistorico(escrita bool) (arquivo *os.File) {
 
 // Inicializa configura, orquestra e dispara o loop de eventos REPL principal (TUI) do playground do Harpia.
 //
-// O fluxo operacional é composto por:
-//  1. Exibir o banner informativo contendo a versão e dados de build;
-//  2. Instanciar e preparar o Executor da VM, injetando dinamicamente a função embutida 'sair()' no escopo local;
-//  3. Inicializar a biblioteca de leitura de console Liner (que oferece suporte nativo a histórico de digitação,
+// Parâmetros:
+//   - ctx: Contexto global da VM do Harpia, provendo as definições dos tipos base e configurações.
+//   - version: String de versão da linguagem injetada no build.
+//   - datetime: String com carimbo de data/hora do build.
+//   - commit: Hash de identificação do commit git do build corrente.
+//
+// Fluxo Operacional:
+//  1. Exibe o banner informativo estilizado contendo metadados de versão, sistema operacional e arquitetura;
+//  2. Instancia e prepara o Executor da VM, injetando dinamicamente a função embutida 'sair()' no escopo local;
+//  3. Inicializa a biblioteca de leitura de console Liner (que oferece suporte nativo a histórico de digitação,
 //     atalhos de terminal e setas direcionais);
 //  4. Ler o histórico de comandos persistido no disco a partir de `~/.historico_harpia`;
 //  5. Rodar o loop iterativo principal, coletando linhas do terminal e analisando o fechamento de blocos;
