@@ -4,6 +4,15 @@ const cp = require('child_process');
 
 let client;
 
+/**
+ * Ativa a extensão oficial do VS Code para a linguagem Harpia.
+ *
+ * Esta função inicializa o Language Server Protocol (LSP) por meio do comando nativo `harpia lsp`,
+ * registra provedores de inteligência de código (Hover, Go to Definition, CodeLenses, Autocomplete, Rename, Color Picker, Signature Help),
+ * adiciona atalhos de scaffolding para rotas/componentes/modelos e cria a barra de status de acesso rápido.
+ *
+ * @param {vscode.ExtensionContext} context - O contexto da extensão fornecido pelo VS Code.
+ */
 function activate(context) {
     // Configuração do executável da CLI para rodar o LSP em segundo plano
     let serverOptions = {
@@ -39,12 +48,24 @@ function activate(context) {
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 
+    /**
+     * Obtém o caminho do diretório raiz do espaço de trabalho (workspace) ativo.
+     *
+     * @returns {string|null} O caminho absoluto do primeiro workspace folder aberto, ou null se nenhum estiver aberto.
+     */
     const obterWorkspaceRoot = () => {
         return vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0
             ? vscode.workspace.workspaceFolders[0].uri.fsPath
             : null;
     };
 
+    /**
+     * Executa o comando de scaffolding da CLI do Harpia (`harpia crie ...`) para criar rotas, componentes ou modelos,
+     * sanitizando o nome de entrada e abrindo o arquivo resultante automaticamente no editor do VS Code.
+     *
+     * @param {string} tipo - O tipo do recurso a ser criado (ex: 'rota', 'componente', 'modelo').
+     * @param {string} nome - O nome do recurso fornecido pelo usuário.
+     */
     const executarScaffolding = (tipo, nome) => {
         const root = obterWorkspaceRoot();
         if (!root) {
@@ -746,6 +767,14 @@ function activate(context) {
 }
 
 // ponytail: converte HSL para RGB normatizado
+/**
+ * Converte valores de cor HSL (Hue, Saturation, Lightness) para o formato RGB normatizado.
+ *
+ * @param {number} h - Matiz (Hue), valor de 0 a 360.
+ * @param {number} s - Saturação (Saturation), valor de 0 a 1.
+ * @param {number} l - Luminosidade (Lightness), valor de 0 a 1.
+ * @returns {Array<number>} Uma lista contendo [r, g, b] normatizados entre 0 e 1.
+ */
 function hslParaRgb(h, s, l) {
     let r, g, b;
     if (s === 0) {
@@ -769,6 +798,14 @@ function hslParaRgb(h, s, l) {
 }
 
 // ponytail: converte RGB normatizado para HSL
+/**
+ * Converte valores de cor RGB normatizados para o formato HSL (Hue, Saturation, Lightness).
+ *
+ * @param {number} r - Vermelho normatizado (0 a 1).
+ * @param {number} g - Verde normatizado (0 a 1).
+ * @param {number} b - Azul normatizado (0 a 1).
+ * @returns {Array<number>} Uma lista contendo [h, s, l], onde h está entre 0-360, e s, l estão entre 0-100.
+ */
 function rgbParaHsl(r, g, b) {
     const max = Math.max(r, g, b), min = Math.min(r, g, b);
     let h, s, l = (max + min) / 2;
@@ -794,6 +831,14 @@ function rgbParaHsl(r, g, b) {
 }
 
 // ponytail: extrai comentários imediatamente superiores a uma linha para usá-los como javadoc/documentação
+/**
+ * Extrai os comentários imediatamente superiores a uma determinada linha em um arquivo,
+ * ignorando linhas em branco intermediárias. Utilizado para coletar docstrings nativas.
+ *
+ * @param {Array<string>} linhas - Todas as linhas do arquivo de origem.
+ * @param {number} indiceLinha - O índice de base zero da linha onde a definição começa.
+ * @returns {string} Os comentários superiores concatenados e limpos de prefixos (# ou //).
+ */
 function obterComentariosSuperiores(linhas, indiceLinha) {
     const comentarios = [];
     let i = indiceLinha - 1;
@@ -813,6 +858,16 @@ function obterComentariosSuperiores(linhas, indiceLinha) {
 }
 
 // ponytail: tenta resolver uma palavra (classe, função, variável) e sua cadeia de herança/importação
+/**
+ * Resolve recursivamente uma palavra identificada (classe, função, variável), determinando seu
+ * tipo, sua assinatura, seus comentários de documentação superiores e sua hierarquia de herança profunda.
+ *
+ * @param {string} palavra - O identificador a ser resolvido.
+ * @param {string} caminhoArquivo - O caminho absoluto do arquivo atual.
+ * @param {string} root - O caminho raiz do espaço de trabalho (workspace).
+ * @param {Set<string>} [arquivosProcessados] - Conjunto de arquivos já varridos para evitar recursão infinita.
+ * @returns {Object|null} Objeto contendo os metadados da palavra resolvida, ou null se não encontrada.
+ */
 function resolverPalavraEstendida(palavra, caminhoArquivo, root, arquivosProcessados = new Set()) {
     const fs = require('fs');
     const path = require('path');
@@ -907,6 +962,16 @@ function resolverPalavraEstendida(palavra, caminhoArquivo, root, arquivosProcess
 }
 
 // ponytail: busca o caminho absoluto de um arquivo importado de forma relativa ou pela raiz do workspace
+/**
+ * Localiza o caminho absoluto de um arquivo importado de forma relativa ou a partir da raiz do workspace,
+ * buscando onde o identificador especificado foi importado na sintaxe do Harpia.
+ *
+ * @param {string} palavra - O identificador importado que está sendo buscado.
+ * @param {string} texto - O conteúdo textual do arquivo que possui a importação.
+ * @param {string} caminhoArquivoAtual - O caminho do arquivo que contém a importação.
+ * @param {string} root - O caminho da raiz do espaço de trabalho.
+ * @returns {string|null} O caminho absoluto do arquivo importado, ou null se não for mapeado.
+ */
 function buscarCaminhoImportado(palavra, texto, caminhoArquivoAtual, root) {
     const path = require('path');
     const regexImport = new RegExp(`importar\\s*\\{[^\\}]*\\b${palavra}\\b[^\\}]*\\}\\s*de\\s*["']([^"']+)["']`);
@@ -928,13 +993,32 @@ function buscarCaminhoImportado(palavra, texto, caminhoArquivoAtual, root) {
     return caminhoResolvido;
 }
 
+/**
+ * Provedor do Painel de Controle (Dashboard) lateral da extensão Harpia.
+ * Renderiza uma Webview View que possibilita executar o servidor de desenvolvimento,
+ * empacotar binários nativos, realizar testes de estresse e gerar novos scaffolds.
+ */
 class HarpiaDashboardProvider {
+    /**
+     * Instancia o provedor de painel.
+     *
+     * @param {vscode.Uri} extensionUri - URI base da extensão para carregamento de recursos locais.
+     * @param {function} obterWorkspaceRoot - Callback para obter o caminho raiz do workspace.
+     * @param {function} executarScaffolding - Callback para disparar a geração de scaffold.
+     */
     constructor(extensionUri, obterWorkspaceRoot, executarScaffolding) {
         this._extensionUri = extensionUri;
         this.obterWorkspaceRoot = obterWorkspaceRoot;
         this.executarScaffolding = executarScaffolding;
     }
 
+    /**
+     * Inicializa a visualização do painel no painel lateral do VS Code.
+     *
+     * @param {vscode.WebviewView} webviewView - O contêiner da webview a ser resolvida.
+     * @param {vscode.WebviewViewResolveContext} context - Contexto adicional de resolução da webview.
+     * @param {vscode.CancellationToken} token - Token de cancelamento para o ciclo de vida.
+     */
     resolveWebviewView(webviewView, context, token) {
         webviewView.webview.options = {
             enableScripts: true,
@@ -982,6 +1066,13 @@ class HarpiaDashboardProvider {
         });
     }
 
+    /**
+     * Retorna o HTML bruto estruturado da Webview que renderiza botões de controle e inputs.
+     *
+     * @private
+     * @param {vscode.Webview} webview - Referência da instância da Webview.
+     * @returns {string} Código HTML5 com CSS e lógica inline JS.
+     */
     _obterHtmlParaWebview(webview) {
         return `<!DOCTYPE html>
         <html lang="pt-br">
@@ -1060,6 +1151,12 @@ class HarpiaDashboardProvider {
     }
 }
 
+/**
+ * Desativa a extensão Harpia, parando o cliente do Language Server Protocol (LSP)
+ * se estiver em execução.
+ *
+ * @returns {Thenable<void>|undefined} Promise de encerramento do cliente LSP, ou undefined se não houver cliente ativo.
+ */
 function deactivate() {
     if (!client) {
         return undefined;
