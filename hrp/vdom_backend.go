@@ -1,3 +1,4 @@
+// Package hrp implementa as estruturas do runtime da linguagem Harpia.
 package hrp
 
 import (
@@ -6,23 +7,30 @@ import (
 )
 
 // ElementoJSX representa um nó de Virtual DOM avaliado no backend para fins de SSR.
+// Carrega as propriedades de Tag HTML, dicionário reativo de Atributos e a lista de Filhos aninhados.
 type ElementoJSX struct {
-	Tag       string
-	Atributos map[string]Objeto
-	Filhos    []Objeto
+	Tag       string            // Nome da tag HTML correspondente (ex: "div", "button").
+	Atributos map[string]Objeto // Mapeamento de atributos ou diretivas do componente.
+	Filhos    []Objeto          // Lista de sub-elementos físicos ou strings filhas de SSR.
 }
 
+// TipoElementoJSX especifica o metadado de classe do ElementoJSX no runtime.
 var TipoElementoJSX = NewTipo("ElementoJSX", "Nó do Virtual DOM no backend para SSR")
 
+// Tipo retorna a representação de classe (Tipo) da struct ElementoJSX.
 func (e *ElementoJSX) Tipo() *Tipo {
 	return TipoElementoJSX
 }
 
+// M__texto__ satisfaz o protocolo de coerção textual da VM (I__texto__),
+// convertendo a árvore JSX diretamente em string HTML nativa.
 func (e *ElementoJSX) M__texto__() (Objeto, error) {
 	return Texto(e.RenderizarHTML()), nil
 }
 
 // RenderizarHTML converte a árvore de nós JSX em uma string HTML estática limpa.
+// Trata o mapeamento de classes em português ("classe" -> "class"), filtra eventos e callbacks
+// de runtime do frontend, trata aspas em atributos e concatena de forma recursiva todos os filhos.
 func (e *ElementoJSX) RenderizarHTML() string {
 	var sb strings.Builder
 	sb.WriteString("<")
