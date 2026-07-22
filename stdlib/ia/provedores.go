@@ -1,3 +1,4 @@
+// Package ia implementa as facilidades de integração com modelos de inteligência artificial generativa.
 package ia
 
 import (
@@ -9,14 +10,15 @@ import (
 	"os"
 )
 
+// Mensagem representa a estrutura padrão para formatação e mapeamento de mensagens de conversação em JSON.
 type Mensagem struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
 
-// ChamarLLM realiza a chamada para a API selecionada com base no provedor e modelo
+// ChamarLLM realiza o roteamento de chamada de IA com base no provedor selecionado (Ollama, Gemini, OpenAI).
+// Carrega de forma transparente as chaves de API correspondentes a partir das variáveis de ambiente do sistema.
 func ChamarLLM(provedor, modelo string, instrucoes string, historico []Mensagem) (string, error) {
-	// Se instrucoes nao estiver vazio, insere como sistema na primeira mensagem se nao houver no historico
 	var mensagens []Mensagem
 	if instrucoes != "" {
 		mensagens = append(mensagens, Mensagem{Role: "system", Content: instrucoes})
@@ -45,6 +47,9 @@ func ChamarLLM(provedor, modelo string, instrucoes string, historico []Mensagem)
 	}
 }
 
+// chamarOllama envia mensagens de chat para o servidor Ollama local via requisição REST POST.
+// Caso o Ollama esteja inacessível no localhost, possui um fallback inteligente que redireciona o fluxo
+// para as APIs em nuvem do Gemini ou OpenAI, se as chaves correspondentes estiverem definidas, mantendo o sistema funcional.
 func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 	url := fmt.Sprintf("%s/api/chat", host)
 
@@ -90,6 +95,7 @@ func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 	return response.Message.Content, nil
 }
 
+// chamarGemini envia requisições para a API oficial do Google Gemini utilizando a versão v1beta.
 func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	if modelo == "" || modelo == "llama3" || modelo == "llama2" {
 		modelo = "gemini-1.5-flash"
@@ -110,7 +116,6 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		if msg.Role == "model" || msg.Role == "assistant" {
 			role = "model"
 		}
-		// Para simplificar o Gemini que não tem role system padrão em beta desta forma, concatenamos no primeiro prompt de usuário ou passamos como tal
 		content := msg.Content
 		if msg.Role == "system" {
 			content = "[Instruções do Sistema: " + content + "]\n"
@@ -162,6 +167,7 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	return "", fmt.Errorf("nenhuma resposta gerada pelo Gemini")
 }
 
+// chamarOpenAI envia requisições estruturadas para o endpoint Chat Completions da OpenAI.
 func chamarOpenAI(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	if modelo == "" || modelo == "llama3" || modelo == "llama2" {
 		modelo = "gpt-4o-mini"

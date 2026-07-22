@@ -1,3 +1,5 @@
+// Package resiliencia fornece padrões de programação defensiva e tolerância a falhas para microsserviços,
+// incluindo Circuit Breaker (Disjuntor), Token Bucket Rate Limiting (Limite de Taxa) e Retry com Backoff Exponencial.
 package resiliencia
 
 import (
@@ -8,11 +10,15 @@ import (
 )
 
 const (
-	MaxLimiteDisjuntor       = 1000000
+	// MaxLimiteDisjuntor estabelece teto máximo para falhas consecutivas aceitas no disjuntor.
+	MaxLimiteDisjuntor = 1000000
+
+	// MaxTentativasRetentativa limita o volume máximo de retries para evitar loops infinitos ou exaustão de threads.
 	MaxTentativasRetentativa = 100
 )
 
-// Disjuntor (Circuit Breaker) — três estados: fechado, aberto, meio-aberto.
+// Disjuntor implementa o padrão Circuit Breaker que isola integrações instáveis de terceiros ou falhas em APIs,
+// protegendo a integridade geral do sistema através de uma máquina de estados finita: fechado, aberto, meio_aberto.
 type Disjuntor struct {
 	mu                 sync.Mutex
 	estado             string // "fechado", "aberto", "meio_aberto"
@@ -22,7 +28,7 @@ type Disjuntor struct {
 	ultimaFalha        time.Time
 }
 
-// NovoDisjuntor cria um disjuntor com limite de falhas e timeout.
+// NovoDisjuntor constrói e configura uma nova instância da máquina de estados do Circuit Breaker.
 func NovoDisjuntor(limite int, timeoutSegundos float64) *Disjuntor {
 	return &Disjuntor{
 		estado:        "fechado",
@@ -31,7 +37,8 @@ func NovoDisjuntor(limite int, timeoutSegundos float64) *Disjuntor {
 	}
 }
 
-// Permitir verifica se a requisição pode prosseguir.
+// Permitir determina de forma atômica se uma chamada pode prosseguir ou deve falhar instantaneamente (Fast-Fail)
+// dependendo do estado em que a máquina se encontra.
 func (d *Disjuntor) Permitir() bool {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -50,7 +57,7 @@ func (d *Disjuntor) Permitir() bool {
 	}
 }
 
-// RegistrarSucesso reseta o contador de falhas.
+// RegistrarSucesso reseta o contador de falhas acumulado e fecha o disjuntor.
 func (d *Disjuntor) RegistrarSucesso() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -58,7 +65,7 @@ func (d *Disjuntor) RegistrarSucesso() {
 	d.estado = "fechado"
 }
 
-// RegistrarFalha incrementa falhas e abre o disjuntor se atingir o limite.
+// RegistrarFalha incrementa o contador e abre o disjuntor caso o teto seja atingido, mudando para estado aberto.
 func (d *Disjuntor) RegistrarFalha() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -69,14 +76,14 @@ func (d *Disjuntor) RegistrarFalha() {
 	}
 }
 
-// Estado retorna o estado atual do disjuntor.
+// Estado retorna com segurança o estado atual do disjuntor.
 func (d *Disjuntor) Estado() string {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.estado
 }
 
-// LimiteDeTaxa implementa token bucket — N tokens por intervalo.
+// LimiteDeTaxa implementa o algoritmo Token Bucket para controle de fluxo e mitigação de picos de tráfego.
 type LimiteDeTaxa struct {
 	mu        sync.Mutex
 	tokens    float64
@@ -85,7 +92,7 @@ type LimiteDeTaxa struct {
 	ultimo    time.Time
 }
 
-// NovoLimiteDeTaxa cria um limitador com `max` tokens, restaurando `porSegundo`/s.
+// NovoLimiteDeTaxa cria um limitador com capacidade máxima e velocidade de restauração de tokens/s.
 func NovoLimiteDeTaxa(max float64, porSegundo float64) *LimiteDeTaxa {
 	return &LimiteDeTaxa{
 		tokens:    max,
@@ -95,7 +102,7 @@ func NovoLimiteDeTaxa(max float64, porSegundo float64) *LimiteDeTaxa {
 	}
 }
 
-// Permitir consome 1 token. Retorna false se não houver tokens disponíveis.
+// Permitir tenta consumir de forma síncrona um token de execução, atualizando a recarga baseada no delta de tempo.
 func (l *LimiteDeTaxa) Permitir() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -114,14 +121,14 @@ func (l *LimiteDeTaxa) Permitir() bool {
 	return true
 }
 
-// Retentativa executa uma fn com backoff exponencial.
+// Retentativa controla o fluxo de re-execução de rotinas com espaçamento inteligente e progressivo (Backoff).
 type Retentativa struct {
 	Tentativas   int
 	BaseEsperaMs float64
 	FatorBackoff float64
 }
 
-// NovaRetentativa cria com valores padrão: 3 tentativas, 100ms base, fator 2.0.
+// NovaRetentativa cria um configurador de retries com valores de mercado recomendados (3 tentativas).
 func NovaRetentativa() *Retentativa {
 	return &Retentativa{
 		Tentativas:   3,
@@ -130,7 +137,7 @@ func NovaRetentativa() *Retentativa {
 	}
 }
 
-// Executar tenta fn até `Tentativas` vezes, dormindo backoff exponencial entre cada.
+// Executar repete uma rotina que gera erro, aguardando um tempo exponencialmente maior entre falhas consecutivas.
 func (r *Retentativa) Executar(fn func() error) error {
 	var err error
 	for i := 0; i < r.Tentativas; i++ {
@@ -154,35 +161,23 @@ func pow(base, exp float64) float64 {
 	return result
 }
 
-// --- Expõe ao interpretador Harpia via stdlib ---
-
 func init() {
+	// Registra o módulo 'resiliencia' no ecossistema central do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "resiliencia",
 			Arquivo: "stdlib/resiliencia",
-			Doc:     "Padrões de resiliência: disjuntor, limite de taxa e retentativa.",
+			Doc:     "Padrões de resiliência corporativa: disjuntor (Circuit Breaker), limite de taxa e retentativa com backoff.",
 		},
 		Metodos: []*hrp.Metodo{
-			hrp.NewMetodoOuPanic("novo_disjuntor", met_novo_disjuntor, "Cria disjuntor(limite, timeout_segundos)"),
-			hrp.NewMetodoOuPanic("novo_limite_de_taxa", met_novo_limite, "Cria limite de taxa(max_tokens, tokens_por_segundo)"),
-			hrp.NewMetodoOuPanic("nova_retentativa", met_nova_retentativa, "Cria retentativa(tentativas, base_ms, fator)"),
+			hrp.NewMetodoOuPanic("novo_disjuntor", met_novo_disjuntor, "Cria disjuntor(limite, timeout_segundos) para mitigar falhas."),
+			hrp.NewMetodoOuPanic("novo_limite_de_taxa", met_novo_limite, "Cria limite de taxa(max_tokens, tokens_por_segundo) para mitigação de tráfego excessivo."),
+			hrp.NewMetodoOuPanic("nova_retentativa", met_nova_retentativa, "Cria retentativa(tentativas, base_ms, fator) com backoff exponencial."),
 		},
 	})
 }
 
-var ModuloResiliencia = &hrp.ModuloImpl{
-	Info: hrp.ModuloInfo{
-		Nome: "resiliencia",
-		Doc:  "Padrões de resiliência: disjuntor (circuit breaker), limite de taxa e retentativa com backoff.",
-	},
-	Metodos: []*hrp.Metodo{
-		hrp.NewMetodoOuPanic("novo_disjuntor", met_novo_disjuntor, "Cria disjuntor(limite, timeout_segundos)"),
-		hrp.NewMetodoOuPanic("novo_limite_de_taxa", met_novo_limite, "Cria limite de taxa(max_tokens, tokens_por_segundo)"),
-		hrp.NewMetodoOuPanic("nova_retentativa", met_nova_retentativa, "Cria retentativa(tentativas, base_ms, fator)"),
-	},
-}
-
+// met_novo_disjuntor implementa 'novo_disjuntor(limite, timeout)' em nível de script Harpia.
 func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("novo_disjuntor", false, args, 2, 2); err != nil {
 		return nil, err
@@ -203,6 +198,7 @@ func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(d.estado), nil
 }
 
+// met_novo_limite implementa 'novo_limite_de_taxa(max, porSegundo)' em nível de script Harpia.
 func met_novo_limite(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("novo_limite_de_taxa", false, args, 2, 2); err != nil {
 		return nil, err
@@ -219,6 +215,7 @@ func met_novo_limite(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Verdadeiro, nil
 }
 
+// met_nova_retentativa implementa 'nova_retentativa(tentativas?, base?, fator?)' em nível de script Harpia.
 func met_nova_retentativa(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("nova_retentativa", false, args, 0, 3); err != nil {
 		return nil, err

@@ -1,3 +1,6 @@
+// Package http implementa o servidor web nativo de alta performance e cliente HTTP do Harpia,
+// com suporte a middlewares, roteamento inteligente de parâmetros (:id), desserialização automática
+// de JSON, validação de segurança (OWASP) e tratamento de CORS out-of-the-box.
 package http
 
 import (
@@ -14,23 +17,26 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-// Requisicao representa a requisição HTTP recebida pelo servidor.
+// Requisicao representa os metadados e corpo de uma requisição HTTP recebida pelo servidor.
 type Requisicao struct {
 	Metodo     hrp.Texto
 	Caminho    hrp.Texto
 	Cabecalho  hrp.Mapa
 	Corpo      hrp.Texto
 	Parametros hrp.Mapa
-	Query      hrp.Mapa   // Parâmetros de consulta (query string)
-	CorpoJson  hrp.Objeto // Body deserializado de JSON automaticamente (Nulo se não for JSON)
+	Query      hrp.Mapa   // Parâmetros de consulta (query string) parsed
+	CorpoJson  hrp.Objeto // Body deserializado para Mapas/Listas do Harpia de forma automática
 }
 
+// TipoRequisicao mapeia e cria a classe Requisicao na VM.
 var TipoRequisicao = hrp.NewTipo("Requisicao", "Objeto que representa uma requisição HTTP")
 
+// Tipo retorna a representação correspondente na VM.
 func (r *Requisicao) Tipo() *hrp.Tipo {
 	return TipoRequisicao
 }
 
+// M__obtem_attributo__ expõe propriedades da requisição no ambiente do Harpia de forma somente leitura.
 func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "metodo":
@@ -54,19 +60,22 @@ func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Requisicao", nome)
 }
 
-// Resposta representa a resposta HTTP que o servidor devolverá.
+// Resposta representa o construtor do payload e cabeçalhos a ser enviado ao cliente HTTP.
 type Resposta struct {
 	Status    hrp.Inteiro
 	Cabecalho hrp.Mapa
 	Corpo     hrp.Texto
 }
 
+// TipoResposta mapeia e cria a classe Resposta na VM.
 var TipoResposta = hrp.NewTipo("Resposta", "Objeto que representa uma resposta HTTP")
 
+// Tipo retorna o tipo associado na VM.
 func (r *Resposta) Tipo() *hrp.Tipo {
 	return TipoResposta
 }
 
+// M__define_atributo__ possibilita alterar o status e corpo da resposta diretamente por atribuição simples.
 func (r *Resposta) M__define_atributo__(nome string, valor hrp.Objeto) error {
 	switch nome {
 	case "status":
@@ -87,6 +96,7 @@ func (r *Resposta) M__define_atributo__(nome string, valor hrp.Objeto) error {
 	return hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não pode ser modificado em Resposta", nome)
 }
 
+// M__obtem_attributo__ disponibiliza os métodos e propriedades fluídos de escrita de resposta HTTP.
 func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "status":
@@ -96,6 +106,7 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	case "cabecalho":
 		return r.Cabecalho, nil
 	case "definir_cabecalho":
+		// Permite customizar cabeçalhos de resposta individuais.
 		return hrp.NewMetodoOuPanic("definir_cabecalho", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("definir_cabecalho", false, args, 2, 2); err != nil {
 				return nil, err
@@ -110,8 +121,9 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			r.Cabecalho.M__define_item__(k, v)
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Define um par de chave/valor no cabeçalho HTTP de resposta."), nil
 	case "enviarJson":
+		// Serializa o objeto fornecido e altera automaticamente o cabeçalho 'Content-Type' para 'application/json'.
 		return hrp.NewMetodoOuPanic("enviarJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("enviarJson", false, args, 1, 1); err != nil {
 				return nil, err
@@ -127,6 +139,7 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		}, "Serializa e envia o objeto como JSON, definindo Content-Type automaticamente"), nil
 
 	case "definirStatus":
+		// Define o código de resposta HTTP (ex: 201, 404).
 		return hrp.NewMetodoOuPanic("definirStatus", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("definirStatus", false, args, 1, 1); err != nil {
 				return nil, err
@@ -140,6 +153,7 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		}, "Define o código de status HTTP da resposta (ex: res.definirStatus(404))"), nil
 
 	case "erroJson":
+		// Envia um erro estruturado formatado em JSON.
 		return hrp.NewMetodoOuPanic("erroJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("erroJson", false, args, 2, 2); err != nil {
 				return nil, err
@@ -162,7 +176,7 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Resposta", nome)
 }
 
-// Servidor representa o servidor HTTP nativo.
+// Servidor representa o orquestrador do servidor HTTP nativo assíncrono.
 type Servidor struct {
 	rotas       map[string]map[string]hrp.Objeto // metodo -> rota -> handler
 	middlewares []hrp.Objeto
@@ -170,13 +184,16 @@ type Servidor struct {
 	mu          sync.RWMutex
 }
 
+// TipoServidor define e registra a classe Servidor na VM.
 var TipoServidor = hrp.TipoObjeto.NewTipo("Servidor", "Servidor HTTP assíncrono")
 
+// Tipo retorna a representação correspondente na VM.
 func (s *Servidor) Tipo() *hrp.Tipo {
 	return TipoServidor
 }
 
 func init() {
+	// Define o inicializador padrão de alocação de memória do tipo Servidor.
 	TipoServidor.Nova = func(args hrp.Tupla) (hrp.Objeto, error) {
 		return &Servidor{
 			rotas:       make(map[string]map[string]hrp.Objeto),
@@ -185,6 +202,7 @@ func init() {
 	}
 }
 
+// registrarRota anexa de forma thread-safe uma rota lógica com seu respectivo handler na tabela de rotas.
 func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -194,9 +212,11 @@ func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto) {
 	s.rotas[metodo][rota] = handler
 }
 
+// M__obtem_attributo__ expõe a API do Servidor para registro de rotas, middlewares e escuta de porta.
 func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "obter":
+		// Registra uma rota HTTP GET.
 		return hrp.NewMetodoOuPanic("obter", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("obter", false, args, 2, 2); err != nil {
 				return nil, err
@@ -207,9 +227,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			s.registrarRota("GET", string(rota.(hrp.Texto)), args[1])
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Registra uma rota para requisições GET."), nil
 
 	case "postar":
+		// Registra uma rota HTTP POST.
 		return hrp.NewMetodoOuPanic("postar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("postar", false, args, 2, 2); err != nil {
 				return nil, err
@@ -220,9 +241,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			s.registrarRota("POST", string(rota.(hrp.Texto)), args[1])
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Registra uma rota para requisições POST."), nil
 
 	case "deletar":
+		// Registra uma rota HTTP DELETE.
 		return hrp.NewMetodoOuPanic("deletar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("deletar", false, args, 2, 2); err != nil {
 				return nil, err
@@ -233,9 +255,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			s.registrarRota("DELETE", string(rota.(hrp.Texto)), args[1])
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Registra uma rota para requisições DELETE."), nil
 
 	case "usar":
+		// Enfileira um middleware global no pipeline de execução do servidor.
 		return hrp.NewMetodoOuPanic("usar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("usar", false, args, 1, 1); err != nil {
 				return nil, err
@@ -244,9 +267,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			s.middlewares = append(s.middlewares, args[0])
 			s.mu.Unlock()
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Registra um middleware global."), nil
 
 	case "servir_app":
+		// Registra um SPA Handler para servir arquivos estáticos de compilações do frontend e manipular roteamento SPA.
 		return hrp.NewMetodoOuPanic("servir_app", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("servir_app", false, args, 2, 3); err != nil {
 				return nil, err
@@ -264,9 +288,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			handler := ServirAppHandler(string(diretorioDist.(hrp.Texto)), componenteRaiz, metadados)
 			s.registrarRota("GET", "/*", handler)
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Registra e configura as rotas de uma aplicação SPA reativa."), nil
 
 	case "escutar":
+		// Ativa e inicia a escuta HTTP na porta TCP indicada.
 		return hrp.NewMetodoOuPanic("escutar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			ctx := hrp.ObterContextoAtivo()
 			if ctx != nil {
@@ -300,7 +325,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					}
 				}()
 
-				// Injeção dos cabeçalhos OWASP de Segurança Padrão
+				// Injeção dos cabeçalhos OWASP de Segurança Padrão recomendados
 				w.Header().Set("X-Content-Type-Options", "nosniff")
 				w.Header().Set("X-Frame-Options", "DENY")
 				w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -318,7 +343,6 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					w.WriteHeader(http.StatusOK)
 					return
 				}
-
 
 				s.mu.RLock()
 				rotasMetodo := s.rotas[req.Method]
@@ -343,7 +367,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					return
 				}
 
-				// Cabecalhos mapa
+				// Cabeçalhos
 				reqHeaders := hrp.NewMapaVazio()
 				for k, vals := range req.Header {
 					reqHeaders.M__define_item__(hrp.Texto(k), hrp.Texto(strings.Join(vals, ", ")))
@@ -441,7 +465,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-				// Escreve cabecalhos de resposta
+				// Escreve cabeçalhos de resposta
 				for k, v := range resObj.Cabecalho {
 					w.Header().Set(k, string(v.(hrp.Texto)))
 				}
@@ -480,9 +504,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Inicia a escuta de conexões de rede HTTP de forma síncrona ou assíncrona."), nil
 
 	case "fechar":
+		// Fecha o servidor de forma limpa, permitindo que as conexões ativas terminem (Shutdown).
 		return hrp.NewMetodoOuPanic("fechar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if s.server != nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -490,12 +515,13 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				s.server.Shutdown(ctx)
 			}
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Encerra as atividades do servidor de forma controlada."), nil
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Servidor", nome)
 }
 
+// matchRoute realiza a análise de expressão regular/parâmetros dinâmicos simples para rotas (:id, *).
 func matchRoute(pattern, path string) (bool, map[string]string) {
 	if pattern == "*" || pattern == "/*" {
 		return true, make(map[string]string)
@@ -539,7 +565,7 @@ func matchRoute(pattern, path string) (bool, map[string]string) {
 	return true, params
 }
 
-// met_http_requisitar realiza uma requisição HTTP Cliente.
+// met_http_requisitar realiza uma requisição HTTP do lado do cliente.
 func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	ctx := hrp.ObterContextoAtivo()
 	if ctx != nil {
@@ -606,6 +632,7 @@ func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 }
 
 func init() {
+	// Registra o módulo 'http' no ecossistema central do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "http",
@@ -635,7 +662,7 @@ func init() {
 			},
 		},
 		Metodos: []*hrp.Metodo{
-			hrp.NewMetodoOuPanic("requisitar", met_http_requisitar, ""),
+			hrp.NewMetodoOuPanic("requisitar", met_http_requisitar, "Realiza uma requisição HTTP cliente (GET, POST, PUT, DELETE, etc.)."),
 			hrp.NewMetodoOuPanic("assinar_hmac", met_assinar_hmac, "Gera assinatura HMAC SHA-256 (chave, mensagem)"),
 			hrp.NewMetodoOuPanic("verificar_hmac", met_verificar_hmac, "Valida assinatura HMAC SHA-256 (chave, mensagem, assinatura)"),
 			hrp.NewMetodoOuPanic("gerar_openapi", met_gerar_openapi, "Gera spec OpenAPI 3.0 para o Servidor"),

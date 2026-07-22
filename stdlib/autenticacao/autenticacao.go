@@ -1,3 +1,5 @@
+// Package autenticacao fornece facilidades integradas de hashing de senhas
+// utilizando Bcrypt e manipulação básica de JSON Web Tokens (JWT) com assinatura HMAC SHA-256.
 package autenticacao
 
 import (
@@ -14,7 +16,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// met_gerarHashSenha implementa 'gerarHashSenha(senha)'
+// met_gerarHashSenha implementa 'gerarHashSenha(senha)' em nível de script Harpia.
+// Ele faz o hash unidirecional seguro utilizando o algoritmo adaptativo Bcrypt com custo padrão.
 func met_gerarHashSenha(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("gerarHashSenha", false, args, 1, 1); err != nil {
 		return nil, err
@@ -32,7 +35,8 @@ func met_gerarHashSenha(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(string(hash)), nil
 }
 
-// met_verificarSenha implementa 'verificarSenha(senha, hash)'
+// met_verificarSenha implementa 'verificarSenha(senha, hash)' em nível de script Harpia.
+// Ele compara com tempo constante a senha em texto puro contra o hash Bcrypt existente para evitar ataques de temporização.
 func met_verificarSenha(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("verificarSenha", false, args, 2, 2); err != nil {
 		return nil, err
@@ -50,7 +54,8 @@ func met_verificarSenha(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Booleano(err == nil), nil
 }
 
-// met_criarJwt implementa 'criarJwt(payloadMapa, segredo)'
+// met_criarJwt implementa 'criarJwt(payloadMapa, segredo)' em nível de script Harpia.
+// Gera um token JWT compacto assinado com a chave secreta fornecida e algoritmo HS256.
 func met_criarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("criarJwt", false, args, 2, 2); err != nil {
 		return nil, err
@@ -74,7 +79,7 @@ func met_criarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		payloadMap[k] = fmt.Sprintf("%v", v)
 	}
 
-
+	// Adiciona expiração padrão de 24h se não tiver sido especificada no payload.
 	if _, ok := payloadMap["exp"]; !ok {
 		payloadMap["exp"] = time.Now().Add(24 * time.Hour).Unix()
 	}
@@ -91,7 +96,8 @@ func met_criarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(fmt.Sprintf("%s.%s", unsignedToken, signatureB64)), nil
 }
 
-// met_validarJwt implementa 'validarJwt(token, segredo)'
+// met_validarJwt implementa 'validarJwt(token, segredo)' em nível de script Harpia.
+// Valida a integridade do JWT verificando a assinatura digital em tempo constante contra falsificações.
 func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("validarJwt", false, args, 2, 2); err != nil {
 		return nil, err
@@ -123,12 +129,13 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Booleano(false), nil
 }
 
-var _gerarHashSenha = hrp.NewMetodoOuPanic("gerarHashSenha", met_gerarHashSenha, "")
-var _verificarSenha = hrp.NewMetodoOuPanic("verificarSenha", met_verificarSenha, "")
-var _criarJwt = hrp.NewMetodoOuPanic("criarJwt", met_criarJwt, "")
-var _validarJwt = hrp.NewMetodoOuPanic("validarJwt", met_validarJwt, "")
+var _gerarHashSenha = hrp.NewMetodoOuPanic("gerarHashSenha", met_gerarHashSenha, "Gera o hash Bcrypt criptográfico de uma senha.")
+var _verificarSenha = hrp.NewMetodoOuPanic("verificarSenha", met_verificarSenha, "Verifica a senha informada contra o hash Bcrypt de referência.")
+var _criarJwt = hrp.NewMetodoOuPanic("criarJwt", met_criarJwt, "Gera e assina um novo token JWT.")
+var _validarJwt = hrp.NewMetodoOuPanic("validarJwt", met_validarJwt, "Valida a assinatura de um token JWT.")
 
 func init() {
+	// Registra o módulo 'autenticacao' no sistema global de módulos do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "autenticacao",

@@ -1,3 +1,4 @@
+// Package http implementa o servidor web nativo de alta performance e cliente HTTP do Harpia.
 package http
 
 import (
@@ -8,7 +9,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-// gerar_openapi(servidor) -> gera JSON OpenAPI 3.0 simplificado a partir das rotas do servidor.
+// met_gerar_openapi implementa 'gerar_openapi(servidor)' em nível de script Harpia.
+// Analisa estaticamente a tabela de rotas registradas no servidor do Harpia e gera a especificação JSON OpenAPI 3.0 correspondente.
 func met_gerar_openapi(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("gerar_openapi", false, args, 1, 1); err != nil {
 		return nil, err

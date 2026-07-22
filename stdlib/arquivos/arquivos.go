@@ -1,3 +1,6 @@
+// Package arquivos implementa as rotinas da biblioteca padrão (stdlib) do Harpia
+// destinadas a operações de entrada e saída (I/O) de arquivos e manipulação de diretórios,
+// contendo regras de restrição de segurança e sandbox para confinamento e validação.
 package arquivos
 
 import (
@@ -8,6 +11,9 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// verificarPermissao é um utilitário interno que valida se a instância do módulo ativo
+// tem privilégios adequados no sandbox de segurança do Harpia para tocar em recursos físicos de arquivo.
+// Ele impede que o código execute ataques do tipo Path Traversal se o sandbox estiver travado.
 func verificarPermissao(inst hrp.Objeto) error {
 	if modulo, ok := inst.(*hrp.Modulo); ok && modulo != nil {
 		return modulo.Contexto.VerificarPermissaoArquivos()
@@ -15,7 +21,8 @@ func verificarPermissao(inst hrp.Objeto) error {
 	return nil
 }
 
-// met_arq_ler implementa 'ler(caminho)' -> retorna Texto com o conteúdo do arquivo
+// met_arq_ler implementa a função 'ler(caminho)' em nível de script Harpia.
+// Ele realiza a validação de segurança antes de abrir o arquivo local e retorna seu conteúdo como um objeto Texto.
 func met_arq_ler(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -30,6 +37,7 @@ func met_arq_ler(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
+	// Lê todo o conteúdo físico do arquivo utilizando a API nativa do SO.
 	bytes, err := os.ReadFile(string(caminho.(hrp.Texto)))
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao ler arquivo '%s': %v", caminho, err)
@@ -38,7 +46,9 @@ func met_arq_ler(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(bytes), nil
 }
 
-// met_arq_escrever implementa 'escrever(caminho, conteudo)' -> escreve texto ou bytes no arquivo
+// met_arq_escrever implementa a função 'escrever(caminho, conteudo)' em nível de script Harpia.
+// Sobrescreve totalmente ou cria um novo arquivo com o conteúdo textual fornecido, respeitando
+// a máscara de permissões padrão de escrita de arquivos do sistema de arquivos (0644).
 func met_arq_escrever(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -66,7 +76,9 @@ func met_arq_escrever(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
-// met_arq_acrescentar implementa 'acrescentar(caminho, conteudo)' -> anexa texto ao final do arquivo
+// met_arq_acrescentar implementa a função 'acrescentar(caminho, conteudo)' em nível de script Harpia.
+// Abre um arquivo no modo de concatenação (append), criando-o se não existir, e injeta o conteúdo
+// ao final das linhas existentes de forma thread-safe baseada em semântica nativa de arquivo do SO.
 func met_arq_acrescentar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -99,7 +111,8 @@ func met_arq_acrescentar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
-// met_arq_remover implementa 'remover(caminho)' -> exclui um arquivo ou diretório
+// met_arq_remover implementa a função 'remover(caminho)' em nível de script Harpia.
+// Exclui de forma recursiva arquivos ou pastas inteiras, simulando um comando de exclusão direta.
 func met_arq_remover(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -122,7 +135,8 @@ func met_arq_remover(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
-// met_arq_renomear implementa 'renomear(antigo, novo)' -> renomeia ou move arquivo/diretório
+// met_arq_renomear implementa a função 'renomear(antigo, novo)' em nível de script Harpia.
+// Realiza a movimentação física ou alteração do identificador do arquivo/pasta no disco rígido.
 func met_arq_renomear(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -150,7 +164,9 @@ func met_arq_renomear(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
-// met_arq_caminhar implementa 'caminhar(diretorio)' -> retorna Lista contendo caminhos encontrados recursivamente
+// met_arq_caminhar implementa a função 'caminhar(diretorio)' em nível de script Harpia.
+// Varre recursivamente todas as subdiretórios a partir de um nó base, extraindo e listando
+// os caminhos relativos unificados, devolvendo-os ao interpretador na forma de uma Lista.
 func met_arq_caminhar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -182,7 +198,9 @@ func met_arq_caminhar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return lista, nil
 }
 
-// met_arq_juntar implementa 'juntar(a, b, ...)' -> concatena caminhos lógicos usando os separadores corretos do SO
+// met_arq_juntar implementa a função 'juntar(a, b, ...)' em nível de script Harpia.
+// Concatena de forma segura e inteligível partes de um caminho de diretório utilizando
+// a barramenclatura própria do sistema operacional em execução (ex: '\' no Windows e '/' no Unix/MacOS).
 func met_arq_juntar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) == 0 {
 		return hrp.Texto(""), nil
@@ -201,7 +219,8 @@ func met_arq_juntar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(res), nil
 }
 
-// met_arq_resolver implementa 'resolver(caminho)' -> retorna o caminho físico absoluto unificado
+// met_arq_resolver implementa a função 'resolver(caminho)' em nível de script Harpia.
+// Trata o caminho fornecido e retorna o endereço físico absoluto inequívoco no sistema.
 func met_arq_resolver(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := verificarPermissao(inst); err != nil {
 		return nil, err
@@ -224,16 +243,17 @@ func met_arq_resolver(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(res), nil
 }
 
-var _ler = hrp.NewMetodoOuPanic("ler", met_arq_ler, "")
-var _escrever = hrp.NewMetodoOuPanic("escrever", met_arq_escrever, "")
-var _acrescentar = hrp.NewMetodoOuPanic("acrescentar", met_arq_acrescentar, "")
-var _remover = hrp.NewMetodoOuPanic("remover", met_arq_remover, "")
-var _renomear = hrp.NewMetodoOuPanic("renomear", met_arq_renomear, "")
-var _caminhar = hrp.NewMetodoOuPanic("caminhar", met_arq_caminhar, "")
-var _juntar = hrp.NewMetodoOuPanic("juntar", met_arq_juntar, "")
-var _resolver = hrp.NewMetodoOuPanic("resolver", met_arq_resolver, "")
+var _ler = hrp.NewMetodoOuPanic("ler", met_arq_ler, "Lê todo o conteúdo de um arquivo em disco.")
+var _escrever = hrp.NewMetodoOuPanic("escrever", met_arq_escrever, "Escreve ou sobrescreve conteúdo de texto em um arquivo.")
+var _acrescentar = hrp.NewMetodoOuPanic("acrescentar", met_arq_acrescentar, "Anexa conteúdo textual ao final de um arquivo.")
+var _remover = hrp.NewMetodoOuPanic("remover", met_arq_remover, "Remove um arquivo ou diretório físico do disco.")
+var _renomear = hrp.NewMetodoOuPanic("renomear", met_arq_renomear, "Altera o nome ou move um arquivo/diretório de local.")
+var _caminhar = hrp.NewMetodoOuPanic("caminhar", met_arq_caminhar, "Lista todos os arquivos e pastas de forma recursiva a partir do diretório fornecido.")
+var _juntar = hrp.NewMetodoOuPanic("juntar", met_arq_juntar, "Une múltiplos segmentos de caminhos de diretório respeitando o separador do sistema operacional.")
+var _resolver = hrp.NewMetodoOuPanic("resolver", met_arq_resolver, "Devolve o caminho absoluto de um endereço relativo.")
 
 func init() {
+	// Registra o módulo 'arquivos' globalmente no ecossistema do interpretador Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "arquivos",

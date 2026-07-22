@@ -1,3 +1,4 @@
+// Package http implementa o servidor web nativo de alta performance e cliente HTTP do Harpia.
 package http
 
 import (
@@ -10,7 +11,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-// ServirAppHandler implementa a lógica de servir e reidratar um SPA Harpia com SSR, AEO/GEO.
+// ServirAppHandler implementa a lógica de servir e reidratar um SPA Harpia com SSR (Server-Side Rendering),
+// gerando tags AEO (Answer Engine Optimization), GEO (Geolocalização) e tags de redes sociais dinamicamente.
 func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados hrp.Objeto) hrp.Objeto {
 	return hrp.NewMetodoOuPanic("handler_spa", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		if len(args) < 2 {
@@ -22,7 +24,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 		caminhoFisico := filepath.Join(diretorioDist, string(req.Caminho))
 		info, err := os.Stat(caminhoFisico)
 
-		// Se o arquivo estático existir (e não for um diretório), serve-o diretamente
+		// Se o arquivo estático físico existir (e não for um diretório), serve-o diretamente com cabeçalhos MIME corretos.
 		if err == nil && !info.IsDir() {
 			bytes, err := os.ReadFile(caminhoFisico)
 			if err != nil {
@@ -31,7 +33,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 				return hrp.Nulo, nil
 			}
 
-			// Define content-type básico
+			// Define content-type básico conforme a extensão do arquivo
 			ext := filepath.Ext(caminhoFisico)
 			contentType := "text/plain"
 			switch ext {
@@ -53,7 +55,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 			return hrp.Nulo, nil
 		}
 
-		// Caso contrário, renderiza a página usando SSR + index.html
+		// Caso contrário (rota virtual de SPA ou arquivo inexistente), renderiza a página index.html usando SSR + Hidratação.
 		indexPath := filepath.Join(diretorioDist, "index.html")
 		htmlBytes, err := os.ReadFile(indexPath)
 		if err != nil {
@@ -64,7 +66,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 
 		htmlStr := string(htmlBytes)
 
-		// 1. Executa o componente raiz no backend
+		// 1. Executa e renderiza o componente raiz no backend (SSR)
 		vdomObjeto, err := hrp.Chamar(componenteRaiz, hrp.Tupla{})
 		if err != nil {
 			res.Status = 500
@@ -81,32 +83,32 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 			}
 		}
 
-		// 2. Extrai e gera metadados AEO/GEO e OpenGraph
+		// 2. Extrai e gera metadados AEO/GEO e OpenGraph de forma declarativa e dinâmica
 		headMetaTags := strings.Builder{}
 		if metadados != nil && metadados != hrp.Nulo {
 			if mapa, ok := metadados.(hrp.Mapa); ok {
-				// Titulo
+				// Título da Página
 				if t, ok := mapa["titulo"]; ok {
 					if txt, ok := t.(hrp.Texto); ok {
 						htmlStr = strings.Replace(htmlStr, "<title>Harpia App</title>", fmt.Sprintf("<title>%s</title>", txt), 1)
 						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:title\" content=\"%s\">", txt))
 					}
 				}
-				// Descricao
+				// Descrição SEO
 				if d, ok := mapa["descricao"]; ok {
 					if txt, ok := d.(hrp.Texto); ok {
 						headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"description\" content=\"%s\">", txt))
 						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:description\" content=\"%s\">", txt))
 					}
 				}
-				// Imagem
+				// Imagem de Compartilhamento OpenGraph
 				if img, ok := mapa["imagem"]; ok {
 					if txt, ok := img.(hrp.Texto); ok {
 						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:image\" content=\"%s\">", txt))
 					}
 				}
 
-				// Dados Estruturados Schema.org (AEO)
+				// Dados Estruturados Schema.org (AEO) para indexação inteligente por IA
 				if esquema, ok := mapa["esquema"]; ok {
 					if m, ok := esquema.(hrp.Mapa); ok {
 						rawMap := make(map[string]interface{})
@@ -123,7 +125,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 					}
 				}
 
-				// Geolocalização (GEO)
+				// Geolocalização Física (GEO Metatags)
 				if geo, ok := mapa["geo"]; ok {
 					if m, ok := geo.(hrp.Mapa); ok {
 						lat := m["latitude"]
@@ -137,12 +139,12 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 			}
 		}
 
-		// Injeta as tags head adicionais antes do fechamento de </head>
+		// Injeta as tags head adicionais antes do fechamento do elemento </head>
 		if headMetaTags.Len() > 0 {
 			htmlStr = strings.Replace(htmlStr, "</head>", headMetaTags.String()+"\n</head>", 1)
 		}
 
-		// 3. Substitui para realizar SSR e Hidratação
+		// 3. Substitui e insere o HTML do componente reativo para Hidratação no Cliente
 		htmlStr = strings.Replace(htmlStr, "<div id=\"app\"></div>", fmt.Sprintf("<div id=\"app\">%s</div>", ssrHtml), 1)
 
 		res.Status = 200

@@ -1,3 +1,5 @@
+// Package logs implementa um gerador de logs unificado e estruturado (JSON ou texto colorizado),
+// otimizado para ambientes produtivos nativos, cloud-native (Kubernetes) ou desenvolvimento local.
 package logs
 
 import (
@@ -15,10 +17,13 @@ var (
 	usarCores  = true
 )
 
+// formatarData retorna um timestamp simplificado e inteligível para logs locais em formato de texto.
 func formatarData() string {
 	return time.Now().Format("2006-01-02 15:04:05")
 }
 
+// logar processa internamente a emissão das mensagens de log estruturado ou texto de forma otimizada.
+// Suporta anotação opcional de um Mapa de metadados como segundo argumento para enriquecer os logs.
 func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) == 0 {
 		return nil, hrp.NewErroF(hrp.TipagemErro, "esperava no mínimo 1 argumento (mensagem)")
@@ -37,6 +42,7 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 
 	if formatoLog == "json" {
+		// Formato estruturado para agregadores de logs modernos (ElasticSearch, Grafana Loki, Datadog)
 		logObj := map[string]interface{}{
 			"data":  time.Now().Format(time.RFC3339),
 			"nivel": strings.ToLower(nivel),
@@ -48,7 +54,7 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 		bytes, _ := json.Marshal(logObj)
 		fmt.Println(string(bytes))
 	} else {
-		// Modo Texto
+		// Modo texto amigável e legível para console local com suporte a escape ANSI
 		corInicio := ""
 		corReset := ""
 		if usarCores && os.Getenv("NO_COLOR") == "" {
@@ -68,22 +74,28 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
+// met_logs_info implementa 'info(mensagem, meta?)' em nível de script Harpia.
 func met_logs_info(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("INFO", "\x1b[1;34m", args) // Azul
 }
 
+// met_logs_alerta implementa 'alerta(mensagem, meta?)' em nível de script Harpia.
 func met_logs_alerta(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("ALERTA", "\x1b[1;33m", args) // Amarelo
 }
 
+// met_logs_erro implementa 'erro(mensagem, meta?)' em nível de script Harpia.
 func met_logs_erro(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("ERRO", "\x1b[1;31m", args) // Vermelho
 }
 
+// met_logs_depurar implementa 'depurar(mensagem, meta?)' em nível de script Harpia.
 func met_logs_depurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return logar("DEPURAR", "\x1b[1;36m", args) // Ciano
 }
 
+// met_logs_configurar implementa 'configurar(formato, cores?)' em nível de script Harpia.
+// Modifica as propriedades globais de renderização (formato: "texto" ou "json").
 func met_logs_configurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) >= 1 {
 		if fmtStr, ok := args[0].(hrp.Texto); ok {
@@ -99,6 +111,7 @@ func met_logs_configurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 }
 
 func init() {
+	// Registra o módulo 'logs' no sistema central da biblioteca padrão do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "logs",
@@ -106,10 +119,10 @@ func init() {
 		},
 		Metodos: []*hrp.Metodo{
 			hrp.NewMetodoOuPanic("info", met_logs_info, "Loga uma mensagem informativa."),
-			hrp.NewMetodoOuPanic("alerta", met_logs_alerta, "Loga um alerta."),
-			hrp.NewMetodoOuPanic("erro", met_logs_erro, "Loga uma mensagem de erro."),
-			hrp.NewMetodoOuPanic("depurar", met_logs_depurar, "Loga informações de depuração."),
-			hrp.NewMetodoOuPanic("configurar", met_logs_configurar, "Configura o formato ('texto' ou 'json') e uso de cores."),
+			hrp.NewMetodoOuPanic("alerta", met_logs_alerta, "Loga um alerta de sistema."),
+			hrp.NewMetodoOuPanic("erro", met_logs_erro, "Loga uma mensagem de erro grave."),
+			hrp.NewMetodoOuPanic("depurar", met_logs_depurar, "Loga informações detalhadas para depuração de fluxo."),
+			hrp.NewMetodoOuPanic("configurar", met_logs_configurar, "Configura o formato ('texto' ou 'json') e uso de cores para o terminal."),
 		},
 	})
 }

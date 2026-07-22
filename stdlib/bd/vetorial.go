@@ -1,3 +1,5 @@
+// Package bd implementa os conectores, gerenciadores e adaptadores de acesso
+// a bancos de dados relacionais (SQL), não-relacionais (NoSQL) e vetoriais do Harpia.
 package bd
 
 import (
@@ -10,23 +12,29 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-const MaxLimiteBuscaVetorial = 10000
+// MaxLimiteBuscaVetorial impõe um limite de busca semântica para resiliência de memória.
+const MaxLimiteBuscaVetorial = 1000
 
+// ClienteVetorial encapsula o adaptador para manipulação de embeddings e busca de similaridade no Qdrant.
 type ClienteVetorial struct {
 	URL     string
 	Colecao string
 	HTTPCli *http.Client
 }
 
+// TipoClienteVetorial mapeia a classe ClienteVetorial na VM do Harpia.
 var TipoClienteVetorial = hrp.TipoObjeto.NewTipo("ClienteVetorial", "Cliente para banco de dados vetorial Qdrant")
 
+// Tipo retorna a representação na VM.
 func (c *ClienteVetorial) Tipo() *hrp.Tipo {
 	return TipoClienteVetorial
 }
 
+// M__obtem_attributo__ mapeia e provê métodos para persistência, remoção e consultas de similaridade vetorial.
 func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "inserir":
+		// Insere um vetor denso (embedding) com seu ID único correspondente e metadados na coleção do Qdrant.
 		return hrp.NewMetodoOuPanic("inserir", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("inserir", false, args, 3, 3); err != nil {
 				return nil, err
@@ -84,9 +92,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 				return hrp.Falso, nil
 			}
 			return hrp.Verdadeiro, nil
-		}, ""), nil
+		}, "Insere um vetor e metadados no Qdrant."), nil
 
 	case "buscar":
+		// Busca os pontos mais similares a um vetor de consulta utilizando algoritmos como Similaridade de Cosseno ou L2.
 		return hrp.NewMetodoOuPanic("buscar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("buscar", false, args, 2, 2); err != nil {
 				return nil, err
@@ -164,9 +173,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 			}
 
 			return resultList, nil
-		}, ""), nil
+		}, "Busca vetores similares no Qdrant."), nil
 
 	case "deletar":
+		// Deleta o vetor referenciado pelo ID numérico fornecido na coleção do Qdrant.
 		return hrp.NewMetodoOuPanic("deletar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("deletar", false, args, 1, 1); err != nil {
 				return nil, err
@@ -195,12 +205,13 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 				return hrp.Falso, nil
 			}
 			return hrp.Verdadeiro, nil
-		}, ""), nil
+		}, "Deleta um vetor por ID no Qdrant."), nil
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em ClienteVetorial", nome)
 }
 
+// met_conectar_qdrant inicia e configura o cliente do Qdrant com timeouts configurados.
 func met_conectar_qdrant(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("conectar_qdrant", false, args, 2, 2); err != nil {
 		return nil, err

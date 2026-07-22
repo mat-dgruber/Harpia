@@ -1,3 +1,5 @@
+// Package bd implementa os conectores, gerenciadores e adaptadores de acesso
+// a bancos de dados relacionais (SQL), não-relacionais (NoSQL) e vetoriais do Harpia.
 package bd
 
 import (
@@ -8,22 +10,28 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// MaxLimiteRegistrosSQL impõe um teto para consultas do QueryBuilder para mitigar exaustão de recursos.
 const MaxLimiteRegistrosSQL = 1000000
 
+// ConexaoSQL gerencia a pool de conexões físicas para bancos relacionais como SQLite, Postgres e MySQL.
 type ConexaoSQL struct {
 	db     *sql.DB
 	driver string
 }
 
+// TipoConexaoSQL define a assinatura e o tipo da classe ConexaoSQL na VM.
 var TipoConexaoSQL = hrp.NewTipo("ConexaoSQL", "Conexão de Banco de Dados SQL")
 
+// Tipo retorna a representação na VM.
 func (c *ConexaoSQL) Tipo() *hrp.Tipo {
 	return TipoConexaoSQL
 }
 
+// M__obtem_attributo__ mapeia e despacha as chamadas para operações e transações no banco SQL.
 func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "executar":
+		// Executa instruções SQL que não retornam linhas (ex: INSERT, UPDATE, DELETE).
 		return hrp.NewMetodoOuPanic("executar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if len(args) < 1 {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "executar esperava no mínimo 1 argumento (query)")
@@ -41,9 +49,10 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL: %v", errExec)
 			}
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Executa uma query de alteração de dados no banco (INSERT/UPDATE/DELETE)."), nil
 
 	case "consultar":
+		// Executa instruções SQL de busca estruturada que retornam linhas (SELECT).
 		return hrp.NewMetodoOuPanic("consultar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if len(args) < 1 {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "consultar esperava no mínimo 1 argumento (query)")
@@ -88,9 +97,10 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 
 			return lista, nil
-		}, ""), nil
+		}, "Executa uma query SQL de seleção (SELECT) e devolve uma Lista de Mapas."), nil
 
 	case "tabela":
+		// Retorna um QueryBuilder fluído e opcionalmente tipado por schema para interações SQL abstratas.
 		return hrp.NewMetodoOuPanic("tabela", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("tabela", false, args, 1, 2); err != nil {
 				return nil, err
@@ -112,9 +122,10 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				tabela:  string(tabelaTexto.(hrp.Texto)),
 				schema:  schema,
 			}, nil
-		}, ""), nil
+		}, "Prepara uma tabela para uso com QueryBuilder e validações de esquema opcional."), nil
 
 	case "transacao":
+		// Abre e gerencia uma transação atômica (Tx) que garante consistência (ACID) em falhas.
 		return hrp.NewMetodoOuPanic("transacao", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("transacao", false, args, 1, 1); err != nil {
 				return nil, err
@@ -141,10 +152,11 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		}, "Executa uma transação atômica em banco de dados; executa rollback automático se houver falha."), nil
 
 	case "fechar":
+		// Encerra a pool de conexões do banco de dados relacional.
 		return hrp.NewMetodoOuPanic("fechar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			c.db.Close()
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Fecha o pool de conexões ativas com o banco de dados SQL."), nil
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em ConexaoSQL", nome)
@@ -156,12 +168,15 @@ type TransacaoSQL struct {
 	driver string
 }
 
+// TipoTransacaoSQL define a classe da Transação.
 var TipoTransacaoSQL = hrp.NewTipo("TransacaoSQL", "Transação de Banco de Dados SQL")
 
+// Tipo retorna a representação interna.
 func (t *TransacaoSQL) Tipo() *hrp.Tipo {
 	return TipoTransacaoSQL
 }
 
+// M__obtem_attributo__ mapeia os comandos transacionais (executar/consultar) sob escopo controlado da transação.
 func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "executar":
@@ -182,7 +197,7 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL na transação: %v", errExec)
 			}
 			return hrp.Nulo, nil
-		}, ""), nil
+		}, "Executa query transacional de modificação de dados."), nil
 
 	case "consultar":
 		return hrp.NewMetodoOuPanic("consultar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -226,12 +241,13 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				lista.Itens = append(lista.Itens, m)
 			}
 			return lista, nil
-		}, ""), nil
+		}, "Executa consulta transacional de dados."), nil
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em TransacaoSQL", nome)
 }
 
+// QueryBuilder provê montagem dinâmico e flexível de queries SQL fluídas contra injeção SQL.
 type QueryBuilder struct {
 	conexao      *ConexaoSQL
 	tabela       string
@@ -242,15 +258,19 @@ type QueryBuilder struct {
 	schema       hrp.Mapa
 }
 
+// TipoQueryBuilder mapeia a definição na VM.
 var TipoQueryBuilder = hrp.NewTipo("QueryBuilder", "Query Builder dinâmico")
 
+// Tipo retorna a representação correspondente na VM.
 func (q *QueryBuilder) Tipo() *hrp.Tipo {
 	return TipoQueryBuilder
 }
 
+// M__obtem_attributo__ expõe os métodos fluídos da API do QueryBuilder.
 func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "selecionar":
+		// Define quais colunas serão selecionadas na query SELECT final.
 		return hrp.NewMetodoOuPanic("selecionar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			for _, arg := range args {
 				col, err := hrp.NewTexto(arg)
@@ -260,9 +280,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				q.selecionados = append(q.selecionados, string(col.(hrp.Texto)))
 			}
 			return q, nil
-		}, ""), nil
+		}, "Seleciona um subconjunto de colunas físicas para a query."), nil
 
 	case "onde":
+		// Adiciona cláusulas de filtro WHERE utilizando parâmetros de substituição (bindings) seguros.
 		return hrp.NewMetodoOuPanic("onde", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("onde", false, args, 3, 3); err != nil {
 				return nil, err
@@ -278,9 +299,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			q.condicoes = append(q.condicoes, fmt.Sprintf("%s %s ?", string(coluna.(hrp.Texto)), string(operador.(hrp.Texto))))
 			q.args = append(q.args, args[2])
 			return q, nil
-		}, ""), nil
+		}, "Adiciona uma restrição condicional de seleção no filtro (WHERE)."), nil
 
 	case "limite":
+		// Delimita o número máximo de registros a serem trazidos na query, respeitando MaxLimiteRegistrosSQL.
 		return hrp.NewMetodoOuPanic("limite", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("limite", false, args, 1, 1); err != nil {
 				return nil, err
@@ -295,9 +317,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			q.limiteVal = int(nVal)
 			return q, nil
-		}, ""), nil
+		}, "Limita o volume máximo de linhas da resposta."), nil
 
 	case "obterMuitos":
+		// Conclui e roda a query SELECT coletando uma lista com todas as correspondências do banco.
 		return hrp.NewMetodoOuPanic("obterMuitos", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			cols := "*"
 			if len(q.selecionados) > 0 {
@@ -323,9 +346,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 			return hrp.Chamar(consultarMetodo, callArgs)
-		}, ""), nil
+		}, "Executa a busca retornando todas as linhas correspondentes."), nil
 
 	case "obterUm":
+		// Atalho inteligente que impõe limite=1 e devolve o primeiro registro encontrado ou Nulo.
 		return hrp.NewMetodoOuPanic("obterUm", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			q.limiteVal = 1
 			obterMuitosMetodo, err := q.M__obtem_attributo__("obterMuitos")
@@ -341,9 +365,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return hrp.Nulo, nil
 			}
 			return lista.Itens[0], nil
-		}, ""), nil
+		}, "Retorna apenas o primeiro registro localizado."), nil
 
 	case "inserir":
+		// Insere dados no banco, validando tipos de campos dinamicamente se houver schema associado à tabela.
 		return hrp.NewMetodoOuPanic("inserir", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("inserir", false, args, 1, 1); err != nil {
 				return nil, err
@@ -392,9 +417,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 			return hrp.Chamar(executarMetodo, callArgs)
-		}, ""), nil
+		}, "Insere um registro e roda validações estritas de esquema."), nil
 
 	case "atualizar":
+		// Modifica dados existentes no banco que batem com as condições da cláusula onde().
 		return hrp.NewMetodoOuPanic("atualizar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("atualizar", false, args, 1, 1); err != nil {
 				return nil, err
@@ -432,9 +458,10 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 			return hrp.Chamar(executarMetodo, callArgs)
-		}, ""), nil
+		}, "Atualiza registros em massa com base nas condições estabelecidas no onde()."), nil
 
 	case "deletar":
+		// Deleta registros correspondentes do banco de dados físico.
 		return hrp.NewMetodoOuPanic("deletar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			query := fmt.Sprintf("DELETE FROM %s", q.tabela)
 			if len(q.condicoes) > 0 {
@@ -453,12 +480,13 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 			return hrp.Chamar(executarMetodo, callArgs)
-		}, ""), nil
+		}, "Deleta linhas físicas filtradas pelas regras do onde()."), nil
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no QueryBuilder", nome)
 }
 
+// toGoType mapeia tipos nativos da VM Harpia para seus equivalentes Go de baixo nível.
 func toGoType(obj hrp.Objeto) interface{} {
 	if obj == hrp.Nulo || obj.Tipo() == hrp.TipoNulo {
 		return nil
@@ -476,6 +504,7 @@ func toGoType(obj hrp.Objeto) interface{} {
 	return fmt.Sprintf("%v", obj)
 }
 
+// toPtObject converte tipos nativos retornados por drivers de banco Go (database/sql) em Objetos Harpia.
 func toPtObject(val interface{}) hrp.Objeto {
 	if val == nil {
 		return hrp.Nulo
@@ -497,6 +526,7 @@ func toPtObject(val interface{}) hrp.Objeto {
 	return hrp.Texto(fmt.Sprintf("%v", val))
 }
 
+// converterPlaceholders ajusta dinamicamente a numeração de placeholders para drivers como Postgres ($1, $2, etc.).
 func (q *QueryBuilder) converterPlaceholders(query string) string {
 	if q.conexao.driver != "postgres" {
 		return query
@@ -514,6 +544,7 @@ func (q *QueryBuilder) converterPlaceholders(query string) string {
 	return sb.String()
 }
 
+// validarTipoCampo valida em tempo de execução os dados inseridos contra a definição do ORM do Harpia.
 func validarTipoCampo(tipoEsperado string, valor hrp.Objeto) error {
 	switch tipoEsperado {
 	case "texto":

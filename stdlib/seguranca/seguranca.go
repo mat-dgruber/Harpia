@@ -1,3 +1,5 @@
+// Package seguranca implementa utilitários focados em segurança corporativa e programação defensiva,
+// contendo filtros sanitizadores para mitigar vetores de ataques OWASP como XSS e SQL Injection.
 package seguranca
 
 import (
@@ -7,7 +9,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-// met_sanitizarHtml implementa 'sanitizarHtml(texto)' -> Previne XSS
+// met_sanitizarHtml implementa 'sanitizarHtml(texto)' em nível de script Harpia.
+// Previne ataques de injeção de scripts maliciosos (XSS) codificando tags HTML como entidades seguras (&lt;, &gt;, etc.).
 func met_sanitizarHtml(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("sanitizarHtml", false, args, 1, 1); err != nil {
 		return nil, err
@@ -22,7 +25,9 @@ func met_sanitizarHtml(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Texto(escapado), nil
 }
 
-// met_sanitizarSqlArgumento implementa 'sanitizarSqlArgumento(texto)' -> Previne SQL Injection em queries brutas
+// met_sanitizarSqlArgumento implementa 'sanitizarSqlArgumento(texto)' em nível de script Harpia.
+// Mitiga vulnerabilidades do tipo SQL Injection em strings e queries SQL concatenadas manualmente.
+// NOTA: Recomenda-se utilizar parametrização com marcadores de binding em vez de concatenação crua.
 func met_sanitizarSqlArgumento(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("sanitizarSqlArgumento", false, args, 1, 1); err != nil {
 		return nil, err
@@ -39,10 +44,11 @@ func met_sanitizarSqlArgumento(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, err
 	return hrp.Texto(limpo), nil
 }
 
-var _sanitizarHtml = hrp.NewMetodoOuPanic("sanitizarHtml", met_sanitizarHtml, "")
-var _sanitizarSqlArgumento = hrp.NewMetodoOuPanic("sanitizarSqlArgumento", met_sanitizarSqlArgumento, "")
+var _sanitizarHtml = hrp.NewMetodoOuPanic("sanitizarHtml", met_sanitizarHtml, "Escapa tags HTML especiais de uma string para mitigar riscos de ataque de injeção XSS.")
+var _sanitizarSqlArgumento = hrp.NewMetodoOuPanic("sanitizarSqlArgumento", met_sanitizarSqlArgumento, "Sanitiza caracteres e marcadores especiais para prevenir injeção de comandos SQL (SQL Injection).")
 
 func init() {
+	// Registra o módulo 'seguranca' na biblioteca padrão do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "seguranca",

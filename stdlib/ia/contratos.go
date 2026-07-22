@@ -1,3 +1,4 @@
+// Package ia implementa as facilidades de integração com modelos de inteligência artificial generativa.
 package ia
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// validarCampo valida de forma recursiva os tipos de dados básicos desserializados do payload JSON.
 func validarCampo(tipoEsperado string, valor interface{}) bool {
 	switch tipoEsperado {
 	case "texto":
@@ -33,6 +35,8 @@ func validarCampo(tipoEsperado string, valor interface{}) bool {
 	return false
 }
 
+// ValidarResposta faz o parsing do payload de resposta do LLM e valida se todos os campos obrigatórios
+// descritos no mapa de esquema estrutural do Harpia estão presentes e seguem a tipagem estrita declarada.
 func ValidarResposta(esquema hrp.Mapa, resposta string) (bool, error) {
 	var dados map[string]interface{}
 	err := json.Unmarshal([]byte(resposta), &dados)
@@ -59,6 +63,8 @@ func ValidarResposta(esquema hrp.Mapa, resposta string) (bool, error) {
 	return true, nil
 }
 
+// met_validar_resposta implementa 'validar_resposta(esquemaMapa, respostaJson)' em nível de script Harpia.
+// Devolve Verdadeiro ou lança uma exceção estruturada com diagnóstico em caso de incompatibilidade de schema.
 func met_validar_resposta(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("validar_resposta", false, args, 2, 2); err != nil {
 		return nil, err

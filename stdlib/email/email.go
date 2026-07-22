@@ -1,3 +1,5 @@
+// Package email fornece facilidades para envio de e-mails transacionais (texto e HTML)
+// utilizando autenticação simples via protocolo SMTP de forma síncrona.
 package email
 
 import (
@@ -7,6 +9,9 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// met_email_enviar implementa 'enviar(configMapa)' em nível de script Harpia.
+// Recebe um Mapa do Harpia contendo os parâmetros SMTP e o payload da mensagem (para, assunto, corpoHtml).
+// Se o servidor SMTP ou a porta não forem fornecidos, ele automaticamente ativa o modo de simulação no console.
 func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("enviar", false, args, 1, 1); err != nil {
 		return nil, err
@@ -26,7 +31,7 @@ func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	corpoHtml := fmt.Sprintf("%v", mapa["corpoHtml"])
 
 	if servidor == "<nil>" || porta == "<nil>" {
-		// Simulação de envio local para desenvolvimento/teste
+		// Simulação de envio local para desenvolvimento/teste para evitar bloqueios ou exceptions
 		fmt.Printf("📧 [SIMULAÇÃO EMAIL] Enviado para '%s' | Assunto: '%s'\n", para, assunto)
 		return hrp.Booleano(true), nil
 	}
@@ -43,9 +48,10 @@ func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Booleano(true), nil
 }
 
-var _enviar = hrp.NewMetodoOuPanic("enviar", met_email_enviar, "")
+var _enviar = hrp.NewMetodoOuPanic("enviar", met_email_enviar, "Envia um e-mail com conteúdo em formato HTML através do protocolo SMTP.")
 
 func init() {
+	// Registra o módulo 'email' globalmente no ecossistema de módulos do Harpia.
 	hrp.RegistraModuloImpl(&hrp.ModuloImpl{
 		Info: hrp.ModuloInfo{
 			Nome:    "email",
