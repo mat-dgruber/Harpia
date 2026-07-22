@@ -17,6 +17,7 @@ import (
 )
 
 // Estruturas de dados JSON-RPC e LSP oficiais para troca de pacotes
+// RequestMessage modela um pacote de requisição oficial JSON-RPC 2.0 recebido da IDE.
 type RequestMessage struct {
 	Jsonrpc string          `json:"jsonrpc"`
 	ID      interface{}     `json:"id,omitempty"`
@@ -24,6 +25,7 @@ type RequestMessage struct {
 	Params  json.RawMessage `json:"params,omitempty"`
 }
 
+// ResponseMessage modela um pacote de resposta oficial JSON-RPC 2.0 enviado para a IDE.
 type ResponseMessage struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	ID      interface{} `json:"id"`
@@ -31,6 +33,7 @@ type ResponseMessage struct {
 	Error   interface{} `json:"error,omitempty"`
 }
 
+// NotificationMessage representa uma notificação assíncrona oficial (sem ID de resposta) enviada ou recebida.
 type NotificationMessage struct {
 	Jsonrpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
@@ -78,7 +81,9 @@ type entradaAstLSP struct {
 
 var cacheAstLSP = make(map[string]entradaAstLSP)
 
-// comandoLsp gerencia conexões de Language Server Protocol direto da IDE
+// comandoLsp cria e retorna o comando Cobra 'lsp' (`harpia lsp`).
+// Este subcomando inicia o servidor de Language Server Protocol (LSP) nativo do Harpia,
+// comunicando-se por meio de entrada/saída padrão (Stdin/Stdout) sob o protocolo JSON-RPC 2.0.
 func comandoLsp() *cobra.Command {
 	return &cobra.Command{
 		Use:   "lsp",
@@ -89,6 +94,8 @@ func comandoLsp() *cobra.Command {
 	}
 }
 
+// iniciarServidorLSP inicia o loop infinito de leitura de Stdin, interpretando os bytes do
+// protocolo LSP, desserializando as mensagens JSON-RPC e despachando-as para os tratadores.
 func iniciarServidorLSP() {
 	reader := bufio.NewReader(os.Stdin)
 	for {
@@ -109,6 +116,8 @@ func iniciarServidorLSP() {
 	}
 }
 
+// lerMensagemLSP faz o parsing do cabeçalho HTTP-like do LSP (Content-Length)
+// e lê precisamente o número de bytes do payload JSON-RPC a partir do buffer de entrada.
 func lerMensagemLSP(reader *bufio.Reader) ([]byte, error) {
 	var contentLength int
 	for {
@@ -141,11 +150,15 @@ func lerMensagemLSP(reader *bufio.Reader) ([]byte, error) {
 	return buf, nil
 }
 
+// enviarMensagemLSP formata uma resposta ou notificação com o cabeçalho "Content-Length"
+// e envia síncronamente via Stdout para que a IDE cliente possa consumi-la.
 func enviarMensagemLSP(msg interface{}) {
 	bytes, _ := json.Marshal(msg)
 	fmt.Printf("Content-Length: %d\r\n\r\n%s", len(bytes), string(bytes))
 }
 
+// tratarRequisicaoLSP roteia os métodos oficiais do protocolo LSP (como didOpen, didChange,
+// formatting, completion, hover, definition) para suas respectivas implementações de inteligência e resposta.
 func tratarRequisicaoLSP(req RequestMessage) {
 	switch req.Method {
 	case "initialize":
@@ -281,6 +294,9 @@ func tratarRequisicaoLSP(req RequestMessage) {
 	}
 }
 
+// processarDiagnosticosLSP analisa sintática e semanticamente o código-fonte atualizado,
+// roda o linter estático integrado e valida as diretivas de arquitetura limpa (Clean Architecture),
+// gerando e publicando uma lista de diagnósticos (erros/avisos) em tempo real para a IDE.
 func processarDiagnosticosLSP(uriStr, codigo string) {
 	u, err := url.Parse(uriStr)
 	if err != nil {
@@ -415,6 +431,8 @@ type Location struct {
 	Range DiagnosticRange `json:"range"`
 }
 
+// palavraSobCursor extrai a sequência de caracteres alfanuméricos e sublinhados (_)
+// que formam a palavra ativa sob a posição atual do cursor (linha/coluna) do editor.
 func palavraSobCursor(codigo string, linha, char int) string {
 	linhas := strings.Split(codigo, "\n")
 	if linha < 0 || linha >= len(linhas) {
@@ -453,6 +471,8 @@ func palavraSobCursor(codigo string, linha, char int) string {
 	return linhaTexto[inicio:fim]
 }
 
+// buscarDocInserida lê de forma incremental reversa a partir da linha de declaração de um símbolo,
+// capturando todas as linhas de comentários especiais de documentação que começam com "///".
 func buscarDocInserida(codigo string, linhaDecl int) []string {
 	linhas := strings.Split(codigo, "\n")
 	idx := linhaDecl - 2 // Linha imediatamente anterior ao início do nó (já que linhaDecl é 1-based, a linha anterior está em linhaDecl - 2)
@@ -470,6 +490,8 @@ func buscarDocInserida(codigo string, linhaDecl int) []string {
 	return docs
 }
 
+// encontrarDeclNoAST varre linearmente as declarações globais contidas no programa (como funções,
+// classes, variáveis, enums e interfaces) para localizar a definição que bate com o nome desejado.
 func encontrarDeclNoAST(prog *parser.Programa, nome string) (parser.BaseNode, *lexer.Token) {
 	if prog == nil {
 		return nil, nil
@@ -512,6 +534,7 @@ func encontrarDeclNoAST(prog *parser.Programa, nome string) (parser.BaseNode, *l
 	return nil, nil
 }
 
+// assinaturaFuncao formata a assinatura de uma função com seus respectivos parâmetros e tipos em formato textual.
 func assinaturaFuncao(d *parser.DeclFuncao) string {
 	var sb strings.Builder
 	// Nota: Como não temos d.Assincrono no AST de forma evidente,
@@ -532,6 +555,7 @@ func assinaturaFuncao(d *parser.DeclFuncao) string {
 	return sb.String()
 }
 
+// assinaturaClasse formata a assinatura de uma declaração de classe e sua herança associada.
 func assinaturaClasse(d *parser.DeclClasse) string {
 	sig := "classe " + d.Nome
 	if d.Heranca != "" {
@@ -540,6 +564,7 @@ func assinaturaClasse(d *parser.DeclClasse) string {
 	return sig
 }
 
+// assinaturaVar formata a assinatura de variáveis ou constantes imutáveis identificadas no programa.
 func assinaturaVar(d *parser.DeclVar) string {
 	prefix := "var "
 	if d.Constante {
@@ -552,6 +577,7 @@ func assinaturaVar(d *parser.DeclVar) string {
 	return sig
 }
 
+// obterDescricaoBuiltin retorna documentações em formato Markdown sobre as palavras-chave e embutidos reativos nativos.
 func obterDescricaoBuiltin(palavra string) string {
 	switch palavra {
 	case "imprimir":
@@ -570,6 +596,8 @@ func obterDescricaoBuiltin(palavra string) string {
 	return ""
 }
 
+// responderHoverLSP responde à solicitação de hover da IDE, analisando a palavra ativa sob o cursor,
+// extraindo sua assinatura, documentação associada ("///") e retornando MarkupContent em Markdown.
 func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 	uri := params.TextDocument.URI
 	cache, existe := cacheAstLSP[uri]
@@ -653,6 +681,8 @@ func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 	})
 }
 
+// responderDefinicaoLSP responde à solicitação de go-to-definition (F12) da IDE, localizando o símbolo
+// correspondente no AST e retornando sua exata localização (URI e intervalo de linhas/colunas).
 func responderDefinicaoLSP(id interface{}, params TextDocumentPositionParams) {
 	uri := params.TextDocument.URI
 	cache, existe := cacheAstLSP[uri]

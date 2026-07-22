@@ -14,16 +14,22 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ExecucaoPlaygroundRequest encapsula a estrutura de dados para as requisições de execução
+// de código no playground, contendo o código-fonte enviado pelo editor web do cliente.
 type ExecucaoPlaygroundRequest struct {
 	Codigo string `json:"codigo"`
 }
 
+// VariavelEscopo define a representação JSON de uma variável ativa capturada do escopo local,
+// detalhando o seu nome, valor formatado e tipo associado (como Inteiro, Texto ou Dinâmico).
 type VariavelEscopo struct {
 	Nome  string `json:"nome"`
 	Valor string `json:"valor"`
 	Tipo  string `json:"tipo"`
 }
 
+// ExecucaoPlaygroundResponse define a estrutura de resposta HTTP contendo o sucesso da operação,
+// a saída do console/logs capturada, o array de variáveis de escopo identificadas e erros formatados em HTML.
 type ExecucaoPlaygroundResponse struct {
 	Sucesso   bool             `json:"sucesso"`
 	Saida     string           `json:"saida"`
@@ -34,7 +40,9 @@ type ExecucaoPlaygroundResponse struct {
 // ponytail: garante segurança concorrente contra corridas de dados no Stdout compartilhado
 var mutexExecucaoPlayground sync.Mutex
 
-// comandoPlayground inicia o servidor web do playground interativo local
+// comandoPlayground cria e retorna o subcomando Cobra 'playground' que é acionado
+// no terminal (`harpia playground`). Este comando inicializa um servidor web de desenvolvimento
+// local hospedando a interface gráfica e o REPL web interativo de forma portátil.
 func comandoPlayground() *cobra.Command {
 	var porta int
 	cmdPlay := &cobra.Command{
@@ -48,6 +56,9 @@ func comandoPlayground() *cobra.Command {
 	return cmdPlay
 }
 
+// iniciarServidorPlayground configura todas as rotas e endpoints de API necessários,
+// estabelece limites de tempo (timeouts) de segurança contra DoS e inicia o servidor HTTP
+// na porta especificada, emitindo avisos e escutando por requisições locais.
 func iniciarServidorPlayground(porta int) {
 	http.HandleFunc("/", serveInterfacePlayground)
 	http.HandleFunc("/runtime-web.js", serveRuntimeWeb)
@@ -75,6 +86,8 @@ func iniciarServidorPlayground(porta int) {
 	}
 }
 
+// serveInterfacePlayground responde a rota raiz ("/") enviando o documento HTML principal
+// que monta o sandbox do playground no navegador do cliente de forma estática.
 func serveInterfacePlayground(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -84,6 +97,8 @@ func serveInterfacePlayground(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(htmlInterfacePlayground))
 }
 
+// serveRuntimeWeb lê e serve o arquivo Javascript "runtime-web.js", responsável pelas
+// primitivas reativas do frontend do Harpia (sinais, efeitos, virtual DOM) no cliente.
 func serveRuntimeWeb(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	content, err := os.ReadFile("stdlib/web/runtime-web.js")
@@ -97,6 +112,8 @@ func serveRuntimeWeb(w http.ResponseWriter, r *http.Request) {
 	w.Write(content)
 }
 
+// servePlaygroundJS transpila a interface reativa local escrita em Harpia ("playground/interface.hrp")
+// para código Javascript puro, enviando-o para execução no navegador do cliente de forma dinâmica.
 func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
@@ -130,6 +147,8 @@ func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(finalJS))
 }
 
+// servePlaygroundCSS compila e serve as folhas de estilos declaradas no template Harpia
+// injetando um leiaute CSS Dark de alta performance alinhado com o tema profissional.
 func servePlaygroundCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
@@ -296,6 +315,8 @@ pre {
 	w.Write([]byte(cssLayoutDark + "\n" + cssOutput))
 }
 
+// apiExecutarCodigoPlayground recebe o payload contendo o código enviado do navegador,
+// executa-o de forma segura sob um escopo isolado na VM e captura saídas e variáveis em tempo real.
 func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Método não suportado", http.StatusMethodNotAllowed)
@@ -389,6 +410,8 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// ansiParaHtml converte códigos de cores ANSI (emitidos em erros pela VM do Harpia)
+// para representações de tags e classes HTML estilizadas com cores no frontend do playground.
 func ansiParaHtml(ansi string) string {
 	res := ansi
 	res = strings.ReplaceAll(res, "\n", "<br/>")
@@ -406,6 +429,8 @@ func ansiParaHtml(ansi string) string {
 }
 
 // ponytail: implementação completa do suporte ao Monaco Editor para coloração, hover e inicialização de código
+// apiEditorConfig lê e serve exemplos prontos de código Harpia de forma resiliente,
+// fornecendo os trechos de códigos padrões que aparecem ao carregar abas no playground.
 func apiEditorConfig(w http.ResponseWriter, r *http.Request) {
 	// Tenta ler app_teste.hrp de forma resiliente
 	caminhos := []string{"app_teste.hrp", "Harpia/app_teste.hrp", "../app_teste.hrp"}
@@ -495,6 +520,8 @@ user.apresentar()`,
 	})
 }
 
+// apiDocsPlayground disponibiliza um mini dicionário explicativo de palavras-chave do Harpia,
+// alimentando o recurso de Hover (balões de ajuda) interativo do Monaco Editor no navegador.
 func apiDocsPlayground(w http.ResponseWriter, r *http.Request) {
 	palavra := r.URL.Query().Get("palavra")
 	docs := map[string]string{
@@ -530,6 +557,8 @@ func apiDocsPlayground(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// serveEditorMonacoJS injeta o script JS que configura o Monaco Editor, registrando a linguagem,
+// definindo as palavras-chave do Harpia (Portuscript) e conectando os balões de ajuda à API local.
 func serveEditorMonacoJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 

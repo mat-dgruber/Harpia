@@ -13,6 +13,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// comandoTestar cria e retorna o comando Cobra 'testar' (`harpia testar`).
+// Este comando descobre recursivamente arquivos com blocos de testes 'testar "nome" { ... }',
+// executa-os em escopos isolados capturando as asserções e gera relatórios de cobertura em HTML.
 func comandoTestar() *cobra.Command {
 	var htmlReport bool
 	testar := &cobra.Command{

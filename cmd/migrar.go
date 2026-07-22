@@ -13,6 +13,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// caminhoMigracoes resolve o diretório canônico de migrations no projeto.
+//
+// Ordem de resolução: prioriza `infra/migracoes` (alinhado com a Clean Architecture)
+// e cai para `migracoes` na raiz caso o primeiro não exista. Quando nenhum dos
+// dois existe, retorna o caminho preferido (`infra/migracoes`) para que os
+// subcomandos `migrar criar` criem a estrutura automaticamente.
 func caminhoMigracoes() string {
 	for _, c := range []string{filepath.Join("infra", "migracoes"), "migracoes"} {
 		if info, err := os.Stat(c); err == nil && info.IsDir() {
@@ -22,6 +28,15 @@ func caminhoMigracoes() string {
 	return filepath.Join("infra", "migracoes")
 }
 
+// abrirBanco estabelece a conexão SQLite com a biblioteca `glebarez/go-sqlite` (sem CGO).
+// Aplica duas pragmas automaticamente:
+//   - `journal_mode(WAL)`: habilita Write-Ahead Logging para reduzir contenção
+//     em cenários com múltiplas leituras concorrentes;
+//   - `foreign_keys(1)`: liga enforcement de chaves estrangeiras por padrão
+//     (desligado em SQLite por motivos históricos).
+//
+// Cria o diretório-pai do arquivo do banco se necessário para evitar erros de
+// `os.IsNotExist` em workspaces recém-inicializados.
 func abrirBanco(dbPath string) (*sql.DB, error) {
 	if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
 		_ = os.MkdirAll(dir, 0755)

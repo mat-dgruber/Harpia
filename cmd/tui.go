@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// tuiModel representa o estado interno do aplicativo Bubbletea para a TUI interativa.
+// Mantém as instâncias do editor de texto, as saídas e as variáveis capturadas do interpretador.
 type tuiModel struct {
 	editor     textarea.Model
 	saida      string
@@ -28,7 +30,9 @@ type tuiModel struct {
 	linhaAtiva int
 }
 
-// comandoTui registra o comando 'harpia tui' para inicializar a interface Bubbletea didática
+// comandoTui registra e retorna o comando Cobra 'tui'.
+// Este subcomando inicia uma interface gráfica de terminal (TUI) interativa e
+// um playground REPL didático utilizando o framework Bubbletea e estilizações do Lipgloss.
 func comandoTui() *cobra.Command {
 	return &cobra.Command{
 		Use:   "tui",
@@ -43,6 +47,8 @@ func comandoTui() *cobra.Command {
 	}
 }
 
+// inicializarTuiModel cria e configura uma nova instância de tuiModel com
+// um editor de texto de terminal, buffers de saída de logs e contextos de execução Harpia.
 func inicializarTuiModel() tuiModel {
 	ta := textarea.New()
 	ta.Placeholder = "# Escreva seu código Harpia aqui...\n# Pressione F2 para executar ou F8 para depurar!"
@@ -62,10 +68,13 @@ func inicializarTuiModel() tuiModel {
 	}
 }
 
+// Init inicializa os efeitos colaterais e comandos iniciais da TUI (como o cursor piscante).
 func (m tuiModel) Init() tea.Cmd {
 	return textarea.Blink
 }
 
+// Update é chamado sempre que um evento do terminal ou do sistema ocorre.
+// Gerencia cliques, atalhos de teclado (F1, F2, F7, F8, Tab), redimensionamento de janela e fluxo do depurador.
 func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -130,6 +139,9 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+// avancarPassoDepurador executa o depurador passo-a-passo no código do editor.
+// Avalia o código de forma incremental acumulada, atualiza o escopo de variáveis e
+// captura a saída gerada síncronamente pela VM Harpia.
 func (m *tuiModel) avancarPassoDepurador() {
 	if m.linhaAtiva >= len(m.linhas) {
 		m.depurando = false
@@ -212,6 +224,8 @@ func (m *tuiModel) avancarPassoDepurador() {
 	m.linhaAtiva++
 }
 
+// executarCodigoTui compila e executa o código contido no editor de uma só vez.
+// Captura a saída do console e atualiza as variáveis locais exibidas no inspetor de escopo.
 func (m *tuiModel) executarCodigoTui() {
 	codigo := m.editor.Value()
 	if strings.TrimSpace(codigo) == "" {
@@ -267,6 +281,8 @@ func (m *tuiModel) executarCodigoTui() {
 	}
 }
 
+// View renderiza a interface em formato string na tela, organizando de forma
+// responsiva os blocos do editor, inspetor de escopo e console de logs usando Lipgloss.
 func (m tuiModel) View() string {
 	if m.ajuda {
 		return lipgloss.NewStyle().

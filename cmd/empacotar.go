@@ -11,6 +11,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// comandoEmpacotar retorna o comando Cobra "empacotar".
+// Este comando compila e empacota um script Harpia embutindo-o diretamente
+// no interpretador para gerar um executável nativo autônomo (Single Binary Bundle)
+// ou compila todo o interpretador para rodar de forma portátil em WebAssembly (WASM).
 func comandoEmpacotar() *cobra.Command {
 	var entrada string
 	var saida string

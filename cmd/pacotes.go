@@ -14,12 +14,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// PacoteManifest representa o arquivo pacote.hrp/json
+// PacoteManifest representa o arquivo de manifesto pacote.hrp ou pacote.json
+// mapeando o conjunto de dependências externas declaradas pelo projeto.
 type PacoteManifest struct {
 	Dependencias map[string]string `json:"dependencias"`
 }
 
-// comandoInstalar inicializa o subcomando 'Harpia instalar'
+// comandoInstalar inicializa e retorna o subcomando Cobra 'instalar' (`harpia instalar`).
+// Este comando resolve e instala de forma concorrente e assíncrona dependências locais
+// em ./pt_modulos/ buscando metadados no índice de pacotes centralizado.
 func comandoInstalar() *cobra.Command {
 	var deArquivo string
 	cmdInstalar := &cobra.Command{
@@ -142,6 +145,8 @@ func comandoInstalar() *cobra.Command {
 	return cmdInstalar
 }
 
+// parseManifesto interpreta o conteúdo bruto do manifesto de dependências,
+// suportando tanto o formato padrão estruturado JSON quanto uma sintaxe simplificada de linhas chave-valor.
 func parseManifesto(conteudo []byte) (*PacoteManifest, error) {
 	var manifest PacoteManifest
 	// Tenta fazer o parse do JSON direto
@@ -179,6 +184,9 @@ func parseManifesto(conteudo []byte) (*PacoteManifest, error) {
 	return &manifest, nil
 }
 
+// baixarEExtrairPacote baixa síncronamente o arquivo comprimido (.zip) da dependência,
+// descompacta e extrai seus arquivos na pasta local './pt_modulos/', aplicando de forma estrita
+// uma validação de caminho contra vulnerabilidades críticas de Zip Slip (Path Traversal).
 func baixarEExtrairPacote(nome, url string) error {
 	// ponytail: relatórios textuais dinâmicos de progresso para DX amigável
 	fmt.Printf("  ➔ [%s] Baixando dependência de %s...\n", nome, url)
@@ -254,6 +262,8 @@ func baixarEExtrairPacote(nome, url string) error {
 // ponytail: URL oficial contendo os metadados centralizados do índice de pacotes
 var URL_REGISTRO_CENTRAL = "https://raw.githubusercontent.com/Harpia/registro/main/pacotes.json"
 
+// RegistroRemoto descreve a árvore e os metadados das dependências retornadas
+// pelo endpoint centralizado de pacotes oficiais do Harpia.
 type RegistroRemoto struct {
 	Pacotes map[string]struct {
 		Versoes map[string]struct {
@@ -262,6 +272,8 @@ type RegistroRemoto struct {
 	} `json:"pacotes"`
 }
 
+// obterUrlDoRegistro faz uma requisição HTTP GET ao registro central remoto, localiza
+// o pacote solicitado e resolve a URL do zip correspondente à versão pedida ou à mais recente.
 func obterUrlDoRegistro(nome, versaoRestricao string) (string, error) {
 	resp, err := http.Get(URL_REGISTRO_CENTRAL)
 	if err != nil {
@@ -310,6 +322,8 @@ func obterUrlDoRegistro(nome, versaoRestricao string) (string, error) {
 	return v.URL, nil
 }
 
+// salvarDependenciaNoManifesto atualiza ou cria o manifesto pacote.json gravando de
+// forma persistente a nova dependência instalada com seu respectivo nome e versão.
 func salvarDependenciaNoManifesto(nome, versaoOuUrl string) {
 	manifestoPath := "pacote.json"
 	if _, err := os.Stat("pacote.hrp"); err == nil {

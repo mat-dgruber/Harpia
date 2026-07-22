@@ -133,6 +133,9 @@ func FormatarCodigoHarpia(codigo string) string {
 	return resultado
 }
 
+// maximo é o substituto minimalista para a função nativa `max()` (Go 1.21+),
+// garantindo compatibilidade com versões anteriores do toolchain.
+// Mantida como helper local para evitar adicionar uma versão de linguagem mínima ao build.
 func maximo(a, b int) int {
 	if a > b {
 		return a

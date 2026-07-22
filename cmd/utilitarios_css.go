@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// ponytail: tabela de mapeamento estático de classes utilitárias tipo "Tailwind em PT-BR".
-// Isso permite usar classes rápidas em português que compilam em CSS real minúsculo sob demanda.
+// tabelaUtilitariosPT mapeia apelidos em português para declarações CSS brutas correspondentes.
+// Funciona como um compilador estático do tipo "Tailwind em Português" para os componentes frontend.
 var tabelaUtilitariosPT = map[string]string{
 	// display & flexbox
 	"flex-linha":        "display: flex; flex-direction: row;",
@@ -83,11 +83,13 @@ var tabelaUtilitariosPT = map[string]string{
 	"raio-cheio":   "border-radius: 9999px;",
 }
 
-// reClasse captura classes usadas no JS transpilado, ex: `classe: "p-4 itens-centro"`
+// reClasse é uma expressão regular pré-compilada para capturar o atributo "classe"
+// definido em literais e estruturas JSX-like no código Javascript gerado.
 var reClasse = regexp.MustCompile(`(?i)classe:\s*"([^"]+)"`)
 
-// extraiEGerarCssUtilitarios varre o código transpilado JS, identifica as classes PT utilitárias
-// usadas e gera as correspondentes regras CSS estáticas prontas para estilos.css.
+// extraiEGerarCssUtilitarios varre recursivamente as strings do código Javascript,
+// detecta as classes utilitárias em português utilizadas e cospe as regras CSS físicas
+// estáticas equivalentes prontas para serem consolidadas no arquivo de estilo global.
 func extraiEGerarCssUtilitarios(js string) string {
 	classesDetectadas := make(map[string]bool)
 

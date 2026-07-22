@@ -11,6 +11,15 @@ import (
 
 
 
+// auditarCmd declara o subcomando CLI `harpia auditar`.
+//
+// O scanner opera em modo de "análise estática leve", comparando padrões textuais
+// contra uma lista de heurísticas OWASP (A03 Injection e A07 Authentication Failure)
+// construídas em tempo de execução a partir do conteúdo dos arquivos `.hrp` e `.pt`.
+//
+// Não há integração com a AST completa por design: o objetivo é fornecer feedback
+// instantâneo e de baixíssimo custo de CPU para desenvolvedores que rodam o comando
+// antes de commits relevantes, sem depender do parser ou do ambiente da VM.
 var auditarCmd = &cobra.Command{
 	Use:     "auditar [arquivo.hrp|diretorio]",
 	Aliases: []string{"audit", "seguranca"},
@@ -74,6 +83,9 @@ var auditarCmd = &cobra.Command{
 	},
 }
 
+// comandoAuditar é o ponto de entrada público (exportado para `InstalarComandos`).
+// Retorna a referência ao `*cobra.Command` configurado para suportar alias encurtados
+// como `audit` e `seguranca`, mantendo paridade de comando em três línguas.
 func comandoAuditar() *cobra.Command {
 	return auditarCmd
 }

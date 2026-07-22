@@ -55,6 +55,16 @@ var (
 // do projeto, pois funciona como um índice declarativo dos comandos suportados pela CLI.
 //
 // O parâmetro 'raiz' é a estrutura base *cobra.Command inicializada no ponto de entrada (main.go).
+// InstalarComandos monta toda a árvore de subcomandos CLI do Harpia na instância `raiz`.
+//
+// Para cada chamada de `comandoXxx()` registrada, é adicionada uma nova entrada na
+// ajuda do terminal. A lista abaixo representa o "índice" oficial dos comandos
+// suportados pela CLI e serve como ponto único de manutenção — sempre que um novo
+// comando for adicionado ao projeto, ele deve:
+//  1. Ser implementado por uma função `comandoXxx() *cobra.Command`;
+//  2. Ser registrado abaixo nesta função.
+//
+// Centralizar aqui simplifica a leitura arquitetural e a leitura do help da CLI.
 func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoAtualize())
 	raiz.AddCommand(comandoExecutar())

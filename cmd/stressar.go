@@ -10,6 +10,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// comandoStressar executa testes de carga concorrentes em um arquivo Harpia.
+//
+// Fluxo principal:
+//  1. Lê o código fonte uma única vez e o armazena em memória (evita I/O repetido);
+//  2. Dispara N goroutines limitadas por um semáforo buffered (`concorrencia`);
+//  3. Mede duração de cada execução e agrega em um slice indexado para cálculo
+//     de mínimo/máximo/média ao final.
+//  4. Saídas de erros são impressas em stderr, mas não interrompem o benchmark;
+//     apenas a falha de uma execução conta para a métrica de "sucessos".
+//
+// Importante: o interpretador compartilha `hrp.NewContexto` por iteração
+// (descartado via `defer ctx.Terminar()`), garantindo que não há vazamento de
+// memória entre execuções mesmo sob alta concorrência.
 func comandoStressar() *cobra.Command {
 	var arquivo string
 	var concorrencia int

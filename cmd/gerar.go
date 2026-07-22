@@ -195,6 +195,15 @@ func comandoGerar() *cobra.Command {
 	return cmd
 }
 
+// imprimirSaida serializa o slice de mapas gerado pelos subcomandos `gerar`.
+//
+// Quando `formato == "json"` produz JSON indentado pronto para ser canalizado
+// para outras ferramentas (`jq`, `curl`, etc.). Em outros formatos, simplesmente
+// itera chave/valor imprimindo cada par `chave: valor` e separando os registros
+// por uma linha `---`.
+//
+// Falha de serialização JSON chama `os.Exit(1)` para garantir que pipelines CI
+// detectem o erro de forma determinística.
 func imprimirSaida(dados []map[string]interface{}, formato string) {
 	if formato == "json" {
 		out, err := json.MarshalIndent(dados, "", "  ")

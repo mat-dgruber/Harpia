@@ -28,6 +28,11 @@ type entradaPot struct {
 	Refs    []string
 }
 
+// stripComentarios remove linhas de comentário iniciadas com `--` do código fonte
+// antes da aplicação do regex de extração.
+//
+// Importante: isso evita falsos positivos quando, por exemplo, um trecho de
+// documentação menciona `t("exemplo")` como ilustração dentro de um comentário.
 func stripComentarios(src string) string {
 	return reComentarioLinha.ReplaceAllString(src, "")
 }
@@ -76,6 +81,15 @@ func escaparPo(s string) string {
 	return s
 }
 
+// escreverPot materializa o catálogo `.pot` (template PO) a partir das entradas extraídas.
+//
+// O arquivo final segue as convenções do formato gettext:
+//  1. Cabeçalho com metadados de Content-Type, Transfer-Encoding e Language;
+//  2. Para cada `msgid` distinta (deduplicada via mapa), emite a linha de referência
+//     agregada (`#: arquivo:linha arquivo:linha ...`) e o par `msgid`/`msgstr`.
+//
+// A deduplicação preserva a primeira ocorrência de cada chave e soma as referências
+// subsequentes para facilitar o trabalho do tradutor.
 func escreverPot(path, dominio string, entradas []entradaPot) error {
 	var b strings.Builder
 	fmt.Fprintf(&b, `# Catálogo POT (template) gerado por `+"`harpia i18n extrair`"+`

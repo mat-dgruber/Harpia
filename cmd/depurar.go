@@ -21,6 +21,19 @@ type DapMessage struct {
 	Body    any    `json:"body,omitempty"`
 }
 
+// comandoDepurar instancia o servidor de Debug Adapter Protocol (DAP) do Harpia.
+//
+// O servidor escuta em `127.0.0.1:<porta>` (porta configurável via `--porta`,
+// padrão 4711 seguindo convenção de mercado) e atende conexões de qualquer IDE
+// ou editor compatível com o protocolo DAP (VS Code, Cursor, neovim, etc.).
+//
+// Modo de operação:
+//   - Loop síncrono de `Accept()` em goroutine que despacha cada cliente para
+//     `lidarComDap` em goroutine separada, permitindo múltiplos clientes simultâneos.
+//   - Handshake inicial via Content-Length LSP-style: lê cabeçalho, consome
+//     linha em branco, e deserializa o corpo JSON para `DapMessage`.
+//   - Responde com sucesso padrão às mensagens `initialize`, expondo
+//     `supportsConfigurationDoneRequest=true` e `supportsStepBack=false`.
 func comandoDepurar() *cobra.Command {
 	var porta int
 
@@ -55,6 +68,18 @@ func comandoDepurar() *cobra.Command {
 	return depurar
 }
 
+// lidarComDap processa a conexão TCP de uma única sessão DAP.
+//
+// Lê uma linha por vez do socket usando `bufio.Scanner` para evitar quebras em
+// entradas grandes. Em cada iteração:
+//  1. Localiza a linha `Content-Length:` para delimitar o tamanho do corpo JSON;
+//  2. Pula a linha em branco subsequente;
+//  3. Desserializa o corpo JSON em `DapMessage`;
+//
+// Ao final, monta a resposta (`Success=true`) com `Seq = request.Seq + 1`,
+// serializa em JSON, prefixa com `Content-Length: <tamanho>\r\n\r\n` (conforme
+// o protocolo LSP/DAP) e escreve de volta na conexão. A conexão é fechada
+// automaticamente via `defer conn.Close()` no retorno de `comandoDepurar`.
 func lidarComDap(conn net.Conn) {
 	defer conn.Close()
 	scanner := bufio.NewScanner(conn)

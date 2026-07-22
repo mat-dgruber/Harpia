@@ -19,6 +19,18 @@ type ImportRel struct {
 }
 
 // comandoDiagramar inicializa o comando 'Harpia diagramar'
+// comandoDiagramar inicializa `harpia diagramar`.
+//
+// O subcomando é responsável por varrer o projeto em busca de imports relativos
+// e mapeá-los em um grafo arquitetural, sinalizando visualmente violações da
+// Clean Architecture (camada `dominio` importando `infra` ou `web`, e camada
+// `infra` importando `web`).
+//
+// Suporta 3 formatos de saída:
+//   - `mermaid` (padrão): emite apenas o código-fonte textual do grafo;
+//   - `html`: gera arquivo standalone com header, botões de download SVG e
+//     área de alertas;
+//   - `svg`: gera o HTML com dica para baixar o SVG vetorial ao abrir.
 func comandoDiagramar() *cobra.Command {
 	var formato string
 	var saida string

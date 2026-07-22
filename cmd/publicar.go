@@ -8,6 +8,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// publicarCmd implementa `harpia publicar` (Harpia Deploy Engine).
+//
+// O fluxo recebe um `alvo` opcional como argumento posicional ("docker" ou outro nome).
+// Quando o alvo é "docker" o comando materializa um Dockerfile profissional pronto
+// para build multi-stage com a imagem Alpine como runtime; para alvos genéricos,
+// dispara `go build -ldflags` produzindo um binário standalone em `dist/`.
+//
+// Variável de ambiente relevante: GOOS/GOARCH ativos no processo de compilação.
 var publicarCmd = &cobra.Command{
 	Use:     "publicar [alvo]",
 	Aliases: []string{"deploy", "publish"},
@@ -51,6 +59,8 @@ CMD ["./main"]
 	},
 }
 
+// comandoPublicar retorna o comando Cobra pronto para ser registrado pelo orquestrador
+// de comandos da CLI (`InstalarComandos`).
 func comandoPublicar() *cobra.Command {
 	return publicarCmd
 }

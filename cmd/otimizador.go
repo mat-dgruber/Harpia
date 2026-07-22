@@ -4,10 +4,14 @@ import (
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
+// Otimizador encapsula o estado do otimizador de AST estático.
+// Ele mantém uma tabela (map) de identificadores que foram referenciados em qualquer parte do código.
 type Otimizador struct {
 	usados map[string]bool
 }
 
+// ColetarUsos varre recursivamente a árvore sintática abstrata (AST) a partir de um nó inicial,
+// populando o mapa de identificadores ativos/em uso no programa (DCE analysis).
 func (o *Otimizador) ColetarUsos(node parser.BaseNode) {
 	if node == nil {
 		return
@@ -110,6 +114,9 @@ func (o *Otimizador) ColetarUsos(node parser.BaseNode) {
 	}
 }
 
+// OtimizarNo realiza passadas de simplificação na AST a partir de um nó específico,
+// deletando declarações de variáveis que não estejam no mapa de usados (DCE) e
+// resolvendo e colapsando blocos condicionais que usem constantes estáticas (ex: se Falso/Verdadeiro).
 func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 	if node == nil {
 		return nil
@@ -198,6 +205,9 @@ func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 	return node
 }
 
+// Otimizar é o ponto de entrada público do otimizador estático da AST.
+// Ele realiza duas passadas completas na árvore: primeiro coleta todos os identificadores em uso
+// e depois realiza a eliminação de código morto (DCE) e otimização de caminhos lógicos constantes.
 func Otimizar(ast *parser.Programa) *parser.Programa {
 	o := &Otimizador{usados: make(map[string]bool)}
 

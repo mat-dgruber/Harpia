@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// lerDependenciasNome busca e interpreta de forma simplificada o manifesto dependencias.json
+// para extrair o nome completo e o nome curto configurados para a aplicação SPA.
 func lerDependenciasNome(dir string) (string, string) {
 	nome, curto := "", ""
 	for _, c := range []string{filepath.Join(dir, "..", "dependencias.json"), filepath.Join(dir, "dependencias.json"), "dependencias.json"} {
@@ -38,6 +40,7 @@ func lerDependenciasNome(dir string) (string, string) {
 	return nome, curto
 }
 
+// extrairValor isola e limpa uma string contida no valor de um par chave-valor JSON.
 func extrairValor(s string) string {
 	// s começa logo após "chave"
 	i := strings.Index(s, ":")
@@ -54,12 +57,14 @@ func extrairValor(s string) string {
 	return strings.TrimRight(strings.TrimSpace(s), ", \t\n")
 }
 
+// pwaIcon define o formato de objeto para ícones PWA no arquivo de manifesto de aplicação web.
 type pwaIcon struct {
 	Src   string `json:"src"`
 	Sizes string `json:"sizes"`
 	Type  string `json:"type"`
 }
 
+// pwaManifest modela a estrutura de dados oficial do arquivo de manifesto de aplicação PWA (manifest.webmanifest).
 type pwaManifest struct {
 	Name            string    `json:"name"`
 	ShortName       string    `json:"short_name"`
@@ -70,6 +75,8 @@ type pwaManifest struct {
 	Icons           []pwaIcon `json:"icons"`
 }
 
+// gerarManifest constrói o arquivo estruturado de manifesto (manifest.webmanifest)
+// no diretório de destino, definindo cores, ícones e URLs padrão da PWA.
 func gerarManifest(dir, nome, curto, fundo, tema string) (string, error) {
 	m := pwaManifest{
 		Name:            nome,
@@ -94,6 +101,8 @@ func gerarManifest(dir, nome, curto, fundo, tema string) (string, error) {
 	return out, nil
 }
 
+// gerarSW cria um Service Worker Javascript básico com estratégia cache-first (sw.js)
+// no diretório compilado, permitindo o funcionamento offline do app SPA.
 func gerarSW(dir string) (string, error) {
 	const sw = `// service worker básico cache-first
 const PRECACHE = ["/", "/index.html", "/app.js", "/runtime-web.js", "/estilos.css", "/manifest.webmanifest"];
@@ -125,6 +134,8 @@ self.addEventListener("fetch", (e) => {
 	return out, nil
 }
 
+// patcharHTML modifica o arquivo index.html no diretório compilado para vincular
+// a folha de manifesto, definir a tag meta theme-color e injetar o script de registro do sw.js.
 func patcharHTML(htmlPath, manifestHref, cor string, registrar bool) error {
 	b, err := os.ReadFile(htmlPath)
 	if err != nil {
@@ -166,6 +177,9 @@ if ("serviceWorker" in navigator) {
 	return os.WriteFile(htmlPath, []byte(s), 0644)
 }
 
+// comandoPwa cria e retorna o subcomando Cobra 'pwa' (`harpia pwa`).
+// Ele gera os arquivos manifest.webmanifest, sw.js e atualiza o index.html em dist/
+// para transformar a build estática da SPA em uma Progressive Web App (PWA) instalável.
 func comandoPwa() *cobra.Command {
 	var (
 		dir, nome, curto, fundo, tema string

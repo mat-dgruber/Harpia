@@ -11,6 +11,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// swaggerCmd gera a especificação OpenAPI 3.0 a partir de chamadas HTTP Harpia encontradas
+// no AST do programa (ex: `obter("/path")`, `postar(...)`, `put(...)`, `deleter(...)`).
+//
+// Saída canônica: arquivo `swagger.json` no diretório atual, pronto para alimentar
+// Swagger UI, Redoc ou geradores de cliente SDK.
 var swaggerCmd = &cobra.Command{
 	Use:     "docs [arquivo.hrp]",
 	Aliases: []string{"swagger", "openapi"},
@@ -45,11 +50,21 @@ var swaggerCmd = &cobra.Command{
 	},
 }
 
+// comandoSwagger retorna o `*cobra.Command` registrado pelo orquestrador da CLI.
 func comandoSwagger() *cobra.Command {
 	return swaggerCmd
 }
 
-
+// extrairOpenAPI percorre recursivamente a AST, identifica chamadas HTTP Harpia
+// (`obter`, `postar`, `put`, `deleter`) e converte cada uma em uma `Operation` OpenAPI.
+//
+// O resultado é montado em uma especificação OpenAPI 3.0.0 mínima contendo:
+//   - paths populados pelas chamadas declaradas no programa.
+//   - responses[200] padrão com descrição "Sucesso".
+//   - bloco `info` populado dinamicamente a partir do nome do arquivo fonte.
+//
+// Limitação conhecida: apenas chamadas de função como literais diretos são reconhecidas;
+// chamadas via variáveis (`var acao = http.obter`) não são capturadas.
 func extrairOpenAPI(ast parser.BaseNode, filename string) map[string]interface{} {
 	paths := make(map[string]interface{})
 

@@ -11,12 +11,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ExplicacaoErro armazena metadados didáticos sobre os erros do compilador/VM do Harpia.
 type ExplicacaoErro struct {
 	Nome      string
 	Descricao string
 	Exemplo   string
 }
 
+// explicacoes centraliza o catálogo estático de códigos de erros do Harpia (PSC-xxxx)
+// mapeando-os para explicações em português e exemplos de correção para os desenvolvedores.
 var explicacoes = map[string]ExplicacaoErro{
 	"PSC-0001": {
 		Nome:      "SintaxeErro",
@@ -90,6 +93,10 @@ var explicacoes = map[string]ExplicacaoErro{
 	},
 }
 
+// comandoErroCLI cria e retorna o comando Cobra 'erro' (`harpia erro`).
+// Este comando disponibiliza explicações estáticas sobre os códigos de erros do Harpia e
+// possui um subcomando 'explicar' que conecta-se a uma instância do Ollama local
+// (utilizando o modelo 'gemma') para gerar uma explicação pedagógica dinâmica com IA.
 func comandoErroCLI() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "erro [codigo]",

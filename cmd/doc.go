@@ -66,6 +66,18 @@ func comandoDoc() *cobra.Command {
 	return cmdDoc
 }
 
+// extrairDocumentacao percorre linha-a-linha um arquivo `.hrp` associando
+// comentários `///` acumulados à próxima declaração de função, classe, constante
+// ou variável que apareça no arquivo.
+//
+// Algoritmo:
+//  1. Mantém um buffer `docsAcumuladas` à medida que linhas `///` são lidas.
+//  2. Em linhas de código, testa cada uma das 4 regexes (funcao, classe,
+//     constante, var) e associa o buffer como descrição do elemento reconhecido.
+//  3. Linhas vazias e linhas de código sem match limpam o buffer (prevenindo
+//     falsos positivos entre blocos não relacionados).
+//
+// Retorna uma slice de `DocElement` pronta para ser renderizada em Markdown ou HTML.
 func extrairDocumentacao(caminho string) ([]DocElement, error) {
 	file, err := os.Open(caminho)
 	if err != nil {
