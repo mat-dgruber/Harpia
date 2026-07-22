@@ -1,5 +1,7 @@
 package hrp
 
+import "sync/atomic"
+
 // ObjetoGC define os comportamentos esperados de um objeto que participa da gerência de contagem de referências.
 type ObjetoGC interface {
 	Objeto
@@ -11,28 +13,28 @@ type ObjetoGC interface {
 
 // GCMixin é uma estrutura leve e embutível para dar suporte nativo a contagem de referências e listagem de dependências de forma fail-safe.
 type GCMixin struct {
-	RefsCount int
+	RefsCount int32
 }
 
 // Reter incrementa o contador de referências se o objeto não for imutável/singleton (-1).
 func (g *GCMixin) Reter() {
-	if g.RefsCount == -1 {
+	if atomic.LoadInt32(&g.RefsCount) == -1 {
 		return
 	}
-	g.RefsCount++
+	atomic.AddInt32(&g.RefsCount, 1)
 }
 
 // Liberar decrementa o contador de referências.
 func (g *GCMixin) Liberar() {
-	if g.RefsCount == -1 {
+	if atomic.LoadInt32(&g.RefsCount) == -1 {
 		return
 	}
-	g.RefsCount--
+	atomic.AddInt32(&g.RefsCount, -1)
 }
 
 // ObterRefs retorna a quantidade ativa de referências do objeto.
 func (g *GCMixin) ObterRefs() int {
-	return g.RefsCount
+	return int(atomic.LoadInt32(&g.RefsCount))
 }
 
 // ObterFilhos padrão para o mixin (retorna nenhum filho por padrão, deve ser sobrescrito).
@@ -124,6 +126,11 @@ func ColetarCiclos(escopo *Escopo) {
 			}
 			for k := range v {
 				delete(v, k)
+			}
+		case *Instancia:
+			for k, item := range v.Atributos {
+				LiberarObjeto(item)
+				delete(v.Atributos, k)
 			}
 		}
 	}

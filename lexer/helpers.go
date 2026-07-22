@@ -52,6 +52,9 @@ var tokensSimples = map[string]TokenType{
 	// Recursos de acesso e encadeamento
 	".":  TokenPonto,
 	"|>": TokenPipe,
+	"??": TokenInterrogacaoInterrogacao,
+	"?.": TokenPontoInterrogacao,
+	"?":  TokenInterrogacao,
 }
 
 // tokensIdentificadores atua como a tabela de símbolos de palavras-chave reservadas do Harpia.
@@ -108,4 +111,6 @@ var tokensIdentificadores = map[string]TokenType{
 	"assincrono": TokenAssincrono,
 	"aguarde":    TokenAguarde,
 	"estilo":     TokenEstilo,
+	"enum":       TokenEnum,
+	"interface":  TokenInterface,
 }

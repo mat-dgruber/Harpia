@@ -61,6 +61,26 @@ func ObtemImplModulo(nome string) *ModuloImpl {
 	return gerenciador.ObtemImplModulo(nome)
 }
 
+// ObtemGlobalsDoLinter reúne e retorna as chaves do módulo primordial de embutidos e nomes de módulos registrados.
+func ObtemGlobalsDoLinter() map[string]bool {
+	res := make(map[string]bool)
+	gerenciador.mu.RLock()
+	defer gerenciador.mu.RUnlock()
+	
+	if impl, ok := gerenciador.Impls["embutidos"]; ok {
+		for k := range impl.Constantes {
+			res[k] = true
+		}
+		for _, m := range impl.Metodos {
+			res[m.Nome] = true
+		}
+	}
+	for nome := range gerenciador.Impls {
+		res[nome] = true
+	}
+	return res
+}
+
 // Modulo representa o objeto de instância de escopo dinâmico que a VM utiliza para representar pacotes carregados.
 type Modulo struct {
 	Impl         *ModuloImpl // Ponteiro para a especificação estática de compilação Go.
@@ -154,6 +174,12 @@ func (tabela *TabelaModulos) NewModulo(ctx *Contexto, impl *ModuloImpl) (*Modulo
 	tabela.modulos[nome] = modulo
 	if impl.Info.Arquivo != "" {
 		tabela.modulos[impl.Info.Arquivo] = modulo
+	}
+	// Cache the filename/caminho of the program too
+	if impl.Ast != nil {
+		if prog, ok := impl.Ast.(*parser.Programa); ok && prog.Arquivo != "" {
+			tabela.modulos[prog.Arquivo] = modulo
+		}
 	}
 	if nome == "embutidos" {
 		tabela.Embutidos = modulo

@@ -140,6 +140,13 @@ const (
 	TokenAssincrono // assincrono
 	TokenAguarde    // aguarde
 	TokenEstilo     // estilo
+
+	TokenInterrogacaoInterrogacao // ?? (coalescência nula)
+	TokenPontoInterrogacao         // ?. (encadeamento opcional)
+	TokenInterrogacao              // ? (operador condicional ternário)
+
+	TokenEnum      // enum (enumeração)
+	TokenInterface // interface (contrato)
 )
 
 // PosicaoToken armazena as coordenadas espaciais precisas de um caractere no arquivo fonte.

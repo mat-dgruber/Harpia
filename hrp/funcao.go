@@ -143,7 +143,19 @@ func (f *Funcao) M__chame__(args Tupla) (Objeto, error) {
 		escopo.DefinirSimbolo(simbolo)
 	}
 
-	retorno, err := (&Interpretador{Ast: f.corpo, Contexto: f.contexto, Escopo: escopo}).Inicializa()
+	newInterpret := &Interpretador{Ast: f.corpo, Contexto: f.contexto, Escopo: escopo}
+	if f.contexto != nil && f.contexto.ArquivoAtual != "" {
+		newInterpret.Arquivo = f.contexto.ArquivoAtual
+		newInterpret.Codigo = f.contexto.CodigoAtual
+		if f.contexto.Modulos != nil {
+			if mod, err := f.contexto.Modulos.ObterModulo(f.contexto.ArquivoAtual); err == nil && mod != nil && mod.Impl.Ast != nil {
+				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
+					newInterpret.Posicoes = prog.Posicoes
+				}
+			}
+		}
+	}
+	retorno, err := newInterpret.Inicializa()
 	if err == nil && f.tipoRetorno != "" && f.contexto.Opcs.Estrito {
 		valRetorno := retorno
 		if valRetorno == nil {

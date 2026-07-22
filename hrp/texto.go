@@ -94,6 +94,39 @@ func (t Texto) M__igual__(outro Objeto) (Objeto, error) {
 	return NewBooleano(t == outro.(Texto))
 }
 
+// M__menor_que__ compara lexicograficamente se o texto é menor que outro (<).
+func (t Texto) M__menor_que__(outro Objeto) (Objeto, error) {
+	if !MesmoTipo(t, outro) {
+		return nil, NewErroF(TipagemErro, "A operação '<' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, outro.Tipo().Nome)
+	}
+	return NewBooleano(string(t) < string(outro.(Texto)))
+}
+
+// M__menor_ou_igual__ compara lexicograficamente se o texto é menor ou igual a outro (<=).
+func (t Texto) M__menor_ou_igual__(outro Objeto) (Objeto, error) {
+	if !MesmoTipo(t, outro) {
+		return nil, NewErroF(TipagemErro, "A operação '<=' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, outro.Tipo().Nome)
+	}
+	return NewBooleano(string(t) <= string(outro.(Texto)))
+}
+
+// M__maior_que__ compara lexicograficamente se o texto é maior que outro (>).
+func (t Texto) M__maior_que__(outro Objeto) (Objeto, error) {
+	if !MesmoTipo(t, outro) {
+		return nil, NewErroF(TipagemErro, "A operação '>' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, outro.Tipo().Nome)
+	}
+	return NewBooleano(string(t) > string(outro.(Texto)))
+}
+
+// M__maior_ou_igual__ compara lexicograficamente se o texto é maior ou igual a outro (>=).
+func (t Texto) M__maior_ou_igual__(outro Objeto) (Objeto, error) {
+	if !MesmoTipo(t, outro) {
+		return nil, NewErroF(TipagemErro, "A operação '>=' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, outro.Tipo().Nome)
+	}
+	return NewBooleano(string(t) >= string(outro.(Texto)))
+}
+
+
 // M__adiciona__ executa a concatenação de duas strings. Lança erro de tipagem caso tente somar tipos distintos.
 func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 	if !MesmoTipo(t, outro) {
@@ -126,6 +159,12 @@ func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	default:
 		return nil, NewErroF(TipagemErro, "A operação '*' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, obj.Tipo().Nome)
 	}
+}
+
+// M__iter__ satisfaz o protocolo de objetos iteráveis, retornando um iterador que percorre o texto caractere a caractere.
+// Preserva corretamente caracteres Unicode multibyte (runas).
+func (t Texto) M__iter__() (Objeto, error) {
+	return NewIterador(t)
 }
 
 // M__tamanho__ retorna o comprimento real de caracteres Unicode (runas) e não a quantidade de bytes raw de strings.
@@ -216,10 +255,16 @@ var _ I__texto__ = Texto("")
 var _ I__bytes__ = Texto("")
 var _ I__booleano__ = Texto("")
 var _ I__igual__ = Texto("")
+var _ I__menor_que__ = Texto("")
+var _ I__menor_ou_igual__ = Texto("")
+var _ I__maior_que__ = Texto("")
+var _ I__maior_ou_igual__ = Texto("")
 var _ I__adiciona__ = Texto("")
 var _ I__multiplica__ = Texto("")
 var _ I__tamanho__ = Texto("")
 var _ I__contem__ = Texto("")
+var _ I__iter__ = Texto("")
+
 
 func init() {
 	// Injeção de métodos de instância de Texto no mapa da classe.

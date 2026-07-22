@@ -153,7 +153,11 @@ func (e *Erro) AdicionarContexto(contexto *Contexto) {
 	}
 
 	if e.Linha == -1 {
-		e.Linha = contexto.LinhaAtual
+		if contexto.LinhaAtual > 0 {
+			e.Linha = contexto.LinhaAtual - 1
+		} else {
+			e.Linha = contexto.LinhaAtual
+		}
 		e.Coluna = contexto.ColunaAtual
 		e.Token = contexto.TokenAtual
 		e.Arquivo = contexto.ArquivoAtual
@@ -220,19 +224,86 @@ func ObterCodigoErro(tipo *Tipo) string {
 	}
 }
 
+// levenshtein calcula a distância de edição de Levenshtein entre duas strings.
+func levenshtein(s, t string) int {
+	d := make([][]int, len(s)+1)
+	for i := range d {
+		d[i] = make([]int, len(t)+1)
+		d[i][0] = i
+	}
+	for j := range d[0] {
+		d[0][j] = j
+	}
+	for i := 1; i <= len(s); i++ {
+		for j := 1; j <= len(t); j++ {
+			cost := 1
+			if s[i-1] == t[j-1] {
+				cost = 0
+			}
+			d[i][j] = d[i-1][j] + 1 // deleção
+			if d[i][j-1]+1 < d[i][j] {
+				d[i][j] = d[i][j-1] + 1 // inserção
+			}
+			if d[i-1][j-1]+cost < d[i][j] {
+				d[i][j] = d[i-1][j-1] + cost // substituição
+			}
+		}
+	}
+	return d[len(s)][len(t)]
+}
+
 // ObterSugestaoErro fornece uma camada de inteligência corretiva fantástica.
 // Analisa heuristicamente os lexemas textuais da exceção e retorna dicas contextuais amigáveis.
 func ObterSugestaoErro(tipo *Tipo, mensagem string) string {
 	msgLower := strings.ToLower(mensagem)
-	if tipo == NomeErro && (strings.Contains(msgLower, "imrpimir") || strings.Contains(msgLower, "imprimi")) {
-		return "Você quis dizer 'imprimir'?"
-	}
 	if tipo == SintaxeErro && strings.Contains(msgLower, "retornar") {
 		return "Em Harpia, use a palavra-chave 'retorne' para retornar valores."
 	}
 	if tipo == DivisaoPorZeroErro {
 		return "Não é possível dividir um número por zero."
 	}
+
+	// Se for erro de nome, tenta extrair o identificador não encontrado e achar o mais próximo por Levenshtein
+	if tipo == NomeErro {
+		// A mensagem costuma ser: "'<identificador>' não foi encontrado no escopo atual"
+		var id string
+		if strings.HasPrefix(mensagem, "'") {
+			parts := strings.Split(mensagem, "'")
+			if len(parts) >= 2 {
+				id = parts[1]
+			}
+		}
+		if id == "" {
+			// Fallback: se não achar por aspas simples, tenta extrair as palavras
+			words := strings.Fields(mensagem)
+			if len(words) > 0 {
+				id = strings.Trim(words[0], "'\" ")
+			}
+		}
+
+		if id != "" {
+			idLower := strings.ToLower(id)
+			// Lista de built-ins conhecidos
+			candidatos := []string{
+				"imprimir", "imprima", "escreva", "assegura", "sinal", "efeito", "derivado",
+				"armazem", "renderizar", "montar", "fetch", "window", "document", "Texto",
+				"Inteiro", "Decimal", "Logico", "Lista", "Tupla", "Mapa", "Objeto", "Erro",
+			}
+			menorDist := 999
+			sugestao := ""
+			for _, cand := range candidatos {
+				dist := levenshtein(idLower, strings.ToLower(cand))
+				if dist < menorDist && dist <= 2 { // Distância máxima aceitável para considerar typo
+					menorDist = dist
+					sugestao = cand
+				}
+			}
+			if sugestao != "" {
+				return fmt.Sprintf("Você quis dizer '%s'?", sugestao)
+			}
+		}
+	}
+
 	return ""
 }
 
@@ -264,9 +335,13 @@ func (e *Erro) Error() string {
 	}
 
 	codigoStr := e.Codigo
-	if codigoStr == "" && e.Arquivo != "" && e.Arquivo != "<string>" && e.Arquivo != "<playground>" {
-		if bytes, err := os.ReadFile(e.Arquivo); err == nil {
-			codigoStr = string(bytes)
+	if codigoStr == "" {
+		if e.Contexto != nil && e.Contexto.CodigoAtual != "" {
+			codigoStr = e.Contexto.CodigoAtual
+		} else if e.Arquivo != "" && e.Arquivo != "<string>" && e.Arquivo != "<playground>" {
+			if bytes, err := os.ReadFile(e.Arquivo); err == nil {
+				codigoStr = string(bytes)
+			}
 		}
 	}
 

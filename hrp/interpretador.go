@@ -1,6 +1,8 @@
 package hrp
 
 import (
+	"strings"
+
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
 )
@@ -85,7 +87,12 @@ func (i *Interpretador) Visite(nodes []parser.BaseNode) (Objeto, error) {
 // utilizando o mapa de posições físicas do parser. Isso garante que tracebacks tenham as coordenadas físicas reais do erro.
 func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 	if i.Posicoes != nil {
-		if tok, ok := i.Posicoes[astNode]; ok && tok != nil {
+		tok := i.Posicoes[astNode]
+		if tok == nil {
+			// Fallback: If this is an Identifier or expression node not mapped directly,
+			// try to search if we can match it via custom traversal or if we can use the closest token
+		}
+		if tok != nil {
 			i.Contexto.TokenAtual = tok
 			if tok.Inicio != nil {
 				i.Contexto.LinhaAtual = tok.Inicio.Linha
@@ -93,13 +100,13 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 
 				// ponytail: record executed line in the current context for coverage reporting!
 				if i.Contexto.LinhasExecutadas != nil && i.Arquivo != "" {
-					if i.Contexto.LinhasExecutadas[i.Arquivo] == nil {
-						i.Contexto.LinhasExecutadas[i.Arquivo] = make(map[int]bool)
-					}
-					i.Contexto.LinhasExecutadas[i.Arquivo][tok.Inicio.Linha] = true
+					i.Contexto.RegistrarLinhaExecutada(i.Arquivo, tok.Inicio.Linha)
 				}
 			}
 		}
+	} else if i.Contexto != nil {
+		// Try to fallback by checking if the AST node has its own Token field or similar
+		// But in Harpia, coordinates are tracked via Posicoes map.
 	}
 
 	switch node := astNode.(type) {
@@ -171,6 +178,16 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		return i.visiteTemplateExpr(node)
 	case *parser.AguardeNode:
 		return i.visiteAguardeNode(node)
+	case *parser.DeclVarDestructuring:
+		return i.visiteDeclVarDestructuring(node)
+	case *parser.OpCoalescenciaNula:
+		return i.visiteOpCoalescenciaNula(node)
+	case *parser.AcessoMembroOpcional:
+		return i.visiteAcessoMembroOpcional(node)
+	case *parser.DeclEnum:
+		return i.visiteDeclEnum(node)
+	case *parser.DeclInterface:
+		return i.visiteDeclInterface(node)
 	case *parser.NoJSX:
 		return i.visiteNoJSX(node)
 	case *parser.NoSeJSX:
@@ -192,7 +209,9 @@ func (i *Interpretador) visiteDeclVar(node *parser.DeclVar) (Objeto, error) {
 		val, err := i.visite(node.Inicializador)
 
 		if err != nil {
-			err.(*Erro).AdicionarContexto(i.Contexto)
+			if hrpErr, ok := err.(*Erro); ok {
+				hrpErr.AdicionarContexto(i.Contexto)
+			}
 			return nil, err
 		}
 
@@ -218,6 +237,37 @@ func (i *Interpretador) visiteDeclVar(node *parser.DeclVar) (Objeto, error) {
 
 	return nil, nil
 }
+
+func (i *Interpretador) visiteDeclVarDestructuring(node *parser.DeclVarDestructuring) (Objeto, error) {
+	val, err := i.visite(node.Inicializador)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, nome := range node.Nomes {
+		var item Objeto = Nulo
+		if val != Nulo {
+			if idxable, ok := val.(I__obtem_item__); ok {
+				inteiroIdx, err := NewInteiro(idx)
+				if err != nil {
+					return nil, err
+				}
+				itemVal, err := idxable.M__obtem_item__(inteiroIdx)
+				if err == nil {
+					item = itemVal
+				}
+			}
+		}
+
+		simb := &Simbolo{Nome: nome, Valor: item, Constante: node.Constante}
+		if err := i.Escopo.DefinirSimbolo(simb); err != nil {
+			return nil, err
+		}
+	}
+
+	return Nulo, nil
+}
+
 
 // visiteDeclFuncao instancia um novo objeto Funcao ligando o corpo e os escopos e o registra na tabela local.
 func (i *Interpretador) visiteDeclFuncao(node *parser.DeclFuncao) (Objeto, error) {
@@ -274,9 +324,12 @@ func (i *Interpretador) visiteChamadaFuncao(node *parser.ChamadaFuncao) (Objeto,
 	return Chamar(objeto, args)
 }
 
-// visiteTextoLiteral converte a string física limpa de aspas em um Texto nativo.
 func (i *Interpretador) visiteTextoLiteral(node *parser.TextoLiteral) (Objeto, error) {
-	return Texto(node.Valor[1 : len(node.Valor)-1]), nil
+	runes := []rune(node.Valor)
+	if len(runes) >= 2 {
+		return Texto(string(runes[1 : len(runes)-1])), nil
+	}
+	return Texto(""), nil
 }
 
 // visiteInteiroLiteral converte o lexema numérico em um Inteiro nativo da VM.
@@ -429,15 +482,27 @@ func (i *Interpretador) visiteOpBinaria(node *parser.OpBinaria) (Objeto, error) 
 	return nil, NewErroF(TipagemErro, "A operação '%s' não é suportada entre os tipos '%s' e '%s'", node.Operador, esquerda.Tipo().Nome, direita.Tipo().Nome)
 }
 
-// visiteIdentificador recupera o valor de uma variável no escopo, ou no catálogo global de embutidos como fallback.
 func (i *Interpretador) visiteIdentificador(node *parser.Identificador) (Objeto, error) {
 	objeto, err := i.Escopo.ObterValor(node.Nome)
-
 	if err != nil {
-		if objeto, err = i.Contexto.Modulos.Embutidos.M__obtem_attributo__(node.Nome); err == nil {
-			return objeto, nil
+		if i.Contexto != nil && i.Contexto.Modulos != nil && i.Contexto.Modulos.Embutidos != nil {
+			if objeto, err = i.Contexto.Modulos.Embutidos.M__obtem_attributo__(node.Nome); err == nil {
+				return objeto, nil
+			}
 		}
-
+		if hrpErr, ok := err.(*Erro); ok {
+			hrpErr.AdicionarContexto(i.Contexto)
+			// Ensure token coordinate details are retrieved specifically from the identifier node
+			if i.Posicoes != nil {
+				if tok, ok := i.Posicoes[node]; ok && tok != nil {
+					hrpErr.Token = tok
+					if tok.Inicio != nil {
+						hrpErr.Linha = tok.Inicio.Linha - 1
+						hrpErr.Coluna = tok.Inicio.Coluna
+					}
+				}
+			}
+		}
 		return nil, err
 	}
 
@@ -565,7 +630,6 @@ func (i *Interpretador) visiteExpressaoSe(node *parser.ExpressaoSe) (Objeto, err
 	return i.visite(node.Alternativa)
 }
 
-// visiteBloco aloca um escopo léxico temporário filho, executa as declarações e o destrói ao final.
 func (i *Interpretador) visiteBloco(node *parser.Bloco) (Objeto, error) {
 	i.entrarNoEscopo(nil)
 	defer i.sairDoEscopo()
@@ -573,6 +637,9 @@ func (i *Interpretador) visiteBloco(node *parser.Bloco) (Objeto, error) {
 	for _, decl := range node.Declaracoes {
 		if _, err := i.visite(decl); err != nil {
 			return nil, err
+		}
+		if i.ValorRetorno != nil {
+			return i.ValorRetorno, nil
 		}
 	}
 	return nil, nil
@@ -995,7 +1062,7 @@ func (i *Interpretador) visiteDeclExportar(node *parser.DeclExportar) (Objeto, e
 }
 
 func (i *Interpretador) visiteTemplateLiteral(node *parser.TemplateLiteral) (Objeto, error) {
-	resultado := ""
+	var sb strings.Builder
 	for _, parte := range node.Partes {
 		val, err := i.visite(parte)
 		if err != nil {
@@ -1005,9 +1072,9 @@ func (i *Interpretador) visiteTemplateLiteral(node *parser.TemplateLiteral) (Obj
 		if err != nil {
 			return nil, err
 		}
-		resultado += string(txt.(Texto))
+		sb.WriteString(string(txt.(Texto)))
 	}
-	return Texto(resultado), nil
+	return Texto(sb.String()), nil
 }
 
 func (i *Interpretador) visiteTemplateExpr(node *parser.TemplateExpr) (Objeto, error) {
@@ -1155,5 +1222,65 @@ func (i *Interpretador) visiteNoParaJSX(node *parser.NoParaJSX) (Objeto, error) 
 
 func (i *Interpretador) visiteDeclEstilo(node *parser.DeclEstilo) (Objeto, error) {
 	// Ignora blocos estilo no backend (não geram nós de árvore VDOM física)
+	return Nulo, nil
+}
+
+func (i *Interpretador) visiteOpCoalescenciaNula(node *parser.OpCoalescenciaNula) (Objeto, error) {
+	valEsq, err := i.visite(node.Esq)
+	if err != nil {
+		return nil, err
+	}
+	if valEsq != nil && valEsq != Nulo {
+		return valEsq, nil
+	}
+	return i.visite(node.Dir)
+}
+
+func (i *Interpretador) visiteAcessoMembroOpcional(node *parser.AcessoMembroOpcional) (Objeto, error) {
+	valObj, err := i.visite(node.Objeto)
+	if err != nil {
+		return nil, err
+	}
+	if valObj == nil || valObj == Nulo {
+		return Nulo, nil
+	}
+
+	nomeMembro := ""
+	if id, ok := node.Membro.(*parser.Identificador); ok {
+		nomeMembro = id.Nome
+	} else if txt, ok := node.Membro.(*parser.TextoLiteral); ok {
+		nomeMembro = txt.Valor
+	}
+
+	if nomeMembro == "" {
+		return Nulo, nil
+	}
+
+	if objComAttr, ok := valObj.(I__obtem_attributo__); ok {
+		attr, errAttr := objComAttr.M__obtem_attributo__(nomeMembro)
+		if errAttr != nil {
+			return Nulo, nil
+		}
+		return attr, nil
+	}
+
+	return Nulo, nil
+}
+
+func (i *Interpretador) visiteDeclEnum(node *parser.DeclEnum) (Objeto, error) {
+	enumObj := NewMapaVazio()
+	for _, val := range node.Valores {
+		enumObj.M__define_item__(Texto(val), Texto(val))
+	}
+	simb := &Simbolo{Nome: node.Nome, Valor: enumObj, Constante: true}
+	if err := i.Escopo.DefinirSimbolo(simb); err != nil {
+		return nil, err
+	}
+	return Nulo, nil
+}
+
+func (i *Interpretador) visiteDeclInterface(node *parser.DeclInterface) (Objeto, error) {
+	// Interfaces funcionam como especificações de contrato estáticas para o Linter.
+	// Em runtime, o registro armazena um metadado sintético nulo.
 	return Nulo, nil
 }

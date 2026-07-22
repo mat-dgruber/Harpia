@@ -61,6 +61,7 @@ func (c *ClasseObj) M__nova_instancia__(meta *Tipo, args Tupla) (Objeto, error) 
 
 // Instancia representa o objeto físico instanciado a partir de uma classe customizada do Harpia (ClasseObj).
 type Instancia struct {
+	GCMixin
 	Classe    *ClasseObj        // Ponteiro de amarração que referencia a classe de origem.
 	Atributos map[string]Objeto // Tabela de símbolos local contendo as propriedades e atributos dinâmicos do objeto.
 }
@@ -118,6 +119,17 @@ func (inst *Instancia) M__define_atributo__(nome string, valor Objeto) error {
 	return nil
 }
 
+// ObterFilhos retorna todos os atributos ativos da instância para rastreamento de ciclos pelo GC.
+func (inst *Instancia) ObterFilhos() []Objeto {
+	filhos := make([]Objeto, 0, len(inst.Atributos))
+	for _, v := range inst.Atributos {
+		if v != nil {
+			filhos = append(filhos, v)
+		}
+	}
+	return filhos
+}
+
 // Garantias de assinaturas estruturais em Go.
 var _ Objeto = (*ClasseObj)(nil)
 var _ I__nova_instancia__ = (*ClasseObj)(nil)
@@ -125,3 +137,4 @@ var _ I__obtem_attributo__ = (*ClasseObj)(nil)
 var _ Objeto = (*Instancia)(nil)
 var _ I__obtem_attributo__ = (*Instancia)(nil)
 var _ I__define_atributo__ = (*Instancia)(nil)
+

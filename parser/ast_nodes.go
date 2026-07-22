@@ -24,6 +24,13 @@ type DeclVar struct {
 	Inicializador BaseNode // Expressão inicial opcional para atribuição (ex: x = 10).
 }
 
+// DeclVarDestructuring representa a desestruturação de variáveis (ex: var [a, b] = sinal(0)).
+type DeclVarDestructuring struct {
+	Constante     bool     // Verdadeiro se for const
+	Nomes         []string // Lista de variáveis a serem extraídas
+	Inicializador BaseNode // O valor/sinal à direita
+}
+
 // Reatribuicao representa comandos de sobrescrita de variáveis comuns ou reatribuições compostas (ex: x += 1).
 type Reatribuicao struct {
 	Objeto    BaseNode // O destino da escrita (geralmente um nó Identificador ou AcessoMembro).
@@ -271,6 +278,42 @@ func (*DeclExportar) isExpr()           {}
 func (*TemplateLiteral) isExpr()        {}
 func (*TemplateExpr) isExpr()           {}
 func (*AguardeNode) isExpr()            {}
+func (*DeclVarDestructuring) isExpr()   {}
+func (*OpCoalescenciaNula) isExpr()     {}
+func (*AcessoMembroOpcional) isExpr()   {}
+func (*DeclEnum) isExpr()               {}
+func (*DeclInterface) isExpr()          {}
+
+// DeclEnum representa uma enumeração nativa (ex: enum Status { Pendente, Concluido })
+type DeclEnum struct {
+	Nome    string
+	Valores []string
+}
+
+// MetodoAssinatura representa a assinatura de um método exigido em uma Interface
+type MetodoAssinatura struct {
+	Nome        string
+	Parametros  []string
+	TipoRetorno string
+}
+
+// DeclInterface representa um contrato de interface (ex: interface Repositorio { func salvar(item) })
+type DeclInterface struct {
+	Nome    string
+	Metodos []MetodoAssinatura
+}
+
+// OpCoalescenciaNula representa o operador de coalescência nula 'a ?? b'.
+type OpCoalescenciaNula struct {
+	Esq BaseNode
+	Dir BaseNode
+}
+
+// AcessoMembroOpcional representa o acesso a atributo com navegabilidade segura 'a?.b'.
+type AcessoMembroOpcional struct {
+	Objeto BaseNode
+	Membro BaseNode
+}
 
 // AtributoJSX representa um atributo em uma tag JSX (ex: classe="p-4" ou aoClicar={clique})
 type AtributoJSX struct {
@@ -310,3 +353,12 @@ func (*NoJSX) isExpr()       {}
 func (*NoSeJSX) isExpr()     {}
 func (*NoParaJSX) isExpr()   {}
 func (*DeclEstilo) isExpr()  {}
+
+// OpTernaria representa o operador condicional ternário (condicao ? entao : senao).
+type OpTernaria struct {
+	Condicao BaseNode
+	Entao    BaseNode
+	Senao    BaseNode
+}
+
+func (*OpTernaria) isExpr() {}

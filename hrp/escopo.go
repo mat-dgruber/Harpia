@@ -36,15 +36,35 @@ type Escopo struct {
 	mu       sync.RWMutex        // Mutex para proteção de leitura/escrita concorrente em mapas de símbolos.
 }
 
+var poolEscopo = sync.Pool{
+	New: func() interface{} {
+		return &Escopo{
+			Simbolos: make(map[string]*Simbolo),
+		}
+	},
+}
+
 // NewEscopo aloca e retorna uma nova tabela hash de escopo isolada de nível superior.
 func NewEscopo() *Escopo {
-	return &Escopo{}
+	e := poolEscopo.Get().(*Escopo)
+	e.Pai = nil
+	if e.Simbolos == nil {
+		e.Simbolos = make(map[string]*Simbolo)
+	} else {
+		for k := range e.Simbolos {
+			delete(e.Simbolos, k)
+		}
+	}
+	return e
 }
 
 // NewEscopo instancia um novo escopo filho enlaçado ao escopo atual (Pai = e).
 func (e *Escopo) NewEscopo() *Escopo {
-	return &Escopo{Pai: e}
+	filho := NewEscopo()
+	filho.Pai = e
+	return filho
 }
+
 
 // Len devolve o número de símbolos definidos localmente no escopo atual.
 func (e *Escopo) Len() int {
@@ -124,7 +144,11 @@ func (e *Escopo) RedefinirValor(nome string, valor Objeto) error {
 // escopos pais. Se atingir o escopo raiz primordial sem sucesso, retorna um erro estruturado NomeErro.
 func (e *Escopo) ObterValor(nome string) (Objeto, error) {
 	e.mu.RLock()
-	simbolo, ok := e.Simbolos[nome]
+	var simbolo *Simbolo
+	var ok bool
+	if e.Simbolos != nil {
+		simbolo, ok = e.Simbolos[nome]
+	}
 	e.mu.RUnlock()
 
 	if !ok {
@@ -141,7 +165,11 @@ func (e *Escopo) ObterValor(nome string) (Objeto, error) {
 // ObterSimbolo busca e retorna a struct Simbolo completa de forma léxica recursiva.
 func (e *Escopo) ObterSimbolo(nome string) (*Simbolo, error) {
 	e.mu.RLock()
-	simbolo, ok := e.Simbolos[nome]
+	var simbolo *Simbolo
+	var ok bool
+	if e.Simbolos != nil {
+		simbolo, ok = e.Simbolos[nome]
+	}
 	e.mu.RUnlock()
 
 	if !ok {

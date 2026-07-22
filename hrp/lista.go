@@ -120,7 +120,7 @@ func (l *Lista) Pop(indice Inteiro) (Objeto, error) {
 func init() {
 	// Registro de métodos de classe e métodos mágicos de Lista.
 
-	TipoLista.Mapa["adiciona"] = NewMetodoOuPanic("adiciona", func(inst Objeto, args Tupla) (Objeto, error) {
+	metodoAdiciona := NewMetodoOuPanic("adiciona", func(inst Objeto, args Tupla) (Objeto, error) {
 		if err := VerificaNumeroArgumentos("adiciona", true, args, 1, 1); err != nil {
 			return nil, err
 		}
@@ -128,6 +128,11 @@ func init() {
 		inst.(*Lista).Adiciona(args[0])
 		return nil, nil
 	}, "O método recebe um objeto e adiciona ao fim da lista")
+
+	TipoLista.Mapa["adiciona"] = metodoAdiciona
+	TipoLista.Mapa["adicionar"] = metodoAdiciona
+	TipoLista.Mapa["anexar"] = metodoAdiciona
+
 
 	TipoLista.Mapa["extende"] = NewMetodoOuPanic("extende", func(inst Objeto, args Tupla) (Objeto, error) {
 		if err := VerificaNumeroArgumentos("extende", true, args, 1, 1); err != nil {

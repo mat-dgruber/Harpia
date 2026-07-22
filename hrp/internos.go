@@ -34,10 +34,19 @@ func adicionaContextoSeNaoTiver(err error, context *Contexto) {
 	}
 
 	if erro.Linha == -1 {
-		erro.Linha = context.LinhaAtual
+		if context.LinhaAtual > 0 {
+			erro.Linha = context.LinhaAtual - 1
+		} else {
+			erro.Linha = context.LinhaAtual
+		}
 		erro.Coluna = context.ColunaAtual
 		erro.Token = context.TokenAtual
 		erro.Arquivo = context.ArquivoAtual
+		erro.Codigo = context.CodigoAtual
+	}
+
+	// Double check that if Codigo is still empty, we fallback to context
+	if erro.Codigo == "" && context.CodigoAtual != "" {
 		erro.Codigo = context.CodigoAtual
 	}
 }

@@ -78,11 +78,11 @@ func (p *Parser) consome(token string) error {
 		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFimDeArquivo {
 			return nil
 		}
-		return fmt.Errorf("era esperado o token ';' ou uma nova linha, mas no lugar foi encontrado '%v'", p.token.Valor)
+		return p.errof("era esperado o token ';' ou uma nova linha, mas no lugar foi encontrado '%v'", p.token.Valor)
 	}
 
 	if p.token.Valor != token {
-		return fmt.Errorf("era esperado o token '%v', mas no lugar foi encontrado '%v'", token, p.token.Valor)
+		return p.errof("era esperado o token '%v', mas no lugar foi encontrado '%v'", token, p.token.Valor)
 	}
 
 	p.avancar()
@@ -119,17 +119,21 @@ func (p *Parser) parseDeclaracoes() ([]BaseNode, error) {
 	var declaracoes []BaseNode
 
 	for !p.fimDeArquivo() && p.token.Tipo != lexer.TokenFechaChaves {
-		if p.token.Tipo != lexer.TokenNovaLinha {
-			declaracao, err := p.parseDeclaracao()
-
-			if err != nil {
-				return nil, err
-			}
-
-			declaracoes = append(declaracoes, declaracao)
+		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
+			p.avancar()
+			continue
 		}
 
-		p.avancar()
+		declaracao, err := p.parseDeclaracao()
+		if err != nil {
+			return nil, err
+		}
+
+		declaracoes = append(declaracoes, declaracao)
+
+		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
+			p.avancar()
+		}
 	}
 
 	return declaracoes, nil
@@ -160,7 +164,7 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 	case lexer.TokenAssincrono:
 		p.avancar() // Consome 'assincrono'
 		if p.token.Tipo != lexer.TokenFunc {
-			return nil, fmt.Errorf("era esperado o token 'func' ou 'funcao' após 'assincrono', mas no lugar foi encontrado '%s'", p.token.Valor)
+			return nil, p.errof("era esperado o token 'func' ou 'funcao' após 'assincrono', mas no lugar foi encontrado '%s'", p.token.Valor)
 		}
 		fn, err := p.parseFuncao()
 		if err != nil {
@@ -170,6 +174,10 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 		return fn, nil
 	case lexer.TokenClasse:
 		return p.parseClasse()
+	case lexer.TokenEnum:
+		return p.parseEnum()
+	case lexer.TokenInterface:
+		return p.parseInterface()
 	case lexer.TokenEstilo:
 		return p.parseEstilo()
 	case lexer.TokenTestar:
@@ -247,7 +255,7 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 	p.avancar()
 	if p.token.Tipo != lexer.TokenTexto {
-		return nil, fmt.Errorf("era esperado um texto após a palavra chave 'de'")
+		return nil, p.errof("era esperado um texto após a palavra chave 'de'")
 	}
 
 	decl := &ImporteDe{Caminho: &TextoLiteral{p.token.Valor}}
@@ -263,7 +271,7 @@ func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 		switch token.Tipo {
 		case lexer.TokenIdentificador:
 			if IsKeyword(token.Valor) {
-				return nil, fmt.Errorf("'%s' é uma palavra-chave reservada e não pode ser importada", token.Valor)
+				return nil, p.errof("'%s' é uma palavra-chave reservada e não pode ser importada", token.Valor)
 			}
 			decl.Nomes = append(decl.Nomes, token.Valor)
 			p.avancar()
@@ -272,7 +280,7 @@ func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 			continue
 		default:
 			if len(decl.Nomes) == 0 {
-				return nil, fmt.Errorf("esperava ao menos um identificador após 'importe', mas recebi '%s'", token.Valor)
+				return nil, p.errof("esperava ao menos um identificador após 'importe', mas recebi '%s'", token.Valor)
 			}
 			return decl, nil
 		}
@@ -286,11 +294,13 @@ func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 	}
 }
 
-// parseBlocoPara analisa laços iterativos: 'para (item em sequencia) { Bloco }'
+// parseBlocoPara analisa laços iterativos: 'para (item em sequencia) { Bloco }' ou 'para item em sequencia { Bloco }'
 func (p *Parser) parseBlocoPara() (*BlocoPara, error) {
 	p.consome("para")
-	if err := p.consome("("); err != nil {
-		return nil, err
+	
+	temParenteses := p.token.Tipo == lexer.TokenAbreParenteses
+	if temParenteses {
+		p.avancar()
 	}
 
 	id := p.token.Valor
@@ -300,12 +310,15 @@ func (p *Parser) parseBlocoPara() (*BlocoPara, error) {
 		return nil, err
 	}
 
-	iter, err := p.parsePrimario()
+	iter, err := p.parseExpressao()
 	if err != nil {
 		return nil, err
 	}
-	if err := p.consome(")"); err != nil {
-		return nil, err
+
+	if temParenteses {
+		if err := p.consome(")"); err != nil {
+			return nil, err
+		}
 	}
 
 	corpo, err := p.parseBloco()
@@ -319,8 +332,10 @@ func (p *Parser) parseBlocoPara() (*BlocoPara, error) {
 // parseExpressaoSe analisa blocos estruturados de desvios condicionais se/senao.
 func (p *Parser) parseExpressaoSe() (*ExpressaoSe, error) {
 	p.consome("se")
-	if err := p.consome("("); err != nil {
-		return nil, err
+	
+	temParenteses := p.token.Tipo == lexer.TokenAbreParenteses
+	if temParenteses {
+		p.avancar()
 	}
 
 	condicao, err := p.parseExpressao()
@@ -329,8 +344,11 @@ func (p *Parser) parseExpressaoSe() (*ExpressaoSe, error) {
 	}
 
 	expressaoSe := &ExpressaoSe{Condicao: condicao}
-	if err := p.consome(")"); err != nil {
-		return nil, err
+	
+	if temParenteses {
+		if err := p.consome(")"); err != nil {
+			return nil, err
+		}
 	}
 
 	corpo, err := p.parseBloco()
@@ -361,14 +379,15 @@ func (p *Parser) parseExpressaoSe() (*ExpressaoSe, error) {
 	return expressaoSe, nil
 }
 
-// parseEnquanto analisa laços condicionais enquanto: 'enquanto (condicao) { Bloco }'
+// parseEnquanto analisa laços condicionais enquanto: 'enquanto condicao { Bloco }'
 func (p *Parser) parseEnquanto() (*Enquanto, error) {
 	if err := p.consome("enquanto"); err != nil {
 		return nil, err
 	}
 
-	if err := p.consome("("); err != nil {
-		return nil, err
+	temParenteses := p.token.Tipo == lexer.TokenAbreParenteses
+	if temParenteses {
+		p.avancar()
 	}
 
 	condicao, err := p.parseExpressao()
@@ -376,8 +395,10 @@ func (p *Parser) parseEnquanto() (*Enquanto, error) {
 		return nil, err
 	}
 
-	if err := p.consome(")"); err != nil {
-		return nil, err
+	if temParenteses {
+		if err := p.consome(")"); err != nil {
+			return nil, err
+		}
 	}
 
 	corpo, err := p.parseBloco()
@@ -396,35 +417,43 @@ func (p *Parser) parseRetorne() (*RetorneNode, error) {
 
 	retorne := &RetorneNode{}
 
-	if p.token.Tipo != lexer.TokenPontoEVirgula {
-		expressao, err := p.parseExpressao()
-
-		if err != nil {
-			return nil, err
+	if p.token.Tipo == lexer.TokenPontoEVirgula || p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFechaChaves {
+		if p.token.Tipo == lexer.TokenPontoEVirgula || p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
 		}
-
-		retorne.Expressao = expressao
-		if err := p.consome(";"); err != nil {
-			return nil, err
-		}
+		return retorne, nil
 	}
+
+	expressao, err := p.parseExpressao()
+	if err != nil {
+		return nil, err
+	}
+
+	retorne.Expressao = expressao
+
+	if p.token.Tipo == lexer.TokenPontoEVirgula || p.token.Tipo == lexer.TokenNovaLinha {
+		p.avancar()
+	}
+
 	return retorne, nil
 }
 
 // parseFuncao analisa declarações de funções normais.
 func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 	if p.token.Tipo != lexer.TokenFunc {
-		return nil, fmt.Errorf("era esperado o token 'func' ou 'funcao', mas no lugar foi encontrado '%s'", p.token.Valor)
+		return nil, p.errof("era esperado o token 'func' ou 'funcao', mas no lugar foi encontrado '%s'", p.token.Valor)
 	}
+	tokFunc := p.token
 	p.avancar()
 
 	funcao := &DeclFuncao{}
+	p.registrar(funcao, tokFunc)
 
 	if p.token.Tipo == lexer.TokenIdentificador {
 		funcao.Nome = p.token.Valor
 		p.avancar()
 	} else if p.token.Tipo != lexer.TokenAbreParenteses {
-		return nil, fmt.Errorf("era esperado o nome da função ou '(', mas no lugar foi encontrado '%s'", p.token.Valor)
+		return nil, p.errof("era esperado o nome da função ou '(', mas no lugar foi encontrado '%s'", p.token.Valor)
 	}
 
 	if err := p.consome("("); err != nil {
@@ -457,6 +486,11 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 		if err := p.consome(":"); err != nil {
 			return nil, err
 		}
+		funcao.TipoRetorno = p.token.Valor
+		p.avancar()
+	} else if p.token.Tipo == lexer.TokenMenos && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue {
+		p.avancar() // Consome '-'
+		p.avancar() // Consome '>'
 		funcao.TipoRetorno = p.token.Valor
 		p.avancar()
 	}
@@ -537,7 +571,7 @@ func (p *Parser) parseTeste() (*DeclTeste, error) {
 
 	// Espera-se que seja um literal de texto contendo o nome do teste
 	if p.token.Tipo != lexer.TokenTexto {
-		return nil, fmt.Errorf("esperava um texto especificando o nome do teste, obtive '%s'", p.token.Valor)
+		return nil, p.errof("esperava um texto especificando o nome do teste, obtive '%s'", p.token.Valor)
 	}
 
 	// Remove as aspas do texto literal
@@ -568,7 +602,7 @@ func (p *Parser) parseTenteCapture() (*TenteCaptureFinalmente, error) {
 
 	// Verifica se há capture e/ou finalmente
 	if p.token.Tipo != lexer.TokenCapture && p.token.Tipo != lexer.TokenFinalmente {
-		return nil, fmt.Errorf("esperava 'capture' ou 'finalmente' após o bloco 'tente', mas recebi '%s'", p.token.Valor)
+		return nil, p.errof("esperava 'capture' ou 'finalmente' após o bloco 'tente', mas recebi '%s'", p.token.Valor)
 	}
 
 	if p.token.Tipo == lexer.TokenCapture {
@@ -581,7 +615,7 @@ func (p *Parser) parseTenteCapture() (*TenteCaptureFinalmente, error) {
 		}
 
 		if p.token.Tipo != lexer.TokenIdentificador {
-			return nil, fmt.Errorf("esperava um identificador para o erro no bloco 'capture', mas recebi '%s'", p.token.Valor)
+			return nil, p.errof("esperava um identificador para o erro no bloco 'capture', mas recebi '%s'", p.token.Valor)
 		}
 		tenteNode.NomeErro = p.token.Valor
 		p.avancar()
@@ -618,8 +652,8 @@ func (p *Parser) parseExportar() (*DeclExportar, error) {
 	}
 
 	tok := p.token.Tipo
-	if tok != lexer.TokenVar && tok != lexer.TokenConst && tok != lexer.TokenFunc && tok != lexer.TokenClasse {
-		return nil, fmt.Errorf("esperava declaração de 'var', 'const', 'funcao' ou 'classe' após 'exportar', mas obtive '%s'", p.token.Valor)
+	if tok != lexer.TokenVar && tok != lexer.TokenConst && tok != lexer.TokenFunc && tok != lexer.TokenClasse && tok != lexer.TokenInterface && tok != lexer.TokenEstilo {
+		return nil, p.errof("esperava declaração de 'var', 'const', 'funcao', 'classe', 'interface' ou 'estilo' após 'exportar', mas obtive '%s'", p.token.Valor)
 	}
 
 	expr, err := p.parseDeclaracaoInterno()
@@ -687,12 +721,15 @@ func (p *Parser) parseDeclFuncaoParametro() (*DeclFuncaoParametro, error) {
 }
 
 // parseVariavel analisa a declaração de variáveis e constantes imutáveis: 'var x: Inteiro = 10;'
-func (p *Parser) parseVariavel() (*DeclVar, error) {
-	decl := &DeclVar{}
-	decl.Constante = p.token.Valor == "const"
-
+func (p *Parser) parseVariavel() (BaseNode, error) {
+	constante := p.token.Valor == "const"
 	p.avancar()
 
+	if p.token.Tipo == lexer.TokenAbreColchetes {
+		return p.parseVarDestructuring(constante)
+	}
+
+	decl := &DeclVar{Constante: constante}
 	decl.Nome = p.token.Valor
 	p.avancar()
 
@@ -718,15 +755,158 @@ func (p *Parser) parseVariavel() (*DeclVar, error) {
 
 		decl.Inicializador = expressao
 	} else if decl.Constante {
-		return nil, fmt.Errorf("a constante '%s' deve possuir um valor inicializador", decl.Nome)
+		return nil, p.errof("a constante '%s' deve possuir um valor inicializador", decl.Nome)
 	}
 
-	if err := p.consome(";"); err != nil {
-		return nil, err
+	if p.token.Tipo == lexer.TokenPontoEVirgula {
+		p.avancar()
+	} else if p.token.Tipo == lexer.TokenNovaLinha {
+		p.avancar()
+	} else if p.token.Tipo != lexer.TokenFimDeArquivo && p.token.Tipo != lexer.TokenFechaChaves {
+		return nil, p.errof("era esperado o token ';' ou uma nova linha ao final da declaração da variável '%s'", decl.Nome)
 	}
 
 	return decl, nil
 }
+
+func (p *Parser) parseVarDestructuring(constante bool) (BaseNode, error) {
+	p.avancar() // consome '['
+	var nomes []string
+	for p.token.Tipo != lexer.TokenFechaColchetes {
+		if p.token.Tipo != lexer.TokenIdentificador {
+			return nil, p.errof("era esperado um identificador de variável dentro dos colchetes de desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
+		}
+		nomes = append(nomes, p.token.Valor)
+		p.avancar()
+		if p.token.Tipo == lexer.TokenVirgula {
+			p.avancar()
+		}
+	}
+	p.avancar() // consome ']'
+
+	if err := p.consome("="); err != nil {
+		return nil, err
+	}
+
+	inicializador, err := p.parseExpressao()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.token.Tipo == lexer.TokenPontoEVirgula {
+		p.avancar()
+	} else if p.token.Tipo == lexer.TokenNovaLinha {
+		p.avancar()
+	}
+
+	return &DeclVarDestructuring{Constante: constante, Nomes: nomes, Inicializador: inicializador}, nil
+}
+
+func (p *Parser) parseEnum() (BaseNode, error) {
+	p.avancar() // consome 'enum'
+	if p.token.Tipo != lexer.TokenIdentificador {
+		return nil, p.errof("era esperado um nome para a enumeração após 'enum'")
+	}
+	nomeEnum := p.token.Valor
+	p.avancar()
+
+	if err := p.consome("{"); err != nil {
+		return nil, err
+	}
+
+	var valores []string
+	for p.token.Tipo != lexer.TokenFechaChaves && p.token.Tipo != lexer.TokenFimDeArquivo {
+		if p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			continue
+		}
+		if p.token.Tipo != lexer.TokenIdentificador {
+			return nil, p.errof("era esperado um identificador de valor de enumeração, mas no lugar foi encontrado '%s'", p.token.Valor)
+		}
+		valores = append(valores, p.token.Valor)
+		p.avancar()
+
+		if p.token.Tipo == lexer.TokenVirgula {
+			p.avancar()
+		}
+	}
+
+	if err := p.consome("}"); err != nil {
+		return nil, err
+	}
+
+	return &DeclEnum{Nome: nomeEnum, Valores: valores}, nil
+}
+
+func (p *Parser) parseInterface() (BaseNode, error) {
+	p.avancar() // consome 'interface'
+	if p.token.Tipo != lexer.TokenIdentificador {
+		return nil, p.errof("era esperado um nome para a interface após 'interface'")
+	}
+	nomeInterface := p.token.Valor
+	p.avancar()
+
+	if err := p.consome("{"); err != nil {
+		return nil, err
+	}
+
+	var metodos []MetodoAssinatura
+	for p.token.Tipo != lexer.TokenFechaChaves && p.token.Tipo != lexer.TokenFimDeArquivo {
+		if p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			continue
+		}
+
+		if p.token.Tipo == lexer.TokenFunc {
+			p.avancar() // consome 'func'
+			if p.token.Tipo != lexer.TokenIdentificador {
+				return nil, p.errof("era esperado um nome para o método da interface")
+			}
+			nomeMetodo := p.token.Valor
+			p.avancar()
+
+			if err := p.consome("("); err != nil {
+				return nil, err
+			}
+
+			var params []string
+			for p.token.Tipo != lexer.TokenFechaParenteses && p.token.Tipo != lexer.TokenFimDeArquivo {
+				if p.token.Tipo == lexer.TokenIdentificador {
+					params = append(params, p.token.Valor)
+					p.avancar()
+				}
+				if p.token.Tipo == lexer.TokenVirgula {
+					p.avancar()
+				}
+			}
+			if err := p.consome(")"); err != nil {
+				return nil, err
+			}
+
+			tipoRetorno := ""
+			if p.token.Tipo == lexer.TokenDoisPontos {
+				p.avancar()
+				tipoRetorno = p.token.Valor
+				p.avancar()
+			}
+
+			if p.token.Tipo == lexer.TokenPontoEVirgula {
+				p.avancar()
+			}
+
+			metodos = append(metodos, MetodoAssinatura{Nome: nomeMetodo, Parametros: params, TipoRetorno: tipoRetorno})
+		} else {
+			p.avancar()
+		}
+	}
+
+	if err := p.consome("}"); err != nil {
+		return nil, err
+	}
+
+	return &DeclInterface{Nome: nomeInterface, Metodos: metodos}, nil
+}
+
 
 // parseExpressao analisa o escopo geral de expressões complexas.
 func (p *Parser) parseExpressao() (BaseNode, error) {
@@ -734,6 +914,10 @@ func (p *Parser) parseExpressao() (BaseNode, error) {
 	res, err := p.parseExpressaoInterno()
 	if err == nil && res != nil {
 		p.registrar(res, tok)
+		// Propagate token position mapping to nested Identifiers if applicable
+		if ident, ok := res.(*Identificador); ok {
+			p.registrar(ident, tok)
+		}
 	}
 	return res, err
 }
@@ -759,23 +943,72 @@ func (p *Parser) parseExpressaoInterno() (BaseNode, error) {
 		return &AguardeNode{Expressao: expr}, nil
 	}
 
-	return p.parsePipe()
+	return p.parseTernario()
+}
+
+// parseTernario resolve o operador condicional ternário 'condicao ? entao : senao'.
+func (p *Parser) parseTernario() (BaseNode, error) {
+	condicao, err := p.parsePipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.token.Tipo == lexer.TokenInterrogacao {
+		p.avancar() // Consome '?'
+
+		entao, err := p.parseExpressao()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := p.consome(":"); err != nil {
+			return nil, err
+		}
+
+		senao, err := p.parseTernario()
+		if err != nil {
+			return nil, err
+		}
+
+		return &OpTernaria{Condicao: condicao, Entao: entao, Senao: senao}, nil
+	}
+
+	return condicao, nil
 }
 
 // parsePipe resolve expressões de encadeamento pipe (|>).
 func (p *Parser) parsePipe() (BaseNode, error) {
-	esq, err := p.parseDisjuncao()
+	esq, err := p.parseCoalescenciaNula()
 	if err != nil {
 		return nil, err
 	}
 
 	for p.token.Tipo == lexer.TokenPipe {
 		p.avancar() // Consome |>
-		dir, err := p.parseDisjuncao()
+		dir, err := p.parseCoalescenciaNula()
 		if err != nil {
 			return nil, err
 		}
 		esq = &OpPipe{Esq: esq, Dir: dir}
+	}
+
+	return esq, nil
+}
+
+// parseCoalescenciaNula resolve o operador de coalescência nula '??'.
+func (p *Parser) parseCoalescenciaNula() (BaseNode, error) {
+	esq, err := p.parseDisjuncao()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.token.Tipo == lexer.TokenInterrogacaoInterrogacao {
+		p.avancar() // Consome ??
+		dir, err := p.parseDisjuncao()
+		if err != nil {
+			return nil, err
+		}
+		esq = &OpCoalescenciaNula{Esq: esq, Dir: dir}
 	}
 
 	return esq, nil
@@ -996,76 +1229,94 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 		return nil, err
 	}
 
-	for p.token.Tipo == lexer.TokenPonto {
-		p.avancar()
-		membro, err := p.parseAtomo()
-		if err != nil {
-			return nil, err
-		}
-
-		atom = &AcessoMembro{atom, membro}
-	}
-
-	if p.token.Tipo == lexer.TokenAbreParenteses {
-		chamada := &ChamadaFuncao{Identificador: atom}
-
-		if err := p.consome("("); err != nil {
-			return nil, err
-		}
-
-		for p.token.Tipo != lexer.TokenFechaParenteses {
-			var expressao BaseNode
-			var err error
-
-			// Verifica se é uma atribuição nomeada (identificador seguido de '=')
-			if p.token.Tipo == lexer.TokenIdentificador && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenIgual {
-				nome := p.token.Valor
-				p.avancar() // consome o identificador
-				p.avancar() // consome '='
-				valor, err := p.parseExpressao()
-				if err != nil {
-					return nil, err
-				}
-				expressao = &ArgumentoNomeado{Nome: nome, Valor: valor}
-			} else {
-				expressao, err = p.parseExpressao()
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			chamada.Argumentos = append(chamada.Argumentos, expressao)
-
-			if p.token.Tipo == lexer.TokenVirgula {
+	for {
+		if p.token.Tipo == lexer.TokenPonto || p.token.Tipo == lexer.TokenPontoInterrogacao {
+			ehOpcional := p.token.Tipo == lexer.TokenPontoInterrogacao
+			p.avancar()
+			// Tolera quebra de linha ou ';' antes de acessos encadeados (ex: obj\n.metodo())
+			for p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
 				p.avancar()
-				continue
+			}
+			membro, err := p.parseAtomo()
+			if err != nil {
+				return nil, err
 			}
 
-			if p.token.Tipo != lexer.TokenFechaParenteses {
-				return nil, fmt.Errorf("esperava ',' ou ')' na lista de argumentos, mas recebi '%s'", p.token.Valor)
+			if ehOpcional {
+				atom = &AcessoMembroOpcional{Objeto: atom, Membro: membro}
+			} else {
+				atom = &AcessoMembro{atom, membro}
 			}
+		} else if p.token.Tipo == lexer.TokenAbreParenteses {
+			chamada := &ChamadaFuncao{Identificador: atom}
+			p.registrar(chamada, p.token)
+			if ident, ok := atom.(*Identificador); ok {
+				p.registrar(ident, p.token)
+			}
+
+			if err := p.consome("("); err != nil {
+				return nil, err
+			}
+
+			for p.token.Tipo != lexer.TokenFechaParenteses {
+				if p.token.Tipo == lexer.TokenNovaLinha {
+					p.avancar()
+					continue
+				}
+
+				var expressao BaseNode
+				var err error
+
+				// Verifica se é uma atribuição nomeada (identificador seguido de '=')
+				if p.token.Tipo == lexer.TokenIdentificador && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenIgual {
+					nome := p.token.Valor
+					p.avancar() // consome o identificador
+					p.avancar() // consome '='
+					valor, err := p.parseExpressao()
+					if err != nil {
+						return nil, err
+					}
+					expressao = &ArgumentoNomeado{Nome: nome, Valor: valor}
+				} else {
+					expressao, err = p.parseExpressao()
+					if err != nil {
+						return nil, err
+					}
+				}
+
+				chamada.Argumentos = append(chamada.Argumentos, expressao)
+
+				if p.token.Tipo == lexer.TokenVirgula {
+					p.avancar()
+					continue
+				}
+
+				if p.token.Tipo != lexer.TokenFechaParenteses {
+					return nil, p.errof("esperava ',' ou ')' na lista de argumentos, mas recebi '%s'", p.token.Valor)
+				}
+			}
+
+			if err := p.consome(")"); err != nil {
+				return nil, err
+			}
+
+			atom = chamada
+		} else if p.token.Tipo == lexer.TokenAbreColchetes {
+			p.avancar()
+
+			arg, err := p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+
+			if err := p.consome("]"); err != nil {
+				return nil, err
+			}
+
+			atom = &Indexacao{atom, arg}
+		} else {
+			break
 		}
-
-		if err := p.consome(")"); err != nil {
-			return nil, err
-		}
-
-		return chamada, nil
-	}
-
-	for p.token.Tipo == lexer.TokenAbreColchetes {
-		p.avancar()
-
-		arg, err := p.parseExpressao()
-		if err != nil {
-			return nil, err
-		}
-
-		if err := p.consome("]"); err != nil {
-			return nil, err
-		}
-
-		atom = &Indexacao{atom, arg}
 	}
 
 	return atom, nil
@@ -1119,7 +1370,7 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				subParser := NewParserFromString(exprStr, p.arquivo)
 				exprNode, err := subParser.parseExpressao()
 				if err != nil {
-					return nil, fmt.Errorf("erro ao analisar expressão de interpolação '%s': %v", exprStr, err)
+					return nil, p.errof("erro ao analisar expressão de interpolação '%s': %v", exprStr, err)
 				}
 
 				templateNode.Partes = append(templateNode.Partes, &TemplateExpr{Expressao: exprNode})
@@ -1137,7 +1388,7 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 	case lexer.TokenIdentificador, lexer.TokenSelf:
 		if !IsKeyword(token.Valor) || token.Tipo == lexer.TokenSelf {
 			p.avancar()
-			return &Identificador{token.Valor}, nil
+			return p.registrar(&Identificador{token.Valor}, token), nil
 		}
 	case lexer.TokenAbreParenteses:
 		// Parentetização de escopo matemático ou definição de Tuplas literais imutáveis.
@@ -1172,6 +1423,11 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		p.avancar()
 
 		for p.token.Tipo != lexer.TokenFechaColchetes {
+			if p.token.Tipo == lexer.TokenNovaLinha {
+				p.avancar()
+				continue
+			}
+
 			exp, err := p.parseExpressao()
 
 			if err != nil {
@@ -1193,7 +1449,12 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		return p.parseFuncao()
 	}
 
-	return nil, fmt.Errorf("o token '%v' não é reconhecido", p.token.Valor)
+	linha, coluna := 0, 0
+	if p.token.Inicio != nil {
+		linha = p.token.Inicio.Linha
+		coluna = p.token.Inicio.Coluna
+	}
+	return nil, p.errof("o token '%v' não é reconhecido na linha %d, coluna %d", p.token.Valor, linha, coluna)
 }
 
 // parseMapa analisa a declaração de dicionários lógicos chave-valor (mapas): '{ chave: valor }'
@@ -1203,7 +1464,12 @@ func (p *Parser) parseMapa() (*MapaLiteral, error) {
 		return nil, err
 	}
 
-	for p.token.Tipo != lexer.TokenFechaChaves {
+	for p.token.Tipo != lexer.TokenFechaChaves && p.token.Tipo != lexer.TokenFimDeArquivo {
+		if p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			continue
+		}
+
 		chave, err := p.parseChaveMapa()
 		if err != nil {
 			return nil, err
@@ -1266,7 +1532,7 @@ func (p *Parser) parseEstilo() (*DeclEstilo, error) {
 		return nil, err
 	}
 	if p.token.Tipo != lexer.TokenIdentificador {
-		return nil, fmt.Errorf("esperava um identificador após 'estilo', mas recebi '%s'", p.token.Valor)
+		return nil, p.errof("esperava um identificador após 'estilo', mas recebi '%s'", p.token.Valor)
 	}
 	nome := p.token.Valor
 	p.avancar()
@@ -1346,7 +1612,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 					valorAttr = &TextoLiteral{p.token.Valor}
 					p.avancar()
 				} else {
-					return nil, fmt.Errorf("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
+					return nil, p.errof("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
 				}
 			} else {
 				// Atributo booleano implícito (ex: <input desabilitado />)
@@ -1354,7 +1620,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			}
 			node.Atributos = append(node.Atributos, &AtributoJSX{Nome: nomeAttr, Valor: valorAttr})
 		} else {
-			return nil, fmt.Errorf("esperava nome de atributo, mas recebi '%s'", p.token.Valor)
+			return nil, p.errof("esperava nome de atributo, mas recebi '%s'", p.token.Valor)
 		}
 	}
 
@@ -1376,7 +1642,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != tag {
-				return nil, fmt.Errorf("tag de fechamento incorreta: esperava '</%s>', mas recebi '</%s>'", tag, p.token.Valor)
+				return nil, p.errof("tag de fechamento incorreta: esperava '</%s>', mas recebi '</%s>'", tag, p.token.Valor)
 			}
 			p.avancar() // tag
 			if err := p.consome(">"); err != nil {
@@ -1424,7 +1690,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 	}
 
 	if !fechouTag {
-		return nil, fmt.Errorf("tag '<%s>' não foi fechada correspondente", tag)
+		return nil, p.errof("tag '<%s>' não foi fechada correspondente", tag)
 	}
 
 	return node, nil
@@ -1451,7 +1717,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("esperava atributo 'condicao' na tag <se>, mas recebi '%s'", p.token.Valor)
+		return nil, p.errof("esperava atributo 'condicao' na tag <se>, mas recebi '%s'", p.token.Valor)
 	}
 
 	if err := p.consome(">"); err != nil {
@@ -1466,7 +1732,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != "se" {
-				return nil, fmt.Errorf("tag de fechamento incorreta para <se>: recebido '</%s>'", p.token.Valor)
+				return nil, p.errof("tag de fechamento incorreta para <se>: recebido '</%s>'", p.token.Valor)
 			}
 			p.avancar()
 			if err := p.consome(">"); err != nil {
@@ -1512,7 +1778,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 	}
 
 	if !fechouTag {
-		return nil, fmt.Errorf("tag '<se>' não foi fechada correspondente")
+		return nil, p.errof("tag '<se>' não foi fechada correspondente")
 	}
 
 	return node, nil
@@ -1528,7 +1794,7 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 		item = p.token.Valor
 		p.avancar()
 	} else {
-		return nil, fmt.Errorf("esperava nome de variável após '<para', mas recebi '%s'", p.token.Valor)
+		return nil, p.errof("esperava nome de variável após '<para', mas recebi '%s'", p.token.Valor)
 	}
 
 	if err := p.consome("em"); err != nil {
@@ -1551,7 +1817,12 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("esperava atributo 'lista' na tag <para>, mas recebi '%s'", p.token.Valor)
+		return nil, p.errof("esperava atributo 'lista' na tag <para>, mas recebi '%s'", p.token.Valor)
+	}
+
+	// ponytail: consome qualquer atributo adicional na tag <para> (ex: chave="id")
+	for p.token.Tipo != lexer.TokenMaiorQue && !p.fimDeArquivo() {
+		p.avancar()
 	}
 
 	if err := p.consome(">"); err != nil {
@@ -1566,7 +1837,7 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != "para" {
-				return nil, fmt.Errorf("tag de fechamento incorreta para <para>: recebido '</%s>'", p.token.Valor)
+				return nil, p.errof("tag de fechamento incorreta para <para>: recebido '</%s>'", p.token.Valor)
 			}
 			p.avancar()
 			if err := p.consome(">"); err != nil {
@@ -1612,8 +1883,89 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 	}
 
 	if !fechouTag {
-		return nil, fmt.Errorf("tag '<para>' não foi fechada correspondente")
+		return nil, p.errof("tag '<para>' não foi fechada correspondente")
 	}
 
 	return node, nil
 }
+
+type ErroSintatico struct {
+	Mensagem string
+	Token    *lexer.Token
+	Arquivo  string
+	Codigo   string
+}
+
+// Error renderiza o erro sintático com informações ricas de posição: arquivo, linha, coluna
+// e destaca o trecho de código culpado — similar ao renderizador do Erro em hrp/erros.go.
+func (e *ErroSintatico) Error() string {
+	usarCores := strings.Contains(strings.ToLower(e.Mensagem), "") // sempre tenta cores
+	_ = usarCores
+	corErro := "\x1b[1;31m"
+	corCodigo := "\x1b[1;37m"
+	corPonteiro := "\x1b[1;36m"
+	corReset := "\x1b[0m"
+
+	arquivoStr := e.Arquivo
+	if arquivoStr == "" {
+		arquivoStr = "<desconhecido>"
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("\n%serro[PSC-0001]%s: %sSintaxeErro%s — %s\n",
+		corErro, corReset, corCodigo, corReset, e.Mensagem))
+
+	if e.Token != nil && e.Token.Inicio != nil {
+		linha := e.Token.Inicio.Linha
+		coluna := e.Token.Inicio.Coluna
+		linhaExibicao := linha // Linha já base 1 no lexer
+
+		sb.WriteString(fmt.Sprintf("  %s┌──>%s %s:%d:%d\n", corPonteiro, corReset, arquivoStr, linhaExibicao, coluna))
+		sb.WriteString(fmt.Sprintf("  %s│%s\n", corPonteiro, corReset))
+
+		if e.Codigo != "" {
+			linhas := strings.Split(e.Codigo, "\n")
+			idxLinha := linha - 1 // converter para base 0
+			if idxLinha >= 0 && idxLinha < len(linhas) {
+				linhaTexto := linhas[idxLinha]
+				sb.WriteString(fmt.Sprintf("%s%d │%s %s\n", corPonteiro, linhaExibicao, corReset, linhaTexto))
+
+				sb.WriteString(fmt.Sprintf("  %s│%s ", corPonteiro, corReset))
+				if coluna > 0 {
+					for j := 0; j < len(linhaTexto) && j < coluna-1; j++ {
+						if linhaTexto[j] == '\t' {
+							sb.WriteRune('\t')
+						} else {
+							sb.WriteRune(' ')
+						}
+					}
+				}
+				tamanho := 1
+				if len(e.Token.Valor) > 0 && e.Token.Valor != "\n" {
+					tamanho = len(e.Token.Valor)
+				}
+				sb.WriteString(fmt.Sprintf("%s%s%s\n", corErro, strings.Repeat("^", tamanho), corReset))
+			}
+		}
+		sb.WriteString(fmt.Sprintf("  %s│%s\n", corPonteiro, corReset))
+	} else {
+		sb.WriteString(fmt.Sprintf("  %s┌──>%s %s\n", corPonteiro, corReset, arquivoStr))
+		sb.WriteString(fmt.Sprintf("  %s│%s %s%s%s\n", corPonteiro, corReset, corErro, e.Mensagem, corReset))
+	}
+
+	return sb.String()
+}
+
+func (p *Parser) erro(msg string) error {
+	return &ErroSintatico{
+		Mensagem: msg,
+		Token:    p.token,
+		Arquivo:  p.arquivo,
+		Codigo:   p.codigo,
+	}
+}
+
+func (p *Parser) errof(format string, args ...interface{}) error {
+	return p.erro(fmt.Sprintf(format, args...))
+}
+

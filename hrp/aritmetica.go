@@ -190,6 +190,12 @@ func MenorOuIgual(a, b Objeto) (Objeto, error) {
 
 // Igual compara a igualdade de valores semânticos de dois objetos (==).
 func Igual(a, b Objeto) (Objeto, error) {
+	_, aIsNulo := a.(_Nulo)
+	_, bIsNulo := b.(_Nulo)
+	if aIsNulo || bIsNulo {
+		return NewBooleano(aIsNulo == bIsNulo)
+	}
+
 	if A, ok := a.(I__igual__); ok {
 		res, err := A.M__igual__(b)
 
@@ -205,6 +211,12 @@ func Igual(a, b Objeto) (Objeto, error) {
 
 // Diferente compara a desigualdade de valores lógicos de dois objetos (!=).
 func Diferente(a, b Objeto) (Objeto, error) {
+	_, aIsNulo := a.(_Nulo)
+	_, bIsNulo := b.(_Nulo)
+	if aIsNulo || bIsNulo {
+		return NewBooleano(aIsNulo != bIsNulo)
+	}
+
 	if A, ok := a.(I__diferente__); ok {
 		res, err := A.M__diferente__(b)
 

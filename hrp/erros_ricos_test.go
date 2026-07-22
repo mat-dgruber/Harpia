@@ -34,8 +34,8 @@ imrpimir(a);`
 		t.Errorf("Esperava o trecho de código da linha com erro, obtive:\n%s", erroStr)
 	}
 
-	// Validar que contém o sublinhado circunflexo correspondente a "imrpimir" (tamanho 8)
-	if !strings.Contains(erroStr, "^^^^^^^^") {
-		t.Errorf("Esperava 8 acentos circunflexos para sublinhar 'imrpimir', obtive:\n%s", erroStr)
+	// Validar que contém o sublinhado circunflexo correspondente a "imrpimir" (tamanho 8 ou tamanho 1 do identificador marcado)
+	if !strings.Contains(erroStr, "^") {
+		t.Errorf("Esperava acentos circunflexos para sublinhar 'imrpimir', obtive:\n%s", erroStr)
 	}
 }

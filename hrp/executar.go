@@ -3,6 +3,8 @@ package hrp
 import (
 	"plugin"
 	"strings"
+
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // ExecutarString compila uma string contendo comandos Harpia para AST, aloca um escopo virtual
@@ -14,11 +16,34 @@ func ExecutarString(ctx *Contexto, codigo string) (*Modulo, error) {
 	}
 
 	impl := &ModuloImpl{
-		Info: ModuloInfo{},
-		Ast:  ast,
+		Info: ModuloInfo{
+			Nome:    "__entrada__",
+			Arquivo: "<string>",
+		},
+		Ast: ast,
 	}
 
-	return ctx.InicializarModulo(impl)
+	mod, err := ctx.InicializarModulo(impl)
+	if err != nil {
+		if hrpErr, ok := err.(*Erro); ok {
+			if prog, ok := ast.(*parser.Programa); ok {
+				if hrpErr.Arquivo == "" || hrpErr.Arquivo == "<desconhecido>" {
+					hrpErr.Arquivo = prog.Arquivo
+				}
+				if hrpErr.Codigo == "" {
+					hrpErr.Codigo = prog.Codigo
+				}
+				if hrpErr.Token == nil && prog.Posicoes != nil && ctx.TokenAtual != nil {
+					hrpErr.Token = ctx.TokenAtual
+					hrpErr.Linha = ctx.LinhaAtual
+					hrpErr.Coluna = ctx.ColunaAtual
+				}
+			}
+		}
+		return nil, err
+	}
+
+	return mod, nil
 }
 
 // ExecutarArquivo localiza e interpreta um arquivo físico de script (extensão '.pt') no disco rígido.

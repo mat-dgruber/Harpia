@@ -1,7 +1,9 @@
 package hrp
 
 import (
+	"bufio"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -35,6 +37,25 @@ type Contexto struct {
 	TokenAtual        *lexer.Token            // Ponteiro para o token do lexer sob análise operacional.
 	ResolvendoModulos []string                // Pilha de módulos que estão sendo importados/resolvidos para prevenção de ciclos.
 	LinhasExecutadas  map[string]map[int]bool // ponytail: mapa para rastreamento de linhas cobertas na execução de testes
+	linhasExecMu      sync.Mutex              // mutex para evitar concorrência no mapa de linhas executadas
+}
+
+var (
+	contextoAtivoMu sync.RWMutex
+	contextoAtivo   *Contexto
+)
+
+func ObterContextoAtivo() *Contexto {
+	contextoAtivoMu.RLock()
+	defer contextoAtivoMu.RUnlock()
+	return contextoAtivo
+}
+
+func DefinirContextoAtivo(ctx *Contexto) {
+	contextoAtivoMu.Lock()
+	defer contextoAtivoMu.Unlock()
+	contextoAtivo = ctx
+	ContextoAtivo = ctx
 }
 
 var ContextoAtivo *Contexto
@@ -50,7 +71,15 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 		LinhasExecutadas: make(map[string]map[int]bool), // ponytail: inicializa mapa de cobertura
 	}
 
-	ContextoAtivo = context
+	DefinirContextoAtivo(context)
+
+	// Carrega automaticamente .harpia.env do diretório atual ou dos caminhos padrão
+	if dir, err := os.Getwd(); err == nil {
+		carregarArquivoEnv(dir)
+	}
+	for _, dir := range opcs.CaminhosPadrao {
+		carregarArquivoEnv(dir)
+	}
 
 	Importe = func(nome string, escopo *Escopo) (Objeto, error) {
 		return MaquinarioImporteModulo(context, nome, escopo)
@@ -58,6 +87,34 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 
 	MultiImporteModulo(context, "embutidos")
 	return context
+}
+
+// carregarArquivoEnv tenta ler o arquivo .harpia.env no diretório dado e exporta suas variáveis para o processo.
+// Linhas em branco e comentários (iniciados com #) são ignorados silenciosamente.
+func carregarArquivoEnv(dir string) {
+	caminho := filepath.Join(dir, ".harpia.env")
+	f, err := os.Open(caminho)
+	if err != nil {
+		return // arquivo não existe ou não é acessível — silencioso
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		linha := strings.TrimSpace(scanner.Text())
+		if linha == "" || strings.HasPrefix(linha, "#") {
+			continue
+		}
+		partes := strings.SplitN(linha, "=", 2)
+		if len(partes) == 2 {
+			chave := strings.TrimSpace(partes[0])
+			valor := strings.TrimSpace(partes[1])
+			// Somente define se a variável ainda não estiver no ambiente (não sobrescreve vars de sistema)
+			if os.Getenv(chave) == "" {
+				os.Setenv(chave, valor)
+			}
+		}
+	}
 }
 
 // TransformarEmAst localiza um arquivo físico no disco, decodifica sua codificação,
@@ -91,8 +148,27 @@ func (c *Contexto) TransformarEmAst(caminhoInicial string, useSysPaths bool, cur
 
 // StringParaAst é a ponte direta que invoca e aciona o Parser para traduzir uma string de código em nós de AST.
 func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode, error) {
+	c.CodigoAtual = codigo
+	c.ArquivoAtual = caminho
 	ast, err := parser.NewParserFromString(string(codigo), caminho).Parse()
 	if err != nil {
+		if errSintatico, ok := err.(*parser.ErroSintatico); ok {
+			linha := -1
+			coluna := 0
+			if errSintatico.Token != nil && errSintatico.Token.Inicio != nil {
+				linha = errSintatico.Token.Inicio.Linha - 1
+				coluna = errSintatico.Token.Inicio.Coluna
+			}
+			return nil, &Erro{
+				Base:     SintaxeErro,
+				Mensagem: Texto(errSintatico.Mensagem),
+				Linha:    linha,
+				Coluna:   coluna,
+				Token:    errSintatico.Token,
+				Arquivo:  errSintatico.Arquivo,
+				Codigo:   errSintatico.Codigo,
+			}
+		}
 		return nil, NewErroF(SintaxeErro, "%s", err)
 	}
 
@@ -113,11 +189,62 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 		interpret.Posicoes = prog.Posicoes
 		c.ArquivoAtual = prog.Arquivo
 		c.CodigoAtual = prog.Codigo
+	} else {
+		interpret.Arquivo = c.ArquivoAtual
+		interpret.Codigo = c.CodigoAtual
+		// If Contexto already has parsed posicoes map or we can load it:
+		if c.ArquivoAtual != "" {
+			if mod, err := c.Modulos.ObterModulo(c.ArquivoAtual); err == nil && mod.Impl.Ast != nil {
+				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
+					interpret.Posicoes = prog.Posicoes
+				}
+			}
+		}
 	}
 
-	MultiImporteModulo(interpret.Contexto, "embutidos")
+	// Fetch Posicoes from Program AST if wrapped, or get them if we can find it
+	if interpret.Posicoes == nil {
+		if prog, ok := ast.(*parser.Programa); ok {
+			interpret.Posicoes = prog.Posicoes
+		} else if c.ArquivoAtual != "" {
+			// Find the parsed program from cached modules if available
+			if mod, err := c.Modulos.ObterModulo(c.ArquivoAtual); err == nil && mod.Impl.Ast != nil {
+				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
+					interpret.Posicoes = prog.Posicoes
+				}
+			}
+		}
+	}
 
-	return interpret.Inicializa()
+	// Save and restore context state because MultiImporteModulo("embutidos") or inner evaluations
+	// will mutate c.CodigoAtual and c.ArquivoAtual.
+	oldArquivo := c.ArquivoAtual
+	oldCodigo := c.CodigoAtual
+	defer func() {
+		c.ArquivoAtual = oldArquivo
+		c.CodigoAtual = oldCodigo
+	}()
+
+	res, err := interpret.Inicializa()
+
+	if err != nil {
+		if hrpErr, ok := err.(*Erro); ok {
+			if hrpErr.Arquivo == "" || hrpErr.Arquivo == "<desconhecido>" {
+				hrpErr.Arquivo = interpret.Arquivo
+			}
+			if hrpErr.Codigo == "" {
+				hrpErr.Codigo = interpret.Codigo
+			}
+			// Enrich token details from visitor state if possible
+			if hrpErr.Token == nil && interpret.Posicoes != nil && c.TokenAtual != nil {
+				hrpErr.Token = c.TokenAtual
+				hrpErr.Linha = c.LinhaAtual
+				hrpErr.Coluna = c.ColunaAtual
+			}
+		}
+		return nil, err
+	}
+	return res, nil
 }
 
 // ObterModulo resolve e recupera um módulo ativo a partir da tabela hash de cache da VM.
@@ -138,6 +265,10 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 	}
 
 	if implementacao.Ast != nil {
+		if prog, ok := implementacao.Ast.(*parser.Programa); ok {
+			c.ArquivoAtual = prog.Arquivo
+			c.CodigoAtual = prog.Codigo
+		}
 		_, err := c.AvaliarAst(implementacao.Ast, modulo.Escopo)
 		if err != nil {
 			return nil, err
@@ -190,3 +321,35 @@ func (c *Contexto) VerificarPermissaoRede() error {
 	}
 	return nil
 }
+
+// RegistrarLinhaExecutada registra uma linha executada de forma concorrente-segura.
+func (c *Contexto) RegistrarLinhaExecutada(arquivo string, linha int) {
+	if c == nil || c.LinhasExecutadas == nil || arquivo == "" {
+		return
+	}
+	c.linhasExecMu.Lock()
+	defer c.linhasExecMu.Unlock()
+	if c.LinhasExecutadas[arquivo] == nil {
+		c.LinhasExecutadas[arquivo] = make(map[int]bool)
+	}
+	c.LinhasExecutadas[arquivo][linha] = true
+}
+
+// ObterLinhasExecutadas retorna uma cópia das linhas executadas de forma concorrente-segura.
+func (c *Contexto) ObterLinhasExecutadas() map[string]map[int]bool {
+	if c == nil {
+		return nil
+	}
+	c.linhasExecMu.Lock()
+	defer c.linhasExecMu.Unlock()
+	copia := make(map[string]map[int]bool)
+	for k, v := range c.LinhasExecutadas {
+		subCopia := make(map[int]bool)
+		for k2, v2 := range v {
+			subCopia[k2] = v2
+		}
+		copia[k] = subCopia
+	}
+	return copia
+}
+

@@ -29,10 +29,12 @@ type Lexer struct {
 // Na inicialização, calcula o número total de runas e gera a tabela de mapeamento de bytes
 // (byteCache) para garantir fatiamentos ágeis de strings e, por fim, carrega o primeiro caractere.
 func NewLexer(entrada string) *Lexer {
+	entrada = strings.ReplaceAll(entrada, "\r", "")
 	l := &Lexer{
 		entrada:   entrada,
 		tamanho:   utf8.RuneCountInString(entrada),
 		indice:    -1,
+		linha:     1,
 		byteCache: compartilhado.IndiceBytePorCarater(entrada),
 	}
 
@@ -155,7 +157,11 @@ func (l *Lexer) lerIdentificador() *Token {
 		}
 	}
 
-	fim := l.posicaoAtual()
+	fim := &PosicaoToken{
+		Coluna: l.coluna,
+		Linha:  l.linha,
+		Indice: l.indice,
+	}
 	valor := l.subString(inicio.Indice, fim.Indice)
 	tipo := TokenIdentificador
 
@@ -248,8 +254,8 @@ func (l *Lexer) ProximoToken() *Token {
 		}
 	}
 
-	// Se for um caractere operador catalogado ou operador de negação '!'
-	if tipo, ok := tokensSimples[carater]; ok || carater == "!" {
+	// Se for um caractere operador catalogado ou operador de negação '!' ou '?'
+	if tipo, ok := tokensSimples[carater]; ok || carater == "!" || carater == "?" {
 		for {
 			if l.fimDeArquivo() {
 				break
@@ -265,7 +271,8 @@ func (l *Lexer) ProximoToken() *Token {
 			break
 		}
 
-		return newToken(tipo, carater, inicio, l.posicaoAtual())
+		fim := l.posicaoAtual()
+		return newToken(tipo, carater, inicio, fim)
 	}
 
 	switch carater {
@@ -283,6 +290,8 @@ func (l *Lexer) ProximoToken() *Token {
 		}
 	}
 
-	// Caso não coincida com nenhuma regra, sinaliza um erro léxico
-	return &Token{Tipo: TokenErro, Valor: l.carater}
+	// Caso não coincida com nenhuma regra, sinaliza um erro léxico e avança o cursor
+	errTok := &Token{Tipo: TokenErro, Valor: l.carater, Inicio: inicio, Fim: l.posicaoAtual()}
+	l.avancar()
+	return errTok
 }

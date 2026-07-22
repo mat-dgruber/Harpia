@@ -35,9 +35,9 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 
 	// Código com erro semântico de variável não declarada
 	codigoErrado := `
-	var a = 10
 	b = 20 # b não foi declarado
 	`
+
 
 	caminhoArquivo := filepath.Join(dir, "teste.hrp")
 	if err := os.WriteFile(caminhoArquivo, []byte(codigoErrado), 0644); err != nil {
@@ -74,11 +74,8 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 		t.Errorf("Código de erro incorreto. Esperava 'HRP-0005', obtive '%s'", diag.Code)
 	}
 
-	if diag.Range.Start.Line != 2 {
-		// A string codigoErrado começa com uma nova linha vazia, então a linha 2 (b = 20) é a linha física 2 (índice 2, base 0)
-		// Vamos tolerar índice 1 ou 2 dependendo de como o lexer contou.
-		if diag.Range.Start.Line != 1 && diag.Range.Start.Line != 2 {
-			t.Errorf("Linha do erro incorreta. Esperava 1 ou 2, obtive %d", diag.Range.Start.Line)
-		}
+	if diag.Range.Start.Line != 1 && diag.Range.Start.Line != 2 {
+		t.Errorf("Linha do erro incorreta. Esperava 1 ou 2, obtive %d", diag.Range.Start.Line)
 	}
+
 }

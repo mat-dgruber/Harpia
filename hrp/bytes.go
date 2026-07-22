@@ -128,14 +128,14 @@ func (b *Bytes) M__booleano__() (Objeto, error) {
 	return NewBooleano(len(b.Itens) > 0)
 }
 
-// M__decimal__ lança pânico (não implementado coerção de float a partir de raw bytes diretamente).
+// M__decimal__ retorna erro (coerção de Decimal a partir de Bytes brutos não é suportada diretamente).
 func (b *Bytes) M__decimal__() (Objeto, error) {
-	panic("unimplemented")
+	return nil, NewErroF(NaoImplementadoErro, "Não é possível converter '%s' em Decimal diretamente; converta para Texto primeiro", TipoBytes.Nome)
 }
 
-// M__inteiro__ lança pânico (não implementado coerção de int a partir de raw bytes diretamente).
+// M__inteiro__ retorna erro (coerção de Inteiro a partir de Bytes brutos não é suportada diretamente).
 func (b *Bytes) M__inteiro__() (Objeto, error) {
-	panic("unimplemented")
+	return nil, NewErroF(NaoImplementadoErro, "Não é possível converter '%s' em Inteiro diretamente; use tamanho() ou converta para Texto primeiro", TipoBytes.Nome)
 }
 
 // M__texto__ converte os bytes raw em sua representação string correspondente e retorna um objeto Texto.
