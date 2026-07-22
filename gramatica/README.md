@@ -72,12 +72,12 @@ Abaixo está o mapeamento de **Precedência Operacional**, listado do operador d
 ## 🔄 Estruturas de Controle de Fluxo
 
 ### 1. Declaração Condicional (`se` / `senao`)
-A estrutura de blocos condicionais exige o uso de parênteses para a expressão de validação lógica e chaves para delimitar o escopo:
+A estrutura de blocos condicionais não utiliza parênteses na expressão de validação lógica (estilo Go/Rust), exigindo apenas chaves para delimitar o escopo:
 
 ```harpia
-se (x > 10) {
+se x > 10 {
     escreva("Maior que dez")
-} senao se (x == 10) {
+} senao se x == 10 {
     escreva("É dez")
 } senao {
     escreva("Menor que dez")

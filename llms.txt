@@ -13,8 +13,17 @@ Para obter a especificação completa e detalhada contendo toda a stdlib, gramá
 3. **Ponto e Vírgula (`;`) Opcional**: É opcional no final das instruções.
 4. **Funções Globais**: Funções de sistema como `imprimir` (ou `imprima` / `escreva`) são globais e integradas ao ambiente.
 5. **Tipagem Opcional**: Declarada após dois pontos (`var x: Inteiro = 10` ou `funcao soma(a: Inteiro, b: Inteiro) -> Inteiro`).
-6. **Operador de Canal (Pipe `|>`)**: Encadeia chamadas de funções da esquerda para a direita (ex: `texto |> removerEspacos |> maiusculo`).
-7. **Testes Unitários Integrados**: Palavra-chave `testar "nome" { ... }` com asserções `assegura(condicao)`.
+6. **Enumerações e Interfaces Nativas**: Sintaxe limpa para enums (`enum Status { Pendente, Concluido }`) e contratos de arquitetura (`interface Repositorio { func salvar(item) }`).
+7. **Operadores Nulo-Seguros**: Coalescência nula `??` (`var x = a ?? "padrao"`) e encadeamento opcional `?.` (`var n = usuario?.nome`).
+8. **Desestruturação de Sinais/Variáveis**: Permite `var [v, set] = sinal(0)` ou `var [a, b] = lista`.
+9. **Operador de Canal (Pipe `|>`)**: Encadeia chamadas de funções da esquerda para a direita (ex: `texto |> removerEspacos |> maiusculo`).
+10. **Testes Unitários Integrados**: Palavra-chave `testar "nome" { ... }` com asserções `assegura(condicao)`.
+12. **Componentes Nativos de UI & Roteamento SPA**: Suporte a `<Link para="...">`, `<Escolha>`/`<Caso>`/`<Padrao>`, `<Aguardar recurso={...}>` (Async Suspense), `<Portal>` (renderização no document.body), `<BarraDeProgresso>`, diffing otimizado por chave (`chave="id"` em `<para>`), hooks reativos `usarTema`, `usarFormulario`, `usarConsulta` (SWR Pattern), `usarArrastar` (Drag-and-Drop) e `usarNotificacao` (Toast notifications).
+13. **Suíte de Segurança Nativa OWASP Top 10**: Sanitização XSS (`seguranca.sanitizarHtml`), hashing Bcrypt e JWT (`autenticacao`), criptografia envelope AES-256-GCM (`cripto.cifrar/decifrar`), cabeçalhos de segurança HTTP e auditoria CLI (`harpia auditar`).
+14. **Novos Módulos de Produtividade**: Manipulação fluente de datas e horas (`tempo.agora()`, `.formatar()`), envio de e-mails transacionais SMTP/HTML (`email.enviar`), background jobs (`fila.enfileirar`) e gerador de PDF (`pdf.gerarDeHtml`).
+
+
+
 
 ---
 
@@ -134,6 +143,13 @@ A partir da versão 1.2.0, o Harpia incorpora um conjunto completo de ferramenta
 - **Validação de Limites de Inteiros**: Proteção estrita de fronteiras contra estouro de bits (CWE-190) e casts de inteiros inseguros utilizando constantes compiláveis.
 - **Privilégio Mínimo de Tokens de CI**: Declaração explícita de permissões de leitura do GITHUB_TOKEN em todos os workflows do GitHub Actions (`permissions: contents: read`).
 
+### 🌐 6. Suporte Nativo a CORS e Parâmetros HTTP (Módulo `http`)
+- **Configuração Zero de CORS**: O servidor HTTP nativo trata automaticamente requisições preflight `OPTIONS` (respondendo com status `200 OK`) e injeta cabeçalhos de CORS padrão (`Access-Control-Allow-Origin: *`) de forma transparente para permitir a comunicação de SPAs locais com a API.
+- **Sobrescrita de Cabeçalhos**: Se o desenvolvedor precisar de políticas de CORS customizadas, ele pode definir o cabeçalho desejado em suas rotas. Cabeçalhos personalizados definidos no dicionário `res.cabecalho` (como `res.cabecalho["Access-Control-Allow-Origin"] = "https://origem-confiavel.com"`) têm precedência e substituem as definições automáticas padrões.
+- **Parâmetros de Consulta (`req.query`)**: Acesso simples e nativo aos parâmetros de busca (query string) da URL requisitada (ex: `var agora = req.query["agora"]` obtém `"2026-07-21"` a partir de `/?agora=2026-07-21`).
+- **Parâmetros Dinâmicos de Rotas (`req.parametros`)**: Parâmetros nomeados extraídos diretamente de rotas dinâmicas como `/api/tarefas/:id`.
+- **Desserialização de JSON Automática (`req.corpoJson`)**: O corpo da requisição é interpretado e convertido para mapas do Harpia de forma nativa e automática quando o cabeçalho `Content-Type` é do tipo JSON.
+
 ---
 
 ## 📂 Estrutura de Clean Architecture e DDD
@@ -152,16 +168,21 @@ meu-app/
 
 ## 🛠️ Comandos Principais da CLI
 * **REPL de Terminal**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair instantaneamente, utilitário `clear` para limpar tela, e comandos didáticos integrados como `ajuda <funcao>` e `escopo` para debugar variáveis locais em memória).
-* **Executar script**: `harpia executar main.hrp` (ou `--vm` para bytecode otimizado, `--estrito` para validação rígida de tipos).
-* **Linter Estático**: `harpia checar arquivo.hrp` (análise semântica offline que detecta variáveis não declaradas, reatribuições e erros de sintaxe).
-* **Transpilação & Compilação**: `harpia compilar --alvo=web --entrada=main.hrp --saida=dist` (transpila para Virtual DOM / JavaScript puro. Alvos suportados: `web`, `nativo`, `wasm`).
-* **Servidor Web Local**: `harpia servir --diretorio=dist --porta=8080` (hospeda a SPA compilada localmente de forma extremamente ágil).
+* **Executar script**: `harpia executar` (Zero-Config com auto-detecção de entrada e spinner animado no terminal; suporta `--vm` para bytecode, `--estrito` para validação rígida de tipos e `--assistir` para Watch Mode/Hot-Reload).
+* **Linter Estático**: `harpia checar [caminho]` (análise semântica estática isolada e imune a vazamentos em dependências circulares com consumo de RAM constante < 25 MB).
+* **Transpilação & Compilação**: `harpia compilar` (Zero-Config para `main.hrp` -> `dist` com alvo `web`; suporta flags `--alvo=web|nativo|wasm`, `--entrada` e `--saida`).
+* **Servidor Web Local**: `harpia servir` (Zero-Config com auto-detecção, build automático, spinner no terminal e Hot-Reload SSE ativo na porta 3000 com fallback).
+
 * **Gerador de Projetos**: `harpia novo [backend | frontend | monolito] [nome]` (scaffolds completos em português seguindo Clean Architecture e DDD com guias de arquitetura ricos e `README.md` explicativos).
 * **Gerador de Templates**: `harpia crie [rota | componente | modelo] [nome]` (geração assistida de templates em português para projetos existentes).
 * **Testes unitários**: `harpia testar [caminho]` (executa blocos `testar` nativos).
 * **Servidor LSP**: `harpia lsp` (autocomplete, linter, hover lendo comentários `///`, e **formatação automática ao salvar**).
-* **Gerador de Diagramas**: `harpia diagramar` (gera grafo Mermaid interativo colorindo de vermelho as violações de Clean Arch e verde as conexões saudáveis).
+* **Gerador de Documentação OpenAPI/Swagger**: `harpia docs [arquivo.hrp]` (extrai endpoints e rotas HTTP da AST e gera a especificação `swagger.json` em OpenAPI 3.0.0).
+* **Auditor Estático de Segurança**: `harpia auditar [caminho]` (varre o projeto em busca de falhas de segurança OWASP Top 10 e segredos expostos).
+* **Motor de Deploy em Nuvem**: `harpia publicar [alvo]` (gera Dockerfile otimizado e compila binários de produção para deploy em nuvem em 1 clique).
 * **Gerenciador de Pacotes**: `harpia instalar [pacote]` (resolve versões semver do registro central em português).
+
+
 * **Otimização & DCE**: O otimizador estático (`cmd/otimizador.go`) realiza duas passadas na AST, removendo código morto e colapsando caminhos condicionais constantes antes do empacotamento.
 * **Transpilação AOT & WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` transpila a AST diretamente para código Go nativo (`cmd/transpiler_native.go`) de alta performance. Adicionar `--so=js --arq=wasm` compila para WebAssembly isolando drivers nativos via conditional build tags em `stdlib_native.go`.
 * **Migrations SQLite (sem CGO)**: `harpia migrar criar <nome>` / `aplicar` / `status` / `reverter [N]` — driver `glebarez/go-sqlite`, marcador `-- +migrar ParaCima`/`ParaBaixo` para delimitar SQL de subida/descida.

@@ -47,9 +47,11 @@ A linguagem é orientada pela **Filosofia Ponytail** (preguiçosa com o código 
 1. **YAGNI (You Aren't Gonna Need It):** Eliminar qualquer código ou feature que não seja estritamente necessário.
 2. **Modularização sem Cíclicos:** O compilador barra dependências cíclicas estaticamente antes da execução.
 3. **Erros Didáticos e IA:** Mensagens estruturadas (`HRP-XXXX`) com dicas em português e suporte a explicações guiadas por IA local (`harpia erro explicar`).
-4. **Legibilidade Semântica:** Uso do operador de canais (`|>`) e termos nativos do ecossistema brasileiro (como `raiz`, `ninho`, `copa` e `correnteza` para as bibliotecas padrão).
+4. **Legibilidade Semântica:** Uso do operador de canais (`|>`) e termos nativos do ecossistema brasileiro.
+5. **Suíte Completa de Produção:** Suporte nativo a Segurança OWASP Top 10 (`seguranca`, `autenticacao`, `cripto.cifrar/decifrar`), manipulação de datas (`tempo`), e-mails (`email`), background jobs (`fila`), gerador PDF (`pdf`) e UI avançada (`usarTema`, `<Portal>`, `usarArrastar`, `usarNotificacao`).
 
 ---
+
 
 ## 🏗️ Clean Architecture e DDD Nativo
 
@@ -95,6 +97,7 @@ Executa um script físico Harpia ou inicia o console de desenvolvimento interati
 - **Uso:** `harpia executar [caminho-do-arquivo.hrp] [flags]`
 - **Flags Principais:**
   - `-c, --codigo`: Executa um trecho de código diretamente no terminal (ex: `harpia executar -c "imprimir('Olá!')"`).
+  - `--assistir`: Modo Watch Mode (Hot Reload) — recarrega e reexecuta o script automaticamente ao detectar alterações no disco.
   - `--estrito`: Ativa a validação estrita de anotações de tipo em tempo de execução.
 - **Necessidades:** Sem argumentos, inicia o REPL com ajuda e inspetor de memória embutidos; com argumento, executa o arquivo `.hrp` imediatamente.
 
@@ -150,11 +153,31 @@ Varre e isola testes unitários lógicos declarados na cláusula sintática `tes
 
 - **Uso:** `harpia testar [caminho_ou_pasta]`
 
-### 8. `harpia lsp`
+### 8. `harpia docs` (ou `swagger`, `openapi`)
+
+Analisa a AST do servidor HTTP e gera automaticamente a especificação OpenAPI 3.0.0 (`swagger.json`) para documentação de APIs REST.
+
+- **Uso:** `harpia docs [arquivo.hrp]`
+
+### 9. `harpia auditar` (ou `audit`, `seguranca`)
+
+Executa análise estática de segurança varrendo a AST por segredos expostos, concatenações de SQL brutas e falhas OWASP Top 10.
+
+- **Uso:** `harpia auditar [arquivo_ou_pasta]`
+
+### 10. `harpia publicar` (ou `deploy`)
+
+Gera Dockerfiles otimizados e artefatos compilados de produção para deploy em nuvem ou contêineres em 1 clique.
+
+- **Uso:** `harpia publicar [alvo]`
+
+### 11. `harpia lsp`
 
 Inicia o servidor oficial LSP (Language Server Protocol) do Harpia via stdio, oferecendo suporte nativo para editores de código (como o VS Code) com autocomplete, hover lendo comentários de três barras (`///`), linter de arquitetura limpa e formatação automática de código ao salvar.
 
 - **Uso:** `harpia lsp`
+
+
 
 ---
 

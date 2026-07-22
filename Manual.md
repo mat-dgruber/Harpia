@@ -63,6 +63,17 @@ harpia/
 
 O utilitário de terminal do Harpia foi construído usando a biblioteca **Cobra** (`github.com/spf13/cobra`). Toda a interface se comunica em português de forma natural.
 
+### Instalação e Atualização Automática do PATH
+
+O Harpia disponibiliza um script automatizado de instalação e build (`instalar.sh`) que compila o CLI atualizado e configura o seu ambiente local de desenvolvimento (Zsh/Bash):
+
+```bash
+# Compila e instala o Harpia na pasta ~/.harpia/bin e configura o PATH automaticamente
+./instalar.sh
+```
+
+O script detecta o shell ativo (`~/.zshrc` ou `~/.bashrc`), adiciona a exportação `export PATH="$HOME/.harpia/bin:$PATH"` se ainda não existir, e substitui o binário anterior compilado sem necessidade de intervenção manual.
+
 ### Variáveis Globais de Build (Injeção via Linker)
 
 O pipeline de CI/CD (usando GoReleaser) injeta metadados na compilação do executável do pacote `cmd` através das variáveis:
@@ -82,25 +93,28 @@ Abre o console de desenvolvimento interativo REPL (Playground) com realce de sin
 Interpreta e executa um script físico ou código inline de forma síncrona.
 
 - **Ordem de Carregamento**: Se uma string for fornecida pela flag `-c "codigo"`, o interpretador prioriza a execução do arquivo posicional e, em seguida, avalia o fragmento de código inline no mesmo contexto de execução.
+- **Execução Zero-Config**: Pode ser invocado diretamente sem argumentos (`harpia executar`). O CLI auto-detecta o script de entrada (`servidor.hrp`, `main.hrp`, etc.) e exibe uma animação de spinner no terminal enquanto valida a sintaxe.
 - **Flag `-c`, `--codigo`**: Executa um código direto no terminal (ex: `harpia executar -c "imprima('Olá!')"`).
+- **Flag `--assistir`**: Modo Watch / Hot Reload nativo — monitora o arquivo fonte e o recarrega automaticamente ao salvar.
 - **Flag `--estrito`**: Ativa a validação estrita de tipos em tempo de execução para anotações de tipo opcionais.
 
 #### 3. `harpia compilar [flags]` (Alias: `compila`)
 
 Transpila ou compila o código-fonte Harpia para alvos específicos (como a Web ou nativo).
 
-- **Uso:** `harpia compilar --alvo=web --entrada=main.hrp --saida=dist`
+- **Execução Zero-Config**: Executar `harpia compilar` sem flags auto-detecta a entrada (`main.hrp`, `index.hrp`, etc.), define a saída padrão como `dist` e o alvo como `web`.
 - **Flag `-a`, `--alvo`**: Alvo da compilação. Valores suportados: `web` (padrão, transpila para Virtual DOM e JS puro), `nativo` (AOT via transpilação e build Go nativo), `wasm` (compilação para WebAssembly).
-- **Flag `-e`, `--entrada`**: Ponto de entrada/arquivo principal do projeto (ex: `main.hrp`).
+- **Flag `-e`, `--entrada`**: Ponto de entrada/arquivo principal do projeto.
 - **Flag `-s`, `--saida`**: Pasta destino onde os arquivos estáticos ou binários serão salvos (padrão: `dist`).
 
 #### 4. `harpia servir [flags]` (Alias: `serve`, `servidor`)
 
-Inicia um servidor web local extremamente leve e rápido para hospedar sua aplicação SPA compilada para a web.
+Inicializa o servidor de desenvolvimento local com Hot-Reload automatizado para sua aplicação SPA compilada para a web.
 
-- **Uso:** `harpia servir --diretorio=dist --porta=8080`
+- **Execução Zero-Config**: Executar `harpia servir` sem parâmetros auto-localiza o ponto de entrada do projeto, compila para a pasta `dist` com visualização de spinner animado e levanta o servidor HTTP na porta 3000 (com fallback automático se estiver em uso).
 - **Flag `-d`, `--diretorio`**: Diretório raiz de arquivos estáticos a servir (padrão: `dist`).
-- **Flag `-p`, `--porta`**: Porta na qual o servidor HTTP escutará as requisições (padrão: `8080`).
+- **Flag `-p`, `--porta`**: Porta na qual o servidor HTTP escutará as requisições (padrão: `3000`).
+
 
 #### 5. `harpia novo [command] [flags]` (Alias: `iniciar`, `inicializar`)
 
@@ -242,11 +256,11 @@ type Token struct {
 
 O Lexer varre identificadores textuais e executa uma busca em tabela hash (`tokensIdentificadores`). Se o lexema coincidir com alguma chave reservada, o token genérico `TokenIdentificador` é promovido para a palavra-chave dedicada (ex: `TokenSe`, `TokenRetorne`, `TokenClasse`):
 
-- **Estrutura Condicional e de Fluxo**: `se`, `senao`, `enquanto`, `para`, `em`, `retorne`, `pare`, `continue`
-- **Definições e Escopos**: `var`, `const`, `func`, `funcao`, `classe`, `estende`, `self`, `estatico`
+- **Estrutura Condicional e de Fluxo**: `se`, `senao`, `enquanto`, `para`, `em`, `retorne`, `pare`, `continue`, `assincrono`, `aguarde`
+- **Definições e Escopos**: `var`, `const`, `func`, `funcao`, `classe`, `estende`, `self`, `estatico`, `enum`, `interface`, `exportar`
 - **Módulos**: `importe`, `de`
 - **Testes e Garantias**: `testar`, `assegura`
-- **Constantes e Operadores**: `Verdadeiro`, `Falso`, `Nulo`, `ou`, `e`, `nao`, `nova`
+- **Constantes e Operadores**: `Verdadeiro`, `Falso`, `Nulo`, `ou`, `e`, `nao`, `nova`, `??` (coalescência nula), `?.` (encadeamento opcional)
 - **Controle de Erros**: `tente`, `capture`, `finalmente`
 
 ---
@@ -367,6 +381,15 @@ As variáveis ativas e constantes são mantidas em estruturas `Escopo`:
 
 Todos os tipos de dados nativos no Harpia possuem comportamentos específicos sob a VM:
 
+### Iteração Nativa e Protocolos de Coleção (`I_iterador`)
+
+O Harpia oferece suporte a iteração unificada via laços `para-em`:
+
+- **Listas e Tuplas**: Iteração sequencial pelos elementos contidos.
+- **Mapas**: Iteração pelos pares `[Chave, Valor]` encapsulados em Tuplas, permitindo desestruturação fluida.
+- **Texto (`Texto`)**: Iteração caractere a caractere (Unicode-safe via runas Go), preservando caracteres multibyte como acentos e emojis sem corromper a fatiagem física.
+- **Bytes (`Bytes`)**: Iteração byte a byte (retornando inteiros para cada valor físico de byte). As tentativas de coerção direta de `Bytes` para `Inteiro` ou `Decimal` retornam um erro gracioso `NaoImplementadoErro` em português, orientando a conversão prévia para `Texto` ou o uso do método `tamanho()`.
+
 ### 1. `Inteiro` (int64)
 
 - **Design**: Inteiro com sinal de 64 bits para evitar estouros aritméticos.
@@ -388,12 +411,14 @@ Todos os tipos de dados nativos no Harpia possuem comportamentos específicos so
 
 - **Design**: Cadeia imutável de caracteres UTF-8.
 - **Comprimento Seguro**: O método `tamanho()` chama `utf8.RuneCountInString`, fornecendo a contagem de caracteres reais em vez de contagem de bytes físicos em disco.
+- **Comparações Lexicográficas**: Suporta comparações relacionais ricas diretamente entre instâncias de Texto (`<`, `<=`, `>`, `>=`), comparando a ordem lexicográfica Unicode das strings.
 - **Interpolação de Strings**: Implementada usando o operador de módulo `%`. Analisa e substitui de forma dinâmica marcadores de formatação:
   - `%i`: Formata para Inteiro.
   - `%d`: Formata para Decimal.
   - `%b`: Formata para Booleano.
   - `%s` (ou outro marcador): Formata chamando a representação textual do objeto.
 - **Exemplo**: `"Eu tenho %i anos de idade e me chamo %s" % (23, "Carlos")`.
+
 
 ### 5. `Lista` (`[]Objeto` mutável)
 
@@ -499,7 +524,7 @@ Serialização e desserialização de formato de dados JSON. Requer `de "json" i
 
 - **Métodos**:
   - `analisar(textoJson)`: Desserializa uma string JSON em estruturas nativas de dados do Harpia (Lista, Mapa, Inteiro, Decimal, Booleano, Nulo).
-  - `serializar(objeto)`: Converte estruturas de dados recursivas do Harpia em string JSON representativa.
+  - `serializar(objeto)`: Converte estruturas de dados recursivas do Harpia em string JSON representativa. Oferece suporte completo e nativo a instâncias de classes personalizadas (reunindo recursivamente seus atributos).
 
 ### Módulo: `yaml`
 
@@ -537,7 +562,7 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
     - `postar(rota, handler)`: Registra um manipulador para o método POST na rota especificada.
     - `deletar(rota, handler)`: Registra um manipulador para o método DELETE na rota especificada.
     - `usar(middleware)`: Registra um middleware global (função `funcao(req, res)`) executado sequencialmente antes do handler de destino de cada requisição.
-    - `escutar(porta)`: Inicia a escuta e aceitação de requisições na porta informada, operando de forma assíncrona e concorrente em background.
+    - `escutar(porta, bloquear = Falso)`: Inicia a escuta e aceitação de requisições na porta informada. Se o segundo argumento for `Verdadeiro`, executa de forma síncrona bloqueando a thread principal. Do contrário, opera de forma assíncrona em background.
     - `fechar()`: Encerra a escuta do servidor HTTP liberando a porta local de forma limpa.
   - **`Requisicao`**:
     - Representa os metadados da requisição HTTP recebida. Atributos:
@@ -546,6 +571,8 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
       - `cabecalho`: Mapa contendo os cabeçalhos recebidos.
       - `corpo`: Texto do corpo da mensagem HTTP.
       - `parametros`: Mapa dinâmico contendo as variáveis injetadas por rotas dinâmicas (ex: `req.parametros["nome"]` para a rota `/ola/:nome`).
+      - `query`: Mapa contendo as variáveis de consulta (query string) passadas na URL (ex: `req.query["agora"]` para a URL `/?agora=2026-07-21`).
+      - `corpoJson`: Objeto (Dicionário/Mapa) contendo o corpo da requisição automaticamente desserializado a partir de dados em formato JSON (nulo se não for um JSON válido).
   - **`Resposta`**:
     - Representa a resposta HTTP a ser enviada pelo servidor. Atributos:
       - `status`: Inteiro indicando o código de status HTTP (ex: `200`, `404`, `500`).
@@ -555,6 +582,17 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
       - `definir_cabecalho(chave, valor)`: Define um cabeçalho customizado na resposta.
 - **Funções**:
   - `requisitar(metodo, url, corpo?, cabecalhos?)`: Realiza uma chamada de requisição HTTP Cliente síncrona completa (suporta chamadas HTTPS) e retorna o respectivo objeto de `Resposta`.
+
+- **Suporte Nativo a CORS**:
+  - O servidor HTTP do Harpia possui suporte transparente e automático a CORS para facilitar o desenvolvimento de SPAs de frontend que consomem APIs localmente.
+  - **Requisições OPTIONS (Preflight)**: São interceptadas e respondidas automaticamente com status `200 OK` e cabeçalhos de CORS padrão (`Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS, PUT, PATCH`, etc.).
+  - **Customização**: Se o desenvolvedor desejar configurações específicas de CORS, ele pode simplesmente definir as chaves desejadas no mapa de cabeçalhos da resposta (`res.cabecalho` ou chamando `definir_cabecalho`). Estas definições têm precedência e substituem os cabeçalhos padrão:
+    ```harpia
+    app.obter("/api/dados", funcao(req, res) {
+        res.cabecalho["Access-Control-Allow-Origin"] = "https://meu-site-confiavel.com"
+        res.enviarJson({"dados": "confidenciais"})
+    })
+    ```
 
 ### Módulo: `bd`
 
@@ -1125,11 +1163,20 @@ A partir da **Fase 4**, o Harpia suporta de forma unificada o desenvolvimento de
 A reatividade do Harpia atualiza de forma fina e cirúrgica apenas os nós do DOM que mudaram, prevenindo re-renderizações totais de página:
 
 - **`sinal(valor)`**: Cria um estado reativo. Retorna um array `[ler, definir]`.
+- **`sinalPersistente(chave, valorInicial)`**: Cria um estado reativo sincronizado automaticamente com o `localStorage` do navegador.
+- **`usarFormulario(config)`**: Gestor de estado reativo, validações e submissões automáticas de formulários.
+- **`usarConsulta(url, opcoes)`**: Cache global client-side, revalidação e mutação otimista (*SWR Pattern*).
+- **`usarTema(chave, padrao)`**: Gestor de Dark/Light Mode com detecção automática do SO e persistência.
+- **`usarArrastar(aoSoltar)`**: Hook reativo para gestos Drag-and-Drop e listas reordenáveis (Kanban).
+- **`usarNotificacao()`**: Gerenciador global de Toast Notifications reativas (`notificar.sucesso(...)`, `notificar.erro(...)`).
 - **`efeito(funcao)`**: Re-executa de forma automática sempre que os sinais dependentes sofrerem alteração.
 - **`derivado(funcao)`**: Cria um sinal computado e memoizado.
 - **`armazem(objeto)`**: Gerenciador de estado global sincronizado entre múltiplos componentes.
 
+
+
 ```harpia
+
 var contadorSinal = sinal(0);
 var contador = contadorSinal[0];
 var setContador = contadorSinal[1];
@@ -1147,18 +1194,29 @@ Permite mesclar tags HTML e códigos de forma nativa e semantica:
 
 - **Componentes funcionais**: Funções normais que retornam marcações JSX-like.
 - **Eventos**: Atributos como `aoClicar` que mapeiam de forma nativa para eventos `onclick` de browser.
+- **Componentes Nativos de UI**:
+  - `<Link para="...">`: Navegação SPA de 1ª classe que previne recarregamentos da página e gerencia a URL via History API.
+  - `<Escolha valor={...}>`: Pattern matching nativo de UI contendo blocos `<Caso valor="...">` e `<Padrao>`.
+  - `<Aguardar recurso={...}>`: Tratamento declarativo de carregando/erro/sucesso de dados assíncronos.
+  - `<Portal>`: Renderização de subárvores JSX diretamente no `document.body` (modais, popups e tooltips sem estouro de z-index).
+  - `<BarraDeProgresso>`: Indicador de progresso de carregamento de rota animado no topo do navegador.
+
 - **Estruturas Inline**:
   - `<se condicao={...}>...</se>`: Condicional dinâmico.
-  - `<para item em lista={...}>...</para>`: Loops reativos eficientes.
+  - `<para item em lista={...} chave="id">...</para>`: Loops reativos com diffing de chaves (*keyed reconciliation*).
 
 ```harpia
 funcao App() {
     retorne <div classe="p-4">
-        <h1>Contador: {contador()}</h1>
-        <botao aoClicar={setContador(contador() + 1)}>Incrementar</botao>
+        <Link para="/sobre">Sobre nós</Link>
+        <Escolha valor={TelaNav()}>
+            <Caso valor="tarefas"><RotaTarefas /></Caso>
+            <Padrao><div>404</div></Padrao>
+        </Escolha>
     </div>;
 }
 ```
+
 
 ### 13.3. Estilização Nativa e Classes Utilitárias em PT
 
@@ -1429,7 +1487,9 @@ A linha mestra de desenvolvimento do Harpia se mantém desde a sua concepção:
 O ecossistema Harpia adota diretrizes estritas de desenvolvimento seguro de software para garantir conformidade em auditorias estáticas de código (SAST), auditorias de conformidade do GitHub Advanced Security (CodeQL) e mitigar vulnerabilidades comuns de infraestrutura e aplicação:
 
 ### 22.1. Confinamento Robusto de Diretórios (Anti-Path Traversal)
-Operações de leitura ou escrita no sistema de arquivos a partir de parâmetros fornecidos pelo usuário representam o risco de ataques de "travessia de diretório" (Zip Slip ou Path Traversal). 
+
+Operações de leitura ou escrita no sistema de arquivos a partir de parâmetros fornecidos pelo usuário representam o risco de ataques de "travessia de diretório" (Zip Slip ou Path Traversal).
+
 - **Boas Práticas de Implementação**:
   - Nunca confie apenas na concatenação de strings para caminhos (ex: `baseDir + caminho`).
   - Sempre utilize a função `filepath.Rel` para calcular o caminho relativo entre o diretório raiz autorizado e o caminho final resolvido.
@@ -1442,14 +1502,18 @@ Operações de leitura ou escrita no sistema de arquivos a partir de parâmetros
     ```
 
 ### 22.2. Prevenção de Estouro e Conversão Insegura de Inteiros (CWE-190)
+
 Coerções de tipos inteiros de maior capacidade para tipos de menor capacidade (como de `int64` para `int`) sem validação de limites podem sofrer truncamento em arquiteturas de 32-bits, ocasionando loops infinitos ou falhas de estouro silencioso.
+
 - **Boas Práticas de Implementação**:
   - **Validação Estrita de Limites (Range Check)**: Certifique-se de que o número de 64-bits esteja contido de forma garantida e síncrona dentro dos limites de capacidade máxima e mínima do tipo de destino (`math.MinInt` e `math.MaxInt` em Go) antes de realizar o cast.
   - **Evitar Casts Desnecessários**: Se o Query Builder, JSON, ou biblioteca de destino suportar o tipo de dados mais amplo (como `int64`), transmita-o diretamente de forma estática sem realizar coerções.
   - **Uso de Constantes para Análise Estática**: Ao criar pools ou fatias de cache de tamanho fixo, declare os limites superior e inferior usando constantes (`const`) em vez de variáveis (`var`). Isso permite que analisadores de segurança (como o CodeQL) comprovem de forma estática e sem falsos positivos a segurança matemática das expressões.
 
 ### 22.3. Princípio de Privilégio Mínimo de Tokens de CI/CD
+
 Contas de automação e robôs de entrega contínua (GitHub Actions) devem rodar com o escopo de segurança mais restritivo aplicável para o seu respectivo fluxo de trabalho, mitigando o risco de comprometimento do repositório por dependências de terceiros maliciosas.
+
 - **Boas Práticas de Implementação**:
   - Declare de forma explícita e minimalista o bloco de permissões globais em todos os arquivos de workflows do Actions (`.yml`), definindo o token do GitHub para permissão síncrona exclusiva de leitura de código para checkout:
     ```yaml
@@ -1458,13 +1522,14 @@ Contas de automação e robôs de entrega contínua (GitHub Actions) devem rodar
     ```
 
 ### 22.4. Manipulações Cirúrgicas de Strings e Layouts
+
 Substituições globais de strings ou expressões regulares agressivas de limpeza de caracteres especiais (como `.replace(/\{/g, '')` em JavaScript) podem inadvertidamente corromper códigos legítimos e assinaturas do usuário que contêm o caractere de forma sã.
+
 - **Boas Práticas de Implementação**:
   - Seja específico. Se o objetivo é remover apenas um caractere delimitador ou abertura de bloco no final ou início da declaração de linha, utilize métodos específicos de fronteira como `endsWith` combinado com fatiamento de string (`slice`) em vez de varreduras agressivas:
     ```javascript
     let assinatura = linha.trim();
-    if (assinatura.endsWith('{')) {
-        assinatura = assinatura.slice(0, -1).trim();
+    if (assinatura.endsWith("{")) {
+      assinatura = assinatura.slice(0, -1).trim();
     }
     ```
-

@@ -32,21 +32,53 @@ O Harpia foi concebido sob uma perspectiva dupla:
 ## 📦 Estado Atual (v1.x - Produção)
 
 - ✅ Lexer funcional (tokens em Go)
-- ✅ Parser com AST completa (variáveis, funções, loops, condicionais, mapas, tuplas, listas, importação)
-- ✅ Tree-walk interpreter funcional com suporte unificado a corotinas
-- ✅ Stdlib robusta de nível industrial: `embutidos`, `matematica`, `sistema`, `soquete`, `colorize`, `arquivos`, `json`, `cripto`, `yaml`, `xml`, `http`, `bd`
-- ✅ Suporte completo a Classes e Orientação a Objetos por herança simples
+- ✅ Parser com AST completa (variáveis, funções, loops, condicionais, mapas, tuplas, listas, importação, desestruturação, enums, interfaces)
+- ✅ Tree-walk interpreter funcional com suporte unificado a corotinas e operadores nulo-seguros (`??` e `?.`)
+- ✅ Stdlib robusta de nível industrial: `embutidos`, `matematica`, `sistema`, `soquete`, `colorize`, `arquivos`, `json`, `cripto`, `yaml`, `xml`, `http`, `bd` (com suporte a `bd.transacao`)
+- ✅ Suporte completo a Classes, Enumerações (`enum`) e Contratos de Interfaces (`interface`)
 - ✅ Tipagem opcional em tempo de parse, execução e linter (com a flag `--estrito`)
 - ✅ Constantes e Módulos Unificados (Imports/Exports) com prevenção de ciclos
-- ✅ GC próprio por contagem de referências ativo com Coletor e Quebrador de ciclos (_Trial Deletion_)
+- ✅ GC próprio por contagem de referências ativo com Coletor e Quebrador de ciclos para instâncias de classe (`*Instancia`)
 - ✅ VM de pilha de alta velocidade integrada, suportando NaN-boxing e JIT dinâmico de traço
 - ✅ Concorrência cooperativa real com loop de eventos assíncronos (`assincrono`/`aguarde`) e canais CSP
-- ✅ Sinais / reatividade (Fase 4 - Frontend SPA concluída de ponta a ponta!)
+- [x] Sinais / reatividade + Roteador SPA nativo (`roteador`) + Destructuring (`var [v, set] = sinal(0)`)
+- [x] Dev Server (`harpia servir`) e Execução (`harpia executar`) com Zero-Config, auto-detecção de arquivos principais e spinners ANSI animados
+- [x] Linter estático isolado de alocações pesadas (`cmd/checar.go`), resolvendo dependências circulares com consumo de RAM constante (< 25 MB)
+- [x] Runtime VDOM (`runtime-web.js`) com resiliência total contra nós nulos e reconciliação defensiva de elementos DOM
+- [x] Suporte nativo aos métodos de coleção `.adicionar()`, `.anexar()` e `.adiciona()` na VM
+- [x] Suporte nativo a comparações lexicográficas ricas em objetos `Texto` (`<`, `<=`, `>`, `>=`)
+- [x] Componentes Nativos `<Link para="...">`, `<Escolha>`, `<Caso>`, `<Padrao>` e `<Aguardar>` para UI reativa
+- [x] Reconciliação de Virtual DOM com suporte a Chaves (`key`/`chave`) para altíssima performance em listas
+- [x] Suporte a Layouts Globais Aninhados (`layout.hrp`) no compilador Web
+- [x] Parâmetros Dinâmicos em Rotas por Arquivo (`web/rotas/[id].hrp` -> `/rotas/:id`)
+- [x] Gerador Automático de Especificação OpenAPI/Swagger 3.0 via CLI (`harpia docs`)
+- [x] Sinais Persistentes Nativos sincronizados com LocalStorage (`sinalPersistente`)
+- [x] Otimizador de Alocação de Memória na VM em Go (`sync.Pool` em Escopos e Símbolos)
+- [x] Suíte de Segurança Nativa OWASP Top 10 (`stdlib/seguranca`, `stdlib/autenticacao`, `cripto.cifrar/decifrar` AES-256-GCM)
+- [x] Auditor Estático de Segurança na CLI (`harpia auditar`)
+- [x] Injeção Padrão de Cabeçalhos HTTP de Segurança (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`)
+- [x] Módulo Nativo `stdlib/tempo` para manipulação de datas, horas e fusos horários (`tempo.agora()`)
+- [x] Módulo Nativo `stdlib/email` para envio de e-mails transacionais SMTP e templates HTML (`email.enviar`)
+- [x] Hooks Reativos no Frontend (`usarFormulario` e `usarConsulta` / SWR Cache com Mutação Otimista)
+- [x] Motor de Deploy de Nuvem & Docker na CLI (`harpia publicar`)
+- [x] Módulo Nativo `stdlib/fila` para Background Jobs e Filas de Mensageria (`fila.enfileirar`)
+- [x] Módulo Nativo `stdlib/pdf` para geração de relatórios e documentos PDF (`pdf.gerarDeHtml`)
+- [x] Componente Nativo de Animação e Transição de Páginas (`<Animacao>`)
+- [x] Componente Nativo de Imagem Otimizada com Lazy Loading (`<ImagemWeb>`)
+- [x] Suporte a Carregamento de Micro-Frontends e Módulos Federados (`moduloRemoto`)
+- [x] Watch Mode nativo no terminal (`harpia executar --assistir`) para Hot Reload automatizado
+
+
+
+
+- ✅ Formatador automático de código para projetos inteiros (`harpia formatar ./...`)
+- ✅ Carregamento automático de variáveis de ambiente (`.harpia.env`) na inicialização da VM
+- ✅ Linter recursivo para arquivos locais (`harpia checar`)
 - ✅ Suporte a PWA (manifest + service worker) integrado ao output de `harpia compilar --alvo=web`
 - ✅ Sistema de migrations SQLite (`harpia migrar criar|aplicar|status|reverter`) sem CGO
 - ✅ Suporte a i18n via catálogos gettext (`harpia i18n extrair|novo`) sem dependências externas
 - ✅ Análise estática textual no Copiloto (`copiloto revisar` / `copiloto refatorar`)
-- ⚠️ LSP (Diagnósticos iniciais em formato JSON-LSP feitos no Sprint 8)
+- ✅ Servidor oficial LSP (`harpia lsp`) com autocompletion de palavras-chave, hover, go-to-def e linter de Clean Architecture
 
 ---
 

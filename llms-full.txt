@@ -31,10 +31,22 @@ Este arquivo é um guia exaustivo da linguagem Harpia, projetado para ser consum
 
 Harpia utiliza chaves `{}` para delimitar blocos lógicos. Parênteses nas condições de estruturas condicionais e de repetição são **proibidos** (estilo Go/Rust). O término de instruções com ponto e vírgula (`;`) é opcional.
 
-### Declaração de Variáveis e Constantes
+### Declaração de Variáveis, Enumerações e Interfaces
 ```harpia
-var nome = "Harpia"       // Variável comum mutável
-constante PI = 3.14159         // Constante imutável (deve ser inicializada)
+var nome = "Harpia"            // Variável comum mutável
+var [valor, definir] = sinal(0) // Desestruturação de tupla/sinal
+var x = usuario?.nome ?? "Guest"// Operadores nulo-seguros ?. e ??
+constante PI = 3.14159         // Constante imutável
+
+enum Status {
+    Pendente,
+    Concluido
+}
+
+interface Repositorio {
+    func salvar(item)
+    func obterPorId(id): Objeto
+}
 ```
 
 ### Estruturas Condicionais (`se`, `senao se`, `senao`)
@@ -59,10 +71,15 @@ enquanto contador < 5 {
     contador = contador + 1
 }
 
-// Loop Para Em (Iterando Listas ou Mapas)
+// Loop Para Em (Iterando Listas, Mapas, Textos ou Bytes)
 var frutas = ["maçã", "banana", "laranja"]
 para fruta em frutas {
     imprimir(fruta)
+}
+
+// Iteração caractere a caractere (Unicode-safe) em Texto
+para c em "Harpia" {
+    imprimir(c) // "H", "a", "r", "p", "i", "a"
 }
 
 // Controladores de Loop
@@ -305,10 +322,14 @@ A reatividade é estendida no JSX por meio de tags de controle dedicadas, as qua
 * Condicional: `<se condicao={...}>...</se>`
 * Loop de Repetição: `<para item em lista={...} chave="propriedade">...</para>`
 
-### Componentes de UI Corporativos Embutidos
+### Componentes de UI Corporativos Embutidos & Nativos
+* `<Link para="...">`: Navegação SPA de 1ª classe que intercepta cliques e previne recarregamento da página (`e.preventDefault()`), gerenciando a URL reativamente via History API.
+* `<Escolha valor={...}>`: Pattern matching nativo de UI contendo blocos `<Caso valor="...">` e `<Padrao>`.
+* `<Aguardar recurso={...}>`: Componente de Suspense/Fallback declarativo para tratar estados de `carregando`, `erro` e `dados` assíncronos.
 * `<FronteiraDeErro>`: Barreira protetora que impede falhas em subcomponentes secundários de quebrarem a aplicação inteira, renderizando um fallback.
 * `<ListaVirtual>`: Renderiza estritamente os nós físicos visíveis na tela para listas massivas (ex: 50.000 registros), mantendo a rolagem fluida a 60fps.
 * `<GradeDeDados>`: Tabela interativa robusta contendo paginação, filtragem rápida e ordenamento de colunas em português.
+
 
 ### Modelo Híbrido de Arquivos (`.hrp`, `.html`, `.estilo.hrp`)
 Para projetos corporativos de grande porte, você pode separar as responsabilidades de estilo e layout físico de forma transparente:
@@ -389,7 +410,7 @@ importar { Sistema } de "sistema"
 
 #### 4. `json` / `yaml` / `xml`
 * `json.analisar(stringJson)` -> Converte JSON para Mapas/Listas
-* `json.serializar(objeto)` -> Serializa objetos Harpia para JSON
+* `json.serializar(objeto)` -> Serializa objetos Harpia (incluindo instâncias de classes customizadas) para JSON
 
 #### 5. `cripto`
 * `cripto.sha256(texto)`
@@ -409,12 +430,24 @@ app.usar(funcao(req, res, proximo) {
 })
 
 app.obter("/usuarios/:id", funcao(req, res) {
-    var usuarioId = req.caminhoParametros.id
-    res.enviarJson({"id": usuarioId, "status": "ativo"})
+    # req.parametros mapeia os parâmetros dinâmicos de rota (:id)
+    var usuarioId = req.parametros.id
+    # req.query mapeia os parâmetros de consulta da URL (query string, ex: ?filtro=ativo)
+    var filtro = req.query["filtro"]
+    # req.corpoJson traz o body de requisições JSON desserializado automaticamente como Objeto/Dicionário do Harpia
+    var corpo = req.corpoJson
+
+    res.enviarJson({"id": usuarioId, "status": "ativo", "filtro": filtro})
 })
 
-app.escutar(8080)
+// Por padrão, escutar roda em background. Passe 'Verdadeiro' para rodar de forma síncrona/bloqueante
+app.escutar(8080, Verdadeiro)
 ```
+
+##### Suporte Nativo e Automático a CORS
+O módulo `http` do Harpia gerencia cabeçalhos CORS de forma nativa e transparente para simplificar o desenvolvimento.
+- **Preflight `OPTIONS`**: Requisições do método `OPTIONS` são interceptadas e respondidas de forma automática com status `200 OK` e os devidos cabeçalhos de CORS padrão (`Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS, PUT, PATCH`, etc.).
+- **Sobrescrita**: Se houver necessidade de regras específicas de CORS (ex: restringir origens), basta definir o cabeçalho no mapa `res.cabecalho` em suas rotas. Cabeçalhos configurados na aplicação têm precedência e anulam os padrões de desenvolvimento automático.
 
 #### 7. `bd` (Query Builder Relacional, ORM Tipado, MongoDB, Redis e Qdrant)
 O módulo `bd` implementa interfaces avançadas de persistência estruturada e não-estruturada de dados:
@@ -572,6 +605,65 @@ tente {
 }
 ```
 
+#### 15. `seguranca` (Sanitização XSS e Proteção Web)
+Sanitização de entradas HTML e argumentos SQL para prevenção de XSS e Injeções:
+```harpia
+importar { seguranca } de "seguranca"
+
+var textoLimpo = seguranca.sanitizarHtml("<script>alert('xss')</script>")
+var sqlLimpo = seguranca.sanitizarSqlArgumento("admin' --")
+```
+
+#### 16. `autenticacao` (Hashing de Senhas Bcrypt e JWT)
+Geração de hashes de senha e emissão/validação de tokens JWT:
+```harpia
+importar { autenticacao } de "autenticacao"
+
+var hash = autenticacao.gerarHashSenha("senha123")
+var valido = autenticacao.verificarSenha("senha123", hash)
+var token = autenticacao.criarJwt({"usuarioId": 42}, "chave_secreta")
+```
+
+#### 17. `tempo` (Manipulação Fluente de Data e Hora)
+Operações com datas, horas e formatação:
+```harpia
+importar { tempo } de "tempo"
+
+var agora = tempo.agora()
+var dataFutura = agora.adicionarDias(7)
+imprimir(agora.formatar("DD/MM/YYYY"))
+```
+
+#### 18. `email` (Envio SMTP & HTML)
+Envio de e-mails transacionais com templates HTML:
+```harpia
+importar { email } de "email"
+
+email.enviar({
+    para: "cliente@empresa.com",
+    assunto: "Confirmação de Pedido",
+    corpoHtml: "<h1>Pedido #123 Confirmado!</h1>"
+})
+```
+
+#### 19. `fila` (Background Jobs e Mensageria)
+Processamento de tarefas assíncronas em segundo plano:
+```harpia
+importar { fila } de "fila"
+
+fila.enfileirar("processar-videos", { "id": 100 })
+imprimir("Tarefas pendentes: " + fila.tamanho())
+```
+
+#### 20. `pdf` (Gerador Nativo de Relatórios PDF)
+Renderização de relatórios PDF a partir de templates HTML/CSS:
+```harpia
+importar { pdf } de "pdf"
+
+pdf.gerarDeHtml("<h1>Relatório de Vendas</h1>", "relatorio.pdf")
+```
+
+
 #### 15. `ia` (Mecanismos de Agentes & Contratos Semânticos)
 Abstração simplificada e robusta de agentes inteligentes com validação de schemas estruturados em runtime:
 ```harpia
@@ -649,10 +741,12 @@ testar "soma com valores negativos" {
 
 ## 11. Comandos da CLI
 
-* **Executar script diretamente**: `harpia executar arquivo.hrp` (suporta flag `--estrito` para validação rigorosa de anotações de tipo e `--vm` para execução na máquina virtual de bytecode otimizada).
+* **Executar script diretamente**: `harpia executar` (Zero-Config com auto-detecção do arquivo de entrada e spinner animado no terminal; suporta `--estrito` para validação de tipos, `--vm` para bytecode e `--assistir` para Hot Reload).
 * **Iniciar REPL de Terminal**: `harpia` (Playground/Sandbox interativo com realce de sintaxe, suporte a `Ctrl+C`/`Ctrl+D` para sair instantaneamente, utilitário `clear` para limpar tela, e ferramentas didáticas integradas como `ajuda <funcao>` para obter referências detalhadas de primitivas globais e `escopo` para debugar variáveis locais em memória).
-* **Compilar e Transpilar**: `harpia compilar --alvo=web --entrada=main.hrp --saida=dist` (transpila a AST do Harpia para plataformas específicas. Alvos suportados: `web` para HTML/JS Virtual DOM, `nativo` para AOT local do SO, `wasm` para WebAssembly).
-* **Servidor Web de Desenvolvimento**: `harpia servir --diretorio=dist --porta=8080` (hospeda localmente arquivos estáticos e de runtime da SPA de forma veloz e otimizada).
+* **Compilar e Transpilar**: `harpia compilar` (Zero-Config para entrada `main.hrp` e saída `dist`; suporta `--alvo=web|nativo|wasm`, `--entrada` e `--saida`).
+* **Servidor Web de Desenvolvimento**: `harpia servir` (Zero-Config com compilação automática, spinner de progresso e Hot Reload via SSE na porta 3000).
+* **Análise Estática e Linter**: `harpia checar [caminho]` (linter semântico otimizado, sem vazamentos de memória em dependências circulares com uso < 25 MB).
+
 * **Gerador de Projetos (Scaffolding)**: `harpia novo [backend | frontend | monolito] [nome]` (inicializa árvores organizacionais em português sob Clean Architecture e DDD completas com documentos `docs/` e `README.md` explicativos).
 * **Gerador de Componentes**: `harpia crie [rota | componente | modelo] [nome]` (gerador dinâmico de templates lógicos e estilizações nativas `.hrp` de acordo com a Clean Architecture).
 * **Executar suíte de testes**: `harpia testar [caminho_ou_pasta]` (varre e isola testes unitários lógicos declarados na cláusula sintática `testar "nome" { ... }` nativa).
@@ -661,8 +755,12 @@ testar "soma com valores negativos" {
 * **Guia e Dicionário de Erros**: `harpia erro [codigo]` (consultas a códigos de erro regulamentados como `PSC-0005`, suportando `harpia erro explicar [codigo]` para obter auxílio assistido por inteligência artificial local via Ollama/Gemma).
 * **Gerador de Diagramas**: `harpia diagramar [diretorio] --formato=html --saida=diag.html` (Mapeia as relações de dependências estáticas do Clean Architecture gerando grafos Mermaid, colorindo violações arquiteturais em vermelho grossa e conexões saudáveis em verde, além de expor botão de download de imagem vetorial `.svg` no browser em 1 clique).
 * **Gerenciador de Pacotes e Dependências**: `harpia instalar [nome-pacote]` (resolve e baixa pacotes remotos consultando restrições Semver no índice JSON público do registro central em português, gravando o módulo de forma segura contra Zip Slip em `./pt_modulos/`).
-* **Extrair Documentação de Comentários de Três Barras (`///`)**: `harpia doc pasta/ --formato=markdown` (extração nativa de docstrings).
+* **Gerador de Documentação OpenAPI/Swagger 3.0**: `harpia docs [servidor.hrp]` (analisa a AST do servidor HTTP da aplicação backend e extrai endpoints, parâmetros de consulta/rota e verbos REST, gerando a especificação `swagger.json` em OpenAPI 3.0.0).
+* **Auditor Estático de Segurança (OWASP Top 10)**: `harpia auditar [caminho]` (varre arquivos `.hrp` auditando segredos em texto puro, concatenações brutas de SQL e falhas de configuração de segurança).
+* **Motor de Deploy em Nuvem e Docker**: `harpia publicar [alvo]` (gera Dockerfile otimizado multi-stage para Go/Alpine ou constrói artefatos compilados de produção em `dist/app-producao`).
 * **Empacotar em Binário Nativo Único ou WASM**: `harpia empacotar --entrada=main.hrp --saida=meu-app` (compila o script embutido em binário executável local do SO) e `harpia empacotar --so=js --arq=wasm` (compila o interpretador completo para WebAssembly gerando `docs/portal/harpia.wasm` e copiando o carregador JS portátil `wasm_exec.js` do GOROOT de forma automática).
+
+
 * **Publicar Extensão do VS Code (`vscode-harpia`)**: O processo de publicação e empacotamento oficial da extensão para o Marketplace do VS Code usa a CLI oficial `vsce`. Passos:
   1. Instalar ferramenta globalmente: `npm install -g @vscode/vsce`
   2. Criar publicador (Publisher) no VS Code Marketplace e adicionar o ID no campo `"publisher"` de `package.json` em `vscode-harpia/`.
