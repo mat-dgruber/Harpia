@@ -7,6 +7,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// TestStringParaBytes valida a conversão básica de strings nativas Go em instâncias do tipo Bytes do Harpia,
+// garantindo que os dados em bytes e sua estrutura de inicialização fiquem íntegros.
 func TestStringParaBytes(t *testing.T) {
 	frase := "tipo bytes"
 	bytes, err := hrp.NewBytes(frase)
@@ -23,6 +25,8 @@ func TestStringParaBytes(t *testing.T) {
 	}
 }
 
+// TestConversaoParaBytesPorMetodoImplementado verifica se o protocolo __bytes__ registrado
+// dinamicamente no TipoTexto é invocado com sucesso pelo construtor de Bytes ao receber um Texto.
 func TestConversaoParaBytesPorMetodoImplementado(t *testing.T) {
 	hrp.TipoTexto.Mapa["__bytes__"] = hrp.NewMetodoOuPanic(
 		"__bytes__",

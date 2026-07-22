@@ -4,6 +4,9 @@ import (
 	"testing"
 )
 
+// TestOperadorPipe valida o comportamento do operador de canal/Pipe (|>), garantindo
+// que valores à esquerda sejam passados de forma fluente como primeiro argumento para
+// a função ou chamada de método posicionada à direita no encadeamento.
 func TestOperadorPipe(t *testing.T) {
 	codigo := `
 	de "embutidos" importe imprimir
@@ -55,6 +58,8 @@ func TestOperadorPipe(t *testing.T) {
 	}
 }
 
+// TestOperadorPipeSemEfeitoColateralDuplo garante que a expressão do lado esquerdo de um operador Pipe
+// seja avaliada apenas uma única vez, prevenindo a reexecução indesejada de efeitos colaterais.
 func TestOperadorPipeSemEfeitoColateralDuplo(t *testing.T) {
 	codigo := `
 	var contador = 0

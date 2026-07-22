@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+// TestConstanteImutavel valida a imutabilidade estrita das constantes declaradas,
+// assegurando que qualquer tentativa de reatribuição de valor em runtime lance um erro amigável.
 func TestConstanteImutavel(t *testing.T) {
 	codigoTentativaReatribuicao := `
 	const a = 10
@@ -24,6 +26,8 @@ func TestConstanteImutavel(t *testing.T) {
 	}
 }
 
+// TestConstanteSemInicializador verifica se a declaração de uma constante sem seu respectivo
+// valor inicializador dispara um erro sintático/semântico esperado no parser/interpretador.
 func TestConstanteSemInicializador(t *testing.T) {
 	codigoSemInicializador := `
 	const a

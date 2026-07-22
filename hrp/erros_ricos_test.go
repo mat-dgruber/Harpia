@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+// TestErrosRicos valida o motor de diagnósticos ricos do Harpia, garantindo que
+// erros de nomes não encontrados exibam o código PSC-xxxx correto, ofereçam sugestões
+// contextuais baseadas na distância de Levenshtein (ex: imrpimir -> imprimir) e
+// imprimam o trecho de código correspondente com sublinhado ANSI no terminal.
 func TestErrosRicos(t *testing.T) {
 	codigo := `var a = 1;
 imrpimir(a);`

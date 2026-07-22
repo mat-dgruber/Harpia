@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+// TestTestarEDiretivas valida a palavra-chave nativa 'testar' e a asserção 'assegura',
+// verificando se os blocos de testes executam e reportam falhas de asserção de forma esperada.
 func TestTestarEDiretivas(t *testing.T) {
 	codigo := `
 	testar "soma bem sucedida" {

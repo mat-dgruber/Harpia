@@ -4,6 +4,10 @@ import (
 	"testing"
 )
 
+// TestClassesEHeranca realiza um teste de integração completo do interpretador para verificar
+// o suporte nativo a declaração de classes, inicializadores, métodos de instância,
+// herança de métodos de superclasse (base), instanciação por meio da palavra-chave 'nova'
+// e validação de pertinência de tipo dinâmica com o operador 'instancia de'.
 func TestClassesEHeranca(t *testing.T) {
 	codigo := `
 	classe Animal {

@@ -8,16 +8,19 @@ import (
 	"testing"
 )
 
+// LSPRangePosition mapeia uma coordenada de posição compatível com o protocolo LSP (Language Server Protocol).
 type LSPRangePosition struct {
 	Line      int `json:"line"`
 	Character int `json:"character"`
 }
 
+// LSPRange representa a faixa de coordenadas espaciais de um erro (início e fim) no protocolo LSP.
 type LSPRange struct {
 	Start LSPRangePosition `json:"start"`
 	End   LSPRangePosition `json:"end"`
 }
 
+// LSPDiagnostic define a estrutura padrão de diagnóstico enviada pelo linter quando o formato JSON é solicitado.
 type LSPDiagnostic struct {
 	Range    LSPRange `json:"range"`
 	Severity int      `json:"severity"`
@@ -26,6 +29,9 @@ type LSPDiagnostic struct {
 	Message  string   `json:"message"`
 }
 
+// TestLinterLSPDiagnosticsJSON realiza um teste de roundtrip executando a ferramenta CLI 'checar'
+// com a flag '--formato=json' para garantir que os diagnósticos de linter/AST sejam gerados
+// no formato JSON estrito compatível com a extensão oficial do VS Code e outros clientes LSP.
 func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 	dir, err := os.MkdirTemp("", "Harpia_linter_lsp_*")
 	if err != nil {

@@ -14,6 +14,8 @@ func assertPanic(t *testing.T, f func()) {
 	t.Errorf("Era esperado que houvesse um `panic`")
 }
 
+// TestMaquinarioImporteModulo testa o importador de baixo nível de módulos nativos ou empacotados,
+// verificando se os atributos e assinaturas de métodos do módulo importado são expostos corretamente.
 func TestMaquinarioImporteModulo(t *testing.T) {
 	var mod, obj hrp.Objeto
 	var err error
@@ -34,6 +36,8 @@ func TestMaquinarioImporteModulo(t *testing.T) {
 	}
 }
 
+// TestMultiImporteModulo garante a importação concorrente ou sequencial de múltiplos módulos distintos,
+// validando se cada um deles é adicionado corretamente ao registro global de módulos do contexto da VM.
 func TestMultiImporteModulo(t *testing.T) {
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()
@@ -47,6 +51,8 @@ func TestMultiImporteModulo(t *testing.T) {
 	}
 }
 
+// TestImporteSemCriarContexto valida que invocar funções de importação sem possuir um contexto
+// de execução ativo ou previamente inicializado na Thread-Local lance um pânico explicativo em Go.
 func TestImporteSemCriarContexto(t *testing.T) {
 	teste := func() {
 		hrp.Importe("embutidos", nil)
@@ -55,6 +61,8 @@ func TestImporteSemCriarContexto(t *testing.T) {
 	assertPanic(t, teste)
 }
 
+// TestImporteComContexto verifica a importação de módulos com o contexto devidamente inicializado,
+// garantindo que os métodos expostos sejam acessíveis de forma transparente.
 func TestImporteComContexto(t *testing.T) {
 	var mod, obj hrp.Objeto
 	var err error
@@ -75,6 +83,8 @@ func TestImporteComContexto(t *testing.T) {
 	}
 }
 
+// TestImportacoesRelativas garante que caminhos de importação relativa resolvam de forma adequada
+// usando o escopo léxico atual e falhem de forma controlada quando o módulo solicitado não existe.
 func TestImportacoesRelativas(t *testing.T) {
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
 	defer ctx.Terminar()

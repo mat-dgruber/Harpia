@@ -6,6 +6,9 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// TestTemplateStringsEInterpolacao valida o mecanismo nativo de interpolação em strings de template,
+// garantindo que as chaves '{variavel}' sejam substituídas dinamicamente pelos valores resolvidos
+// no escopo de execução em runtime.
 func TestTemplateStringsEInterpolacao(t *testing.T) {
 	codigo := `
 	var nome = "Harpia"
@@ -23,6 +26,9 @@ func TestTemplateStringsEInterpolacao(t *testing.T) {
 	}
 }
 
+// TestTemplateComPipes garante que o mecanismo de interpolação funcione corretamente quando
+// acoplado com o operador Pipe (|>), permitindo o encadeamento de transformações fluentes
+// na resolução de variáveis embutidas no template de string.
 func TestTemplateComPipes(t *testing.T) {
 	codigo := `
 	var nome = "  cafe  "

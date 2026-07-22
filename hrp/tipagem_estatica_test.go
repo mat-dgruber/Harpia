@@ -6,6 +6,8 @@ import (
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
+// TestTipagemEstaticaParsing valida se o parser do Harpia extrai e mapeia corretamente as anotações
+// de tipos para variáveis, constantes, parâmetros e tipos de retorno de funções na AST.
 func TestTipagemEstaticaParsing(t *testing.T) {
 	codigo := `
 	var x: Inteiro = 10;
@@ -83,6 +85,8 @@ func TestTipagemEstaticaParsing(t *testing.T) {
 	}
 }
 
+// TestTipagemEstaticaExecucao realiza testes parametrizados de runtime, validando
+// as regras de tipagem estrita sob modo estrito (--estrito) e modo dinâmico normal.
 func TestTipagemEstaticaExecucao(t *testing.T) {
 	testes := []struct {
 		nome    string

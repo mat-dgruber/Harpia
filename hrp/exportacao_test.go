@@ -8,6 +8,8 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// TestExportacaoESimbolos valida o mecanismo de exportação e importação de variáveis, constantes
+// e funções entre módulos físicos do Harpia, garantindo a resolução correta de dependências.
 func TestExportacaoESimbolos(t *testing.T) {
 	codigoModulo := `
 	exportar constante PI = 3.14
@@ -44,6 +46,9 @@ func TestExportacaoESimbolos(t *testing.T) {
 	}
 }
 
+// TestImportacaoCiclica assegura que o mecanismo de resolução de dependências em runtime do Harpia
+// detecte adequadamente cenários de importação circular/cíclica e lance um erro apropriado
+// de forma controlada, impedindo loops infinitos ou estouro de pilha.
 func TestImportacaoCiclica(t *testing.T) {
 	dir, err := os.MkdirTemp("", "Harpia_ciclo_*")
 	if err != nil {

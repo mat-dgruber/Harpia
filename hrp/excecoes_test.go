@@ -4,6 +4,9 @@ import (
 	"testing"
 )
 
+// TestExcecoesTryCatch valida o fluxo básico e completo de tratamento de exceções do Harpia,
+// garantindo que os blocos 'tente', 'capture' e 'finalmente' executem em sequência correta,
+// isolando exceções e expondo as propriedades do erro capturado (como a mensagem).
 func TestExcecoesTryCatch(t *testing.T) {
 	codigo := `
 	var capturou = Falso
@@ -44,6 +47,9 @@ func TestExcecoesTryCatch(t *testing.T) {
 	}
 }
 
+// TestExcecoesPropagacaoSemCapture verifica o comportamento de propagação ascendente
+// de exceções quando não há uma cláusula 'capture' correspondente, assegurando que
+// o bloco 'finalmente' execute obrigatoriamente antes do encerramento forçado do script.
 func TestExcecoesPropagacaoSemCapture(t *testing.T) {
 	codigoValido := `
 	var rodouFinalmente = Falso

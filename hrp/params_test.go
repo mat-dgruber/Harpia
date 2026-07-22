@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+// TestParametrosAvancados valida o suporte do Harpia a parâmetros opcionais com valores padrão (default)
+// e a passagem de argumentos nomeados (keyword arguments), garantindo a resolução correta da assinatura.
 func TestParametrosAvancados(t *testing.T) {
 	codigo := `
 	funcao cumprimentar(nome, saudacao = "Olá") {
