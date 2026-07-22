@@ -11,7 +11,9 @@ func TestLinterShadowingWarning(t *testing.T) {
 	var x = 10;
 	se (Verdadeiro) {
 		var x = 20;
+		imprimir(x);
 	}
+	imprimir(x);
 	`
 
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
@@ -25,11 +27,19 @@ func TestLinterShadowingWarning(t *testing.T) {
 	linter := &Linter{}
 	linter.Checar(ast)
 
-	if len(linter.Erros) != 1 {
-		t.Fatalf("Esperava exatamente 1 ocorrência, obteve %d", len(linter.Erros))
+	// Filter out unused variable warnings for this shadowing test
+	var errorsFiltered []LinterError
+	for _, e := range linter.Erros {
+		if e.Code != "HRP-0006" {
+			errorsFiltered = append(errorsFiltered, e)
+		}
 	}
 
-	aviso := linter.Erros[0]
+	if len(errorsFiltered) != 1 {
+		t.Fatalf("Esperava exatamente 1 ocorrência, obteve %d", len(errorsFiltered))
+	}
+
+	aviso := errorsFiltered[0]
 	if aviso.Severity != 2 {
 		t.Errorf("Esperava Severity=2 (Aviso), obteve %d", aviso.Severity)
 	}
@@ -43,6 +53,7 @@ func TestLinterShadowingErroMesmoEscopo(t *testing.T) {
 	codigo := `
 	var x = 10;
 	var x = 20;
+	imprimir(x);
 	`
 
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
@@ -56,11 +67,18 @@ func TestLinterShadowingErroMesmoEscopo(t *testing.T) {
 	linter := &Linter{}
 	linter.Checar(ast)
 
-	if len(linter.Erros) != 1 {
-		t.Fatalf("Esperava exatamente 1 erro, obteve %d", len(linter.Erros))
+	var errorsFiltered []LinterError
+	for _, e := range linter.Erros {
+		if e.Code != "HRP-0006" {
+			errorsFiltered = append(errorsFiltered, e)
+		}
 	}
 
-	erro := linter.Erros[0]
+	if len(errorsFiltered) != 1 {
+		t.Fatalf("Esperava exatamente 1 erro, obteve %d", len(errorsFiltered))
+	}
+
+	erro := errorsFiltered[0]
 	if erro.Severity != 1 {
 		t.Errorf("Esperava Severity=1 (Erro), obteve %d", erro.Severity)
 	}

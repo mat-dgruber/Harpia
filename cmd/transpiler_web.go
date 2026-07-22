@@ -6,16 +6,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // TranspilerWeb converte uma AST do Harpia para código JavaScript ES6 correspondente.
 type TranspilerWeb struct {
-	Styles        []string // Acumula blocos de estilo declarados para salvar no CSS
-	Estiro        bool     // ponytail: deprecating typo anterior
-	Estrito       bool     // ponytail: ativa tipagem estrita de JSDoc para DX
-	DiretorioBase string   // ponytail: diretório base do arquivo que está sendo compilado
+	Styles           []string // Acumula blocos de estilo declarados para salvar no CSS
+	Estiro           bool     // ponytail: deprecating typo anterior
+	Estrito          bool     // ponytail: ativa tipagem estrita de JSDoc para DX
+	DiretorioBase    string   // ponytail: diretório base do arquivo que está sendo compilado
+	DiretorioProjeto string   // ponytail: diretório raiz do projeto (para resolver imports de "web")
 }
 
 func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
@@ -43,13 +43,52 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return fmt.Sprintf("%s %s = %s;", keyword, n.Nome, initVal)
 
+	case *parser.DeclVarDestructuring:
+		keyword := "let"
+		if n.Constante {
+			keyword = "const"
+		}
+		initVal := "undefined"
+		if n.Inicializador != nil {
+			initVal = t.Transpile(n.Inicializador)
+		}
+		return fmt.Sprintf("%s [%s] = %s;", keyword, strings.Join(n.Nomes, ", "), initVal)
+
+	case *parser.OpCoalescenciaNula:
+		return fmt.Sprintf("(%s ?? %s)", t.Transpile(n.Esq), t.Transpile(n.Dir))
+
+	case *parser.OpTernaria:
+		return fmt.Sprintf("(%s ? %s : %s)", t.Transpile(n.Condicao), t.Transpile(n.Entao), t.Transpile(n.Senao))
+
+	case *parser.AcessoMembroOpcional:
+		return fmt.Sprintf("%s?.%s", t.Transpile(n.Objeto), t.Transpile(n.Membro))
+
+	case *parser.DeclEnum:
+		var pares []string
+		for _, val := range n.Valores {
+			pares = append(pares, fmt.Sprintf("%s: \"%s\"", val, val))
+		}
+		return fmt.Sprintf("const %s = Object.freeze({ %s });", n.Nome, strings.Join(pares, ", "))
+
+	case *parser.DeclInterface:
+		return ""
+
 	case *parser.Reatribuicao:
 		dest := t.Transpile(n.Objeto)
 		val := t.Transpile(n.Expressao)
 		return fmt.Sprintf("%s %s %s;", dest, n.Operador, val)
 
 	case *parser.Identificador:
+		switch n.Nome {
+		case "Verdadeiro":
+			return "true"
+		case "Falso":
+			return "false"
+		case "Nulo":
+			return "null"
+		}
 		return n.Nome
+
 
 	case *parser.TextoLiteral:
 		if len(n.Valor) >= 2 {
@@ -170,6 +209,9 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 
 	case *parser.ChamadaFuncao:
 		fn := t.Transpile(n.Identificador)
+		if fn == "renderizar" {
+			fn = "montar"
+		}
 		// ponytail: inline dinâmico de layouts HTML físicos externos
 		if fn == "importarHtml" && len(n.Argumentos) == 1 {
 			if txt, ok := n.Argumentos[0].(*parser.TextoLiteral); ok {
@@ -182,9 +224,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 				if err != nil {
 					return fmt.Sprintf("/* Erro ao carregar html de %s: %v */", caminho, err)
 				}
-				ctx := hrp.NewContexto(hrp.OpcsContexto{})
-				defer ctx.Terminar()
-				subAst, err := ctx.StringParaAst(string(conteudo), caminho)
+				subAst, err := parser.NewParserFromString(string(conteudo), caminho).Parse()
 				if err != nil {
 					return fmt.Sprintf("/* Erro de sintaxe no template HTML de %s: %v */", caminho, err)
 				}
@@ -275,7 +315,11 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 
 	case *parser.DeclExportar:
-		return fmt.Sprintf("export %s", t.Transpile(n.Expressao))
+		inner := t.Transpile(n.Expressao)
+		if inner == "" {
+			return ""
+		}
+		return fmt.Sprintf("export %s", inner)
 
 	case *parser.ListaLiteral:
 		var elems []string
@@ -305,15 +349,30 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return fmt.Sprintf("`%s`", strings.Join(parts, ""))
 
+	case *parser.AsseguraNode:
+		cond := t.Transpile(n.Condicao)
+		if n.Mensagem != nil {
+			msg := t.Transpile(n.Mensagem)
+			return fmt.Sprintf("if (!(%s)) { throw new Error(\"asserção falhou: \" + %s); }", cond, msg)
+		}
+		return fmt.Sprintf("if (!(%s)) { throw new Error(\"asserção falhou\"); }", cond)
+
 	// ============================================================================
 	// CASOS SINTÁTICOS DO FRONTEND (JSX & ESTILO)
 	// ============================================================================
 	case *parser.NoJSX:
-		if n.Tag == "Link" || n.Tag == "link" {
-			var para string = `"#"`
+		if n.Tag == "Link" {
+			para := "'#'"
+			var extraAttrs []string
 			for _, attr := range n.Atributos {
+				val := "true"
+				if attr.Valor != nil {
+					val = t.Transpile(attr.Valor)
+				}
 				if attr.Nome == "para" {
-					para = t.Transpile(attr.Valor)
+					para = val
+				} else {
+					extraAttrs = append(extraAttrs, entries(attr.Nome, val))
 				}
 			}
 			var children []string
@@ -326,11 +385,16 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 				}
 				children = append(children, t.Transpile(filho))
 			}
-			childrenStr := "null"
+			childrenStr := ""
 			if len(children) > 0 {
-				childrenStr = strings.Join(children, ", ")
+				childrenStr = ", " + strings.Join(children, ", ")
 			}
-			return fmt.Sprintf("h('a', { href: %s, aoClicar: (e) => { e.preventDefault(); navegar(%s); } }, %s)", para, para, childrenStr)
+			attrsStr := fmt.Sprintf("{ para: %s", para)
+			if len(extraAttrs) > 0 {
+				attrsStr += fmt.Sprintf(", %s", strings.Join(extraAttrs, ", "))
+			}
+			attrsStr += " }"
+			return fmt.Sprintf("h(Link, %s%s)", attrsStr, childrenStr)
 		}
 
 		var attrs []string
@@ -399,8 +463,10 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			children = append(children, t.Transpile(filho))
 		}
 		childVal := "null"
-		if len(children) > 0 {
-			childVal = strings.Join(children, ", ")
+		if len(children) == 1 {
+			childVal = children[0]
+		} else if len(children) > 1 {
+			childVal = "[" + strings.Join(children, ", ") + "]"
 		}
 		return fmt.Sprintf("(%s ? %s : null)", cond, childVal)
 
@@ -411,8 +477,10 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			children = append(children, t.Transpile(filho))
 		}
 		childVal := "null"
-		if len(children) > 0 {
-			childVal = strings.Join(children, ", ")
+		if len(children) == 1 {
+			childVal = children[0]
+		} else if len(children) > 1 {
+			childVal = "[" + strings.Join(children, ", ") + "]"
 		}
 		return fmt.Sprintf("(%s).map(%s => %s)", list, n.Item, childVal)
 
@@ -426,9 +494,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			caminhoCompleto := filepath.Join(t.DiretorioBase, caminho)
 			conteudo, err := os.ReadFile(caminhoCompleto)
 			if err == nil {
-				ctx := hrp.NewContexto(hrp.OpcsContexto{})
-				defer ctx.Terminar()
-				styleAst, err := ctx.StringParaAst(string(conteudo), caminho)
+				styleAst, err := parser.NewParserFromString(string(conteudo), caminho).Parse()
 				if err == nil {
 					t.Transpile(styleAst)
 				}
@@ -442,11 +508,20 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 
 		jsPath := caminho
 		if strings.HasSuffix(jsPath, ".hrp") {
-			jsPath = jsPath[:len(jsPath)-5] + ".js"
+			jsPath = strings.TrimSuffix(jsPath, ".hrp") + ".js"
 		}
 		if !strings.HasPrefix(jsPath, ".") && !strings.HasPrefix(jsPath, "/") && !strings.Contains(jsPath, "://") {
 			if jsPath == "web" {
 				jsPath = "./runtime-web.js"
+				if t.DiretorioProjeto != "" && t.DiretorioBase != "" {
+					rel, err := filepath.Rel(t.DiretorioBase, t.DiretorioProjeto)
+					if err == nil && rel != "." {
+						jsPath = filepath.ToSlash(filepath.Join(rel, "runtime-web.js"))
+						if !strings.HasPrefix(jsPath, ".") {
+							jsPath = "./" + jsPath
+						}
+					}
+				}
 			}
 		}
 		return fmt.Sprintf("import { %s } from \"%s\";", strings.Join(n.Nomes, ", "), jsPath)
@@ -456,8 +531,9 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		// strip de aspas e suporte a nesting.
 		cssBlock := processaBlocoEstilo(n.Nome, n.Regras)
 		t.Styles = append(t.Styles, cssBlock)
-		return "" // Sai do .js; alimenta somente estilos.css
+		return fmt.Sprintf("const %s = \"%s\";", n.Nome, n.Nome)
 	}
+
 
 	return fmt.Sprintf("/* Erro ao transpilar tipo %T */", node)
 }

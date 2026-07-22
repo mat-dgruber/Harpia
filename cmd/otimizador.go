@@ -76,6 +76,37 @@ func (o *Otimizador) ColetarUsos(node parser.BaseNode) {
 			o.ColetarUsos(par.Chave)
 			o.ColetarUsos(par.Valor)
 		}
+
+	case *parser.DeclClasse:
+		for _, metodo := range n.Metodos {
+			o.ColetarUsos(metodo)
+		}
+
+	case *parser.TenteCaptureFinalmente:
+		o.ColetarUsos(n.TenteBlock)
+		o.ColetarUsos(n.CaptureBlock)
+		o.ColetarUsos(n.FinalmenteBlock)
+
+	case *parser.DeclTeste:
+		o.ColetarUsos(n.Corpo)
+
+	case *parser.AsseguraNode:
+		o.ColetarUsos(n.Condicao)
+		o.ColetarUsos(n.Mensagem)
+
+	case *parser.OpPipe:
+		o.ColetarUsos(n.Esq)
+		o.ColetarUsos(n.Dir)
+
+	case *parser.ArgumentoNomeado:
+		o.ColetarUsos(n.Valor)
+
+	case *parser.ImporteDe:
+		o.ColetarUsos(n.Caminho)
+
+	case *parser.AcessoMembro:
+		o.ColetarUsos(n.Dono)
+		o.ColetarUsos(n.Membro)
 	}
 }
 

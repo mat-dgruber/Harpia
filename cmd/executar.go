@@ -3,6 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
+
 
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/playground"
@@ -25,6 +28,7 @@ var codigo string
 var estrito bool
 var rodarNaVM bool
 var profilador bool
+var assistir bool
 
 // comandoExecutar projeta, configura e constrói a especificação do subcomando `executar` (com alias de atalho `exec`).
 //
@@ -67,67 +71,145 @@ func comandoExecutar() *cobra.Command {
 				os.Exit(1)
 			}
 
-			ctx := hrp.NewContexto(hrp.OpcsContexto{
-				CaminhosPadrao: []string{cur},
-				Estrito:        estrito,
-			})
-			defer ctx.Terminar()
+			executarUmaVez := func() {
+				ctx := hrp.NewContexto(hrp.OpcsContexto{
+					CaminhosPadrao: []string{cur},
+					Estrito:        estrito,
+				})
+				defer ctx.Terminar()
 
-			// Cenário 1: Sem arquivo e sem código inline. Inicia o playground interativo.
-			if codigo == "" && len(args) == 0 {
-				playground.Inicializa(ctx, Version, Datetime, Commit)
-				return
-			}
+				// Cenário 1: Sem arquivo e sem código inline. Inicia o playground interativo.
+				if codigo == "" && len(args) == 0 {
+					playground.Inicializa(ctx, Version, Datetime, Commit)
+					return
+				}
 
-			// Cenário 2: Arquivo posicional recebido. Prioridade de carregamento antes do código inline.
-			if len(args) > 0 {
-				if rodarNaVM {
-					_, ast, errAst := ctx.TransformarEmAst(args[0], false, cur)
-					if errAst != nil {
-						hrp.LancarErro(errAst)
+				// Cenário 2: Arquivo posicional recebido. Prioridade de carregamento antes do código inline.
+				if len(args) > 0 {
+					// Helper de spinner animado
+					executarComSpinner := func(mensagem string, acao func() error) error {
+						frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+						parar := make(chan bool)
+						var errExec error
+
+						go func() {
+							i := 0
+							for {
+								select {
+								case <-parar:
+									fmt.Print("\r\033[K")
+									return
+								default:
+									fmt.Printf("\r%s %s...", frames[i%len(frames)], mensagem)
+									i++
+									time.Sleep(80 * time.Millisecond)
+								}
+							}
+						}()
+
+						errExec = acao()
+						close(parar)
+						return errExec
+					}
+
+
+					tInicio := time.Now()
+					var errosChecagem int
+					_ = executarComSpinner("Analisando e compilando "+filepath.Base(args[0]), func() error {
+						errosChecagem = ExecutarChecagemSilenciosa(args[0])
+						return nil
+					})
+
+					if errosChecagem > 0 {
+						fmt.Fprintf(os.Stderr, "⛔ Execução abortada devido a %d erro(s) de checagem sintática/semântica.\n", errosChecagem)
 						return
 					}
 
-					comp := vm.NewCompilador()
-					prog, errComp := comp.Compilar(ast)
-					if errComp != nil {
-						hrp.LancarErro(errComp)
-						return
-					}
+					fmt.Printf("🚀 Executando '%s' (compilado em %v)...\n", filepath.Base(args[0]), time.Since(tInicio).Round(time.Millisecond))
 
-					mainModulo, errMod := ctx.ObterModulo("__main__")
-					var mainEscopo *hrp.Escopo
-					if errMod == nil && mainModulo != nil {
-						mainEscopo = mainModulo.Escopo
+					if rodarNaVM {
+						_, ast, errAst := ctx.TransformarEmAst(args[0], false, cur)
+						if errAst != nil {
+							hrp.LancarErro(errAst)
+							return
+						}
+
+
+
+						comp := vm.NewCompilador()
+						prog, errComp := comp.Compilar(ast)
+						if errComp != nil {
+							hrp.LancarErro(errComp)
+							return
+						}
+
+						mainModulo, errMod := ctx.ObterModulo("__main__")
+						var mainEscopo *hrp.Escopo
+						if errMod == nil && mainModulo != nil {
+							mainEscopo = mainModulo.Escopo
+						} else {
+							mainEscopo = hrp.NewEscopo()
+						}
+
+						virtualMachine := vm.NewVM(ctx)
+						virtualMachine.Perfil = profilador
+						frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil)
+						_, err = virtualMachine.Executar(frame)
+						if err != nil {
+							hrp.LancarErro(err)
+							return
+						}
+						if virtualMachine.Perfil {
+							virtualMachine.ImprimirPerfil()
+						}
 					} else {
-						mainEscopo = hrp.NewEscopo()
+						_, err = hrp.ExecutarArquivo(ctx, "", args[0], cur, false)
+						if err != nil {
+							hrp.LancarErro(err)
+							return
+						}
 					}
+				}
 
-					virtualMachine := vm.NewVM(ctx)
-					virtualMachine.Perfil = profilador
-					frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil)
-					_, err = virtualMachine.Executar(frame)
+				// Cenário 3: Flag `-c` presente. Executa o snippet textual dentro do contexto já estabelecido.
+				if codigo != "" {
+					_, err = hrp.ExecutarString(ctx, codigo)
 					if err != nil {
 						hrp.LancarErro(err)
-						return
-					}
-					if virtualMachine.Perfil {
-						virtualMachine.ImprimirPerfil()
-					}
-				} else {
-					_, err = hrp.ExecutarArquivo(ctx, "", args[0], cur, false)
-					if err != nil {
-						hrp.LancarErro(err)
-						return
 					}
 				}
 			}
 
-			// Cenário 3: Flag `-c` presente. Executa o snippet textual dentro do contexto já estabelecido.
-			if codigo != "" {
-				_, err = hrp.ExecutarString(ctx, codigo)
+			if !assistir || len(args) == 0 {
+				executarUmaVez()
+				return
+			}
+
+			// Modo Watch Mode (--assistir)
+			arquivoAlvo := args[0]
+			fmt.Printf("🔄 Modo Watch ativo: monitorando alterações em '%s'...\n", arquivoAlvo)
+			
+			go func() {
+				executarUmaVez()
+			}()
+
+			info, errStat := os.Stat(arquivoAlvo)
+			if errStat != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao acessar arquivo '%s': %v\n", arquivoAlvo, errStat)
+				return
+			}
+			ultimaModificacao := info.ModTime()
+
+			for {
+				time.Sleep(500 * time.Millisecond)
+				infoAtual, err := os.Stat(arquivoAlvo)
 				if err != nil {
-					hrp.LancarErro(err)
+					continue
+				}
+				if infoAtual.ModTime().After(ultimaModificacao) {
+					ultimaModificacao = infoAtual.ModTime()
+					fmt.Printf("\n🔄 Alteração detectada em '%s'. Recarregando...\n", arquivoAlvo)
+					executarUmaVez()
 				}
 			}
 		},
@@ -139,5 +221,6 @@ func comandoExecutar() *cobra.Command {
 	executar.PersistentFlags().BoolVar(&estrito, "estrito", false, "Ativa a validação estrita de tipos em tempo de execução.")
 	executar.PersistentFlags().BoolVar(&rodarNaVM, "vm", false, "Habilita a execução experimental de bytecode na Máquina Virtual de Pilha.")
 	executar.PersistentFlags().BoolVar(&profilador, "perfil", false, "Ativa o monitoramento e perfilamento de tempo das instruções da VM.")
+	executar.PersistentFlags().BoolVar(&assistir, "assistir", false, "Recarrega automaticamente o arquivo ao detectar mudanças no disco.")
 	return executar
 }

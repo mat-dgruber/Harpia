@@ -28,44 +28,72 @@ import (
 // a cada chamada. Adicione aqui sempre que precisar de uma nova chave.
 var mapaChavesPT = map[string]string{
 	// cor / cores
-	"cor":         "color",
-	"corDeFundo":  "background-color",
-	"corBorda":    "border-color",
-	"corContorno": "outline-color",
-	"corTexto":    "color",
+	"cor":            "color",
+	"fundo-cor":       "background-color",
+	"cor-fundo":       "background-color",
+	"corDeFundo":     "background-color",
+	"fundoCor":       "background-color",
+	"corBorda":       "border-color",
+	"cor-borda":       "border-color",
+	"corContorno":    "outline-color",
+	"corTexto":       "color",
 	// layout
-	"exibir":       "display",
-	"exibirTipo":   "display",
-	"posicao":      "position",
-	"fluxo":        "flex-direction",
-	"flex":         "flex",
-	"grade":        "grid",
-	"alinhamento":  "align-items",
-	"justificar":   "justify-content",
-	"justificacao": "justify-content",
+	"exibir":           "display",
+	"exibirTipo":       "display",
+	"posicao":          "position",
+	"fluxo":            "flex-direction",
+	"flex":             "flex",
+	"grade":            "grid",
+	"alinhamento":      "align-items",
+	"alinhamento-itens": "align-items",
+	"alinhamentoItens": "align-items",
+	"justificar":       "justify-content",
+	"justificacao":     "justify-content",
+	"justificar-conteudo": "justify-content",
+	"justificarConteudo":  "justify-content",
 	// caixa / box-model
-	"margem":       "margin",
-	"margemX":      "margin-inline",
-	"margemY":      "margin-block",
-	"padding":      "padding",
-	"espacamentoX": "padding-inline",
-	"espacamentoY": "padding-block",
-	"largura":      "width",
-	"altura":       "height",
-	"larguraMax":   "max-width",
-	"alturaMax":    "max-height",
-	"borda":        "border",
-	"raio":         "border-radius",
-	"contorno":     "outline",
-	"sombra":       "box-shadow",
-	"opacidade":    "opacity",
-	"transbordar":  "overflow",
+	"margem":          "margin",
+	"margem-direita":  "margin-right",
+	"margemDireita":   "margin-right",
+	"margem-bottom":   "margin-bottom",
+	"margem-baixo":    "margin-bottom",
+	"margemBaixo":     "margin-bottom",
+	"margemX":         "margin-inline",
+	"margemY":         "margin-block",
+	"padding":         "padding",
+	"preenchimento":   "padding",
+	"espacamentoX":    "padding-inline",
+	"espacamentoY":    "padding-block",
+	"largura":         "width",
+	"altura":          "height",
+	"larguraMax":      "max-width",
+	"largura-max":     "max-width",
+	"max-largura":     "max-width",
+	"maxLargura":      "max-width",
+	"alturaMax":       "max-height",
+
+	"borda":           "border",
+	"borda-raio":      "border-radius",
+	"bordaRaio":       "border-radius",
+	"raio":            "border-radius",
+	"contorno":        "outline",
+	"sombra":          "box-shadow",
+	"box-shadow":      "box-shadow",
+	"opacidade":       "opacity",
+	"transbordar":     "overflow",
+	"cursor":          "cursor",
 	// tipografia
 	"fonte":              "font-family",
+	"familia-fonte":     "font-family",
+	"familiaFonte":      "font-family",
+
 	"tamanhoFonte":       "font-size",
+	"tamanho-fonte":      "font-size",
 	"pesoFonte":          "font-weight",
+	"peso-fonte":         "font-weight",
 	"alinhamentoTexto":   "text-align",
 	"decoracaoTexto":     "text-decoration",
+	"decoracao-texto":    "text-decoration",
 	"transformacaoTexto": "text-transform",
 	"espacamentoLetras":  "letter-spacing",
 	"espacamentoLinhas":  "line-height",
@@ -73,6 +101,7 @@ var mapaChavesPT = map[string]string{
 	"transicao":     "transition",
 	"transformacao": "transform",
 	"animacao":      "animation",
+
 	// espaçamento de utilidades (atalhos)
 	"p":  "padding",
 	"px": "padding-inline",
@@ -120,6 +149,26 @@ func processaEstiloLinha(chave, valor string) (string, string) {
 	valorStrip := stripAspas(valor)
 	chaveCan := chaveCanonica(chaveLimpa)
 
+	// ponytail: mapa de tradução de valores comuns em português para CSS padrão
+	mapaValoresPT := map[string]string{
+		"negrito":       "bold",
+		"sublinhado":    "underline",
+		"ponteiro":      "pointer",
+		"nenhuma":       "none",
+		"nenhum":        "none",
+		"centro":        "center",
+		"espaco-entre":  "space-between",
+		"espacoEntre":   "space-between",
+		"espaco-em-volta": "space-around",
+		"flex":          "flex",
+		"bloco":         "block",
+		"linha":         "row",
+		"coluna":        "column",
+	}
+	if v, ok := mapaValoresPT[valorStrip]; ok {
+		valorStrip = v
+	}
+
 	// ponytail: açúcar sintático de border-radius em português
 	if (chaveLimpa == "raio-pequeno" || chaveLimpa == "raio-medio" || chaveLimpa == "raio-grande") && (valorStrip == "true" || valorStrip == "Verdadeiro") {
 		chaveCan = "border-radius"
@@ -135,6 +184,7 @@ func processaEstiloLinha(chave, valor string) (string, string) {
 
 	return chaveCan, valorStrip
 }
+
 
 // processaBlocoEstilo recebe o `Nome` (classe alvo) e o conteúdo
 // do `DeclEstilo.Regras` (com `{ }` aninhadas preservadas) e gera
@@ -232,17 +282,18 @@ func parseCorpoToken(corpo string, _ bool) ([][]string, map[string]string, error
 			// Regra chave: valor
 			i++
 			valStart := i
-			for i < len(corpo) && corpo[i] != ';' && corpo[i] != '{' {
+			for i < len(corpo) && corpo[i] != ';' && corpo[i] != '{' && corpo[i] != '\n' {
 				i++
 			}
 			valor := strings.TrimSpace(corpo[valStart:i])
 			if valor != "" && chave != "" {
 				planos = append(planos, []string{chave, valor})
 			}
-			if i < len(corpo) && corpo[i] == ';' {
+			if i < len(corpo) && (corpo[i] == ';' || corpo[i] == '\n') {
 				i++
 			}
 			continue
+
 		}
 
 		if i < len(corpo) && corpo[i] == '{' {

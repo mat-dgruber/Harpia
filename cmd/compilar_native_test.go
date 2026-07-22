@@ -228,7 +228,7 @@ func TestComandoCompilarNativo(t *testing.T) {
 
 	// Vamos criar um script simples
 	scriptPath := filepath.Join(tempDir, "app.hrp")
-	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\n"), 0644)
+	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\nimprimir(c)\n"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,6 +241,7 @@ func TestComandoCompilarNativo(t *testing.T) {
 		scriptPath,
 		"--alvo=nativo",
 		"--saida=" + saidaBin,
+		"--pular-linter",
 	})
 
 	// Muda para a pasta raiz temporariamente se necessário para usar go.mod correto
@@ -291,7 +292,7 @@ func TestComandoCompilarWasm(t *testing.T) {
 	cur, _ := os.Getwd()
 
 	scriptPath := filepath.Join(tempDir, "app.hrp")
-	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\n"), 0644)
+	err := os.WriteFile(scriptPath, []byte("var a = 40\nvar b = 2\nvar c = a + b\nimprimir(c)\n"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,6 +304,7 @@ func TestComandoCompilarWasm(t *testing.T) {
 		scriptPath,
 		"--alvo=wasm",
 		"--saida=" + saidaWasm,
+		"--pular-linter",
 	})
 
 	oldWd, _ := os.Getwd()

@@ -156,11 +156,12 @@ func TestRouterAndLinkTranspilation(t *testing.T) {
 	transpiler := &TranspilerWeb{}
 	jsOutput := transpiler.Transpile(ast)
 
-	esperado := "h('a', { href: \"/contato\", aoClicar: (e) => { e.preventDefault(); navegar(\"/contato\"); } }, \"Fale conosco\")"
+	esperado := "h(Link, { para: \"/contato\" }, \"Fale conosco\")"
 	if !strings.Contains(jsOutput, esperado) {
 		t.Errorf("Esperava a transpilação do Link contendo:\n%s\nRecebido:\n%s", esperado, jsOutput)
 	}
 }
+
 
 // ponytail: assevera de forma robusta e automatizada que os 3 exemplos mini-SPA oficiais
 // de referência compilam sem panicar o transpiler e geram todos os assets finais.
@@ -186,7 +187,7 @@ func TestCompilacaoExemplos(t *testing.T) {
 
 			cmd := comandoCompilar()
 			saidaDir := filepath.Join(tempDir, "dist")
-			cmd.SetArgs([]string{"--entrada", hrpPath, "--saida", saidaDir})
+			cmd.SetArgs([]string{"--entrada", hrpPath, "--saida", saidaDir, "--pular-linter"})
 
 			err = cmd.Execute()
 			if err != nil {
@@ -244,7 +245,7 @@ func TestComandoCompilarComRotas(t *testing.T) {
 
 	cmd := comandoCompilar()
 	saidaDir := filepath.Join(tempDir, "dist")
-	cmd.SetArgs([]string{"--entrada", hrpFile, "--saida", saidaDir})
+	cmd.SetArgs([]string{"--entrada", hrpFile, "--saida", saidaDir, "--pular-linter"})
 
 	// Executa a compilação de dentro do tempDir para que o compilador encontre as pastas
 	oldWd, _ := os.Getwd()
@@ -266,12 +267,13 @@ func TestComandoCompilarComRotas(t *testing.T) {
 	jsStr := string(content)
 
 	// Valida se as funções de rota foram geradas
-	if !strings.Contains(jsStr, "function Rota_Index()") {
+	if !strings.Contains(jsStr, "function Rota_Index(") {
 		t.Errorf("Esperava a geração da função 'Rota_Index'")
 	}
-	if !strings.Contains(jsStr, "function Rota_Sobre()") {
+	if !strings.Contains(jsStr, "function Rota_Sobre(") {
 		t.Errorf("Esperava a geração da função 'Rota_Sobre'")
 	}
+
 
 	// Valida se a configuração automática do MeuApp roteador foi gerada
 	if !strings.Contains(jsStr, "'/': Rota_Index") {

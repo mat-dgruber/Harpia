@@ -332,6 +332,7 @@ func extrairNomeFuncao(cabecalho string) string {
 		idx := -1
 		for i := 0; i+len(pref) <= len(cabecalho); i++ {
 			if cabecalho[i:i+len(pref)] == pref {
+
 				idx = i + len(pref)
 				break
 			}
@@ -691,9 +692,10 @@ func tokenizarLinha(s string) []string {
 	atual := 0
 	emit := func() {
 		if atual < len(s) {
-			out = append(out, s[atual:len(s)])
+			out = append(out, s[atual:])
 			atual = len(s)
 		}
+
 	}
 	inWord := false
 	for i := 0; i < len(s); i++ {

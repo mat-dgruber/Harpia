@@ -114,7 +114,7 @@ func comandoTestar() *cobra.Command {
 				}
 
 				// ponytail: acumula cobertura de linhas visitadas
-				for f, lMap := range ctx.LinhasExecutadas {
+				for f, lMap := range ctx.ObterLinhasExecutadas() {
 					if coberturaLinhas[f] == nil {
 						coberturaLinhas[f] = make(map[int]bool)
 					}

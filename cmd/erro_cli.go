@@ -94,8 +94,19 @@ func comandoErroCLI() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "erro [codigo]",
 		Short: "Fornece explicações didáticas em português sobre os códigos de erros do Harpia",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				fmt.Println("Lista de Códigos de Erros do Harpia:")
+				fmt.Println("================================================================================")
+				// Print sorted error codes or simply loop over the map
+				for code, exp := range explicacoes {
+					fmt.Printf("  %-10s | %-20s | %s\n", code, exp.Nome, exp.Descricao)
+				}
+				fmt.Println("================================================================================")
+				fmt.Println("Use 'harpia erro [codigo]' para ver detalhes e exemplos (ex: 'harpia erro PSC-0005')")
+				return
+			}
 			codigo := strings.ToUpper(args[0])
 			explicacao, encontrada := explicacoes[codigo]
 

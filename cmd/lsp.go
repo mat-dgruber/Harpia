@@ -216,9 +216,10 @@ func tratarRequisicaoLSP(req RequestMessage) {
 	case "textDocument/completion":
 		// ponytail: retorna lista de CompletionItems contendo as palavras-chave e embutidos reativos
 		items := []map[string]interface{}{
-			// Keywords (Kind: 14)
 			{"label": "funcao", "kind": 14, "detail": "Declara uma nova função em português"},
 			{"label": "classe", "kind": 14, "detail": "Declara uma nova classe com suporte a herança"},
+			{"label": "enum", "kind": 14, "detail": "Declara uma nova enumeração de valores imutáveis"},
+			{"label": "interface", "kind": 14, "detail": "Declara um novo contrato de interface"},
 			{"label": "retorne", "kind": 14, "detail": "Retorna um valor de dentro de uma função"},
 			{"label": "se", "kind": 14, "detail": "Estrutura de decisão condicional se"},
 			{"label": "senao", "kind": 14, "detail": "Estrutura de decisão condicional senão"},
@@ -227,17 +228,21 @@ func tratarRequisicaoLSP(req RequestMessage) {
 			{"label": "tente", "kind": 14, "detail": "Estrutura de tratamento de erros tente"},
 			{"label": "capture", "kind": 14, "detail": "Estrutura de tratamento de erros capture"},
 			{"label": "importar", "kind": 14, "detail": "Importa um arquivo ou módulo"},
+			{"label": "exportar", "kind": 14, "detail": "Exporta uma variável, função ou classe para módulos externos"},
 			{"label": "estilo", "kind": 14, "detail": "Declara um bloco de estilo estático em português"},
 			{"label": "var", "kind": 14, "detail": "Declara uma variável mutável"},
 			{"label": "constante", "kind": 14, "detail": "Declara uma constante imutável"},
+			{"label": "assincrono", "kind": 14, "detail": "Declara uma função assíncrona não-bloqueante"},
+			{"label": "aguarde", "kind": 14, "detail": "Aguarda a resolução de uma promessa assíncrona"},
 
 			// Built-ins and Frontend/Reactivity (Kind: 3)
 			{"label": "imprimir", "kind": 3, "detail": "Imprime texto na saída padrão", "insertText": "imprimir($1)"},
-			{"label": "sinal", "kind": 3, "detail": "Cria um sinal reativo contendo um valor", "insertText": "sinal($1)"},
+			{"label": "sinal", "kind": 3, "detail": "Cria um sinal reativo contendo um valor", "insertText": "var [$1, set$1] = sinal($2)"},
 			{"label": "efeito", "kind": 3, "detail": "Cria um efeito colateral que roda sob mudanças de sinais", "insertText": "efeito(funcao() {\n    $1\n})"},
 			{"label": "derivado", "kind": 3, "detail": "Cria um valor reativo derivado e memoizado", "insertText": "derivado(funcao() {\n    retorne $1;\n})"},
 			{"label": "armazem", "kind": 3, "detail": "Gerenciador de Estado Global reativo", "insertText": "armazem($1)"},
 			{"label": "montar", "kind": 3, "detail": "Inicializa a montagem reativa da aplicação", "insertText": "montar($1, $2)"},
+			{"label": "roteador", "kind": 6, "detail": "Roteador SPA nativo com URLs limpas e navegação por History API"},
 			{"label": "importarHtml", "kind": 3, "detail": "Inlinou dinamicamente um layout HTML de arquivo externo", "insertText": "importarHtml(\"$1\")"},
 			{"label": "sinalPersistente", "kind": 3, "detail": "Cria um sinal reativo que persiste no localStorage", "insertText": "sinalPersistente(\"$1\", $2)"},
 			{"label": "recurso", "kind": 3, "detail": "Cria uma primitiva de estado assíncrono para chamadas de rede", "insertText": "recurso(funcao() {\n    $1\n})"},
@@ -450,7 +455,7 @@ func palavraSobCursor(codigo string, linha, char int) string {
 
 func buscarDocInserida(codigo string, linhaDecl int) []string {
 	linhas := strings.Split(codigo, "\n")
-	idx := linhaDecl - 1 // Linha imediatamente anterior ao início do nó (já que linhaDecl é 0-based)
+	idx := linhaDecl - 2 // Linha imediatamente anterior ao início do nó (já que linhaDecl é 1-based, a linha anterior está em linhaDecl - 2)
 	var docs []string
 
 	for idx >= 0 {
@@ -488,6 +493,19 @@ func encontrarDeclNoAST(prog *parser.Programa, nome string) (parser.BaseNode, *l
 		case *parser.DeclVar:
 			if d.Nome == nome {
 				return d, prog.Posicoes[d]
+			}
+		case *parser.DeclEnum:
+			if d.Nome == nome {
+				return d, prog.Posicoes[d]
+			}
+		case *parser.DeclInterface:
+			if d.Nome == nome {
+				return d, prog.Posicoes[d]
+			}
+			for _, m := range d.Metodos {
+				if m.Nome == nome {
+					return d, prog.Posicoes[d]
+				}
 			}
 		}
 	}
@@ -595,6 +613,10 @@ func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 		assinatura = assinaturaClasse(d)
 	case *parser.DeclVar:
 		assinatura = assinaturaVar(d)
+	case *parser.DeclEnum:
+		assinatura = fmt.Sprintf("enum %s { %s }", d.Nome, strings.Join(d.Valores, ", "))
+	case *parser.DeclInterface:
+		assinatura = fmt.Sprintf("interface %s", d.Nome)
 	}
 
 	var markdown strings.Builder
@@ -613,8 +635,8 @@ func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 	var lspRange *DiagnosticRange
 	if tok != nil {
 		lspRange = &DiagnosticRange{
-			Start: DiagnosticPosition{Line: tok.Inicio.Linha, Character: tok.Inicio.Coluna - 1},
-			End:   DiagnosticPosition{Line: tok.Fim.Linha, Character: tok.Fim.Coluna - 1},
+			Start: DiagnosticPosition{Line: tok.Inicio.Linha - 1, Character: tok.Inicio.Coluna - 1},
+			End:   DiagnosticPosition{Line: tok.Fim.Linha - 1, Character: tok.Fim.Coluna - 1},
 		}
 	}
 
@@ -654,8 +676,8 @@ func responderDefinicaoLSP(id interface{}, params TextDocumentPositionParams) {
 	loc := Location{
 		URI: uri,
 		Range: DiagnosticRange{
-			Start: DiagnosticPosition{Line: tok.Inicio.Linha, Character: tok.Inicio.Coluna - 1},
-			End:   DiagnosticPosition{Line: tok.Fim.Linha, Character: tok.Fim.Coluna - 1},
+			Start: DiagnosticPosition{Line: tok.Inicio.Linha - 1, Character: tok.Inicio.Coluna - 1},
+			End:   DiagnosticPosition{Line: tok.Fim.Linha - 1, Character: tok.Fim.Coluna - 1},
 		},
 	}
 

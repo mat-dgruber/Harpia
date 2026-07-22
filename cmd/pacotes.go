@@ -49,6 +49,7 @@ func comandoInstalar() *cobra.Command {
 					fmt.Fprintf(os.Stderr, "Erro ao instalar %s: %v\n", nome, err)
 					os.Exit(1)
 				}
+				salvarDependenciaNoManifesto(nome, urlOuVersao)
 				return
 			}
 
@@ -65,6 +66,7 @@ func comandoInstalar() *cobra.Command {
 					fmt.Fprintf(os.Stderr, "Erro ao instalar %s: %v\n", nome, err)
 					os.Exit(1)
 				}
+				salvarDependenciaNoManifesto(nome, urlPacote)
 				return
 			}
 
@@ -306,4 +308,29 @@ func obterUrlDoRegistro(nome, versaoRestricao string) (string, error) {
 	}
 
 	return v.URL, nil
+}
+
+func salvarDependenciaNoManifesto(nome, versaoOuUrl string) {
+	manifestoPath := "pacote.json"
+	if _, err := os.Stat("pacote.hrp"); err == nil {
+		manifestoPath = "pacote.hrp"
+	}
+
+	var manifest *PacoteManifest
+	if conteudo, err := os.ReadFile(manifestoPath); err == nil {
+		manifest, _ = parseManifesto(conteudo)
+	}
+	if manifest == nil {
+		manifest = &PacoteManifest{}
+	}
+	if manifest.Dependencias == nil {
+		manifest.Dependencias = make(map[string]string)
+	}
+
+	manifest.Dependencias[nome] = versaoOuUrl
+	bytes, err := json.MarshalIndent(manifest, "", "  ")
+	if err == nil {
+		os.WriteFile("pacote.json", bytes, 0644)
+		fmt.Printf("  ✓ Dependência '%s' salva em pacote.json\n", nome)
+	}
 }

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 	"github.com/spf13/cobra"
 )
 
@@ -42,14 +44,21 @@ var globalsLinter = map[string]bool{
 	"Lista":   true,
 	"Tupla":   true,
 	"Mapa":    true,
-	"Objeto":  true,
-	"Erro":    true,
+	"Objeto":   true,
+	"Erro":     true,
+	"Servidor": true,
+	"int":      true,
+	"string":   true,
+	"bool":     true,
+	"float":    true,
 
 	// Primitivas Reativas da Web
-	"sinal":    true,
-	"efeito":   true,
-	"derivado": true,
-	"armazem":  true,
+	"sinal":            true,
+	"efeito":           true,
+	"derivado":         true,
+	"armazem":          true,
+	"renderizar":       true,
+	"montar":           true,
 
 	// Globais adicionais da Web/Browser para DX profissional (Fase 5-B)
 	"fetch":            true,
@@ -67,6 +76,13 @@ var globalsLinter = map[string]bool{
 	"sinalPersistente": true,
 	"recurso":          true,
 	"tamanho":          true,
+	"roteador":         true,
+}
+
+func init() {
+	for k, v := range hrp.ObtemGlobalsDoLinter() {
+		globalsLinter[k] = v
+	}
 }
 
 type EscopoLinter struct {
@@ -74,6 +90,8 @@ type EscopoLinter struct {
 	Variaveis  map[string]bool
 	Consts     map[string]bool
 	Assincrono bool
+	Usadas     map[string]bool
+	Declaracoes map[string]parser.BaseNode // guarda nó da declaração para reporte
 }
 
 func (e *EscopoLinter) Declarada(nome string) bool {
@@ -88,6 +106,16 @@ func (e *EscopoLinter) Declarada(nome string) bool {
 
 func (e *EscopoLinter) DeclaradaLocal(nome string) bool {
 	return e.Variaveis[nome] || e.Consts[nome]
+}
+
+func (e *EscopoLinter) MarcarComoUsada(nome string) {
+	if e.Variaveis[nome] || e.Consts[nome] {
+		e.Usadas[nome] = true
+		return
+	}
+	if e.Pai != nil {
+		e.Pai.MarcarComoUsada(nome)
+	}
 }
 
 func (e *EscopoLinter) IsConst(nome string) bool {
@@ -136,24 +164,49 @@ type LinterError struct {
 }
 
 type Linter struct {
-	Erros    []LinterError
-	Escopo   *EscopoLinter
-	Posicoes map[parser.BaseNode]*lexer.Token
+	Erros             []LinterError
+	Escopo            *EscopoLinter
+	Posicoes          map[parser.BaseNode]*lexer.Token
+	DiretorioAtual    string
+	ArquivosVisitados map[string]bool
 }
 
 func (l *Linter) pushEscopo() {
 	l.Escopo = &EscopoLinter{
-		Pai:       l.Escopo,
-		Variaveis: make(map[string]bool),
-		Consts:    make(map[string]bool),
+		Pai:         l.Escopo,
+		Variaveis:   make(map[string]bool),
+		Consts:      make(map[string]bool),
+		Usadas:      make(map[string]bool),
+		Declaracoes: make(map[string]parser.BaseNode),
 	}
 }
 
 func (l *Linter) popEscopo() {
 	if l.Escopo != nil {
+		// Checa variáveis declaradas localmente mas não usadas antes de sair do escopo
+		for varNome, node := range l.Escopo.Declaracoes {
+			// Ignora variáveis que começam com "_" (padrão de descarte de DX) e os globais
+			// Também ignora componentes (funções/variáveis começando com letra maiúscula) para evitar falsos positivos
+			primeiraLetra := ""
+			if len(varNome) > 0 {
+				primeiraLetra = string(varNome[0])
+			}
+			ehComponente := primeiraLetra != "" && primeiraLetra == strings.ToUpper(primeiraLetra) && primeiraLetra != strings.ToLower(primeiraLetra)
+
+			if !strings.HasPrefix(varNome, "_") && !ehComponente && !l.Escopo.Usadas[varNome] {
+				l.registrarErro(fmt.Sprintf("Variável '%s' foi declarada mas nunca utilizada", varNome), "HRP-0006", 2, node)
+			}
+		}
+		// Propaga marcas de uso para o escopo pai
+		if l.Escopo.Pai != nil {
+			for u := range l.Escopo.Usadas {
+				l.Escopo.Pai.MarcarComoUsada(u)
+			}
+		}
 		l.Escopo = l.Escopo.Pai
 	}
 }
+
 
 func (l *Linter) registrarErro(msg string, code string, severity int, node parser.BaseNode) {
 	l.Erros = append(l.Erros, LinterError{Message: msg, Code: code, Severity: severity, Node: node})
@@ -161,6 +214,11 @@ func (l *Linter) registrarErro(msg string, code string, severity int, node parse
 
 func (l *Linter) Checar(node parser.BaseNode) {
 	if node == nil {
+		return
+	}
+	// ponytail: impede pânico se a interface BaseNode encapsular um ponteiro concreto nulo
+	val := reflect.ValueOf(node)
+	if val.Kind() == reflect.Ptr && val.IsNil() {
 		return
 	}
 
@@ -171,6 +229,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		// Hidrata o escopo raiz com built-ins e nomes globais conhecidos
 		for nome := range globalsLinter {
 			l.Escopo.Variaveis[nome] = true
+			l.Escopo.Usadas[nome] = true
 		}
 
 		for _, decl := range n.Declaracoes {
@@ -181,7 +240,8 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	case *parser.DeclVar:
 		if l.Escopo.DeclaradaLocal(n.Nome) {
 			l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", n.Nome), "HRP-0002", 1, n)
-		} else if l.Escopo.Declarada(n.Nome) {
+		} else if l.Escopo.Pai != nil && l.Escopo.Pai.Declarada(n.Nome) && !globalsLinter[n.Nome] {
+			// Só alerta sobre shadowing se o pai declarar e não for uma global ou raíz
 			l.registrarErro(fmt.Sprintf("O identificador '%s' está sombreando (shadowing) uma variável externa", n.Nome), "HRP-0002", 2, n)
 		}
 		if n.Constante {
@@ -189,6 +249,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		} else {
 			l.Escopo.Variaveis[n.Nome] = true
 		}
+		l.Escopo.Declaracoes[n.Nome] = n
 		l.Checar(n.Inicializador)
 
 		// 2. Detectar vazamento de credenciais
@@ -230,6 +291,7 @@ func (l *Linter) Checar(node parser.BaseNode) {
 			parametrosVistos[param.Nome] = true
 
 			l.Escopo.Variaveis[param.Nome] = true
+			l.Escopo.Usadas[param.Nome] = true // Parâmetros de assinatura de função não devem ser reportados como vars não usadas
 			if param.Padrao != nil {
 				l.Checar(param.Padrao)
 			}
@@ -282,6 +344,8 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	case *parser.Identificador:
 		if !l.Escopo.Declarada(n.Nome) {
 			l.registrarErro(fmt.Sprintf("Identificador '%s' não encontrado no escopo", n.Nome), "HRP-0005", 1, n)
+		} else {
+			l.Escopo.MarcarComoUsada(n.Nome)
 		}
 
 	case *parser.OpBinaria:
@@ -291,7 +355,14 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	case *parser.OpUnaria:
 		l.Checar(n.Expressao)
 
+	case *parser.ImporteDe:
+		for _, nome := range n.Nomes {
+			l.Escopo.Variaveis[nome] = true
+			l.Escopo.Usadas[nome] = true
+		}
+
 	case *parser.OpPipe:
+
 		l.Checar(n.Esq)
 		l.Checar(n.Dir)
 
@@ -329,12 +400,16 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		l.popEscopo()
 
 	case *parser.NoJSX:
+		if n.Tag != "" && len(n.Tag) > 0 && (n.Tag[0] >= 'A' && n.Tag[0] <= 'Z') {
+			l.Escopo.MarcarComoUsada(n.Tag)
+		}
 		for _, attr := range n.Atributos {
 			l.Checar(attr.Valor)
 		}
 		for _, filho := range n.Filhos {
 			l.Checar(filho)
 		}
+
 
 	case *parser.NoSeJSX:
 		l.Checar(n.Condicao)
@@ -353,6 +428,102 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.DeclEstilo:
 		// Não precisa de checagem interna já que as regras são mantidas como texto simples CSS.
+
+	case *parser.DeclEnum:
+		l.Escopo.Variaveis[n.Nome] = true
+		l.Escopo.Consts[n.Nome] = true
+
+	case *parser.DeclInterface:
+		l.Escopo.Variaveis[n.Nome] = true
+		l.Escopo.Consts[n.Nome] = true
+
+	case *parser.AcessoMembro:
+		l.Checar(n.Dono)
+
+	case *parser.AcessoMembroOpcional:
+		l.Checar(n.Objeto)
+
+	case *parser.Indexacao:
+		l.Checar(n.Objeto)
+		l.Checar(n.Argumento)
+
+	case *parser.NovaNode:
+		l.Checar(n.Objeto)
+
+	case *parser.RetorneNode:
+		if n.Expressao != nil {
+			l.Checar(n.Expressao)
+		}
+
+	case *parser.AguardeNode:
+		l.Checar(n.Expressao)
+
+	case *parser.DeclVarDestructuring:
+		for _, nome := range n.Nomes {
+			if l.Escopo.DeclaradaLocal(nome) {
+				l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", nome), "HRP-0002", 1, n)
+			}
+			if n.Constante {
+				l.Escopo.Consts[nome] = true
+			} else {
+				l.Escopo.Variaveis[nome] = true
+			}
+			l.Escopo.Declaracoes[nome] = n
+		}
+		l.Checar(n.Inicializador)
+
+	case *parser.AsseguraNode:
+		l.Checar(n.Condicao)
+		if n.Mensagem != nil {
+			l.Checar(n.Mensagem)
+		}
+
+	case *parser.TuplaLiteral:
+		for _, elem := range n.Elementos {
+			l.Checar(elem)
+		}
+
+	case *parser.ListaLiteral:
+		for _, elem := range n.Elementos {
+			l.Checar(elem)
+		}
+
+	case *parser.MapaLiteral:
+		for _, entrada := range n.Entradas {
+			if entrada.EhImplicito {
+				l.Checar(entrada.Valor)
+			} else {
+				if _, ok := entrada.Chave.(*parser.Identificador); !ok {
+					l.Checar(entrada.Chave)
+				}
+				l.Checar(entrada.Valor)
+			}
+		}
+
+	case *parser.TemplateLiteral:
+		for _, parte := range n.Partes {
+			l.Checar(parte)
+		}
+
+	case *parser.TemplateExpr:
+		l.Checar(n.Expressao)
+
+	case *parser.OpCoalescenciaNula:
+		l.Checar(n.Esq)
+		l.Checar(n.Dir)
+
+	case *parser.DeclExportar:
+		l.Checar(n.Expressao)
+
+	case *parser.DeclClasse:
+		if l.Escopo.DeclaradaLocal(n.Nome) {
+			l.registrarErro(fmt.Sprintf("Classe '%s' já declarada neste escopo", n.Nome), "HRP-0002", 1, n)
+		}
+		l.Escopo.Variaveis[n.Nome] = true
+		l.Escopo.Consts[n.Nome] = true
+		for _, metodo := range n.Metodos {
+			l.Checar(metodo)
+		}
 	}
 }
 
@@ -376,6 +547,56 @@ func (l *Linter) contemConcatenacaoOuVariavel(node parser.BaseNode) bool {
 	return false
 }
 
+// ExecutarChecagemSilenciosa executa a análise semântica e linter em um arquivo antes de rodá-lo.
+// Retorna a quantidade de erros bloqueantes encontrados (0 = limpo).
+func ExecutarChecagemSilenciosa(caminho string) int {
+	arquivos, err := encontrarArquivosTeste(caminho)
+
+	if err != nil || len(arquivos) == 0 {
+		return 0
+	}
+
+	totalErros := 0
+
+
+	for _, arq := range arquivos {
+		conteudo, errRead := os.ReadFile(arq)
+		if errRead != nil {
+			continue
+		}
+		ast, err := parser.NewParserFromString(string(conteudo), arq).Parse()
+		if err != nil {
+			fmt.Printf("\nErro de Sintaxe em %s:\n  ➔ %v\n", arq, err)
+			totalErros++
+			continue
+		}
+
+
+		dirArq := filepath.Dir(arq)
+		linter := &Linter{
+			DiretorioAtual:    dirArq,
+			ArquivosVisitados: map[string]bool{filepath.Clean(arq): true},
+		}
+		linter.Checar(ast)
+
+		if len(linter.Erros) > 0 {
+			for _, errObj := range linter.Erros {
+				if errObj.Severity == 1 { // Erro gravíssimo (impedimento)
+					totalErros++
+					var line, col int
+					if tok, ok := linter.Posicoes[errObj.Node]; ok && tok != nil {
+						line = tok.Inicio.Linha
+						col = tok.Inicio.Coluna
+					}
+					fmt.Printf("  ❌ [%s:%d:%d] %s\n", filepath.Base(arq), line, col, errObj.Message)
+				}
+			}
+		}
+	}
+
+	return totalErros
+}
+
 func comandoChecar() *cobra.Command {
 	var formato string
 	var estrito bool
@@ -385,16 +606,11 @@ func comandoChecar() *cobra.Command {
 		Use:   "checar [caminho]",
 		Short: "Realiza a checagem semântica/linting estático no código",
 		Run: func(cmd *cobra.Command, args []string) {
-			cur, err := os.Getwd()
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "erro ao obter diretório atual:", err)
-				os.Exit(1)
-			}
-
 			caminho := "."
 			if len(args) > 0 {
 				caminho = args[0]
 			}
+
 
 			arquivos, err := encontrarArquivosTeste(caminho)
 			if err != nil {
@@ -404,13 +620,16 @@ func comandoChecar() *cobra.Command {
 
 			totalErros := 0
 			totalAvisos := 0
-			ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
-			defer ctx.Terminar()
-
 			var diagnostics []LSPDiagnostic
 
+
+
 			for _, arq := range arquivos {
-				_, ast, err := ctx.TransformarEmAst(arq, false, cur)
+				conteudo, errRead := os.ReadFile(arq)
+				if errRead != nil {
+					continue
+				}
+				ast, err := parser.NewParserFromString(string(conteudo), arq).Parse()
 				if err != nil {
 					if formato == "json" {
 						diagnostics = append(diagnostics, LSPDiagnostic{
@@ -427,7 +646,12 @@ func comandoChecar() *cobra.Command {
 					continue
 				}
 
-				linter := &Linter{}
+
+				dirArq := filepath.Dir(arq)
+				linter := &Linter{
+					DiretorioAtual:    dirArq,
+					ArquivosVisitados: map[string]bool{arq: true},
+				}
 				linter.Checar(ast)
 
 				if estritoArquitetura {

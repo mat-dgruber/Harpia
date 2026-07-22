@@ -262,14 +262,11 @@ Consulte a pasta de documentação para guias e especificações de uso:
 ---
 
 ## ⚡ Como Rodar a Aplicação
-Para compilar e servir o seu projeto no navegador, execute os seguintes comandos no terminal:
+Para compilar e servir o seu projeto no navegador com Hot-Reload, execute no terminal:
 
 `+"```"+`bash
-# 1. Compila para a web gerando o build estático
-harpia compilar --alvo=web --entrada=main.hrp --saida=dist
-
-# 2. Inicia o servidor local leve de hospedagem
-harpia servir --diretorio=dist
+# Inicia o servidor local com build automático e Hot-Reload (Zero-Config)
+harpia servir
 `+"```"+`
 `)
 
@@ -535,12 +532,10 @@ Consulte a pasta de documentação para guias e especificações de uso:
 Para compilar e servir o seu projeto no navegador, execute no seu terminal:
 
 `+"```"+`bash
-# 1. Compila para a web gerando o build estático
-harpia compilar --alvo=web --entrada=main.hrp --saida=dist
-
-# 2. Inicia o servidor local leve de hospedagem
-harpia servir --diretorio=dist
+# Inicia o servidor local com build automático e Hot-Reload (Zero-Config)
+harpia servir
 `+"```"+`
+
 `)
 
 			exibirSucessoCompleto(nomeProj, "frontend")
