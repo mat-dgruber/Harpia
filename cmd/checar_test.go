@@ -83,3 +83,38 @@ func TestLinterShadowingErroMesmoEscopo(t *testing.T) {
 		t.Errorf("Esperava Severity=1 (Erro), obteve %d", erro.Severity)
 	}
 }
+
+func TestLinterJSXComponentSignature(t *testing.T) {
+	codigo := `
+	funcao MeuComponente(nome, idade) {
+		retorne <div />;
+	}
+	`
+
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	linter := &Linter{}
+	linter.Checar(ast)
+
+	var errosJsx []LinterError
+	for _, e := range linter.Erros {
+		if e.Code == "HRP-JSX-001" {
+			errosJsx = append(errosJsx, e)
+		}
+	}
+
+	if len(errosJsx) != 1 {
+		t.Fatalf("Esperava erro de assinatura de componente JSX HRP-JSX-001, mas obteve %d", len(errosJsx))
+	}
+
+	erro := errosJsx[0]
+	if erro.Severity != 2 {
+		t.Errorf("Esperava Severity=2 (Aviso), obteve %d", erro.Severity)
+	}
+}

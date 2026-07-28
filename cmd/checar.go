@@ -67,6 +67,7 @@ var globalsLinter = map[string]bool{
 	"document":         true,
 	"console":          true,
 	"localStorage":     true,
+	"Promise":          true,
 	"importarHtml":     true,
 	"GradeDeDados":     true,
 	"FronteiraDeErro":  true,
@@ -278,6 +279,13 @@ func (l *Linter) Checar(node parser.BaseNode) {
 				l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "HRP-0002", 2, n)
 			}
 			l.Escopo.Variaveis[n.Nome] = true
+
+			// ponytail: Verificação estática de parâmetros JSX
+			primeiraLetra := string(n.Nome[0])
+			ehComponente := primeiraLetra == strings.ToUpper(primeiraLetra) && primeiraLetra != strings.ToLower(primeiraLetra)
+			if ehComponente && len(n.Parametros) > 1 {
+				l.registrarErro(fmt.Sprintf("Componente JSX '%s' deve possuir assinatura de dicionário único (ex: 'funcao %s(propriedades)') para compatibilidade com o formato JSON de renderização do VNode", n.Nome, n.Nome), "HRP-JSX-001", 2, n)
+			}
 		}
 
 		l.pushEscopo()
