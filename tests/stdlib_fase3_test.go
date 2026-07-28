@@ -162,6 +162,8 @@ func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
 
 	// 2. Testa OpenAPI
 	var server = nova Servidor()
+	/// Listar todos os usuários
+	/// @tags Admin, Seguranca
 	server.obter("/usuarios", funcao(req, res) {})
 	server.postar("/usuarios", funcao(req, res) {})
 	var spec = gerar_openapi(server)
@@ -186,6 +188,14 @@ func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
 	specStr := string(valSpec.(hrp.Texto))
 	if !strings.Contains(specStr, "/usuarios") || !strings.Contains(specStr, "get") || !strings.Contains(specStr, "post") {
 		t.Errorf("Especificação OpenAPI incorreta: %s", specStr)
+	}
+
+	if !strings.Contains(specStr, "Listar todos os usuários") {
+		t.Errorf("Esperava a descrição/resumo inferida dos comentários ///. Obtido: %s", specStr)
+	}
+
+	if !strings.Contains(specStr, "Admin") || !strings.Contains(specStr, "Seguranca") {
+		t.Errorf("Esperava as tags inferidas dos comentários ///. Obtido: %s", specStr)
 	}
 }
 
@@ -378,5 +388,55 @@ func TestConcorrenciaPorCanaisCsp(t *testing.T) {
 
 	if string(val.(hrp.Texto)) != "Ola via Canal!" {
 		t.Errorf("Recebimento incorreto via Canal, obteve: %v, esperava 'Ola via Canal!'", val)
+	}
+}
+
+func TestDocumentacaoAutomaticaHttp(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	de "http" importe Servidor, requisitar
+
+	var server = nova Servidor()
+	server.obter("/usuarios", funcao(req, res) {
+		res.corpo = "OK"
+		res.status = 200
+	})
+
+	server.escutar("8085")
+
+	# Testa /docs.json (OpenAPI JSON)
+	var resJson = requisitar("GET", "http://localhost:8085/docs.json")
+	var corpoJson = resJson.corpo
+
+	# Testa /docs (Página HTML)
+	var resHtml = requisitar("GET", "http://localhost:8085/docs")
+	var corpoHtml = resHtml.corpo
+
+	server.fechar()
+	`
+
+	res, err := hrp.ExecutarString(ctx, codigo)
+	if err != nil {
+		t.Fatalf("Erro ao executar script HTTP de documentação: %v", err)
+	}
+
+	valJson, err := res.Escopo.ObterValor("corpoJson")
+	if err != nil {
+		t.Fatalf("Erro ao ler corpoJson: %v", err)
+	}
+	specStr := string(valJson.(hrp.Texto))
+	if !strings.Contains(specStr, "/usuarios") || !strings.Contains(specStr, "get") {
+		t.Errorf("Especificação OpenAPI no docs.json incompleta: %s", specStr)
+	}
+
+	valHtml, err := res.Escopo.ObterValor("corpoHtml")
+	if err != nil {
+		t.Fatalf("Erro ao ler corpoHtml: %v", err)
+	}
+	htmlStr := string(valHtml.(hrp.Texto))
+	if !strings.Contains(htmlStr, "HARPIA") || !strings.Contains(htmlStr, "docs.json") {
+		t.Errorf("Estrutura do HTML de documentação incorreta: %s", htmlStr)
 	}
 }

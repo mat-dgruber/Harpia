@@ -67,6 +67,11 @@ O Harpia foi concebido sob uma perspectiva dupla:
 - [x] Componente Nativo de Imagem Otimizada com Lazy Loading (`<ImagemWeb>`)
 - [x] Suporte a Carregamento de Micro-Frontends e Módulos Federados (`moduloRemoto`)
 - [x] Watch Mode nativo no terminal (`harpia executar --assistir`) para Hot Reload automatizado
+- [x] Injeção transparente de CORS (`Access-Control-Allow-Origin: *`, `OPTIONS` preflights) na `stdlib/http`
+- [x] Primitiva primordial `Promise` (`Promise.resolve`) para interoperabilidade perfeita entre VM Go (SSR) e Web JS (SPA)
+- [x] Retorno do `LastInsertId` numérico nos métodos de inserção do `QueryBuilder` e `ConexaoSQL.executar`
+- [x] Resiliência a objetos `Nulo` na conversão de tipos SQL (`toGoType`) e varredura recursiva de endpoints RPC no compilador Web
+- [x] Roteamento HTTP Ponderado por pesos no backend e mapeamento adaptativo de eventos case-insensitive baseado em regex no runtime-web.js
 
 
 
@@ -594,4 +599,4 @@ FUTURA: FASE 7 — Lançamento Público e Consolidação da Comunidade (PLANEJAD
 
 ---
 
-_Roadmap atualizado em 2026-07-19. Revisitar e atualizar após conclusão de cada fase._
+_Roadmap atualizado em 2026-07-27. Revisitar e atualizar após conclusão de cada fase._

@@ -90,14 +90,74 @@ funcao Cabecalho() {
 }
 ```
 
+#### ⚠️ Assinatura de Propriedades e Regra de Linter `HRP-JSX-001`
+Os componentes JSX personalizados (cujo nome começa com letra maiúscula, como `Cabecalho`) recebem um **dicionário de propriedades único** (`propriedades`) do runtime VDOM, e não argumentos posicionais isolados.
+
+Por isso, para garantir compatibilidade estrutural e prevenir bugs silenciosos em tempo de execução, o **Linter Estático do Harpia** possui a regra estrita `HRP-JSX-001` que impede a declaração de componentes JSX personalizados com múltiplos parâmetros posicionais.
+
+*   ❌ **Incorreto**:
+    ```harpia
+    funcao Aba(nome, rotulo) { ... }  # Falha no linter (HRP-JSX-001)
+    ```
+*   ✅ **Correto** (Dicionário único de propriedades):
+    ```harpia
+    funcao Aba(propriedades) {
+        var nome = propriedades["nome"]
+        var rotulo = propriedades["rotulo"]
+        ...
+    }
+    ```
+
 ### Propriedades e Eventos
-Atributos comuns e escutas de eventos (como `aoClicar` mapeado para `onclick` no browser) são passados como atributos.
+Atributos comuns e escutas de eventos em português são automaticamente traduzidos sob o capô pelo motor de Virtual DOM do Harpia para serem compreendidos nativamente pelos navegadores.
 
 ```harpia
 funcao BotaoIncrementar() {
 	retorne <botao classe="fundo-azul" aoClicar={setContador(contador() + 1)}> Incrementar </botao>;
 }
 ```
+
+#### Tabela de Atributos Traduzidos (VDOM)
+O Harpia mapeia as seguintes propriedades comuns escritas em português diretamente para os padrões do HTML:
+
+| Atributo em Harpia | HTML/DOM Equivalente | Descrição |
+|:---|:---|:---|
+| `classe` | `class` | Classe CSS do elemento |
+| `identificador` | `id` | Identificador único do elemento |
+| `estilo` | `style` | Objeto ou string de estilo CSS inline |
+| `tipo` | `type` | Tipo de input (ex: `"text"`, `"number"`, `"submit"`) |
+| `valor` | `value` | Valor atual do elemento de formulário |
+| `desabilitado` | `disabled` | Desabilita interativamente o elemento |
+| `obrigatorio` | `required` | Torna o campo de formulário obrigatório |
+| `nome` | `name` | Nome do elemento de input |
+| `marcado` | `checked` | Estado marcado para caixas de seleção (checkbox) |
+| `espacoReservado` / `espaco_reservado` | `placeholder` | Texto flutuante de dica dentro de um input |
+| `chave` | `key` | Identificador único interno para reconciliação fina de arrays |
+| `alvo` | `target` | Destino de abertura de um link (ex: `"_blank"`) |
+| `caminho` / `fonte` | `src` | Origem da imagem ou mídia |
+| `link` / `destino` / `endereco` | `href` | Destino de ancoragem do link |
+| `autoFoco` / `auto_foco` | `autofocus` | Foca o elemento automaticamente ao montar a página |
+| `autoCompletar` / `auto_completar` | `autocomplete` | Configura o recurso de preenchimento automático |
+| `leituraApenas` / `somente_leitura` | `readonly` | Impede a digitação do usuário no campo de texto |
+
+#### Tabela de Eventos Traduzidos (VDOM)
+Escutas de eventos no Harpia começam com o prefixo `ao` seguido do verbo em CamelCase:
+
+| Evento em Harpia | Evento de Navegador Equivalente |
+|:---|:---|
+| `aoClicar` | `click` |
+| `aoMudar` | `change` |
+| `aoEnviar` / `aoSubmeter` | `submit` |
+| `aoFocar` | `focus` |
+| `aoDesfocar` | `blur` |
+| `aoTeclar` | `keydown` |
+| `aoSoltarTecla` | `keyup` |
+| `aoEntrarMouse` | `mouseenter` |
+| `aoSairMouse` | `mouseleave` |
+| `aoDigitar` / `aoInserir` | `input` |
+| `aoCarregar` | `load` |
+| `aoDuploClique` | `dblclick` |
+| `aoPassarMouse` | `mouseover` |
 
 ### Estruturas de Controle Inline (JSX)
 

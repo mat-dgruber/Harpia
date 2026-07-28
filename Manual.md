@@ -2,9 +2,7 @@
 
 Bem-vindo ao **Manual de Referência Oficial do Harpia**, uma especificação exaustiva, de nível de engenharia, que documenta todos os subsistemas, tipos primitivos, biblioteca padrão (stdlib), compilador, analisadores, runtime e filosofia de design da linguagem **Harpia**.
 
-Este d
-
-ocumento foi elaborado para servir tanto como um guia definitivo para desenvolvedores que escrevem programas em Harpia quanto para engenheiros de sistemas que contribuem com a evolução de sua máquina virtual e compilador.
+Este documento foi elaborado para servir tanto como um guia definitivo para desenvolvedores que escrevem programas em Harpia quanto para engenheiros de sistemas que contribuem com a evolução de sua máquina virtual e compilador.
 
 ---
 
@@ -114,7 +112,6 @@ Inicializa o servidor de desenvolvimento local com Hot-Reload automatizado para 
 - **Execução Zero-Config**: Executar `harpia servir` sem parâmetros auto-localiza o ponto de entrada do projeto, compila para a pasta `dist` com visualização de spinner animado e levanta o servidor HTTP na porta 3000 (com fallback automático se estiver em uso).
 - **Flag `-d`, `--diretorio`**: Diretório raiz de arquivos estáticos a servir (padrão: `dist`).
 - **Flag `-p`, `--porta`**: Porta na qual o servidor HTTP escutará as requisições (padrão: `3000`).
-
 
 #### 5. `harpia novo [command] [flags]` (Alias: `iniciar`, `inicializar`)
 
@@ -281,49 +278,49 @@ O pacote `compartilhado` abriga funções de utilidades essenciais compartilhada
 
 #### 1. Manipulação e Indexação de Strings (`strings.go` & `compartilhado.go`)
 
-*   **`IndiceBytePorCarater(str string) []int`**:
-    *   **Propósito**: Pré-calcula os offsets em bytes de cada runa (caractere Unicode) na string de entrada.
-    *   **Parâmetros**: `str string` - Texto ou código-fonte a ser indexado.
-    *   **Retorno**: `[]int` - Slice onde a posição `i` indica o início em bytes do caractere `i`. A última posição contém `len(str)` para delimitar o EOF de forma inclusiva e segura.
-    *   **Design**: Armazena em cache se a string for menor que 4KB. Limpa e reinicia o cache global caso exceda 2048 entradas para evitar vazamentos de memória (LRU básico).
+- **`IndiceBytePorCarater(str string) []int`**:
+  - **Propósito**: Pré-calcula os offsets em bytes de cada runa (caractere Unicode) na string de entrada.
+  - **Parâmetros**: `str string` - Texto ou código-fonte a ser indexado.
+  - **Retorno**: `[]int` - Slice onde a posição `i` indica o início em bytes do caractere `i`. A última posição contém `len(str)` para delimitar o EOF de forma inclusiva e segura.
+  - **Design**: Armazena em cache se a string for menor que 4KB. Limpa e reinicia o cache global caso exceda 2048 entradas para evitar vazamentos de memória (LRU básico).
 
-*   **`LimparCacheUnicode()`**:
-    *   **Propósito**: Esvazia de forma síncrona a tabela de cache estático global de strings indexadas, liberando heap.
+- **`LimparCacheUnicode()`**:
+  - **Propósito**: Esvazia de forma síncrona a tabela de cache estático global de strings indexadas, liberando heap.
 
-*   **`IndiceCaraterParaByte(str string, indice int, cache []int) int`**:
-    *   **Propósito**: Resolve a posição exata em bytes correspondente ao índice conceitual do caractere informado.
-    *   **Parâmetros**: `str string`, `indice int` (caractere), `cache []int` (slice retornado de `IndiceBytePorCarater`).
-    *   **Retorno**: `int` - Byte offset correspondente. Retorna `len(str)` se ultrapassar os limites da string.
-    *   **Mecanismo**: Retorna em $O(1)$ caso o cache seja fornecido e seja válido. Caso contrário, degrada para busca linear $O(N)$ como fallback.
+- **`IndiceCaraterParaByte(str string, indice int, cache []int) int`**:
+  - **Propósito**: Resolve a posição exata em bytes correspondente ao índice conceitual do caractere informado.
+  - **Parâmetros**: `str string`, `indice int` (caractere), `cache []int` (slice retornado de `IndiceBytePorCarater`).
+  - **Retorno**: `int` - Byte offset correspondente. Retorna `len(str)` se ultrapassar os limites da string.
+  - **Mecanismo**: Retorna em $O(1)$ caso o cache seja fornecido e seja válido. Caso contrário, degrada para busca linear $O(N)$ como fallback.
 
-*   **`IndiceCaraterParaByteSemCache(str string, indice int) int`**:
-    *   **Propósito**: Calcula de forma linear $O(N)$ o byte offset do caractere decodificando runas uma a uma. Utilizada como contingência (fallback) interna de resolução de limites.
+- **`IndiceCaraterParaByteSemCache(str string, indice int) int`**:
+  - **Propósito**: Calcula de forma linear $O(N)$ o byte offset do caractere decodificando runas uma a uma. Utilizada como contingência (fallback) interna de resolução de limites.
 
-*   **`ObtemCaraterPorIndice(str string, indice int, cache []int) string`**:
-    *   **Propósito**: Extrai com segurança uma substring de uma única runa no índice informado.
-    *   **Parâmetros**: `str string`, `indice int`, `cache []int`.
-    *   **Retorno**: `string` - O caractere individual. Impede erros de fatiamento fora de limite (panic por slice bounds out of range).
+- **`ObtemCaraterPorIndice(str string, indice int, cache []int) string`**:
+  - **Propósito**: Extrai com segurança uma substring de uma única runa no índice informado.
+  - **Parâmetros**: `str string`, `indice int`, `cache []int`.
+  - **Retorno**: `string` - O caractere individual. Impede erros de fatiamento fora de limite (panic por slice bounds out of range).
 
-*   **`ContemApenasLetras(str string) bool`**:
-    *   **Propósito**: Valida se a string é formada exclusivamente por caracteres classificados como letras pela especificação Unicode. Suporta alfabetos internacionalizados acentuados.
+- **`ContemApenasLetras(str string) bool`**:
+  - **Propósito**: Valida se a string é formada exclusivamente por caracteres classificados como letras pela especificação Unicode. Suporta alfabetos internacionalizados acentuados.
 
-*   **`ContemApenasDigitos(str string) bool`**:
-    *   **Propósito**: Valida se todos os caracteres da string são dígitos decimais. Utilizado no Lexer para validação de literais inteiros.
+- **`ContemApenasDigitos(str string) bool`**:
+  - **Propósito**: Valida se todos os caracteres da string são dígitos decimais. Utilizado no Lexer para validação de literais inteiros.
 
-*   **`ContemApenasAlfaNum(str string) bool`**:
-    *   **Propósito**: Valida se a string de entrada contem unicamente letras ou unicamente dígitos através de composição lógica (`ContemApenasDigitos(str) || ContemApenasLetras(str)`).
+- **`ContemApenasAlfaNum(str string) bool`**:
+  - **Propósito**: Valida se a string de entrada contem unicamente letras ou unicamente dígitos através de composição lógica (`ContemApenasDigitos(str) || ContemApenasLetras(str)`).
 
 #### 2. Utilitários de Conversão Numérica (`numeros.go`)
 
-*   **`StringParaInt(s string) (int64, error)`**:
-    *   **Propósito**: Converte uma string que representa um número inteiro em um inteiro assinado de 64 bits (`int64`).
-    *   **Design**: Executa a conversão na base decimal (base 10) garantindo a máxima capacidade de precisão numérica nativa de 64 bits para evitar estouros na VM.
-    *   **Retorno**: `(int64, error)`. Retorna erro do tipo `*strconv.NumError` caso o formato seja inválido ou ocorra overflow de bits.
+- **`StringParaInt(s string) (int64, error)`**:
+  - **Propósito**: Converte uma string que representa um número inteiro em um inteiro assinado de 64 bits (`int64`).
+  - **Design**: Executa a conversão na base decimal (base 10) garantindo a máxima capacidade de precisão numérica nativa de 64 bits para evitar estouros na VM.
+  - **Retorno**: `(int64, error)`. Retorna erro do tipo `*strconv.NumError` caso o formato seja inválido ou ocorra overflow de bits.
 
-*   **`StringParaDec(s string) (float64, error)`**:
-    *   **Propósito**: Converte uma representação em texto de número real para ponto flutuante de dupla precisão (`float64`).
-    *   **Design**: Converte decimais seguindo a especificação IEEE 754, garantindo tratamento de notação científica.
-    *   **Retorno**: `(float64, error)`. Utilizado na criação do tipo nativo `Decimal` da Harpia.
+- **`StringParaDec(s string) (float64, error)`**:
+  - **Propósito**: Converte uma representação em texto de número real para ponto flutuante de dupla precisão (`float64`).
+  - **Design**: Converte decimais seguindo a especificação IEEE 754, garantindo tratamento de notação científica.
+  - **Retorno**: `(float64, error)`. Utilizado na criação do tipo nativo `Decimal` da Harpia.
 
 ### Estrutura Física de Coordenadas de Tokens
 
@@ -369,6 +366,41 @@ O fluxo operacional e os métodos chaves da máquina de estados do Lexer são de
 8. **`lerTexto() *Token`**: Varre cadeias textuais (delimitadas por aspas simples ou duplas) tratando caracteres de escape.
 9. **`ignorarEspacos()` e `ignorarComentario()`**: Métodos auxiliares para descarte e saneamento de ruído sintático antes do processamento do token subsequente.
 
+### Mecanismo de Lookahead Resiliente e Algoritmo Guloso (Greedy)
+
+O `Lexer` implementa um mecanismo de espreita (_lookahead_) de caracteres não destrutivo de extrema importância para diferenciar operadores que compartilham caracteres iniciais comuns (como `=`, `==`, `+=`, `/`, `//`, `//=`).
+
+- **Lookahead 1 (`proximoCarater()`)**: Obtém o caractere imediatamente subsequente ao cursor de leitura. É utilizado pelo algoritmo guloso (_greedy tokenization_) para colagem contínua de símbolos:
+  ```go
+  // Guloso: tenta aglutinar caracteres subsequentes para formar operadores compostos
+  if t, ok := tokensSimples[carater+l.carater]; ok {
+      carater += l.carater
+      tipo = t
+      continue
+  }
+  ```
+- **Lookahead Arbitrário (`caraterRelativo(offset int)`)**: Retorna o caractere situado a uma distância arbitrária positiva ou negativa do cursor atual, sem induzir qualquer efeito colateral na máquina de estados. Protege o analisador contra falhas de estouro de limites (_bounds checking_) retornando uma string vazia `""` se o cursor tentar ultrapassar o início ou o fim do arquivo.
+
+### Tratamento Nativo de Comentários (JSX-friendly e Clássicos)
+
+Para assegurar uma excelente experiência de desenvolvimento (DX) tanto em scripts lógicos quanto no desenvolvimento de interfaces reativas utilizando blocos JSX, o analisador do Harpia suporta nativamente três tipos de comentários estruturados:
+
+1. **Comentários de Linha Única Clássicos (`#` ou `//`)**:
+   - Iniciados pelo caractere cerquilha `#` ou pela sequência de barras duplas `//`.
+   - O `Lexer` descarta todos os caracteres até encontrar uma quebra de linha `\n` ou `EOF` através de `ignorarComentario()`.
+2. **Comentários de Bloco Multilinha Amigáveis a JSX (`<!-- ... -->`)**:
+   - Essenciais para a escrita de comentários estruturados dentro de elementos de marcação JSX.
+   - Detectados dinamicamente na máquina de estados principal por meio do lookahead arbitrário:
+     ```go
+     if carater == "<" && l.proximoCarater() == "!" {
+         if l.caraterRelativo(2) == "-" && l.caraterRelativo(3) == "-" {
+             l.ignorarComentarioHTML()
+             return l.ProximoToken()
+         }
+     }
+     ```
+   - O método `ignorarComentarioHTML()` avança os caracteres de marcação iniciais e consome todo o fluxo de texto de forma resiliente até localizar de forma gulosa a sequência de encerramento `-->`.
+
 ### Especificação Léxica Formal (`HarpiaLexer.g4`)
 
 Como base contratual para o analisador léxico, o Harpia define uma especificação formal de referência no formato do gerador de compiladores **ANTLR4** (`gramatica/HarpiaLexer.g4`). Ela classifica e delimita todas as categorias de tokens da linguagem:
@@ -382,7 +414,7 @@ Como base contratual para o analisador léxico, o Harpia define uma especificaç
 - **Operadores de Reatribuição**: `OPERADOR_REATRIBUICAO` unifica operadores compostos como `+=`, `-=`, `*=`, `/=`, `%=`, etc.
 - **Operadores e Delimitadores de Sintaxe**: Define símbolos de pontuação e caracteres matemáticos, lógicos e relacionais, além de operadores bitwise (`|`, `^`, `&`, `~`, `<<`, `>>`).
 
-*Nota de Design*: O lexer em Go (`lexer/lexer.go`) replica fielmente cada um dos comportamentos e tokens declarados nesta especificação, garantindo suporte nativo e resiliente a caracteres Unicode (UTF-8).
+_Nota de Design_: O lexer em Go (`lexer/lexer.go`) replica fielmente cada um dos comportamentos e tokens declarados nesta especificação, garantindo suporte nativo e resiliente a caracteres Unicode (UTF-8).
 
 ---
 
@@ -449,12 +481,42 @@ O Harpia permite omitir o uso de ponto e vírgula. O analisador trata `\n` (queb
 - Se o token corrente for de fato `";"`, consome-o e avança.
 - Se for uma nova linha ou término de arquivo, valida a instrução como completa sem reclamar, garantindo um código limpo estilo Python ou Go.
 
+### Estrutura Detalhada dos Nós Avançados da AST
+
+Os nós que compõem a Árvore de Sintaxe Abstrata (definida em `parser/ast_nodes.go`) suportam recursos avançados do Harpia para SPA Web reativo, Clean Architecture e tipagem. Abaixo estão as especificações dos nós mais importantes:
+
+#### 1. JSX & Diretivas Dinâmicas (SPA Reativo)
+
+O compilador transborda recursos modernos para renderização declarativa na Web através de nós especializados da AST:
+
+- **`NoJSX`**: Representa uma tag HTML/JSX (ex: `<div classe="container">...</div>`). Contém o nome da tag (`Tag`), lista de atributos (`Atributos []*AtributoJSX`), lista de nós filhos (`Filhos []BaseNode`), e um booleano que sinaliza fechamento automático (`AutoFechado`).
+- **`AtributoJSX`**: Modela propriedades injetadas na tag (ex: `onClick={clique}`). Armazena o identificador (`Nome`) e o nó da expressão correspondente (`Valor`).
+- **`NoSeJSX`**: Representa renderização condicional nativa no JSX (ex: `<se condicao={exibir}>...</se>`). Armazena a expressão da condição (`Condicao`) e o bloco a ser renderizado (`Filhos`).
+- **`NoParaJSX`**: Representa renderização iterativa nativa no JSX (ex: `<para item em lista={tarefas}>...</para>`). Armazena a variável de iteração (`Item`), a coleção alvo (`Lista`), e o bloco de renderização (`Filhos`).
+
+#### 2. Estilização Embutida (`DeclEstilo`)
+
+- **`DeclEstilo`**: Modela a diretiva `estilo` nativa (ex: `estilo Botao { cor: "vermelho"; }`). Contém o nome do identificador (`Nome`) e a string contendo as regras CSS brutas (`Regras`), as quais são processadas e empacotadas estaticamente para o frontend.
+
+#### 3. Enumerações e Interfaces (Contratos de Modelagem)
+
+- **`DeclEnum`**: Representa conjuntos ordenados nomeados de constantes (ex: `enum TipoUsuario { Administrador, Cliente }`). Contém o nome da enumeração (`Nome`) e o slice de valores textuais (`Valores`).
+- **`DeclInterface`**: Define contratos estruturais (ex: `interface Autenticador { func login(u, s) }`). Mapeia o nome da interface (`Nome`) e o slice de assinaturas de métodos esperadas (`Metodos []MetodoAssinatura`).
+- **`MetodoAssinatura`**: Modela o nome, parâmetros formais e tipo de retorno esperado de um método exigido em interfaces.
+
+#### 4. Operadores e Expressões Modernas
+
+- **`OpTernaria`**: Representa desvios de expressão condensados (ex: `condicao ? entao : senao`). Mapeia os nós de `Condicao`, `Entao` e `Senao`.
+- **`OpCoalescenciaNula`**: Representa a operação de fallback automático para nulos (ex: `valor ?? "padrao"`). Armazena o nó esquerdo (`Esq`) e o nó direito (`Dir`).
+- **`AcessoMembroOpcional`**: Representa a navegação segura contra referências nulas (ex: `usuario?.endereco?.rua`). Armazena o `Objeto` base e o nó `Membro` a ser acessado.
+- **`DeclVarDestructuring`**: Modela a extração posicional e reativa de valores, crucial para o retorno de desestruturação de sinais (ex: `var [get, set] = sinal(0)`). Contém a lista de nomes a receber os valores (`Nomes`), o sinalizador de imutabilidade (`Constante`), e o inicializador à direita (`Inicializador`).
+
 ### Especificação Sintática Formal (`HarpiaParser.g4`)
 
 Para garantir o rigor gramatical das expressões e comandos, o Harpia expõe sua gramática de precedência e regras de árvore sintática no formato **ANTLR4** (`gramatica/HarpiaParser.g4`). Suas principais definições incluem:
 
 - **Regra Raiz (`programa`)**: Define a entrada como uma sequência opcional de declarações terminadas por `EOF`.
-- **Declarações e Atribuições**: 
+- **Declarações e Atribuições**:
   - `declaracao` ramifica-se em instruções simples (atribuições de variáveis/constantes, retornos, imports, asserções, `pare`, `continue`) e compostas (funções, `se/senao`, `para`).
   - `atribuicao_variavel` e `atribuicao_constante` detalham a inicialização de símbolos.
 - **Importação e Módulos**: Regras detalhadas para suportar importações completas (`importe "x";`) ou parciais de escopo (`de "x" importe y, z;`).
@@ -463,7 +525,7 @@ Para garantir o rigor gramatical das expressões e comandos, o Harpia expõe sua
 - **Hierarquia de Precedência de Expressões**: Define os níveis de precedência estritos representados na AST por meio de regras aninhadas (de `disjuncao` até `potencia`).
 - **Terminais e Coleções**: Regras para instanciar classes (`nova Classe()`), acessos a membros (`.`), chamadas, indexações (`[]`), e literais primários (listas, tuplas, mapas, etc.).
 
-*Nota de Design*: O parser escrito à mão em Go (`parser/parser.go`) implementa um Parser de Descida Recursiva que consome e valida recursivamente cada uma destas construções formais, transformando-as em nós estruturados de nossa AST.
+_Nota de Design_: O parser escrito à mão em Go (`parser/parser.go`) implementa um Parser de Descida Recursiva que consome e valida recursivamente cada uma destas construções formais, transformando-as em nós estruturados de nossa AST.
 
 ---
 
@@ -527,6 +589,100 @@ As variáveis ativas e constantes são mantidas em estruturas `Escopo`:
 - **Locks de Grão Fino em Símbolos**: Símbolos individuais do runtime (`hrp.Simbolo`) contam com bloqueios de mutex específicos (`sync.RWMutex`) para ler e definir seu valor de forma atômica e segura.
 - **Cooperação Segura com o Garbage Collector**: A listagem de símbolos pelo Garbage Collector utiliza o método seguro `ObterSimbolosSeguro()`, que gera uma cópia rasa estável da tabela de símbolos do escopo sob um lock de leitura, integrando com o algoritmo de varredura e quebra de ciclos de forma 100% thread-safe.
 
+### Contexto de Execução, Estado da VM e Controle de Sandboxing
+
+O controle global de estado da VM do Harpia é orquestrado pela struct `Contexto` (declarada em `hrp/contexto.go`). Ele mantém o cache de módulos carregados, rastreia as coordenadas geográficas de execução (arquivo, linha, coluna, token físico) para tracebacks e gerencia a sincronização concorrente.
+
+- **Gerenciamento de Estado**:
+  - **`ObterContextoAtivo() *Contexto`**: Recupera a instância ativa e encadeada do contexto da VM de forma thread-local.
+  - **`DefinirContextoAtivo(ctx *Contexto)`**: Registra o contexto atualizado como ativo no runtime.
+  - **`NewContexto(opcs OpcsContexto) *Contexto`**: Instancia um novo supervisor de estado configurado com parâmetros de concorrência (`sync.WaitGroup`), cache de módulos e opções de sandbox.
+- **Configuração de Sandbox (`OpcsContexto`)**:
+  - `BloquearArquivos bool`: Quando ativada, bloqueia qualquer leitura ou gravação de arquivos por scripts do usuário.
+  - `BloquearRede bool`: Impede qualquer requisição ou conexão de rede em tempo de execução.
+  - O runtime impõe essas restrições através dos validadores dedicados `VerificarPermissaoArquivos` e `VerificarPermissaoRede`.
+
+### Gerenciamento de Memória, Ciclos de Referência e GC
+
+O Harpia implementa um sistema híbrido e robusto para gerenciar a desalocação de objetos em memória, integrando contagem de referências pura a um coletor e quebrador de referências circulares em grafos (Cycle Collection).
+
+- **Contagem de Referências (`ObjetoGC` / `GCMixin`)**:
+  - Toda estrutura polimórfica que necessita de gerência manual ou automática de ciclo de vida estende ou satisfaz a interface `ObjetoGC`.
+  - O mixin leve `GCMixin` implementa as primitivas seguras de sincronização atômica (`sync/atomic`) `Reter()` e `Liberar()`, que incrementam ou decrementam as contagens de referências dos objetos no grafo de execução.
+  - **`ReterObjeto(obj Objeto)`**: Incrementa atômicamente as referências caso o objeto satisfaça a interface de GC.
+  - **`LiberarObjeto(obj Objeto)`**: Decrementa atômicamente as referências para indicar que o ponteiro ativo foi desfeito.
+- **Algoritmo de Quebra de Ciclos (Trial Deletion - `ColetarCiclos`)**:
+  - **`ColetarCiclos(escopo *Escopo)`**: Varre o grafo de objetos GC alcançáveis a partir dos símbolos do escopo fornecido.
+  - Realiza um decremento simulado das referências locais que pertencem exclusivamente a conexões internas de ciclos isolados (ex: listas ou mapas contendo a si mesmos).
+  - Se a contagem temporária atinge `0`, o objeto é identificado como órfão do ciclo de execução principal, e a VM limpa seus membros de forma simétrica e fail-safe (zerando itens de listas, deletando chaves de mapas e atributos de instâncias) para evitar vazamentos de memória (memory leaks).
+
+### Sistema de Importação de Módulos (Imports Engine & RPC)
+
+A diretiva nativa `importe` é sustentada internamente por rotinas centralizadas de resolução física e dinâmica de arquivos e dependências em `hrp/importe.go`.
+
+- **Mecanismo de Carregamento (`MaquinarioImporteModulo`)**:
+  - **`MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto, error)`**: Gerencia o fluxo completo de carregamento dinâmico.
+  - Primeiro consulta a tabela de módulos da VM para evitar recompilações. Se for um módulo nativo em Go (stdlib), instancia-o. Se for uma importação física relativa, valida a presença de prefixos `./` ou `/`, extraindo a pasta base através do atributo conceitual `__arquivo__` do escopo envolvente.
+  - **`MultiImporteModulo(ctx *Contexto, nomes ...string) error`**: Facilita importações consecutivas e sequenciais em lote na VM.
+- **Resolução Física de Caminhos**:
+  - **`ResolveArquivohrp(caminhoArqOuMod string, bases []string, curDir string) (string, error)`**: Localiza e mapeia o caminho absoluto de arquivos no disco. Busca por arquivos `inicio.hrp` dentro de diretórios ou tenta resolver as extensões físicas `.so`, `.hrp` ou `.pt` de forma automatizada e transparente.
+- **Integração de Contrato RPC Automatizado**:
+  - **`CarregarModuloRPC(ctx *Contexto, nome string) (Objeto, error)`**: Carrega pontes de comunicação com o backend sob o escopo `@backend/`. Ele analisa o arquivo `dependencias.json` e monta clientes RPC automatizados que expõem funções remotas via chamadas HTTP mapeadas.
+
+### Registro de Módulos e Tabelas de Resolução
+
+Os módulos de biblioteca padrão e extensões dinâmicas do Harpia registram suas especificações na VM por meio do gerenciador de módulos concorrente em `hrp/modulo.go`.
+
+- **Estruturas de Registro (`ModuloImpl`, `ModuloInfo`)**:
+  - `ModuloImpl` armazena os metadados declarativos (`ModuloInfo`), a relação de métodos e funções nativos vinculados (`[]*Metodo`), constantes estáticas e variáveis do módulo.
+- **Gerenciador de Módulos Concorrente**:
+  - **`RegistraModuloImpl(impl *ModuloImpl)`**: Insere uma especificação estática na tabela global protegida por mutex (`sync.RWMutex`) para garantir segurança concorrente (_thread-safe_).
+  - **`ObtemImplModulo(nome string) *ModuloImpl`**: Recupera especificações Go estáticas registradas.
+  - **`ObtemGlobalsDoLinter() map[string]bool`**: Reúne os identificadores e métodos de "embutidos" e módulos registrados para alimentar análises do linter off-line.
+- **Tabela de Cache Ativo (`TabelaModulos`)**:
+  - **`NewTabelaModulos() *TabelaModulos`**: Inicializa o mapa de cache de instâncias de módulos ativos.
+  - **`NewModulo(ctx *Contexto, impl *ModuloImpl) (*Modulo, error)`**: Cria e inicializa um objeto `Modulo` de tempo de execução, injetando as variáveis, constantes e métodos vinculados, e povoando as propriedades implícitas de módulo (`__nome__`, `__arquivo__`, `__doc__`).
+
+### Métodos de Controle Interno e Operacionais de Runtime
+
+As operações sintáticas básicas e as manipulações dinâmicas de atributos e coleções são mapeadas no runtime por uma suíte de rotinas utilitárias robustas em `hrp/internos.go`:
+
+- **Invocação e Inicialização**:
+  - **`Chamar(obj Objeto, args Objeto) (Objeto, error)`**: Executa chamadas polimórficas a funções e métodos, validando se o objeto satisfaz o protocolo de execução (`I__chamar__`).
+  - **`NovaInstancia(obj Objeto, args Tupla) (Objeto, error)`**: Instancia novos tipos ou classes, acionando seus alocadores e métodos iniciais mártires.
+- **Acesso e Modificação de Atributos**:
+  - **`NomeAtributo(obj Objeto) (string, error)`**: Retorna a representação de string de identificadores ou atributos avaliados.
+  - **`ObtemAtributoS(inst Objeto, nome string) (Objeto, error)`**: Resolve o protocolo mágico `__obtem_attributo__` para retornar atributos de objetos de forma polimórfica.
+  - **`ObtemAtributoRecursivamente(classe Objeto, nome string) Objeto`**: Percorre recursivamente a árvore de herança das classes (`Base`) para resolver métodos e atributos herdados.
+  - **`DefineAtributo(obj Objeto, nome string, valor Objeto) error`**: Modifica ou adiciona propriedades dinamicamente em classes ou instâncias lógicas.
+- **Manipulação de Coleções e Estruturas**:
+  - **`ObtemItem(inst, arg Objeto) (Objeto, error)`**: Realiza indexação dinâmica (ex: `lista[indice]`), delegando ao protocolo `__obtem_item__`.
+  - **`DefineItem(inst, chave, valor Objeto) (Objeto, error)`**: Altera itens em sequências ou dicionários lógicos por meio do protocolo `__define_item__`.
+  - **`Tamanho(obj Objeto) (Objeto, error)`**: Obtém o número de elementos em sequências ou coleções através do método mágico `__tamanho__`.
+- **Apoio Lógico**:
+  - **`Nao(obj Objeto) (Objeto, error)`**: Executa negação lógica unária de forma polimórfica com base na verdade do objeto.
+  - **`InstanciaDe(obj Objeto, tipos any) (Booleano, error)`**: Compara se o objeto herda ou pertence à metaclasse informada (ou slice de tipos).
+
+### Argumentos Nomeados e Opcionais
+
+O Harpia suporta nativamente a passagem e enlace flexível de parâmetros e argumentos não-posicionais em chamadas de closures.
+
+- **`ArgumentoNomeadoObj`**: Modelado em `hrp/argumentoNomeado.go`, transporta a associação entre o rótulo lógico do argumento (`Nome string`) e o valor avaliado (`Valor Objeto`).
+- Satisfaz a interface primordial `Objeto`, respondendo pela metaclasse de tipo `ArgumentoNomeadoObj`.
+
+### Construtores Universais de Exceções e Erros Ricos
+
+O subsistema de tratamento e emissão estruturada de exceções baseia-se na struct rica `Erro` (descrita em `hrp/erros.go`).
+
+- **Fábricas de Erros**:
+  - **`NewErro(tipo *Tipo, mensagem Objeto) *Erro`**: Aloca e retorna uma nova instância de exceção tipada.
+  - **`NewErroF(tipo *Tipo, format string, p ...any) *Erro`**: Cria erros ricos formatando as mensagens via `printf` nativo.
+- **Tracebacks e Localização Contextual**:
+  - O método **`AdicionarContexto(contexto *Contexto)`** vincula as coordenadas do local exato da falha (Linha, Coluna, Token, Arquivo, Código) da VM à exceção para permitir depurações pedagógicas precisas de erros, permitindo a leitura dinâmica de atributos como `erro.linha` e `erro.arquivo` sob o bloco de tratamento de exceções.
+- **Identificação e Padronização**:
+  - **`ObterCodigoErro(tipo *Tipo) string`**: Mapeia o tipo de erro a um código canônico e internacional do catálogo (`PSC-0001` a `PSC-0015`), simplificando a identificação e fóruns de suporte.
+  - **`ObterSugestaoErro(tipo *Tipo, mensagem string) string`**: Oferece uma camada corretiva heurística, sugerindo correções ortográficas e didáticas baseadas na similaridade sintática de Levenshtein (ex: sugerir usar `retorne` se o usuário tentar digitar `retornar`).
+
 ---
 
 ## 6. Tipos de Dados Primitivos
@@ -541,6 +697,55 @@ O Harpia oferece suporte a iteração unificada via laços `para-em`:
 - **Mapas**: Iteração pelos pares `[Chave, Valor]` encapsulados em Tuplas, permitindo desestruturação fluida.
 - **Texto (`Texto`)**: Iteração caractere a caractere (Unicode-safe via runas Go), preservando caracteres multibyte como acentos e emojis sem corromper a fatiagem física.
 - **Bytes (`Bytes`)**: Iteração byte a byte (retornando inteiros para cada valor físico de byte). As tentativas de coerção direta de `Bytes` para `Inteiro` ou `Decimal` retornam um erro gracioso `NaoImplementadoErro` em português, orientando a conversão prévia para `Texto` ou o uso do método `tamanho()`.
+
+### Protocolo Unificado de Iteração e Pertinência
+
+A iteração e verificação de coleções em tempo de execução são facilitadas por funções especializadas em `hrp/sequencia.go`:
+
+- **`Iter(obj Objeto) (Objeto, error)`**: Obtém o iterador ativo para qualquer objeto colecionável que implemente o método mágico `__iter__` (`I__iter__`). Isso inicia o cursor que possibilita o funcionamento seguro do laço `para-em`.
+- **`Proximo(obj Objeto) (Objeto, error)`**: Invoca o método mágico `__proximo__` (`I__proximo__`) de um iterador, controlando de forma padronizada o retorno de elementos ou o disparo da exceção `FimIteracao` (`PSC-0010`) para encerrar laços de repetição.
+- **`Em(a, b Objeto) (Objeto, error)`**: Avalia a pertinência de um elemento dentro de um contêiner através do operador `em` (ex: `valor em lista`), acionando o protocolo polimórfico `__contem__` (`I__contem__`).
+
+### Mecanismo e Operadores Aritméticos de Atribuição e Unários
+
+Os operadores aritméticos, tanto de atribuição acumulativa quanto unários, possuem lógica de resolução polimórfica estruturada em `hrp/aritmetica.go`:
+
+- **Operações Acumulativas (Atribuição Abreviada)**:
+  - **`AdicionaEAtribui(a, b Objeto) (Objeto, error)`**: Resolve a atribuição de soma acumulada (`+=`). Tenta invocar a interface `I__adiciona_e_atribui__`. Se não implementada, executa `Adiciona(a, b)` e reatribui o resultado.
+  - **`SubtraiEAtribui(a, b Objeto) (Objeto, error)`**: Resolve a subtração acumulada (`-=`) através do protocolo `I__subtrai_e_atribui__` ou reatribuição simples de `Subtrai(a, b)`.
+  - **`MultiplicaEAtribui(a, b Objeto) (Objeto, error)`**: Resolve a multiplicação acumulada (`*=`) com o protocolo `I__multiplica_e_atribui__` ou reatribuição de `Multiplica(a, b)`.
+  - **`DivideEAtribui(a, b Objeto) (Objeto, error)`**: Resolve a divisão acumulada (`/=`) com o protocolo `I__divide_e_atribui__` ou reatribuição de `Divide(a, b)`.
+  - **`DivideInteiroEAtribui(a, b Objeto) (Objeto, error)`**: Resolve a divisão inteira acumulada (`//=`) com o protocolo `I__divide_inteiro_e_atribui__` ou reatribuição de `DivideInteiro(a, b)`.
+- **Operador Unário de Identidade de Sinal**:
+  - **`Pos(a Objeto) (Objeto, error)`**: Resolve o operador unário `+x` por meio do protocolo mágico `__pos__` (`I__pos__`), validando se o tipo suporta a operação de identidade de sinal.
+- **Divisão Inteira de Piso**:
+  - **`DivideInteiro(a, b Objeto) (Objeto, error)`**: Executa a divisão inteira polimórfica de piso (`//`), invocando o método `__divide_inteiro__` (`I__divide_inteiro__`).
+
+### Construtores de Fábrica (Factories) para Primitivos
+
+A criação dinâmica e alocação segura de tipos fundamentais e métodos lógicos na VM baseia-se em construtores de fábrica (factories) eficientes:
+
+- **Instanciação de Tipos e Métodos**:
+  - **`NewTipo(nome string, doc string) *Tipo`**: Fábrica primordial para registrar e alocar novas classes (`Tipo`) no runtime do Harpia.
+  - **`NewMetodo(nome string, chamavel any, doc string) (*Metodo, error)`**: Aloca uma nova estrutura de método vinculada a uma função Go executável.
+  - **`NewMetodoOuPanic(nome string, chamavel any, doc string) *Metodo`**: Atalho utilitário para alocar métodos, disparando pânico em Go se houver drift de assinatura em tempo de inicialização (fail-fast).
+  - **`NewMetodoProxyDeNativo(nome string, chamavel any) (*Metodo, error)`**: Gera um invólucro (proxy) em tempo de execução em torno de métodos nativos do Go usando reflexão dinâmica.
+- **Fábricas de Primitivos**:
+  - **`NewDecimal(obj any) (Objeto, error)`**: Tenta coagir ou converter um valor qualquer de Go (ex: float64, int, strings compatíveis) para a struct `Decimal` da VM.
+  - **`NewBooleano(obj any) (Objeto, error)`**: Analisa a verdade semântica do valor Go fornecido e cria a instância correspondente do tipo `Booleano`.
+  - **`NewMapaVazio() Mapa`**: Aloca e inicializa uma nova tabela hash de dicionário da VM do Harpia (`Mapa`).
+
+### Utilitários Globais de Verificação de Tipos e Coerção
+
+O runtime dispõe de auxiliares off-line e estáticos em `hrp/utils.go` e `hrp/json_helper.go` para validar tipos e interagir com o ecossistema externo do Go:
+
+- **Assinaturas e Aridades**:
+  - **`MesmoTipo(a, b Objeto) bool`**: Retorna se ambos os objetos dinâmicos compartilham exatamente a mesma metaclasse de classe (`Tipo`).
+  - **`VerificaNumeroArgumentos(nome string, ehMetodo bool, args Objeto, min, max int) error`**: Valida a aridade dos parâmetros passados em chamadas de funções ou métodos, disparando `TipagemErro` se violados os limites.
+  - **`TalvezLanceErroDivisaoPorZero(obj Objeto) error`**: Intercepta se o operando divisor é um zero numérico (`0` ou `0.0`), lançando a exceção controlada `DivisaoPorZeroErro` (`PSC-0012`) antes de provocar um pânico de hardware.
+- **Pontes Bidirecionais de Dados (JSON / Go Native)**:
+  - **`ConverteParaGo(obj Objeto) any`**: Converte recursivamente estruturas de dados do Harpia (Listas, Mapas, Instâncias, Primitivos) para estruturas puras do Go analisáveis por pacotes nativos como `encoding/json`.
+  - **`ConverteDeGo(val any) Objeto`**: Transpila tipos genéricos e nativos do Go (resultado de leituras de bancos de dados ou chamadas HTTP brutas) para objetos ricos e interpretáveis pelo runtime da VM.
 
 ### 1. `Inteiro` (int64)
 
@@ -570,7 +775,6 @@ O Harpia oferece suporte a iteração unificada via laços `para-em`:
   - `%b`: Formata para Booleano.
   - `%s` (ou outro marcador): Formata chamando a representação textual do objeto.
 - **Exemplo**: `"Eu tenho %i anos de idade e me chamo %s" % (23, "Carlos")`.
-
 
 ### 5. `Lista` (`[]Objeto` mutável)
 
@@ -680,29 +884,68 @@ Serialização e desserialização de formato de dados JSON. Requer `de "json" i
 
 ### Módulo: `yaml`
 
-Serialização e desserialização de formato de dados YAML. Requer `de "yaml" importe ...`.
+Serialização e desserialização de formato de dados YAML baseada na biblioteca Go `gopkg.in/yaml.v3`. Requer `de "yaml" importe ...`.
 
 - **Métodos**:
-  - `analisar(textoYaml)`: Desserializa uma string YAML em estruturas nativas de dados do Harpia.
-  - `serializar(objeto)`: Converte estruturas de dados do Harpia em string YAML.
+  - `analisar(textoYaml)`: Desserializa uma string YAML em estruturas nativas de dados do Harpia (Lista ou Mapa).
+    - **Implementação Go:** `met_yaml_analisar` em `stdlib/yaml/yaml.go`.
+    - **Argumentos:** Exatamente 1 argumento (`textoYaml`).
+    - **Validação:** Valida o número de argumentos via `hrp.VerificaNumeroArgumentos`. O parâmetro deve ser do tipo `Texto`.
+    - **Retorno:** Retorna um `Objeto` correspondente à estrutura do YAML ou lança um erro semântico caso o formato seja inválido.
+  - `serializar(objeto)`: Converte estruturas de dados nativas do Harpia em uma string YAML formatada.
+    - **Implementação Go:** `met_yaml_serializar` em `stdlib/yaml/yaml.go`.
+    - **Argumentos:** Exatamente 1 argumento (`objeto`).
+    - **Validação:** Exige 1 argumento do tipo `Objeto`.
+    - **Retorno:** Retorna uma string `Texto` formatada em YAML.
 
 ### Módulo: `xml`
 
-Serialização e desserialização de formato de dados XML. Requer `de "xml" importe ...`.
+Serialização e desserialização de formato de dados XML em conformidade com as especificações do W3C. Requer `de "xml" importe ...`.
 
 - **Métodos**:
-  - `analisar(textoXml)`: Desserializa uma string XML em estruturas nativas de dados do Harpia.
-  - `serializar(mapa, tagRaiz?)`: Converte um Mapa do Harpia em string XML com a tag raiz opcional informada (padrão: "raiz").
+  - `analisar(textoXml)`: Desserializa uma string XML em uma estrutura de dados aninhada do tipo `Mapa` do Harpia.
+    - **Implementação Go:** `met_xml_analisar` em `stdlib/xml/xml.go`.
+    - **Argumentos:** Exatamente 1 argumento (`textoXml`).
+    - **Validação:** Exige exatamente 1 argumento do tipo `Texto`.
+    - **Retorno:** Retorna um `Mapa` com chaves correspondentes aos nós e atributos XML.
+  - `serializar(mapa, tagRaiz?)`: Converte um Mapa do Harpia em uma string XML formatada.
+    - **Implementação Go:** `met_xml_serializar` em `stdlib/xml/xml.go`.
+    - **Argumentos:** De 1 a 2 argumentos. O segundo parâmetro `tagRaiz` é opcional e define a etiqueta do nó raiz (padrão: `"raiz"`).
+    - **Validação:** O primeiro argumento deve ser do tipo `Mapa`. Valida de 1 a 2 argumentos.
+    - **Retorno:** Retorna uma string `Texto` com a representação XML balanceada e bem-formada.
 
 ### Módulo: `cripto`
 
-Funções para criptografia, hashes e identificadores. Requer `de "cripto" importe ...`.
+Funções de criptografia simétrica de nível corporativo, hashes unidirecionais e identificadores globais. Requer `de "cripto" importe ...`.
 
 - **Métodos**:
   - `sha256(texto)`: Devolve o hash SHA-256 do texto fornecido em formato hexadecimal.
-  - `codificarBase64(texto)`: Codifica um texto simples para o formato Base64.
-  - `decodificarBase64(base64)`: Decodifica um texto de Base64 para o formato simples correspondente.
-  - `uuid()`: Gera e retorna um identificador universal único (UUID v4) aleatório.
+    - **Implementação Go:** `met_cripto_sha256` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 1 argumento (`texto`).
+    - **Validação:** Exige exatamente 1 argumento do tipo `Texto`.
+    - **Retorno:** Retorna um `Texto` hexadecimal de 64 caracteres.
+  - `codificarBase64(texto)`: Codifica um texto simples ou bytes para o formato padrão Base64.
+    - **Implementação Go:** `met_cripto_codificarBase64` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 1 argumento.
+    - **Retorno:** Retorna o `Texto` codificado.
+  - `decodificarBase64(base64)`: Decodifica uma string em formato Base64 para seu formato original.
+    - **Implementação Go:** `met_cripto_decodificarBase64` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 1 argumento.
+    - **Retorno:** Retorna o `Texto` original (ou lança uma exceção de integridade se o Base64 estiver corrompido).
+  - `encriptarAES(texto, chave)`: Encripta o texto usando criptografia simétrica AES-256-GCM com vetor de inicialização (nonce) gerado via gerador de números aleatórios criptográficos seguro (`crypto/rand`).
+    - **Implementação Go:** `met_cripto_encriptarAES` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 2 argumentos. Ambos devem ser `Texto`.
+    - **Validação:** A chave é fatiada ou preenchida com zeros para possuir exatamente 32 bytes de largura (chave de 256 bits).
+    - **Retorno:** Retorna um `Texto` em Base64 contendo a concatenação do nonce e do texto cifrado.
+  - `decriptarAES(textoCriptografado, chave)`: Realiza a decodificação de um texto criptografado em AES-256-GCM.
+    - **Implementação Go:** `met_cripto_decriptarAES` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`textoCriptografado`, `chave`). Ambos devem ser `Texto`.
+    - **Validação:** Separa o nonce e realiza a autenticação do bloco cifrado antes de retornar.
+    - **Retorno:** Retorna o `Texto` original decifrado ou lança um `ValorErro` em caso de falha de autenticação ou chaves corrompidas.
+  - `uuid()`: Gera e retorna um identificador universal único (UUID v4) aleatório gerado criptograficamente.
+    - **Implementação Go:** `met_cripto_uuid` em `stdlib/cripto/cripto.go`.
+    - **Argumentos:** Exatamente 0 argumentos.
+    - **Retorno:** Retorna um `Texto` de representação UUID v4 canônica.
 
 ### Módulo: `http`
 
@@ -746,71 +989,358 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
     })
     ```
 
+#### 📋 Documentação Interativa de API Nativa (`/docs` & `/docs.json`)
+
+Quando um servidor HTTP do Harpia é inicializado por meio do método `.escutar(porta)`, o interpretador injeta automaticamente dois endpoints globais de documentação pública se não forem previamente registrados pelo desenvolvedor:
+- **`GET /docs.json`**: Retorna a especificação estruturada das rotas compatível com o padrão **OpenAPI 3.0** em formato JSON.
+- **`GET /docs`**: Retorna a interface do **Super Console Interativo** (Harpia Console), uma UI de alta qualidade para exploração, testes e monitoramento de suas APIs.
+
+---
+
+##### 🚀 Funcionalidades do Harpia Console (`/docs`)
+
+O console fornece uma experiência de desenvolvimento de altíssimo nível para testar e validar suas APIs sem sair do navegador. A interface se divide nas seguintes seções e ferramentas:
+
+1. **Sidebar de Navegação e Coleção de Rotas**:
+   - **Coleção**: Lista todos os endpoints disponíveis agrupados por método HTTP.
+   - **Filtro de Rota (`🔍`)**: Campo de busca instantânea que permite filtrar rotas por nome ou método em tempo real.
+   - **Badges de Documentação**:
+     - `📋 Schema`: Identifica rotas que possuem documentação rica e estruturada (seja por dicionário ou por comentários `///`).
+     - `⬜ Manual`: Indica endpoints básicos sem schema declarado, onde o desenvolvedor precisa digitar manualmente o corpo para testar.
+   - **Histórico de Requisições (`💾`)**: Uma lista de chamadas recentes persistida no `localStorage`. Ao clicar em um item salvo, o console restaura instantaneamente os parâmetros de rota e corpo e faz a rolagem automática até o card do endpoint.
+
+2. **Detalhamento do Endpoint (Cards)**:
+   - **Verbos e Caminhos**: Exibe o verbo HTTP (`GET`, `POST`, etc.) e o caminho da rota com realce visual.
+   - **Schema Visual Tipado**: Exibe uma tabela limpa e estruturada detalhando as propriedades do corpo (`Campo | Tipo | Obrigatório (✓/—)`).
+   - **Console de Teste (Try It Out)**:
+     - **Parâmetros de Rota**: Campos dinâmicos gerados automaticamente para preenchimento de placeholders de rota (ex: `:id`).
+     - **Corpo da Requisição**: Área de texto para edição direta do payload JSON a ser enviado.
+     - **🎭 Teatro**: Um botão inteligente que detecta o schema OpenAPI 3.0 e preenche automaticamente os parâmetros e o corpo JSON com dados fictícios contextuais realistas (como nomes, CPFs, e-mails, e CEPs válidos) para testes ágeis com um único clique.
+     - **Preview Pré-envio**: Um modal de segurança que aparece antes do disparo para revisão da URL final com placeholders resolvidos, cabeçalhos injetados e corpo final.
+
+3. **Painel de Snippets de Código**:
+   - Gera instantaneamente blocos de código funcionais prontos para copiar (`📋 Copiar`) e executar o endpoint em diferentes linguagens:
+     - **cURL**: Comando de terminal tradicional.
+     - **JavaScript**: Chamada assíncrona moderna usando a Fetch API.
+     - **Python**: Script pronto utilizando a biblioteca `requests`.
+     - **Harpia**: Linhas nativas usando a função `requisitar` do módulo `http`.
+
+4. **Painel de Métricas "Voo da Harpia" (Tempo Real)**:
+   - Exibe estatísticas dinâmicas atualizadas a cada 5 segundos diretamente do servidor, indicando a quantidade total de requisições disparadas contra cada rota desde a inicialização do processo.
+
+5. **Fronteira Segura OWASP**:
+   - Painel de auditoria visual de cabeçalhos de segurança nativos e ativos na API do Harpia (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy` e `CORS`).
+
+6. **Mentor de Design IA**:
+   - Analisa heuristicamente as rotas e exibe sugestões de melhorias REST (ex: uso de verbos no path, falta de versionamento, ou necessidade de autenticação/validação em métodos de escrita). As rotas de sistema (`/docs`, `/docs.json`, etc.) são excluídas automaticamente da verificação para evitar ruídos.
+
+7. **Configurações Globais**:
+   - **Modo Correnteza (Throttling)**: Menu de rede para simular condições reais de tráfego:
+     - *Bossa Nova*: Sem limitação de rede (desempenho nativo rápido).
+     - *3G de Interior*: Adiciona latência artificial de conexões lentas.
+     - *Instabilidade Tropical*: Introduz falhas aleatórias de conexão para testar a resiliência do frontend.
+   - **Modo Autorizar**: Permite salvar um Bearer Token que será automaticamente injetado no cabeçalho `Authorization` de todas as requisições de teste subsequentes.
+
+---
+
+##### ✍️ Como Declarar Metadados de Rota
+
+O desenvolvedor pode prover metadados de documentação de duas maneiras equivalentes:
+
+###### Abordagem 1: Comentários Especiais de Documentação `///` (Recomendado)
+A maneira mais limpa e moderna de documentar APIs. Escreva comentários iniciados com três barras (`///`) imediatamente antes da declaração da rota:
+
+```harpia
+/// @resumo Cadastra um novo filme no catálogo
+/// @descricao Recebe as propriedades do filme e insere no banco SQLite.
+/// @tags Filmes, Cadastro
+/// @corpo {"args": [{"titulo": "Matrix", "ano": 1999}]}
+/// @respostas {"200": "Filme cadastrado com sucesso", "400": "Parâmetros inválidos"}
+srv.postar("/rpc/filmes/criarFilme", funcao(req, res) {
+    var corpo = req.corpoJson
+    res.enviarJson({ "retorno": criarFilme(corpo) })
+})
+```
+
+###### Abordagem 2: Metadados via 3º Argumento (Dicionário de Configuração)
+Passe um mapa do Harpia contendo as especificações como o terceiro argumento dos métodos de rota:
+
+```harpia
+srv.postar("/rpc/filmes/criarFilme", funcao(req, res) {
+    var corpo = req.corpoJson
+    res.enviarJson({ "retorno": criarFilme(corpo) })
+}, {
+    "resumo": "Cadastra um novo filme no catálogo",
+    "descricao": "Recebe as propriedades do filme e insere no banco SQLite.",
+    "tags": ["Filmes", "Cadastro"],
+    "corpo": {
+        "args": [{"titulo": "Matrix", "ano": 1999}]
+    },
+    "respostas": {
+        "200": "Filme cadastrado com sucesso",
+        "400": "Parâmetros inválidos"
+    }
+})
+```
+
 ### Módulo: `bd`
 
-Acesso e manipulação de bancos de dados relacionais e não-relacionais. Requer `de "bd" importe ...`.
+Acesso de alto desempenho e manipulação unificada de bancos de dados relacionais SQL (SQLite, Postgres, MySQL), não-relacionais NoSQL (MongoDB, Redis caching) e bancos de dados vetoriais semânticos (Qdrant). Requer `de "bd" importe ...`.
 
 - **Funções de Conexão**:
-  - `conectarSqlite(caminho)`: Abre uma conexão SQLite pura em Go, retornando um objeto `ConexaoSQL`.
-  - `conectarPostgres(url)`: Abre uma conexão PostgreSQL, retornando um objeto `ConexaoSQL`.
-  - `conectarMysql(url)`: Abre uma conexão MySQL, retornando um objeto `ConexaoSQL`.
-  - `conectarMongo(url)`: Abre uma conexão MongoDB, retornando um objeto `ConexaoMongo`.
-  - `conectarRedis(url)`: Abre uma conexão Redis, retornando um objeto `ConexaoRedis`.
+  - `conectarSqlite(caminho)`: Abre uma conexão SQLite embutida e autônoma em Go.
+    - **Implementação Go:** `met_bd_conectarSqlite` em `stdlib/bd/bd.go`.
+    - **Argumentos:** Exatamente 1 argumento (`caminho` do tipo `Texto`).
+    - **Retorno:** Retorna uma instância da classe `ConexaoSQL`.
+  - `conectarPostgres(conexaoDsn)`: Abre um pool de conexões com um servidor PostgreSQL corporativo.
+    - **Implementação Go:** `met_bd_conectarPostgres` em `stdlib/bd/bd.go`.
+    - **Argumentos:** Exatamente 1 argumento (`conexaoDsn` do tipo `Texto`).
+    - **Retorno:** Retorna uma instância da classe `ConexaoSQL`.
+  - `conectarMysql(conexaoDsn)`: Abre um pool de conexões com um servidor MySQL.
+    - **Implementação Go:** `met_bd_conectarMysql` em `stdlib/bd/bd.go`.
+    - **Argumentos:** Exatamente 1 argumento (`conexaoDsn` do tipo `Texto`).
+    - **Retorno:** Retorna uma instância da classe `ConexaoSQL`.
+  - `conectarMongo(conexaoUrl)`: Estabelece conexão com uma instância MongoDB.
+    - **Implementação Go:** `met_bd_conectarMongo` em `stdlib/bd/bd.go`.
+    - **Argumentos:** Exatamente 1 argumento (`conexaoUrl` do tipo `Texto`).
+    - **Retorno:** Retorna uma instância da classe `ConexaoMongo`.
+  - `conectarRedis(conexaoUrl)`: Estabelece conexão com uma instância Redis de alto desempenho para cache ou sessões.
+    - **Implementação Go:** `met_bd_conectarRedis` em `stdlib/bd/bd.go`.
+    - **Argumentos:** Exatamente 1 argumento (`conexaoUrl` do tipo `Texto`).
+    - **Retorno:** Retorna uma instância da classe `ConexaoRedis`.
+  - `conectarQdrant(conexaoUrl, colecao)`: Conecta à API REST de um banco de dados vetorial Qdrant para armazenamento e busca de embeddings.
+    - **Implementação Go:** `met_conectar_qdrant` em `stdlib/bd/vetorial.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`conexaoUrl` e `colecao`, ambos `Texto`).
+    - **Retorno:** Retorna uma instância de `ClienteVetorial`.
+
 - **A Classe `ConexaoSQL`**:
-  - `executar(sql, args...)`: Executa comandos SQL de mutação ou DDL (INSERT, UPDATE, DELETE, CREATE).
-  - `consultar(sql, args...)`: Executa consultas SQL SELECT, retornando uma `Lista` de `Mapa`s.
-  - `tabela(nome)`: Retorna uma instância de `QueryBuilder` ligada a essa conexão.
-  - `fechar()`: Fecha a conexão.
+  Representa uma sessão ativa e thread-safe com o banco de dados SQL.
+  - **Métodos**:
+    - `executar(query, argumentos?)`: Executa comandos de mutação (INSERT, UPDATE, DELETE) ou DDL.
+      - **Retorno:** Retorna `hrp.Inteiro` correspondente ao último ID inserido (se aplicável) ou `Nulo`.
+    - `consultar(query, argumentos?)`: Executa consultas SQL de leitura (SELECT).
+      - **Retorno:** Retorna uma `Lista` contendo `Mapa`s de registros, onde as chaves são os nomes das colunas.
+    - `tabela(nomeTabela, schemaMapa?)`: Instancia um construtor de consultas fluente ligado à conexão.
+      - **Retorno:** Retorna um objeto `QueryBuilder`.
+    - `transacao(callbackFuncion)`: Abre um bloco de transação ACID isolada.
+      - **Mecânica:** Passa uma instância de `TransacaoSQL` para a função de retorno (`callbackFuncion`). Realiza commit automático se a função concluir com sucesso, ou efetua rollback imediato caso ocorra qualquer exceção na VM.
+    - `fechar()`: Fecha e libera de forma limpa o pool de conexões do banco de dados.
+
+- **A Classe `TransacaoSQL`**:
+  Instância de contexto de transação ativa que garante atomicidade.
+  - **Métodos**:
+    - `executar(query, args?)`: Executa comandos no escopo da transação.
+    - `consultar(query, args?)`: Executa consultas no escopo da transação.
+
 - **A Classe `QueryBuilder`**:
-  - `selecionar(colunas...)`: Define as colunas a serem selecionadas.
-  - `onde(coluna, operador, valor)`: Adiciona uma cláusula de filtro.
-  - `limite(n)`: Limita o número de registros.
-  - `obterMuitos()`: Executa e retorna todos os registros correspondentes.
-  - `obterUm()`: Executa e retorna o primeiro registro ou Nulo.
-  - `inserir(mapaValores)`: Insere um novo registro com o Mapa fornecido.
-  - `atualizar(mapaValores)`: Atualiza os registros filtrados com o Mapa de modificações.
-  - `deletar()`: Remove os registros que coincidem com os filtros aplicados.
+  Abstração fluente para construção e execução segura de queries SQL estruturadas.
+  - **Métodos**:
+    - `selecionar(...colunas)`: Define as colunas que devem ser selecionadas na query.
+    - `onde(coluna, operador, valor)`: Insere filtros condicionais de segurança.
+    - `limite(maxLinhas)`: Define o limite de registros retornados.
+      - **Validação:** Exige um inteiro entre `0` e `1.000.000` (limite máximo de segurança).
+    - `obterMuitos()`: Executa a query estruturada e retorna todos os registros como `Lista` de `Mapa`s.
+    - `obterUm()`: Executa a query e retorna o primeiro registro (como um `Mapa`) ou `Nulo`.
+    - `inserir(dadosMapa)`: Insere um novo registro com base nos pares chave-valor fornecidos.
+      - **Validação:** Se um esquema de tabela estiver associado, valida o tipo das chaves antes do envio.
+    - `atualizar(dadosMapa)`: Aplica as atualizações do `Mapa` nos registros que correspondem aos filtros definidos.
+    - `deletar()`: Remove permanentemente os registros que coincidem com as condições aplicadas.
+
 - **A Classe `ConexaoMongo`**:
-  - `colecao(nome)`: Retorna uma coleção do MongoDB.
+  Representa uma sessão aberta com o MongoDB.
+  - **Métodos**:
+    - `colecao(nomeColecao)`: Retorna uma referência ativa da coleção especificada como objeto `ColecaoMongo`.
+    - `fechar()`: Encerra a conexão.
+
+- **A Classe `ColecaoMongo`**:
+  - **Métodos**:
+    - `inserirUm(documentoMapa)`: Adiciona um documento no MongoDB a partir de um `Mapa`.
+    - `buscarUm(filtroMapa)`: Retorna o primeiro documento condizente como `Mapa` ou `Nulo`.
+
 - **A Classe `ConexaoRedis`**:
-  - `definir(chave, valor, expiracaoSegundos?)`: Define um valor para a chave.
-  - `obter(chave)`: Obtém o valor da chave ou Nulo.
-  - `remover(chave)`: Remove a chave.
+  Representa um cliente Redis de cache em memória.
+  - **Métodos**:
+    - `definir(chave, valor, expiracaoSegundos?)`: Associa um valor a uma chave.
+      - **Argumentos:** `chave` (Texto), `valor` (Texto ou qualquer primitivo coerco) e o tempo opcional de expiração (Inteiro).
+    - `obter(chave)`: Busca e retorna o valor associado à chave ou `Nulo` caso não exista.
+    - `remover(chave)`: Apaga a chave e seu valor.
+    - `fechar()`: Desconecta o cliente.
+
+- **A Classe `ClienteVetorial`**:
+  Representa uma conexão ativa com o banco vetorial Qdrant para buscas semânticas de IA.
+  - **Métodos**:
+    - `inserir(id, vetorLista, payloadMapa)`: Armazena um vetor (embedding) associado a um ID numérico e metadados.
+      - **Argumentos:** `id` (Inteiro), `vetorLista` (Lista de Decimais) e `payloadMapa` (Mapa).
+      - **Funcionamento:** Sincroniza e aguarda a conclusão da operação no banco.
+    - `buscar(vetorLista, limite)`: Encontra os vizinhos mais próximos baseado na similaridade de cosseno do vetor fornecido.
+      - **Argumentos:** `vetorLista` (Lista de Decimais) e `limite` (Inteiro entre `1` e `1000`).
+      - **Retorno:** Retorna uma `Lista` contendo os pontos encontrados e suas respectivas pontuações de similaridade.
+    - `deletar(id)`: Remove o ponto vetorial com o ID correspondente.
 
 ### Módulo: `soquete`
 
-Controle de sockets de baixo nível (TCP/IP). Requer `importar soquete`.
+Controle de sockets de baixo nível (TCP/IP) para comunicação de rede direta, suportando fluxos síncronos e assíncronos não-bloqueantes. Requer `importar soquete`.
 
-- **Constantes**: `AF_INET` (IPv4), `AF_INET6` (IPv6), `SOCK_STREAM` (TCP), `SOCK_DGRAM` (UDP).
+- **Constantes**:
+  - `AF_INET` (Inteiro): Família de protocolos IPv4.
+  - `AF_INET6` (Inteiro): Família de protocolos IPv6.
+  - `SOCK_STREAM` (Inteiro): Tipo de socket de fluxo contínuo e confiável (TCP).
+  - `SOCK_DGRAM` (Inteiro): Tipo de socket de datagrama não confiável (UDP).
+
 - **A Classe `Soquete`**:
-  - `nova Soquete(familia, tipo)`: Cria o socket chamando as APIs de syscall correspondentes do kernel do SO.
-  - `associa(ip, porta)`: Vincula a conexão de rede local (Bind).
-  - `ouve(backlog?)`: Ativa escuta de conexões com backlog de fila padrão de 1 se omitido.
-  - `aceita()`: Aguarda de forma não-bloqueante (usando `unix.Poll` para gerenciar eventos do File Descriptor) e aceita conexões de clientes, retornando um novo objeto `Soquete` para a troca de dados.
-  - `conecta(endereco, porta)`: Conecta o socket cliente ao servidor de destino (resolve o host dinamicamente de DNS via `net.LookupIP`).
-  - `envia(bytes)`: Escreve e envia os bytes correspondentes (tipo `Bytes`).
-  - `recebe(tamanho)`: Lê os dados disponíveis de rede até o limite do buffer e os devolve envelopados em um objeto `Bytes`.
-  - `def_nao_bloqueante(booleano)`: Altera propriedades de espera de E/S do socket.
-  - `define_opcoes(nivel, opcao, valor)`: Configura opções de soquete (SetsockoptInt).
-  - `fecha()`: Encerra conexões e libera o File Descriptor do SO de forma segura.
+  - **Construtor**:
+    - `nova Soquete(familia, tipo, protocolo?)`: Cria o socket físico no sistema operacional invocando as syscalls nativas de kernel.
+      - **Argumentos:** `familia` (Inteiro), `tipo` (Inteiro) e `protocolo` (Inteiro, opcional, padrão: `0`).
+  - **Métodos**:
+    - `associa(ip, porta)`: Vincula o socket a uma interface de rede local e porta física (Bind).
+      - **Argumentos:** `ip` (Texto) e `porta` (Inteiro).
+    - `ouve(backlog?)`: Ativa a escuta de conexões de entrada com uma fila máxima de espera de backlog.
+      - **Argumentos:** `backlog` (Inteiro, opcional, padrão: `1`).
+    - `aceita()`: Aguarda e aceita uma nova conexão de cliente recebida de forma não-bloqueante (usando `unix.Poll` para monitorar eventos do File Descriptor no kernel).
+      - **Retorno:** Retorna um novo objeto da classe `Soquete` para a troca síncrona de dados com o cliente.
+    - `conecta(endereco, porta)`: Estabelece uma conexão ativa com o servidor de destino (resolve o host dinamicamente de DNS se fornecido como nome de domínio usando `net.LookupIP`).
+      - **Argumentos:** `endereco` (Texto) e `porta` (Inteiro).
+    - `envia(dadosBytes)`: Escreve e transmite os dados na rede.
+      - **Argumentos:** `dadosBytes` (objeto da classe `Bytes`).
+    - `recebe(tamanhoBuffer)`: Lê os dados disponíveis de rede até o tamanho máximo informado.
+      - **Argumentos:** `tamanhoBuffer` (Inteiro).
+      - **Retorno:** Retorna um objeto do tipo `Bytes`.
+    - `def_nao_bloqueante(flagBooleano)`: Altera a propriedade de bloqueio de E/S do File Descriptor do socket no SO.
+      - **Argumentos:** `flagBooleano` (Booleano).
+    - `define_opcoes(nivel, opcao, valor)`: Configura propriedades finas do socket (setsockopt) do kernel do SO.
+      - **Argumentos:** `nivel` (Inteiro), `opcao` (Inteiro) e `valor` (Inteiro).
+    - `fecha()`: Encerra todas as conexões e libera com segurança o File Descriptor do SO de modo a evitar vazamento de recursos (_descriptor leaks_).
 
 ### Módulo: `ia`
 
-Integração nativa com inteligência artificial e primitivas de agentes autônomos. Requer `de "ia" importe ...`.
+Integração nativa com inteligência artificial e grandes modelos de linguagem (LLMs) comerciais ou locais, fornecendo primitivas para engenharia de prompts, orquestração de sistemas de agentes autônomos e validação estrita de contratos de resposta. Requer `de "ia" importe ...`.
 
-- **Classes**:
-  - **`Agente`**:
-    - `nova Agente(nome, instrucoes, provedor?, modelo?)`: Instancia um agente autônomo. O provedor padrão é `"ollama"` e o modelo padrão é `"llama3"`.
-    - **Atributos**:
-      - `nome`: Nome do agente.
-      - `instrucoes`: System prompt com diretrizes de comportamento do agente.
-      - `provedor`: Provedor configurado (`"ollama"`, `"gemini"`, `"openai"`).
-      - `modelo`: Identificador do modelo de linguagem (ex: `"llama3"`, `"gemini-1.5-flash"`, `"gpt-4o-mini"`).
-      - `historico`: Lista contendo a memória/histórico de mensagens trocadas (`"role"`, `"content"`).
-    - **Métodos**:
-      - `perguntar(mensagem)`: Envia uma pergunta ao agente, anexando o histórico de conversas anterior, e retorna a resposta de texto gerada.
-      - `limpar_memoria()`: Apaga completamente o histórico de mensagens salvas.
-      - `comunicar(outro_agente, mensagem)`: Envia uma instrução a outro agente, aguarda sua resposta e a registra na própria memória do agente chamador de forma orquestrada (suporte nativo multi-agente).
+- **A Classe `Agente`**:
+  Representa um assistente inteligente autônomo com memória conversacional persistente gerenciada automaticamente no backend em Go.
+  - **Construtor**:
+    - `nova Agente(nome, instrucoes, provedor?, modelo?)`
+      - **Argumentos:** `nome` (Texto), `instrucoes` (Texto - System Prompt com as regras de atuação do agente), `provedor` (Texto opcional, padrão: `"ollama"`; suporta `"openai"`, `"gemini"`) e `modelo` (Texto opcional, padrão: `"llama3"`; suporta `"gpt-4o-mini"`, `"gemini-1.5-flash"`).
+  - **Atributos**:
+    - `nome` (Texto): O nome identificador do agente.
+    - `instrucoes` (Texto): O prompt de sistema do agente.
+    - `provedor` (Texto): Nome do provedor configurado.
+    - `modelo` (Texto): Identificador do modelo de linguagem ativo.
+    - `historico` (Lista): Lista de mapas do histórico de mensagens (`{"role": "user/assistant", "content": "..."}`).
+  - **Métodos**:
+    - `perguntar(mensagem)`: Envia uma instrução textual ao agente, anexa o histórico de conversas anterior acumulado e retorna a resposta textual gerada pelo LLM.
+      - **Implementação Go:** `met_ia_perguntar` em `stdlib/ia/agente.go`.
+      - **Argumentos:** `mensagem` (Texto).
+      - **Retorno:** `Texto` com a resposta gerada.
+    - `limpar_memoria()`: Apaga completamente o histórico acumulado de mensagens na sessão do agente.
+    - `comunicar(outro_agente, mensagem)`: Orquestração multi-agente nativa de alto nível. Envia uma instrução a `outro_agente`, captura a resposta produzida por ele e a registra na própria memória do agente chamador de forma orquestrada.
+      - **Argumentos:** `outro_agente` (objeto `Agente`) e `mensagem` (Texto).
+      - **Retorno:** `Texto` com a resposta consolidada.
+
+- **Funções Globais**:
+  - `validar_resposta(esquemaMapa, respostaJson)`: Valida se uma resposta estruturada em JSON retornada pelo LLM está em perfeita conformidade com as regras de tipagem de um esquema.
+    - **Implementação Go:** `met_validar_resposta` em `stdlib/ia/contratos.go`.
+    - **Argumentos:** Exatamente 2 argumentos.
+    - **Validação:** O primeiro parâmetro deve ser um `Mapa` com definições de tipos primitivos esperados (recursivamente validando chaves internas em sub-mapas e itens em sub-listas).
+    - **Retorno:** Retorna `Verdadeiro` se a estrutura JSON for válida, ou lança uma exceção de tipagem detalhada em português identificando as chaves que violaram as regras.
+
+### Módulo: `autenticacao`
+
+Primitivas de segurança criptográfica para proteção de senhas e geração de tokens de acessos para APIs e microsserviços. Requer `de "autenticacao" importe ...`.
+
+- **Métodos**:
+  - `gerarHashSenha(senha)`: Gera o hash de uma senha usando o algoritmo Bcrypt adaptativo.
+    - **Implementação Go:** `met_gerarHashSenha` em `stdlib/autenticacao/autenticacao.go`.
+    - **Argumentos:** Exatamente 1 argumento (`senha` do tipo `Texto`).
+    - **Validação:** Utiliza o custo de rodada padrão seguro (`bcrypt.DefaultCost`).
+    - **Retorno:** Retorna a string do hash gerado do tipo `Texto`.
+  - `verificarSenha(senha, hash)`: Compara uma senha em texto claro com um hash Bcrypt.
+    - **Implementação Go:** `met_verificarSenha` em `stdlib/autenticacao/autenticacao.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`senha` e `hash`, ambos `Texto`).
+    - **Funcionamento:** A comparação é feita em tempo constante para eliminar o risco de ataques por canal lateral (_timing attacks_).
+    - **Retorno:** Retorna `Booleano` (`Verdadeiro` se coincidirem, `Falso` do contrário).
+  - `criarJwt(payloadMapa, segredo)`: Gera e assina digitalmente um JSON Web Token (JWT) com algoritmo HMAC-SHA256 (HS256).
+    - **Implementação Go:** `met_criarJwt` em `stdlib/autenticacao/autenticacao.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`payloadMapa` do tipo `Mapa`, e `segredo` do tipo `Texto`).
+    - **Funcionamento:** Caso a chave `exp` (expiração) não esteja explicitada no mapa de payload, o módulo injeta automaticamente o tempo de expiração padrão de 24 horas a partir do momento de criação.
+    - **Retorno:** Retorna o token JWT gerado em formato `Texto`.
+  - `validarJwt(token, segredo)`: Valida e verifica a integridade de assinatura de um token JWT.
+    - **Implementação Go:** `met_validarJwt` em `stdlib/autenticacao/autenticacao.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`token` e `segredo`, ambos `Texto`).
+    - **Funcionamento:** Efetua uma checagem criptográfica em tempo constante do hash de assinatura.
+    - **Retorno:** Retorna `Booleano` (`Verdadeiro` se a assinatura for íntegra e o token não estiver expirado, `Falso` caso contrário).
+
+### Módulo: `email`
+
+Comunicação transacional baseada em SMTP com resiliência local. Requer `de "email" importe ...`.
+
+- **Métodos**:
+  - `enviar(configMapa)`: Efetua o envio de mensagens de e-mail.
+    - **Implementação Go:** `met_email_enviar` em `stdlib/email/email.go`.
+    - **Argumentos:** Exatamente 1 argumento (`configMapa` do tipo `Mapa`).
+    - **Validação:** O mapa de configuração deve conter as chaves de rede SMTP (`servidor`, `porta`, `usuario`, `senha`) e do e-mail (`para`, `assunto`, `corpoHtml`).
+    - **Modo Sandbox / Desenvolvimento:** Se os atributos `servidor` ou `porta` estiverem ausentes no mapa, o módulo entra em modo de simulação offline de forma inteligente, imprimindo o e-mail estilizado no console e retornando `Verdadeiro` sem levantar erros ou travar o fluxo local do programador.
+    - **Retorno:** Retorna `Booleano` indicando se a transmissão ocorreu com sucesso.
+
+### Módulo: `fila`
+
+Filas de tarefas concorrentes em memória com exclusão mútua garantida por sincronização atômica. Requer `de "fila" importe ...`.
+
+- **Métodos**:
+  - `enfileirar(nomeFila, dadosMapa)`: Adiciona uma nova tarefa à fila indicada.
+    - **Implementação Go:** `met_fila_enfileirar` em `stdlib/fila/fila.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`nomeFila` do tipo `Texto`, e `dadosMapa` do tipo `Mapa` contendo os dados do job).
+    - **Funcionamento:** Adiciona o job em um buffer protegido por exclusão mútua (`sync.Mutex`), impossibilitando condições de corrida (_race conditions_).
+    - **Retorno:** Retorna `Booleano`.
+  - `tamanho()`: Retorna o total de tarefas pendentes na fila do sistema.
+    - **Implementação Go:** `met_fila_tamanho` em `stdlib/fila/fila.go`.
+    - **Argumentos:** Exatamente 0 argumentos.
+    - **Retorno:** Retorna um `Inteiro`.
+
+### Módulo: `pdf`
+
+Motor de renderização estática para geração rápida de documentos no formato portátil PDF. Requer `de "pdf" importe ...`.
+
+- **Métodos**:
+  - `gerarDeHtml(htmlConteudo, caminhoSaida)`: Traduz uma string HTML estruturada em um arquivo PDF físico gravado diretamente no disco.
+    - **Implementação Go:** `met_pdf_gerarDeHtml` em `stdlib/pdf/pdf.go`.
+    - **Argumentos:** Exatamente 2 argumentos (`htmlConteudo` e `caminhoSaida`, ambos `Texto`).
+    - **Funcionamento:** Compila os elementos textuais e tags de marcação em um buffer físico e grava a saída estruturada obedecendo às especificações de cabeçalho da versão PDF v1.4.
+    - **Retorno:** Retorna `Verdadeiro` ou lança um erro de E/S.
+
+### Módulo: `seguranca`
+
+Coleção de utilitários voltada à programação defensiva e mitigação de vulnerabilidades OWASP Top 10. Requer `de "seguranca" importe ...`.
+
+- **Métodos**:
+  - `sanitizarHtml(texto)`: Previne injeção de scripts maliciosos (Cross-Site Scripting - XSS) codificando tags HTML especiais em entidades seguras.
+    - **Implementação Go:** `met_sanitizarHtml` em `stdlib/seguranca/seguranca.go`.
+    - **Argumentos:** Exatamente 1 argumento (`texto` do tipo `Texto`).
+    - **Retorno:** Retorna o `Texto` sanitizado.
+  - `sanitizarSqlArgumento(texto)`: Previne injeções SQL (SQL Injection) escapando apóstrofos e caracteres delimitadores em trechos de consultas.
+    - **Implementação Go:** `met_sanitizarSqlArgumento` em `stdlib/seguranca/seguranca.go`.
+    - **Argumentos:** Exatamente 1 argumento (`texto` do tipo `Texto`).
+    - **Funcionamento:** Converte aspas simples `'` para plicas duplas `''` e descarta terminadores de queries como `;` e `--`.
+    - **Retorno:** Retorna o `Texto` sanitizado.
+
+### Módulo: `tempo`
+
+Acesso, controle, manipulação e cálculo de datas e fusos horários. Requer `de "tempo" importe ...`.
+
+- **Funções Globais**:
+  - `agora()`: Retorna a data e hora do sistema correspondente ao instante atual.
+    - **Implementação Go:** `met_tempo_agora` em `stdlib/tempo/tempo.go`.
+    - **Argumentos:** Exatamente 0 argumentos.
+    - **Retorno:** Retorna uma instância da classe `DataHora`.
+
+- **A Classe `DataHora`**:
+  - **Atributos**: `ano`, `mes`, `dia`, `hora`, `minuto` e `segundo` (todos `Inteiro`).
+  - **Métodos**:
+    - `formatar(layout?)`: Gera a representação de texto formatada do instante cronológico.
+      - **Argumentos:** `layout` (Texto, opcional, padrão canônico brasileiro: `"02/01/2006 15:04:05"`).
+      - **Retorno:** Retorna um `Texto`.
+    - `adicionarDias(quantDias)`: Adiciona ou remove dias ao instante calculando viradas de mês e ano.
+      - **Argumentos:** `quantDias` (Inteiro, aceita valores negativos para retroceder datas).
+      - **Retorno:** Retorna uma nova instância de `DataHora` com o valor atualizado.
 
 ---
 
@@ -1047,6 +1577,16 @@ exec.Modulo, _ = ctx.InicializarModulo(&hrp.ModuloImpl{
 
 Todas as expressões avaliadas utilizam o mesmo escopo persistente deste módulo (`exec.Modulo.Escopo`), preservando o estado e evitando "perda de memória" entre as linhas digitadas.
 
+### Ferramentas e Comandos Didáticos do REPL
+
+Para facilitar o processo de aprendizado, o REPL do Harpia integra comandos e utilitários auxiliares executados diretamente no terminal de forma offline:
+
+- **`ajuda` / `help`**: Mostra uma lista de comandos interativos do interpretador e um resumo de todas as funções nativas embutidas.
+- **`ajuda <funcao>`**: Exibe a documentação de referência estática e detalhada com exemplos práticos sobre uma primitiva global específica (suporta `imprimir`/`imprima`, `leia`, `tamanho`, `tipo`, `sequencia` e `sinal`).
+- **`escopo` / `vars` / `simbolos`**: Varre as variáveis declaradas ativas na tabela de símbolos (`exec.Modulo.Escopo.Simbolos`) em tempo real e exibe seu tipo e valores correspondentes.
+- **`limpar` / `clear`**: Limpa o histórico de comandos visual do console (`\033[H\033[2J`).
+- **`sair()`**: Injeta dinamicamente a função no escopo local do REPL, permitindo que a digitação de `sair()` encerre de maneira graciosa a sessão.
+
 ### Estrutura Interna e API de Métodos (Pacote `playground`)
 
 O ecossistema do console interativo está estruturado de forma desacoplada em três arquivos do pacote Go `playground`:
@@ -1143,6 +1683,22 @@ A VM de pilha do Harpia conta com gerenciamento de memória explícito e determi
 - **Limpeza Ativa de Frames**: Símbolos locais e operandos remanescentes na pilha são desalocados e limpos de forma explícita imediatamente ao finalizar a execução de um frame (fim de chamada de função).
 - **Coletor e Quebrador de Ciclos (Trial Deletion)**: Referências circulares fechadas órfãs (ex: lista A contém lista B, e lista B contém lista A) são detectadas a partir de varreduras no grafo léxico do escopo ativo e quebradas de forma simétrica (`hrp.ColetarCiclos(escopo)`), prevenindo vazamentos de memória (memory leaks) e preservando a integridade do sistema.
 - **Pool de Alocação Rápida / Eden Space para Inteiros Curtos (Fase E)**: Para mitigar o estresse e overhead de alocações sobre o Garbage Collector do Go durante iterações intensas (loops), o runtime pré-aloca estaticamente interfaces do Go para inteiros na faixa de `-100` a `2000`. Sempre que um inteiro nessa faixa é instanciado na VM, a mesma interface imutável pré-alocada é retornada instantaneamente em tempo constante $O(1)$, evitando novas alocações no heap e acelerando operações matemáticas de contagem de loops.
+
+### Otimização de Pilha de Operandos com sync.Pool
+
+Para aniquilar completamente as pressões sobre o coletor de lixo (Garbage Collector) nativo do Go causadas por frequentes e rápidas alocações e desalocações de memória na heap a cada chamada de função, o pacote `vm` adota um padrão de reuso de slices:
+
+- **Pool de Pilhas de Operandos (`poolPilha`)**: A VM utiliza `sync.Pool` para manter um cache sincronizado e thread-safe de fatias de memória predefinidas para a pilha de operandos de cada Frame (`make([]hrp.Objeto, 0, 128)`).
+- **Recuperação e Devolução**: Ao criar um novo frame, a pilha é recuperada instantaneamente via `poolPilha.Get()`. Ao encerrar o frame, todos os operandos remanescentes são limpos para evitar vazamentos de referências e a fatia do slice é devolvida ao pool através de `poolPilha.Put(frame.Pilha[:0])` pronta para reuso em futuras chamadas.
+- **Liberação Preventiva de Escopos**: A rotina de encerramento de frame realiza uma coleta cíclica de referências no escopo local (`hrp.ColetarCiclos(escopo)`) e diminui a contagem de referências de todas as variáveis e símbolos ativos declarados localmente de forma explícita e preventiva.
+
+### Profiler Estatístico Nativo de Bytecodes
+
+A máquina virtual do Harpia implementa um subsistema de perfilamento estatístico (_Profiler_) embutido de altíssimo nível para permitir que desenvolvedores analisem minuciosamente a latência e o custo de execução de suas aplicações:
+
+- **Métricas Ativas (`v.Perfil`)**: Quando ativada a flag de perfilamento, a VM intercepta a execução de cada instrução em tempo real e calcula estatísticas detalhadas de execução (mapeadas via struct `PerfilInfo`).
+- **Registro Preciso de Métricas**: Para cada opcode individual executado, a VM registra a quantidade exata de invocações (_frequência_) e acumula a duração de latência total gasta na execução física (`v.registrarMetrica(op, duration)`).
+- **Relatório de Perfilamento (`ImprimirPerfil()`)**: Ao final do ciclo de processamento do script, o método formata e exibe um relatório elegante de depuração no console listando o opcode, número total de chamadas e o tempo absoluto acumulado, atuando como uma ferramenta indispensável para otimização fina de gargalos de desempenho em produção.
 
 ### 11.2. Primitivas de Concorrência & Event Loop Cooperativo (Sprints 9 e 10)
 
@@ -1389,15 +1945,13 @@ A reatividade do Harpia atualiza de forma fina e cirúrgica apenas os nós do DO
 - **`sinal(valor)`**: Cria um estado reativo. Retorna um array `[ler, definir]`.
 - **`sinalPersistente(chave, valorInicial)`**: Cria um estado reativo sincronizado automaticamente com o `localStorage` do navegador.
 - **`usarFormulario(config)`**: Gestor de estado reativo, validações e submissões automáticas de formulários.
-- **`usarConsulta(url, opcoes)`**: Cache global client-side, revalidação e mutação otimista (*SWR Pattern*).
+- **`usarConsulta(url, opcoes)`**: Cache global client-side, revalidação e mutação otimista (_SWR Pattern_).
 - **`usarTema(chave, padrao)`**: Gestor de Dark/Light Mode com detecção automática do SO e persistência.
 - **`usarArrastar(aoSoltar)`**: Hook reativo para gestos Drag-and-Drop e listas reordenáveis (Kanban).
 - **`usarNotificacao()`**: Gerenciador global de Toast Notifications reativas (`notificar.sucesso(...)`, `notificar.erro(...)`).
 - **`efeito(funcao)`**: Re-executa de forma automática sempre que os sinais dependentes sofrerem alteração.
 - **`derivado(funcao)`**: Cria um sinal computado e memoizado.
 - **`armazem(objeto)`**: Gerenciador de estado global sincronizado entre múltiplos componentes.
-
-
 
 ```harpia
 
@@ -1419,15 +1973,17 @@ Permite mesclar tags HTML e códigos de forma nativa e semantica:
 - **Componentes funcionais**: Funções normais que retornam marcações JSX-like.
 - **Eventos**: Atributos como `aoClicar` que mapeiam de forma nativa para eventos `onclick` de browser.
 - **Componentes Nativos de UI**:
-  - `<Link para="...">`: Navegação SPA de 1ª classe que previne recarregamentos da página e gerencia a URL via History API.
+  - `<Link para="..." precarregar>`: Navegação SPA de 1ª classe que previne recarregamentos da página, gerencia a URL e faz pre-fetching de rotas ao passar o mouse.
   - `<Escolha valor={...}>`: Pattern matching nativo de UI contendo blocos `<Caso valor="...">` e `<Padrao>`.
   - `<Aguardar recurso={...}>`: Tratamento declarativo de carregando/erro/sucesso de dados assíncronos.
   - `<Portal>`: Renderização de subárvores JSX diretamente no `document.body` (modais, popups e tooltips sem estouro de z-index).
   - `<BarraDeProgresso>`: Indicador de progresso de carregamento de rota animado no topo do navegador.
+  - `<Provedor chave="..." valor={...}>`: Injeção de Dependências e Provedor de contexto para compartilhamento de serviços (estilo Angular/React).
+  - `<FronteiraDeErro fallback={...}>`: Captura e isolamento declarativo de erros lógicos em subárvores de componentes.
 
 - **Estruturas Inline**:
   - `<se condicao={...}>...</se>`: Condicional dinâmico.
-  - `<para item em lista={...} chave="id">...</para>`: Loops reativos com diffing de chaves (*keyed reconciliation*).
+  - `<para item em lista={...} chave="id">...</para>`: Loops reativos com diffing de chaves (_keyed reconciliation_).
 
 ```harpia
 funcao App() {
@@ -1440,7 +1996,6 @@ funcao App() {
     </div>;
 }
 ```
-
 
 ### 13.3. Estilização Nativa e Classes Utilitárias em PT
 
@@ -1550,21 +2105,36 @@ O Harpia oferece suporte de fábrica para a criação de designs e layouts 100% 
        exibir: "grid";
        colunasGrid: "repetir(3, 1fr)";
        gap: "20px";
-
-       # Tablets (telas menores que 1024px)
-       @tela (larguraMaxima: 1024px) {
-           colunasGrid: "repetir(2, 1fr)";
-       }
-
-       # Celulares (telas menores que 768px)
-       @tela (larguraMaxima: 768px) {
-           colunasGrid: "1fr";
-       }
-   }
    ```
 
-2. **Breakpoints Utilitários**: No JSX e nas classes do Tailwind em português, é possível prefixar os breakpoints utilitários correspondentes (ex: `celular:flex-coluna`, `tablet:p-4`).
-3. **Viewport de Fábrica**: Ao transpilar o projeto para a web (`harpia compilar`), o cabeçalho do `index.html` gerado recebe síncronamente a tag mestre `<meta name="viewport" content="width=device-width, initial-scale=1.0">` para garantir escala física real de 1:1 e impedir deformações visuais em dispositivos portáteis.
+### 13.13. Execução Assíncrona Dual e Padrão `Promise.resolve` (SSR ↔ Web SPA)
+
+Para garantir que o mesmo código fonte frontend (`web/estado/*.hrp`) funcione perfeitamente tanto durante a pré-renderização síncrona no servidor (**SSR na VM Go**) quanto durante a execução dinâmica assíncrona no cliente navegador (**SPA no Web JS**), o Harpia disponibiliza a primitiva primordial `Promise.resolve(...)`:
+
+1.  **Unificação de Contratos RPC**: Chamadas a rotas `@backend/...` retornam objetos síncronos na VM Go (durante SSR) e instâncias de `Promise` do JavaScript no navegador.
+2.  **Uso Recomendado de `Promise.resolve`**: Ao envolver retornos de funções RPC ou assíncronas com `Promise.resolve(funcaoRpc()).then(funcao(res) { ... })`:
+    - **No Backend (SSR)**: A VM Go executa o callback `.then` de forma imediata e síncrona, populando os sinais reativos e renderizando a estrutura inicial do Virtual DOM no servidor.
+    - **No Navegador (Web SPA)**: O runtime JavaScript transpila diretamente para a `Promise` nativa do navegador, escutando a resolução da requisição HTTP `fetch` e atualizando o estado reativo da SPA.
+3.  **CORS Transparente por Padrão**: A biblioteca `stdlib/http` injeta cabeçalhos CORS (`Access-Control-Allow-Origin: *`, `Access-Control-Allow-Methods`, `Access-Control-Allow-Headers`) e atende requisições de preflight `OPTIONS` em todas as rotas de servidor automaticamente.
+
+        # Tablets (telas menores que 1024px)
+        @tela (larguraMaxima: 1024px) {
+            colunasGrid: "repetir(2, 1fr)";
+        }
+
+        # Celulares (telas menores que 768px)
+        @tela (larguraMaxima: 768px) {
+            colunasGrid: "1fr";
+        }
+
+    }
+
+    ```
+
+    ```
+
+4.  **Breakpoints Utilitários**: No JSX e nas classes do Tailwind em português, é possível prefixar os breakpoints utilitários correspondentes (ex: `celular:flex-coluna`, `tablet:p-4`).
+5.  **Viewport de Fábrica**: Ao transpilar o projeto para a web (`harpia compilar`), o cabeçalho do `index.html` gerado recebe síncronamente a tag mestre `<meta name="viewport" content="width=device-width, initial-scale=1.0">` para garantir escala física real de 1:1 e impedir deformações visuais em dispositivos portáteis.
 
 ---
 
@@ -1591,13 +2161,207 @@ A Máquina Virtual de bytecode e o runtime de execução do Harpia foram aprimor
 
 ## Capítulo 16 — Novos Módulos Avançados da Biblioteca Padrão (Stdlib)
 
-- **Logs Estruturados (`de "logs"`)**: Sistema de logging estruturado nativo com níveis (`info`, `alerta`, `erro`, `depurar`) e suporte a metadados dinâmicos (Mapas) e formatação selecionável (texto colorido amigável ou JSON para produção).
-- **Métricas de Observabilidade (`de "metricas"`)**: Permite criar e registrar contadores e medidores (Gauges) dinâmicos compatíveis com o formato do Prometheus na rota `/metricas` para observabilidade de microsserviços.
-- **Validador de Esquemas de Dados (`de "esquema"`)**: Permite declarar restrições de esquemas de dados complexos com validação em tempo de execução (Ex: `esquema.NovoEsquema({ "nome": esquema.Texto, "idade": esquema.Inteiro })`).
-- **Agendador de Tarefas e Filas (`de "tarefas"`)**: Expõe o controle de filas concorrentes em memória e agendamento periódico baseado em Cron (Ex: `tarefas.agendar("*/5 * * * * *", funcao() { ... })`).
-- **Foreign Function Interface (`ffi`)**: Ponte nativa bidirecional de baixo nível que permite carregar bibliotecas binárias compartilhadas C-compatíveis (`.so`, `.dll`, `.dylib`) e executar assinaturas externas diretamente no Harpia de forma síncrona e performática.
-- **Resiliência e Estabilidade (`de "resiliencia"`)**: Padrões nativos de tolerância a falhas para microsserviços corporativos, incluindo _Disjuntor_ (Circuit Breaker com 3 estados), _Limite de Taxa_ (Rate Limiter via token bucket) e _Retentativa_ (Retry) com backoff exponencial.
-- **Telemetria e Rastreamento (`de "telemetria"`)**: Observabilidade nativa e de baixo overhead compatível com a especificação OpenTelemetry, permitindo iniciar e finalizar Spans em formato JSON estruturado e registrar métricas com tags dinâmicas.
+Este capítulo fornece as especificações completas de engenharia para os novos módulos avançados do Harpia. Estes pacotes trazem recursos robustos de nível de infraestrutura, observabilidade, resiliência e integração de baixo nível para aplicações profissionais e microsserviços modernos.
+
+---
+
+### 1. Logs Estruturados (`de "logs"`)
+
+Sistema corporativo de logs unificados de alto desempenho, pronto para nuvem (compatível com agregadores como Grafana Loki, ElasticSearch e Fluentd). Suporta formatação seletiva de saída entre texto colorido amigável para desenvolvimento e JSON estruturado puro para produção. Requer `de "logs" importe ...`.
+
+#### Funções de Gravação de Log:
+
+- `info(mensagem, metadados?)` — Registra evento informativo (nível `INFO`).
+- `alerta(mensagem, metadados?)` — Registra um aviso sobre anomalias não críticas (nível `WARN`).
+- `erro(mensagem, metadados?)` — Registra uma exceção ou falha na aplicação (nível `ERROR`).
+- `depurar(mensagem, metadados?)` — Registra dados detalhados para diagnóstico (nível `DEBUG`).
+  - **Implementação Go:** `met_logs_info`, `met_logs_alerta`, `met_logs_erro` e `met_logs_depurar` em `stdlib/logs/logs.go`.
+  - **Argumentos:** De 1 a 2 argumentos. O primeiro argumento `mensagem` aceita qualquer objeto coerco. O segundo argumento opcional `metadados` exige uma instância da classe `Mapa`.
+  - **Funcionamento:** Emite o carimbo de data/hora atual (RFC3339), nível do log, a mensagem e o mapa de metadados associado.
+  - **Retorno:** Retorna `Nulo`.
+
+#### Funções de Configuração:
+
+- `configurar(formato, cores?)` — Ajusta as diretrizes globais do sistema de logging.
+  - **Implementação Go:** `met_logs_configurar` em `stdlib/logs/logs.go`.
+  - **Argumentos:** De 1 a 2 argumentos. `formato` (Texto, deve conter `"texto"` ou `"json"`). `cores` (Booleano, opcional, ativa ou desativa cores ANSI True Color na saída padrão).
+  - **Retorno:** Retorna `Nulo`.
+
+---
+
+### 2. Métricas de Observabilidade (`de "metricas"`)
+
+Permite a criação, manutenção e exportação em tempo de execução de métricas de telemetria baseadas na especificação oficial do Prometheus (Exposition Format) para monitoramento de saúde de microsserviços. Toda a manipulação interna de contadores é atômica e thread-safe. Requer `de "metricas" importe ...`.
+
+#### A Classe `Contador`
+
+Representa uma métrica cumulativa e monotônica que apenas pode crescer de valor.
+
+- **Métodos**:
+  - `incrementar()` — Adiciona incrementalmente `+1` ao contador usando operações atômicas seguras.
+    - **Retorno:** Retorna `Nulo`.
+
+#### A Classe `Medidor` (Gauge)
+
+Representa uma métrica instantânea de medição única que pode subir ou descer arbitrariamente.
+
+- **Métodos**:
+  - `definir(valor)` — Sobrescreve o valor atual do medidor de forma atômica.
+    - **Argumentos:** Exatamente 1 argumento (`valor` do tipo `Decimal` ou `Inteiro`).
+    - **Retorno:** Retorna `Nulo`.
+
+#### Funções Globais do Módulo:
+
+- `criarContador(nome, descricao)` — Cria e registra um novo contador cumulativo.
+  - **Implementação Go:** `met_metricas_criarContador` em `stdlib/meticas/meticas.go` (nota: `stdlib/metricas/metricas.go`).
+  - **Argumentos:** Exatamente 2 argumentos (`nome` e `descricao`, ambos `Texto`).
+  - **Retorno:** Devolve uma referência ativa do objeto `Contador` registrado.
+- `criarMedidor(nome, descricao)` — Cria e registra um novo medidor instantâneo (Gauge).
+  - **Implementação Go:** `met_metricas_criarMedidor` em `stdlib/metricas/metricas.go`.
+  - **Argumentos:** Exatamente 2 argumentos (`nome` e `descricao`, ambos `Texto`).
+  - **Retorno:** Devolve uma referência ativa do objeto `Medidor` registrado.
+- `expor()` — Compila todos os contadores e medidores registrados em memória e os formata em texto compatível com a rota padrão `/metrics` do coletor do Prometheus.
+  - **Implementação Go:** `met_metricas_expor` em `stdlib/metricas/metricas.go`.
+  - **Retorno:** Retorna uma string `Texto` formatada em linhas contendo as definições `# HELP`, `# TYPE` e os valores correspondentes.
+
+---
+
+### 3. Validador de Esquemas de Dados (`de "esquema"`)
+
+Oferece um arcabouço declarativo de validação e sanitização estrita de dados complexos recebidos em tempo de execução, permitindo definir contratos de forma idêntica ao Zod do ecossistema JS. Requer `de "esquema" importe ...`.
+
+#### A Classe `Esquema`
+
+- **Métodos**:
+  - `analisar(dadosMapa)` — Valida se o mapa de entrada condiz perfeitamente com as chaves e tipos definidos nas regras do esquema.
+    - **Argumentos:** Exatamente 1 argumento (`dadosMapa` do tipo `Mapa`).
+    - **Funcionamento:** Varre recursivamente todas as chaves declaradas e seus tipos.
+    - **Retorno:** Retorna uma `Lista` contendo dois itens: `[mapaValizados, Nulo]` em caso de total conformidade, ou `[Nulo, textoErroExplicativo]` contendo a descrição exata de quais chaves violaram o tipo, estavam ausentes ou continham valores inválidos.
+
+#### Funções Globais do Módulo:
+
+- `criar(regrasMapa)` — Instancia um novo validador estruturado.
+  - **Implementação Go:** `met_esquema_criar` em `stdlib/esquema/esquema.go`.
+  - **Argumentos:** Exatamente 1 argumento (`regrasMapa` do tipo `Mapa`).
+  - **Validação:** O mapa de regras deve associar chaves textuais a identificadores de tipos reconhecidos (como `"texto"`, `"inteiro"`, `"decimal"`, `"booleano"`, `"lista"`, `"mapa"`).
+  - **Retorno:** Devolve um objeto da classe `Esquema`.
+
+---
+
+### 4. Agendador de Tarefas e Filas (`de "tarefas"`)
+
+Gerencia o agendamento periódico de funções em segundo plano e a execução concorrente de trabalhos em background utilizando buffers assíncronos baseados em canais nativos do Go. Requer `de "tarefas" importe ...`.
+
+#### Funções Globais do Módulo:
+
+- `agendar(intervalo, funcao)` — Configura o disparo automático e recorrente de uma rotina.
+  - **Implementação Go:** `met_tarefas_agendar` em `stdlib/tarefas/tarefas.go`.
+  - **Argumentos:** Exatamente 2 argumentos. `intervalo` (Texto, contendo especificações amigáveis como `"segundo"`, `"minuto"`, ou string numérica representando segundos) e `funcao` (referência de uma rotina/função sem argumentos).
+  - **Funcionamento:** Cria e gerencia uma nova thread Go (`goroutine`) contendo um ticker de disparo de tempo que aciona a função de forma síncrona com o runtime do Harpia.
+  - **Retorno:** Retorna `Nulo`.
+- `enfileirar(funcao, dados)` — Coloca uma tarefa em uma fila de buffer global na memória do compilador (capacidade interna do canal fixada em `1000` jobs).
+  - **Implementação Go:** `met_tarefas_enfileirar` em `stdlib/tarefas/tarefas.go`.
+  - **Argumentos:** Exatamente 2 argumentos. `funcao` (uma rotina executável) e `dados` (um `Mapa` contendo os parâmetros de entrada).
+  - **Retorno:** Retorna um `Booleano` indicando se a tarefa foi enfileirada com sucesso antes do estouro do canal.
+- `processarFila(workerFunc)` — Ativa o loop de consumo assíncrono em background.
+  - **Implementação Go:** `met_tarefas_processarFila` em `stdlib/tarefas/tarefas.go`.
+  - **Argumentos:** Exatamente 1 argumento. `workerFunc` (a função do trabalhador que será executada continuamente em background para processar as tarefas da fila).
+  - **Retorno:** Retorna `Nulo`.
+
+---
+
+### 5. Foreign Function Interface (`ffi`)
+
+Interface de Função Estrangeira de baixo nível e alto desempenho que viabiliza a interoperabilidade binária direta com bibliotecas compartilhadas escritas em C, Rust ou C++ compiladas para `.so` (Linux), `.dll` (Windows) ou `.dylib` (macOS). Requer `importar ffi`.
+
+#### A Classe `Biblioteca`
+
+Representa um arquivo de biblioteca dinâmica carregado fisicamente em memória.
+
+- **Métodos**:
+  - `obterFuncao(nomeFuncao)` — Resolve e vincula dinamicamente a assinatura de um símbolo exposto pela biblioteca.
+    - **Argumentos:** `nomeFuncao` (Texto).
+    - **Retorno:** Retorna um objeto da classe `FuncaoFFI`.
+
+#### A Classe `FuncaoFFI`
+
+Representa a rotina binária externa do sistema compilada pronta para execução.
+
+- **Métodos**:
+  - `chamar(argumentosLista, tipoRetornoTexto)` — Invocação síncrona direta da rotina estrangeira na thread principal do sistema.
+    - **Argumentos:** `argumentosLista` (Lista contendo os valores primitivos que serão passados para a assinatura do C) e `tipoRetornoTexto` (Texto declarando a tipagem de retorno, ex: `"int"`, `"float"`, `"string"`, `"void"`).
+    - **Funcionamento:** Realiza a conversão e alocação de tipos de dados primitivos do Harpia para seus equivalentes binários no C, realiza a chamada e converte o buffer retornado de volta para objetos da VM do Harpia.
+
+#### Funções Globais do Módulo:
+
+- `carregar(caminho)` — Carrega de forma dinâmica um binário de biblioteca compartilhada do disco.
+  - **Implementação Go:** `met_ffi_carregar` em `stdlib/ffi/ffi.go`.
+  - **Argumentos:** Exatamente 1 argumento (`caminho` apontando para o arquivo no sistema de arquivos do SO).
+  - **Validação:** Requer permissões de sandbox ativas na VM.
+  - **Retorno:** Retorna uma instância da classe `Biblioteca` ou lança um erro do sistema operacional.
+
+---
+
+### 6. Resiliência e Estabilidade (`de "resiliencia"`)
+
+Implementa padrões de tolerância a falhas corporativos altamente eficazes para mitigar falhas transitórias e garantir a resiliência e estabilidade de conexões e integrações externas. Requer `de "resiliencia" importe ...`.
+
+#### Funções Globais do Módulo:
+
+- `novo_disjuntor(limite, timeout_segundos)` — Cria um novo disjuntor lógico (_Circuit Breaker_) de 3 estados ("fechado", "aberto", "meio_aberto").
+  - **Implementação Go:** `met_novo_disjuntor` em `stdlib/resiliencia/resiliencia.go`.
+  - **Argumentos:** Exatamente 2 argumentos. `limite` (Inteiro entre `0` e `1.000.000` indicando o número máximo de falhas aceitas consecutivamente) e `timeout_segundos` (Inteiro definindo o tempo de espera no estado "aberto" antes de migrar para "meio_aberto").
+  - **Retorno:** Retorna uma string `Texto` indicando o estado inicial do disjuntor ("fechado").
+- `novo_limite_de_taxa(max_tokens, tokens_por_segundo)` — Inicializa um limitador de requisições baseado no algoritmo clássico Token Bucket.
+  - **Implementação Go:** `met_novo_limite` em `stdlib/resiliencia/resiliencia.go`.
+  - **Argumentos:** Exatamente 2 argumentos. `max_tokens` (Inteiro della capacidade máxima de requisições simultâneas aceitas) e `tokens_por_segundo` (Decimal/Inteiro representando a taxa atômica de reposição de requisições).
+  - **Retorno:** Retorna `Verdadeiro` ou lança um erro de valor inválido.
+- `nova_retentativa(tentativas?, base_ms?, fator?)` — Configura uma lógica robusta de retentativas automáticas (_Retry_) de chamadas falhas utilizando algoritmos de backoff exponencial.
+  - **Implementação Go:** `met_nova_retentativa` em `stdlib/resiliencia/resiliencia.go`.
+  - **Argumentos:** De 0 a 3 argumentos opcionais. `tentativas` (Inteiro entre `0` e `100`, padrão: `3`), `base_ms` (Inteiro do intervalo inicial de espera em milissegundos, padrão: `100`) e `fator` (Decimal do multiplicador de backoff, padrão: `2.0`).
+  - **Retorno:** Retorna `Verdadeiro`.
+
+---
+
+### 7. Telemetria e Rastreamento (`de "telemetria"`)
+
+Observabilidade de altíssimo desempenho e baixíssimo overhead compatível com a especificação OpenTelemetry, permitindo rastrear tempos de processamento e métricas de forma transparente. Requer `de "telemetria" importe ...`.
+
+#### A Classe `Span`
+
+Representa uma única unidade isolada de trabalho cronometrado ou operação.
+
+- **Métodos**:
+  - `finalizar(status?)` — Conclui a medição do span, calcula de forma precisa o delta temporal de duração em milissegundos e emite os metadados agregados em formato JSON estruturado diretamente para a saída padrão.
+    - **Argumentos:** `status` (Texto, opcional, ex: `"sucesso"`, `"erro"`).
+    - **Retorno:** Retorna `Nulo`.
+
+#### A Classe `Tracer`
+
+Representa um gerador central de spans associado a um serviço específico.
+
+- **Métodos**:
+  - `iniciar_span(nomeSpan)` — Inicia a medição de uma nova trilha temporal, gerando identificadores únicos aleatórios de TraceID e SpanID.
+    - **Argumentos:** `nomeSpan` (Texto).
+    - **Retorno:** Retorna uma referência ativa de um objeto `Span`.
+
+#### A Classe `Metrica`
+
+- **Métodos**:
+  - `registrar(valor, tag?)` — Incrementa ou registra valores agregados a uma métrica associando etiquetas/tags dinâmicas que são emitidas na saída padrão no formato JSON canônico.
+    - **Argumentos:** `valor` (Inteiro/Decimal) e `tag` (Texto, opcional).
+    - **Retorno:** Retorna `Nulo`.
+
+#### Funções Globais do Módulo:
+
+- `novo_tracer(servico)` — Instancia um tracer oficial para o microsserviço informado.
+  - **Implementação Go:** `met_novo_tracer` em `stdlib/telemetria/telemetria.go`.
+  - **Argumentos:** Exatamente 1 argumento (`servico` do tipo `Texto`).
+  - **Retorno:** Devolve um objeto `Tracer`.
+- `nova_metrica(nome, tipo)` — Instancia e registra uma nova métrica para telemetria estruturada.
+  - **Implementação Go:** `met_nova_metrica` em `stdlib/telemetria/telemetria.go`.
+  - **Argumentos:** Exatamente 2 argumentos. `nome` (Texto) e `tipo` (Texto, contendo `"contador"` ou `"medidor"`).
+  - **Retorno:** Devolve um objeto `Metrica`.
 
 ---
 
@@ -1682,6 +2446,9 @@ A Fase 6 introduz o pacote de IA padrão do Harpia, oferecendo uma interface dec
 Drivers de persistência robustos prontos para escalar em ambientes de alta concorrência corporativa:
 
 - **Drivers Nativos Expandidos**: Implementação nativa em Go de conectores de banco para **PostgreSQL**, **MySQL**, **SQLite** e **MongoDB**, com séries históricas de migrations encapsuladas e gestão de credenciais via contexto.
+- **Retorno de `LastInsertId`**: O método `conexao.tabela("nome").inserir(dados)` e a execução de queries `INSERT` via `conexao.executar(...)` retornam o identificador `Inteiro` autoincrementado gerado pelo banco relacional.
+- **Resiliência a Nulos e Tratamento Seguro de Tipos (`toGoType`)**: Parâmetros passados aos métodos do QueryBuilder com valor `Nulo` são convertidos nativamente para `nil` SQL sem causar estouro de memória ou exceção na VM Go.
+- **Verificação de Chaves em Mapas**: Para verificar a presença de chaves opcionais em mapas em Harpia, a boa prática recomendada é a checagem direta `dados["chave"] != Nulo`.
 - **ORM Estático e Tipado**: Permite mapear schemas de tabelas de forma declarativa e síncrona diretamente no Query Builder via `conn.tabela("nome", schema)`. A VM realiza a validação de tipo e a detecção de colunas inexistentes em runtime com mensagens educativas em português.
 - **Banco de Dados Vetorial Integrado**: O conector `conectarQdrant(url, colecao)` provê um cliente vetorial nativo completo e de altíssimo rendimento para Qdrant, habilitando as operações de `inserir`, `buscar` (por cossenos/L2) e `deletar` pontos vetoriais com payload.
 - **Pool de Conexões Otimizado**: Reaproveitamento de conexões ativas a partir de um _pool_ thread-safe com backoff exponencial e detecção automatizada de timeouts do servidor.
