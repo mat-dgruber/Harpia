@@ -42,3 +42,8 @@ metas.md
 instalar_local.sh
 2026-07-17-165536-quero-fazer-melhorias-na-extenso-melhores-forma.md
 PLANO_PUBLICACAO.md
+
+# Arquivos locais e temporários
+dados.db
+harpia_dev
+cmd/runtime_web_code_temp.txt
