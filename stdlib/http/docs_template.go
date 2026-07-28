@@ -1440,7 +1440,11 @@ const htmlDocsTemplate = `<!DOCTYPE html>
             }
 
             if (lang === 'curl') {
-                empacotar(/(^|\s)(curl|-X|-H|-d)(?=\s|$)/g, 'text-blue-400 font-bold');
+                text = text.replace(/(^|\s)(curl|-X|-H|-d)(?=\s|$)/g, function(match, p1, p2) {
+                    const idx = tokens.length;
+                    tokens.push('<span class="text-blue-400 font-bold">' + p2 + '</span>');
+                    return p1 + tokenPlaceholder(idx);
+                });
             } else if (lang === 'js') {
                 empacotar(/\b(const|let|var|await|async|function|return)\b/g, 'text-purple-400 font-bold');
                 empacotar(/\b\d+\b/g, 'text-[#F2A900]');

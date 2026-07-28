@@ -124,8 +124,21 @@ Permite a manipulação direta e segura do sistema de arquivos físico (I/O). Co
 
 Protocolo completo HTTP para cliente e servidor de alto desempenho. Conta com proteção nativa contra pânicos de execução (Recovery), timeouts slowloris e Sandbox de Rede (`BloquearRede`). Suporta assinaturas HMAC SHA-256 e geração de especificações OpenAPI 3.0 para o servidor.
 
-- **Classes**: `Servidor` (suporta `obter()`, `postar()`, `deletar()`, `usar()`, `escutar()`, `fechar()`), `Requisicao`, `Resposta`.
+- **Classes**: `Servidor` (suporta `obter()`, `postar()`, `deletar()`, `put()`, `patch()`, `usar()`, `escutar()`, `fechar()` — com suporte a metadados declarativos fornecidos explicitamente no 3º argumento ou inferidos automaticamente de comentários de três barras `///` que precedem a chamada da rota), `Requisicao`, `Resposta`.
 - **Funções**: `requisitar(metodo, url, ...)`, `assinar_hmac(chave, mensagem)`, `verificar_hmac(chave, mensagem, assinatura)`, `gerar_openapi(servidor)`.
+
+#### 📝 Documentação Inline com `///` (Nativo)
+
+Se o desenvolvedor não passar o 3º argumento, o Harpia analisa os comentários de três barras `///` que precedem a declaração da rota:
+
+```harpia
+/// @resumo Cadastra um novo filme no catálogo
+/// @descricao Recebe título, ano e gênero e persiste no banco SQLite.
+/// @tags Filmes, Cadastro
+/// @corpo {"args": [{"titulo": "Matrix", "ano": 1999}]}
+/// @respostas {"200": "Filme criado", "400": "Requisição inválida"}
+srv.postar("/rpc/filmes/criarFilme", funcao(req, res) { ... })
+```
 
 ### 3. Módulo: `bd`
 
@@ -186,6 +199,18 @@ Padrões nativos de resiliência e estabilidade para microsserviços.
 Observabilidade nativa e leve compatível com as especificações do OpenTelemetry para exportação de dados.
 
 - **Funções**: `novo_tracer(servico)` (retorna Tracer com `iniciar_span`), `nova_metrica(nome, tipo)` (retorna Metrica com `registrar`).
+
+### 14. Módulo: `http` (Servidor Web & Harpia API Console)
+
+Servidor HTTP nativo de alta performance com suporte a roteamento dinâmico, middlewares, gerador de especificação OpenAPI 3.0 (`/docs.json`) e o **Harpia API Console (`/docs`)**.
+
+- **Harpia API Console (`/docs`)**:
+  - **Schema do Corpo Dinâmico**: Tabela interativa que renderiza em tempo real as propriedades, tipos e obrigatoriedade do payload de requisição (`requestBody`) extraídas dinamicamente da especificação OpenAPI 3.0 (`/docs.json`).
+  - **Barra de Filtros em Pílula Compacta (`#barra-filtros`)**: Layout pílula (`border-radius: 9999px`) sobre fundo transparente (`#barra-filtros-wrapper`), garantindo integração natural com o tema.
+  - **Design System Unificado (Modo Claro / Escuro)**:
+    - Modo Claro: Fundo da página em Farinha de Trigo (`#FAF5EE` via `min-h-full`), cabeçalho flutuante em pílula Palha Escuro (`#header-pill`, `#E8DDD0`, `border-radius: 9999px`), e cards, modais, inputs e blocos de código `<pre>` em Branco Puro (`#FFFFFF` com borda `#E2D9CC`).
+    - Modo Escuro: Dark Cyberpunk (`#0A0F0D` e `#171E26`).
+  - **Recursos Integrados**: Botão _Teatro_ (massa de testes dinâmicos contextuais), gerador de snippets de código (cURL, JS, Python, Harpia), painel _Voo da Harpia_ (métricas em tempo real), auditoria de segurança OWASP, Mentor de Design IA e simulação de velocidade de rede (Modo Correnteza).
 
 ---
 

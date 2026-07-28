@@ -143,6 +143,49 @@ async function rodarTestes() {
   await new Promise(r => setTimeout(r, 100));
   console.log("Após 100ms (deve ser 'jkl'):", pesquisa());
   console.log("Total execuções efeito (esperava 2 - inicial + jkl):", totalDebounce);
+
+  console.log("\n=== 5. TESTANDO MAPEAMENTO DE EVENTOS ADAPTATIVOS COM REGEX ===");
+  const testContainer = document.createElement("div");
+  let eventoDisparado = null;
+
+  function AppEventos() {
+    return h("div", {},
+      h("button", {
+        aoClicar: () => { eventoDisparado = 'click'; },
+        AoMudar: () => { eventoDisparado = 'change'; }, // case-insensitive prefixo
+        aoerror: () => { eventoDisparado = 'error'; } // case-insensitive completo
+      }, "Eventos")
+    );
+  }
+
+  montar(AppEventos, testContainer);
+  await Promise.resolve();
+
+  const botao = testContainer.childNodes[0].childNodes[0];
+
+  // Simula 'click' (aoClicar)
+  if (botao.listeners['click']) {
+    botao.listeners['click']();
+    console.log("Evento 'aoClicar' mapeou para 'click':", eventoDisparado === 'click' ? "OK" : "FALHA");
+  } else {
+    console.log("Erro: listener 'click' não encontrado!");
+  }
+
+  // Simula 'change' (AoMudar)
+  if (botao.listeners['change']) {
+    botao.listeners['change']();
+    console.log("Evento 'AoMudar' mapeou para 'change':", eventoDisparado === 'change' ? "OK" : "FALHA");
+  } else {
+    console.log("Erro: listener 'change' não encontrado!");
+  }
+
+  // Simula 'error' (aoerror)
+  if (botao.listeners['error']) {
+    botao.listeners['error']();
+    console.log("Evento 'aoerror' mapeou para 'error':", eventoDisparado === 'error' ? "OK" : "FALHA");
+  } else {
+    console.log("Erro: listener 'error' não encontrado!");
+  }
 }
 
 rodarTestes().catch(console.error);

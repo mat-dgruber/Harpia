@@ -40,13 +40,13 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			var goArgs []interface{}
-			for _, arg := range args[1:] {
-				goArgs = append(goArgs, toGoType(arg))
-			}
-			_, errExec := c.db.Exec(string(query.(hrp.Texto)), goArgs...)
+			goArgs := converterArgumentosParaGo(args)
+			resExec, errExec := c.db.Exec(string(query.(hrp.Texto)), goArgs...)
 			if errExec != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL: %v", errExec)
+			}
+			if lastID, errID := resExec.LastInsertId(); errID == nil && lastID > 0 {
+				return hrp.Inteiro(lastID), nil
 			}
 			return hrp.Nulo, nil
 		}, "Executa uma query de alteração de dados no banco (INSERT/UPDATE/DELETE)."), nil
@@ -61,10 +61,7 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			var goArgs []interface{}
-			for _, arg := range args[1:] {
-				goArgs = append(goArgs, toGoType(arg))
-			}
+			goArgs := converterArgumentosParaGo(args)
 			rows, errQuery := c.db.Query(string(query.(hrp.Texto)), goArgs...)
 			if errQuery != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar consulta SQL: %v", errQuery)
@@ -188,10 +185,7 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			var goArgs []interface{}
-			for _, arg := range args[1:] {
-				goArgs = append(goArgs, toGoType(arg))
-			}
+			goArgs := converterArgumentosParaGo(args)
 			_, errExec := t.tx.Exec(string(query.(hrp.Texto)), goArgs...)
 			if errExec != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL na transação: %v", errExec)
@@ -208,10 +202,7 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			var goArgs []interface{}
-			for _, arg := range args[1:] {
-				goArgs = append(goArgs, toGoType(arg))
-			}
+			goArgs := converterArgumentosParaGo(args)
 			rows, errQuery := t.tx.Query(string(query.(hrp.Texto)), goArgs...)
 			if errQuery != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar consulta SQL na transação: %v", errQuery)
@@ -488,7 +479,7 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 // toGoType mapeia tipos nativos da VM Harpia para seus equivalentes Go de baixo nível.
 func toGoType(obj hrp.Objeto) interface{} {
-	if obj == hrp.Nulo || obj.Tipo() == hrp.TipoNulo {
+	if obj == nil || obj == hrp.Nulo || (obj.Tipo() != nil && obj.Tipo() == hrp.TipoNulo) {
 		return nil
 	}
 	switch v := obj.(type) {
@@ -565,4 +556,26 @@ func validarTipoCampo(tipoEsperado string, valor hrp.Objeto) error {
 		}
 	}
 	return nil
+}
+
+func converterArgumentosParaGo(args hrp.Tupla) []interface{} {
+	var goArgs []interface{}
+	if len(args) == 2 {
+		if lista, ok := args[1].(*hrp.Lista); ok {
+			for _, item := range lista.Itens {
+				goArgs = append(goArgs, toGoType(item))
+			}
+			return goArgs
+		}
+		if tupla, ok := args[1].(hrp.Tupla); ok {
+			for _, item := range tupla {
+				goArgs = append(goArgs, toGoType(item))
+			}
+			return goArgs
+		}
+	}
+	for _, arg := range args[1:] {
+		goArgs = append(goArgs, toGoType(arg))
+	}
+	return goArgs
 }

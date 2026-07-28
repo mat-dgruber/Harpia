@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -49,9 +50,9 @@ func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		return r.Corpo, nil
 	case "parametros":
 		return r.Parametros, nil
-	case "query":
+	case "query", "consulta":
 		return r.Query, nil
-	case "corpoJson":
+	case "corpoJson", "corpo_json":
 		if r.CorpoJson != nil {
 			return r.CorpoJson, nil
 		}
@@ -122,10 +123,10 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			r.Cabecalho.M__define_item__(k, v)
 			return hrp.Nulo, nil
 		}, "Define um par de chave/valor no cabeçalho HTTP de resposta."), nil
-	case "enviarJson":
+	case "enviarJson", "enviar_json":
 		// Serializa o objeto fornecido e altera automaticamente o cabeçalho 'Content-Type' para 'application/json'.
-		return hrp.NewMetodoOuPanic("enviarJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("enviarJson", false, args, 1, 1); err != nil {
+		return hrp.NewMetodoOuPanic("enviar_json", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("enviar_json", false, args, 1, 1); err != nil {
 				return nil, err
 			}
 			goObj := hrp.ConverteParaGo(args[0])
@@ -138,10 +139,10 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			return hrp.Nulo, nil
 		}, "Serializa e envia o objeto como JSON, definindo Content-Type automaticamente"), nil
 
-	case "definirStatus":
+	case "definirStatus", "definir_status":
 		// Define o código de resposta HTTP (ex: 201, 404).
-		return hrp.NewMetodoOuPanic("definirStatus", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("definirStatus", false, args, 1, 1); err != nil {
+		return hrp.NewMetodoOuPanic("definir_status", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("definir_status", false, args, 1, 1); err != nil {
 				return nil, err
 			}
 			statusInt, err := hrp.NewInteiro(args[0])
@@ -150,12 +151,12 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			r.Status = statusInt.(hrp.Inteiro)
 			return hrp.Nulo, nil
-		}, "Define o código de status HTTP da resposta (ex: res.definirStatus(404))"), nil
+		}, "Define o código de status HTTP da resposta (ex: res.definir_status(404))"), nil
 
-	case "erroJson":
-		// Envia um erro estruturado formatado em JSON.
-		return hrp.NewMetodoOuPanic("erroJson", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("erroJson", false, args, 2, 2); err != nil {
+	case "erroJson", "erro_json":
+		// Envia um erro estruturado formatado in JSON.
+		return hrp.NewMetodoOuPanic("erro_json", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("erro_json", false, args, 2, 2); err != nil {
 				return nil, err
 			}
 			statusInt, err := hrp.NewInteiro(args[0])
@@ -171,17 +172,158 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
 			r.Corpo = hrp.Texto(bytes)
 			return hrp.Nulo, nil
-		}, "Envia uma resposta de erro JSON com status e mensagem (ex: res.erroJson(404, \"Não encontrado\"))"), nil
+		}, "Envia uma resposta de erro JSON com status e mensagem (ex: res.erro_json(404, \"Não encontrado\"))"), nil
+
+	case "enviar_midia", "enviar_imagem":
+		// Envia um payload de mídia binária, definindo Content-Type e Cache-Control adequados.
+		return hrp.NewMetodoOuPanic("enviar_midia", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("enviar_midia", false, args, 1, 2); err != nil {
+				return nil, err
+			}
+			conteudo, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			tipoMime := hrp.Texto("image/jpeg")
+			if len(args) == 2 {
+				m, err := hrp.NewTexto(args[1])
+				if err != nil {
+					return nil, err
+				}
+				tipoMime = m.(hrp.Texto)
+			}
+			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), tipoMime)
+			r.Cabecalho.M__define_item__(hrp.Texto("Cache-Control"), hrp.Texto("public, max-age=86400"))
+			r.Corpo = conteudo.(hrp.Texto)
+			return hrp.Nulo, nil
+		}, "Envia um conteúdo de mídia definindo Content-Type e Cache-Control automáticos (ex: res.enviar_midia(bytes_da_imagem, \"image/png\"))"), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Resposta", nome)
 }
 
+// RotaMeta armazena os metadados declarativos registrados junto de uma rota HTTP.
+type RotaMeta struct {
+	Resumo              string
+	Descricao           string
+	Tags                []string
+	Corpo               map[string]any // Esquema ou dicionário de exemplo/tipagem do corpo
+	Respostas           map[string]string
+	Deprecated          bool
+	MensagemDeprecacao  string
+}
+
+// tentarInferirMetaDeComentarios extrai comentários de documentação '///' imediatamente anteriores à chamada da rota.
+func tentarInferirMetaDeComentarios(ctx *hrp.Contexto) *RotaMeta {
+	if ctx == nil || ctx.CodigoAtual == "" || ctx.LinhaAtual <= 0 {
+		return nil
+	}
+
+	linhas := strings.Split(ctx.CodigoAtual, "\n")
+	idx := ctx.LinhaAtual - 2 // Linha física L (1-based) é o índice L-1. Queremos a linha anterior, que é L-2.
+
+	if idx >= len(linhas) {
+		return nil
+	}
+
+	var docLines []string
+	linhasVaziasPulas := 0
+	for idx >= 0 {
+		linha := strings.TrimSpace(linhas[idx])
+		if strings.HasPrefix(linha, "///") {
+			docLines = append([]string{linha}, docLines...)
+			linhasVaziasPulas = 0
+		} else if linha == "" {
+			if len(docLines) > 0 {
+				break
+			}
+			linhasVaziasPulas++
+			if linhasVaziasPulas > 2 {
+				break
+			}
+		} else {
+			break
+		}
+		idx--
+	}
+
+	if len(docLines) == 0 {
+		return nil
+	}
+
+	meta := &RotaMeta{}
+	var textoSimples []string
+
+	for _, rawLine := range docLines {
+		linha := strings.TrimSpace(strings.TrimPrefix(rawLine, "///"))
+		if linha == "" {
+			continue
+		}
+
+		if strings.HasPrefix(linha, "@resumo ") {
+			meta.Resumo = strings.TrimSpace(strings.TrimPrefix(linha, "@resumo "))
+		} else if strings.HasPrefix(linha, "@descricao ") {
+			meta.Descricao = strings.TrimSpace(strings.TrimPrefix(linha, "@descricao "))
+		} else if strings.HasPrefix(linha, "@tags ") {
+			tagsPart := strings.TrimPrefix(linha, "@tags ")
+			for _, t := range strings.Split(tagsPart, ",") {
+				tTrim := strings.TrimSpace(t)
+				if tTrim != "" {
+					meta.Tags = append(meta.Tags, tTrim)
+				}
+			}
+		} else if strings.HasPrefix(linha, "@corpo ") || strings.HasPrefix(linha, "@corpoJson ") {
+			prefix := "@corpo "
+			if strings.HasPrefix(linha, "@corpoJson ") {
+				prefix = "@corpoJson "
+			}
+			jsonStr := strings.TrimSpace(strings.TrimPrefix(linha, prefix))
+			var corpoMap map[string]any
+			if err := json.Unmarshal([]byte(jsonStr), &corpoMap); err == nil {
+				meta.Corpo = corpoMap
+			}
+		} else if strings.HasPrefix(linha, "@respostas ") {
+			jsonStr := strings.TrimSpace(strings.TrimPrefix(linha, "@respostas "))
+			var respMap map[string]any
+			if err := json.Unmarshal([]byte(jsonStr), &respMap); err == nil {
+				meta.Respostas = make(map[string]string)
+				for k, v := range respMap {
+					if vStr, ok := v.(string); ok {
+						meta.Respostas[k] = vStr
+					}
+				}
+			}
+		} else if strings.HasPrefix(linha, "@deprecated") {
+			meta.Deprecated = true
+			msg := strings.TrimSpace(strings.TrimPrefix(linha, "@deprecated"))
+			if msg != "" {
+				meta.MensagemDeprecacao = msg
+			}
+		} else {
+			textoSimples = append(textoSimples, linha)
+		}
+	}
+
+	if meta.Resumo == "" && len(textoSimples) > 0 {
+		meta.Resumo = textoSimples[0]
+		if len(textoSimples) > 1 {
+			meta.Descricao = strings.Join(textoSimples[1:], "\n")
+		}
+	} else if meta.Descricao == "" && len(textoSimples) > 0 {
+		meta.Descricao = strings.Join(textoSimples, "\n")
+	}
+
+	return meta
+}
+
 // Servidor representa o orquestrador do servidor HTTP nativo assíncrono.
 type Servidor struct {
-	rotas       map[string]map[string]hrp.Objeto // metodo -> rota -> handler
-	middlewares []hrp.Objeto
-	server      *http.Server
-	mu          sync.RWMutex
+	rotas           map[string]map[string]hrp.Objeto // metodo -> rota -> handler
+	rotasMeta       map[string]map[string]*RotaMeta  // metodo -> rota -> metadados
+	middlewares     []hrp.Objeto
+	server          *http.Server
+	mu              sync.RWMutex
+	msgsErrosUltimo error
+	metricas        map[string]int64 // metodo+espaço+rotaPattern -> contagem
 }
 
 // TipoServidor define e registra a classe Servidor na VM.
@@ -197,65 +339,94 @@ func init() {
 	TipoServidor.Nova = func(args hrp.Tupla) (hrp.Objeto, error) {
 		return &Servidor{
 			rotas:       make(map[string]map[string]hrp.Objeto),
+			rotasMeta:   make(map[string]map[string]*RotaMeta),
 			middlewares: make([]hrp.Objeto, 0),
+			metricas:    make(map[string]int64),
 		}, nil
 	}
 }
 
-// registrarRota anexa de forma thread-safe uma rota lógica com seu respectivo handler na tabela de rotas.
-func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto) {
+// registrarRota anexa de forma thread-safe uma rota lógica com seu respectivo handler e metadados na tabela de rotas.
+func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto, metaObj hrp.Objeto) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.rotas[metodo] == nil {
 		s.rotas[metodo] = make(map[string]hrp.Objeto)
+		s.rotasMeta[metodo] = make(map[string]*RotaMeta)
 	}
 	s.rotas[metodo][rota] = handler
+
+	if metaObj != nil && metaObj != hrp.Nulo {
+		meta := &RotaMeta{}
+		goMeta := hrp.ConverteParaGo(metaObj)
+		if mMap, ok := goMeta.(map[string]any); ok {
+			if r, ok := mMap["resumo"].(string); ok {
+				meta.Resumo = r
+			}
+			if d, ok := mMap["descricao"].(string); ok {
+				meta.Descricao = d
+			}
+			if tList, ok := mMap["tags"].([]any); ok {
+				for _, t := range tList {
+					if ts, ok := t.(string); ok {
+						meta.Tags = append(meta.Tags, ts)
+					}
+				}
+			}
+			if c, ok := mMap["corpo"].(map[string]any); ok {
+				meta.Corpo = c
+			}
+			if respMap, ok := mMap["respostas"].(map[string]any); ok {
+				meta.Respostas = make(map[string]string)
+				for k, v := range respMap {
+					if vs, ok := v.(string); ok {
+						meta.Respostas[k] = vs
+					}
+				}
+			}
+		}
+		s.rotasMeta[metodo][rota] = meta
+	} else {
+		// Tenta inferir metadados a partir de comentários de documentação '///'
+		if ctx := hrp.ObterContextoAtivo(); ctx != nil {
+			if meta := tentarInferirMetaDeComentarios(ctx); meta != nil {
+				s.rotasMeta[metodo][rota] = meta
+			}
+		}
+	}
 }
 
 // M__obtem_attributo__ expõe a API do Servidor para registro de rotas, middlewares e escuta de porta.
 func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	criadorRota := func(metodoHTTP string) hrp.Objeto {
+		return hrp.NewMetodoOuPanic(strings.ToLower(metodoHTTP), func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos(strings.ToLower(metodoHTTP), false, args, 2, 3); err != nil {
+				return nil, err
+			}
+			rota, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			var meta hrp.Objeto = hrp.Nulo
+			if len(args) == 3 {
+				meta = args[2]
+			}
+			s.registrarRota(metodoHTTP, string(rota.(hrp.Texto)), args[1], meta)
+			return hrp.Nulo, nil
+		}, fmt.Sprintf("Registra uma rota para requisições %s.", metodoHTTP))
+	}
+
 	switch nome {
 	case "obter":
-		// Registra uma rota HTTP GET.
-		return hrp.NewMetodoOuPanic("obter", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("obter", false, args, 2, 2); err != nil {
-				return nil, err
-			}
-			rota, err := hrp.NewTexto(args[0])
-			if err != nil {
-				return nil, err
-			}
-			s.registrarRota("GET", string(rota.(hrp.Texto)), args[1])
-			return hrp.Nulo, nil
-		}, "Registra uma rota para requisições GET."), nil
-
+		return criadorRota("GET"), nil
 	case "postar":
-		// Registra uma rota HTTP POST.
-		return hrp.NewMetodoOuPanic("postar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("postar", false, args, 2, 2); err != nil {
-				return nil, err
-			}
-			rota, err := hrp.NewTexto(args[0])
-			if err != nil {
-				return nil, err
-			}
-			s.registrarRota("POST", string(rota.(hrp.Texto)), args[1])
-			return hrp.Nulo, nil
-		}, "Registra uma rota para requisições POST."), nil
-
+		return criadorRota("POST"), nil
 	case "deletar":
-		// Registra uma rota HTTP DELETE.
-		return hrp.NewMetodoOuPanic("deletar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("deletar", false, args, 2, 2); err != nil {
-				return nil, err
-			}
-			rota, err := hrp.NewTexto(args[0])
-			if err != nil {
-				return nil, err
-			}
-			s.registrarRota("DELETE", string(rota.(hrp.Texto)), args[1])
-			return hrp.Nulo, nil
-		}, "Registra uma rota para requisições DELETE."), nil
+		return criadorRota("DELETE"), nil
+	case "put", "atualizar":
+		return criadorRota("PUT"), nil
+	case "patch":
+		return criadorRota("PATCH"), nil
 
 	case "usar":
 		// Enfileira um middleware global no pipeline de execução do servidor.
@@ -286,7 +457,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 
 			handler := ServirAppHandler(string(diretorioDist.(hrp.Texto)), componenteRaiz, metadados)
-			s.registrarRota("GET", "/*", handler)
+			s.registrarRota("GET", "/*", handler, nil)
 			return hrp.Nulo, nil
 		}, "Registra e configura as rotas de uma aplicação SPA reativa."), nil
 
@@ -315,11 +486,48 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				}
 			}
 
+			// Injeta as rotas automáticas de documentação (/docs e /docs.json) se não sobrescritas pelo usuário
+			s.mu.Lock()
+			if s.rotas["GET"] == nil {
+				s.rotas["GET"] = make(map[string]hrp.Objeto)
+			}
+			if s.rotas["GET"]["/docs.json"] == nil {
+				s.rotas["GET"]["/docs.json"] = hrp.NewMetodoOuPanic("docs_json", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
+					if len(handlerArgs) < 2 {
+						return nil, fmt.Errorf("argumentos inválidos no docs_json")
+					}
+					res := handlerArgs[1].(*Resposta)
+					spec, err := met_gerar_openapi(nil, hrp.Tupla{s})
+					if err != nil {
+						res.Status = 500
+						res.Corpo = hrp.Texto(fmt.Sprintf("Erro ao gerar documentação: %v", err))
+						return hrp.Nulo, nil
+					}
+					res.Status = 200
+					res.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
+					res.Corpo = spec.(hrp.Texto)
+					return hrp.Nulo, nil
+				}, "Retorna as especificações OpenAPI do servidor em formato JSON.")
+			}
+			if s.rotas["GET"]["/docs"] == nil {
+				s.rotas["GET"]["/docs"] = hrp.NewMetodoOuPanic("docs_html", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
+					if len(handlerArgs) < 2 {
+						return nil, fmt.Errorf("argumentos inválidos no docs_html")
+					}
+					res := handlerArgs[1].(*Resposta)
+					res.Status = 200
+					res.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("text/html; charset=utf-8"))
+					res.Corpo = hrp.Texto(htmlDocsTemplate)
+					return hrp.Nulo, nil
+				}, "Retorna a interface visual de documentação interativa das rotas da API.")
+			}
+			s.mu.Unlock()
+
 			mux := http.NewServeMux()
 			mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 				defer func() {
 					if r := recover(); r != nil {
-						fmt.Fprintf(os.Stderr, "\n🔥 Erro interno no Servidor HTTP (Pânico):\n  ➔ %v\n\n", r)
+						fmt.Fprintf(os.Stderr, "\n🔥 Erro interno no Servidor HTTP (Pânico):\n  ➔ %v\n%s\n\n", r, debug.Stack())
 						w.WriteHeader(http.StatusInternalServerError)
 						w.Write(fmt.Appendf(nil, "Erro interno do servidor (Pânico): %v", r))
 					}
@@ -331,15 +539,16 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				w.Header().Set("X-XSS-Protection", "1; mode=block")
 				w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-				// ponytail: suporte transparente a CORS Preflight OPTIONS global para facilitar desenvolvimento de SPA
+				// ponytail: suporte transparente a CORS por padrão (preflight OPTIONS e todas as respostas de API/erro)
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+				if reqHeaders := req.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
+					w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+				} else {
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				}
+
 				if req.Method == "OPTIONS" {
-					w.Header().Set("Access-Control-Allow-Origin", "*")
-					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
-					if reqHeaders := req.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
-						w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
-					} else {
-						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-					}
 					w.WriteHeader(http.StatusOK)
 					return
 				}
@@ -350,14 +559,22 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 				var handler hrp.Objeto
 				var params map[string]string
+				var melhorRotaPattern string
 
-				// Roteador dinâmico simples (:id)
+				// ponytail: prioriza rotas mais especificas (com mais segmentos estaticos) antes de cair no curinga "/*".
+				// Itera todas as rotas; quando match, calcula a "forca" do match (mais segmentos estaticos = mais forte).
+				// So usa o wildcard /* se nenhuma rota mais especifica casar.
+				var melhorForca int = -1
 				for rotaPattern, h := range rotasMetodo {
 					match, parsedParams := matchRoute(rotaPattern, req.URL.Path)
 					if match {
-						handler = h
-						params = parsedParams
-						break
+						forca := calcularForcaRota(rotaPattern)
+						if forca > melhorForca {
+							melhorForca = forca
+							handler = h
+							params = parsedParams
+							melhorRotaPattern = rotaPattern
+						}
 					}
 				}
 
@@ -365,6 +582,16 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Rota não encontrada"))
 					return
+				}
+
+				// Incrementa métricas de forma thread-safe
+				if melhorRotaPattern != "" {
+					s.mu.Lock()
+					if s.metricas == nil {
+						s.metricas = make(map[string]int64)
+					}
+					s.metricas[req.Method+" "+melhorRotaPattern]++
+					s.mu.Unlock()
 				}
 
 				// Cabeçalhos
@@ -383,7 +610,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				// Parse automático do corpo JSON quando Content-Type indica JSON
 				var corpoJsonParsed hrp.Objeto = hrp.Nulo
 				contentType := req.Header.Get("Content-Type")
-				if len(bodyBytes) > 0 && strings.Contains(contentType, "application/json") {
+				if len(bodyBytes) > 0 && strings.Contains(strings.ToLower(contentType), "application/json") {
 					var rawJson any
 					if jsonErr := json.Unmarshal(bodyBytes, &rawJson); jsonErr == nil {
 						corpoJsonParsed = hrp.ConverteDeGo(rawJson)
@@ -452,12 +679,12 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				}
 
 				if errChain := executarProximo(0); errChain != nil {
-					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]:\n", req.Method, req.URL.Path)
-					hrp.LancarErro(errChain)
-					fmt.Fprintln(os.Stderr)
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(errChain.Error()))
-					return
+					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]: %v\n", req.Method, req.URL.Path, errChain)
+					// ponytail: responde com 500 sem derrubar o servidor para preservar as demais requisições
+					resObj.Status = hrp.Inteiro(http.StatusInternalServerError)
+					resObj.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("text/plain; charset=utf-8"))
+					resObj.Corpo = hrp.Texto(fmt.Sprintf("Erro interno: %v", errChain))
+					s.msgsErrosUltimo = errChain
 				}
 
 				// ponytail: adiciona cabeçalhos CORS por padrão nas respostas normais
@@ -519,6 +746,28 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	}
 
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Servidor", nome)
+}
+
+// calcularForcaRota retorna um peso para o pattern: segmentos estaticos valem 10,
+// segmentos wildcard (*) valem 1, segmentos parametrizados (:id) valem 5.
+// Usado pelo router para preferir rotas mais especificas sobre o wildcard "/*".
+func calcularForcaRota(pattern string) int {
+	if pattern == "*" || pattern == "/*" {
+		return 0
+	}
+	parts := strings.Split(strings.Trim(pattern, "/"), "/")
+	forca := 0
+	for _, p := range parts {
+		switch {
+		case p == "*":
+			forca += 1
+		case strings.HasPrefix(p, ":"):
+			forca += 5
+		default:
+			forca += 10
+		}
+	}
+	return forca
 }
 
 // matchRoute realiza a análise de expressão regular/parâmetros dinâmicos simples para rotas (:id, *).

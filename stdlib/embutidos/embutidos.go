@@ -18,6 +18,45 @@ func registrarTipos(tipos []*hrp.Tipo, mapa hrp.Mapa) {
 	}
 }
 
+type ObjetoPromise struct{}
+
+func (p *ObjetoPromise) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("Promise", "Promise JavaScript")
+}
+
+func (p *ObjetoPromise) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	if nome == "resolve" {
+		return hrp.NewMetodoOuPanic("resolve", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) == 0 {
+				return hrp.Nulo, nil
+			}
+			val := args[0]
+			return &ObjetoPromiseResult{val: val}, nil
+		}, "Resolve Promise"), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no tipo 'Promise'", nome)
+}
+
+type ObjetoPromiseResult struct {
+	val hrp.Objeto
+}
+
+func (pr *ObjetoPromiseResult) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("PromiseResult", "Promise Result")
+}
+
+func (pr *ObjetoPromiseResult) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	if nome == "then" {
+		return hrp.NewMetodoOuPanic("then", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) > 0 {
+				return hrp.Chamar(args[0], hrp.Tupla{pr.val})
+			}
+			return pr.val, nil
+		}, "Executa o callback then"), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no tipo 'PromiseResult'", nome)
+}
+
 func init() {
 	// constantes define o escopo de constantes primordiais e classes de tipos mapeados globalmente.
 	constantes := hrp.Mapa{
@@ -176,6 +215,8 @@ func init() {
 	}, "Retorna a rota ativa atual"))
 
 	constantes["roteador"] = roteadorObj
+
+	constantes["Promise"] = &ObjetoPromise{}
 
 	// Registra o escopo agregador de embutidos na lista central de inicializações do interpretador.
 	hrp.RegistraModuloImpl(
