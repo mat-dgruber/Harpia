@@ -37,13 +37,6 @@ func stripComentarios(src string) string {
 	return reComentarioLinha.ReplaceAllString(src, "")
 }
 
-func nomeArquivoSemExt(p string) string {
-	base := filepath.Base(p)
-	if i := strings.LastIndex(base, "."); i >= 0 {
-		return base[:i]
-	}
-	return base
-}
 
 func extrairEntradas(src string) []entradaPot {
 	clean := stripComentarios(src)

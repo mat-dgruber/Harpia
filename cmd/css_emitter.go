@@ -19,7 +19,6 @@ package cmd
 // - Não faz minificação (browser já lida bem com whitespace).
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -332,30 +331,3 @@ func isEspaco(b byte) bool {
 	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
 }
 
-// validateSimpleCss checa balanceamento mínimo de chaves e vírgulas
-// suspeitas dentro de seletores. Retorna lista de mensagens de erro
-// (vazia quando CSS parece OK).
-func validateSimpleCss(raw string) []string {
-	var errs []string
-	abres, fechas := strings.Count(raw, "{"), strings.Count(raw, "}")
-	if abres != fechas {
-		errs = append(errs, fmt.Sprintf("chaves desbalanceadas: %d abertas vs %d fechadas", abres, fechas))
-	}
-	// Vírgula entre chave e `{` é sinal de selector malformado.
-	if strings.Contains(raw, ",{") {
-		errs = append(errs, "vírgula imediatamente antes de { detectada")
-	}
-	// Aspas literais em valor num string de CSS geralmente é inválido.
-	// Avalia em pares `chave: "valor"` com aspas.
-	for _, m := range reAspasDuplas.FindAllString(raw, -1) {
-		_ = m
-	}
-	// Heurística simples: aspas dentro de uma linha de propriedade
-	linhas := strings.Split(raw, "\n")
-	for _, linha := range linhas {
-		if strings.Contains(linha, ":") && strings.Contains(linha, "\"") {
-			errs = append(errs, fmt.Sprintf("possível aspas literais em valor CSS: %q", linha))
-		}
-	}
-	return errs
-}

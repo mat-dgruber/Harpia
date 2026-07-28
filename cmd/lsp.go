@@ -655,7 +655,8 @@ func responderHoverLSP(id interface{}, params TextDocumentPositionParams) {
 		if len(docs) > 0 {
 			markdown.WriteString("\n---\n")
 			for _, doc := range docs {
-				markdown.WriteString(doc + "\n")
+				markdown.WriteString(doc)
+				markdown.WriteString("\n")
 			}
 		}
 	}

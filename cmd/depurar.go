@@ -119,4 +119,7 @@ func lidarComDap(conn net.Conn) {
 			}
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("[DAP] Erro no scanner: %v\n", err)
+	}
 }

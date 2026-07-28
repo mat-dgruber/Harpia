@@ -64,6 +64,9 @@ func main() {
 		Short:   "Harpia é uma linguagem de programação reativa de alto desempenho em Português",
 		Long:    strings.ReplaceAll(strings.Trim(LongDescription, "\n "), "\t", "    "),
 		Version: Version,
+		CompletionOptions: cobra.CompletionOptions{
+			DisableDefaultCmd: true,
+		},
 	}
 	cmd.InstalarComandos(rootCmd)
 

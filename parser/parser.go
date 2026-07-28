@@ -461,6 +461,10 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 	}
 
 	for {
+		for p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+		}
+
 		if p.token.Tipo == lexer.TokenFechaParenteses {
 			break
 		}
@@ -473,7 +477,15 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 		funcao.Parametros = append(funcao.Parametros, params)
 
+		for p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+		}
+
 		if p.token.Tipo == lexer.TokenVirgula {
+			p.avancar()
+		}
+
+		for p.token.Tipo == lexer.TokenNovaLinha {
 			p.avancar()
 		}
 	}

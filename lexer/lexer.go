@@ -240,6 +240,9 @@ func (l *Lexer) lerTexto() *Token {
 	delimitador := l.carater
 
 	for {
+		if l.fimDeArquivo() {
+			break
+		}
 		l.avancar()
 
 		if l.carater == delimitador {

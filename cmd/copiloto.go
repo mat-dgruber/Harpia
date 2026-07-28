@@ -293,7 +293,11 @@ func detectarFuncoesTexto(linhas [][]byte) []funcaoDetectada {
 		linhaFim, ok := casarChave(linhas, idxCabecalho)
 		if !ok || linhaFim <= idxCabecalho+1 {
 			// Bloco vazio ou malformado — ignora.
-			i = linhaFim
+			if ok {
+				i = linhaFim
+			} else {
+				i = idxCabecalho
+			}
 			continue
 		}
 
@@ -464,12 +468,13 @@ func profundidadeMax(conteudo []byte) int {
 			}
 			continue
 		}
-		if c == '{' {
+		switch c {
+		case '{':
 			prof++
 			if prof > max {
 				max = prof
 			}
-		} else if c == '}' {
+		case '}':
 			prof--
 		}
 	}

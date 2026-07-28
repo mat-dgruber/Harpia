@@ -71,6 +71,28 @@ func comandoExecutar() *cobra.Command {
 				os.Exit(1)
 			}
 
+			// ponytail: se um arquivo foi passado, faz chdir para a pasta dele
+			// para que `dependencias.json`/`./backend/*.hrp` resolvam independente de onde
+			// o usuário invocou a CLI. Restauramos cwd no fim para não vazar estado.
+			var cwdOrigem string
+			if len(args) > 0 && args[0] != "" {
+				if abs, errAbs := filepath.Abs(args[0]); errAbs == nil {
+					if dir := filepath.Dir(abs); dir != "" && dir != cur {
+						if info, errStat := os.Stat(dir); errStat == nil && info.IsDir() {
+							cwdOrigem = cur
+							if errCh := os.Chdir(dir); errCh == nil {
+								cur = dir
+							}
+						}
+					}
+				}
+				if cwdOrigem != "" {
+					defer func(prev string) {
+						_ = os.Chdir(prev)
+					}(cwdOrigem)
+				}
+			}
+
 			executarUmaVez := func() {
 				ctx := hrp.NewContexto(hrp.OpcsContexto{
 					CaminhosPadrao: []string{cur},

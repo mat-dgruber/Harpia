@@ -58,14 +58,15 @@ func comandoDiagramar() *cobra.Command {
 
 			codigoMermaid := gerarMermaid(rels)
 
-			if formato == "mermaid" {
+			switch formato {
+			case "mermaid":
 				fmt.Println("\n=== DIAGRAMA MERMAID ===")
 				fmt.Println(codigoMermaid)
 				if saida != "" {
 					os.WriteFile(saida, []byte(codigoMermaid), 0644)
 					fmt.Printf("Diagrama salvo com sucesso em: %s\n", saida)
 				}
-			} else if formato == "html" || formato == "svg" {
+			case "html", "svg":
 				alertas := gerarAlertasHTML(errs)
 				htmlFinal := strings.Replace(templateHTMLDiagrama, "{{MERMAID_CODE}}", codigoMermaid, 1)
 				htmlFinal = strings.Replace(htmlFinal, "{{ALERTS_MARKUP}}", alertas, 1)
@@ -225,7 +226,8 @@ func gerarMermaid(rels []ImportRel) string {
 		sb.WriteString("  dominio\n  infra\n  web\n")
 	} else {
 		for _, style := range linkStyles {
-			sb.WriteString(style + "\n")
+			sb.WriteString(style)
+			sb.WriteString("\n")
 		}
 	}
 

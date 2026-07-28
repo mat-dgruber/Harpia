@@ -93,6 +93,7 @@ func InstalarComandos(raiz *cobra.Command) {
 	raiz.AddCommand(comandoSwagger())
 	raiz.AddCommand(comandoAuditar())
 	raiz.AddCommand(comandoPublicar())
+	raiz.AddCommand(comandoCompletar())
 }
 
 

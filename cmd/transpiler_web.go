@@ -119,11 +119,12 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		dir := t.Transpile(n.Dir)
 		op := n.Operador
 		// Mapeamentos de operadores do Harpia para JS
-		if op == "e" {
+		switch op {
+		case "e":
 			op = "&&"
-		} else if op == "ou" {
+		case "ou":
 			op = "||"
-		} else if op == "//" {
+		case "//":
 			return fmt.Sprintf("Math.floor(%s / %s)", esq, dir)
 		}
 		return fmt.Sprintf("(%s %s %s)", esq, op, dir)

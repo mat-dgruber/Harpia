@@ -42,13 +42,18 @@ func comandoMonolito() *cobra.Command {
 				nomeProj,
 				filepath.Join(nomeProj, "dominio"),
 				filepath.Join(nomeProj, "dominio", "entidades"),
+				filepath.Join(nomeProj, "dominio", "fabricas"),
 				filepath.Join(nomeProj, "dominio", "repositorios"),
+				filepath.Join(nomeProj, "dominio", "servicos"),
 				filepath.Join(nomeProj, "infra"),
 				filepath.Join(nomeProj, "infra", "banco"),
 				filepath.Join(nomeProj, "web"),
 				filepath.Join(nomeProj, "web", "rotas"),
 				filepath.Join(nomeProj, "web", "pages"),
 				filepath.Join(nomeProj, "web", "componentes"),
+				filepath.Join(nomeProj, "web", "estado"),
+				filepath.Join(nomeProj, "web", "servicos"),
+				filepath.Join(nomeProj, "web", "estilos"),
 				filepath.Join(nomeProj, "testes"),
 				filepath.Join(nomeProj, "docs"),
 			}
@@ -61,13 +66,76 @@ func comandoMonolito() *cobra.Command {
 			}
 
 			// Escreve os arquivos padrões do monolito
-			escreverArquivo(nomeProj, filepath.Join("dominio", "entidades", "usuario.hrp"), `# Entidade de domínio tipada e segura
+			// ─── Entidade de domínio: classe pura, sem dependências externas ───
+			// Regra de Clean Architecture: a entidade não conhece banco, HTTP, nem UI.
+			// Apenas carrega identidade e seus próprios invariantes estruturais.
+			escreverArquivo(nomeProj, filepath.Join("dominio", "entidades", "usuario.hrp"), `# 🧬 Entidade de Domínio
+# Esta é uma classe PURA: não importa nada do banco, http ou UI.
+# Toda lógica que decide o que é um "Usuário válido" mora aqui.
 exportar classe Usuario {
 	inicializar(self, id: Inteiro, nome: Texto, email: Texto) {
 		self.id = id
 		self.nome = nome
 		self.email = email
 	}
+}
+`)
+
+			// ─── Fábrica: ponto único para criar entidades válidas ───
+			// A fábrica roda as validações ANTES de devolver a instância.
+			// Resultado: para um Usuário existir no sistema, ele já é válido
+			// (não há como o domínio produzir um Usuário inválido).
+			escreverArquivo(nomeProj, filepath.Join("dominio", "fabricas", "usuario.hrp"), `# 🛠️ Fábrica de Usuários
+# Toda construção passa por aqui. Se a validação falhar, levantamos erro.
+# A camada de aplicação e a infraestrutura devem SEMPRE chamar "criarUsuario"
+# em vez de instanciar a classe diretamente. Isso garante invariantes do domínio.
+de "../entidades/usuario.hrp" importe Usuario
+de "../servicos/validador.hrp" importe validarUsuario
+
+exportar funcao criarUsuario(id, nome, email) {
+	var [valido, erros] = validarUsuario(id, nome, email)
+	se nao valido {
+		# Em Harpia usamos retornar tupla {ok, dados} para manter ponteiros opacos.
+		retorne { "ok": Falso, "erros": erros }
+	}
+	retorne { "ok": Verdadeiro, "dados": nova Usuario(id, nome, email) }
+}
+`)
+
+			// ─── Serviço de domínio: regras que cruzam entidades ───
+			// Validações e utilidades que não cabem dentro de uma entidade
+			// ficam aqui. Mantemos isoladas para reuso entre camadas.
+			escreverArquivo(nomeProj, filepath.Join("dominio", "servicos", "validador.hrp"), `# ✅ Serviço de Validação (regras de domínio)
+# Pode validar campos compostos, regras de negócio, formatos, etc.
+# Retorna sempre a tupla [valido, lista_de_erros] para padronização.
+
+exportar funcao validarUsuario(id, nome, email) {
+	var erros = []
+
+	se nome == Nulo ou nome == "" {
+		erros.adiciona("Nome é obrigatório.")
+	}
+	se email == Nulo ou nao (email contém "@") {
+		erros.adiciona("E-mail inválido.")
+	}
+
+	retorne [tamanho(erros) == 0, erros]
+}
+`)
+
+			// ─── Repositório: contrato puro (interface em PT-BR) ───
+			// Define O QUE o domínio precisa persistir, sem dizer COMO.
+			// A camada "infra/" fornecerá a implementação real (SQLite, Postgres, memória...),
+			// permitindo trocar a tecnologia sem tocar o domínio.
+			escreverArquivo(nomeProj, filepath.Join("dominio", "repositorios", "usuarios.hrp"), `# 🗄️ Contrato do Repositório de Usuários (Interface)
+# Pureza: este arquivo NÃO importa nada de banco. Define apenas a forma.
+# A implementação concreta vive em "../infra/banco/usuarios.hrp" (SQLite, etc).
+
+exportar classe RepositorioUsuarios {
+	func listar(self) { retorne [] }
+	func obterPorId(self, id) { retorne Nulo }
+	func inserir(self, usuario) { retorne Nulo }
+	func remover(self, id) { retorne Falso }
 }
 `)
 
@@ -103,8 +171,7 @@ A camada de infraestrutura é responsável por conectar a lógica puramente conc
 2. **Resiliência Integrada**: Use disjuntores, limites de taxa ou retentativas na infraestrutura para blindar o sistema contra picos de erro de conexões externas.
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "web" importe h;
-de "../pages/Inicio.hrp" importe RotaInicio;
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "../pages/Inicio.hrp" importe RotaInicio;
 
 exportar funcao RotaIndex() {
 	retorne <RotaInicio />;
@@ -142,8 +209,7 @@ exportar estilo CorpoGlobal {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "web" importe sinal, importarHtml;
-de "./Inicio.estilo.hrp" importe Aplicacao, BotaoPrincipal;
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "./Inicio.estilo.hrp" importe Aplicacao, BotaoPrincipal;
 
 exportar funcao RotaInicio() {
 	var contadorSinal = sinal(0);
@@ -226,8 +292,7 @@ Responsável pela interface do usuário (UI) e controle de rotas no navegador (S
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
 
-			escreverArquivo(nomeProj, "main.hrp", `de "web" importe montar;
-de "./web/rotas/rotas.hrp" importe RotaIndex;
+			escreverArquivo(nomeProj, "main.hrp", `de "./web/rotas/rotas.hrp" importe RotaIndex;
 
 funcao Aplicacao() {
 	retorne <div class="App">
@@ -238,13 +303,65 @@ funcao Aplicacao() {
 montar(Aplicacao, Nulo);
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("testes", "usuario_test.hrp"), `de "assegura" importe assegure;
-de "../dominio/entidades/usuario.hrp" importe Usuario;
+			escreverArquivo(nomeProj, "servidor.hrp", `de "http" importe Servidor
+de "./main.hrp" importe Aplicacao
 
-testar "deve instanciar um usuario de dominio com tipos corretos" {
-	var user = nova Usuario(1, "Natan", "natan@Harpia.org")
-	assegure(user.id == 1)
-	assegure(user.nome == "Natan")
+# Servidor monolito: integra backend RPC + SSR + SPA reativa em um único processo.
+# Suba todos os pontos de API RPC acima da definição de 'srv.servir_app' para
+# que as rotas da API tenham prioridade sobre o fallback SPA.
+var srv = nova Servidor()
+
+# Adicione rotas API aqui, por exemplo:
+# srv.postar("/api/saudacao", funcao(req, res) {
+#     res.definir_status(200)
+#     res.enviar_json({ "mensagem": "Olá do monolito Harpia!" })
+# })
+
+srv.servir_app("./dist", Aplicacao)
+
+imprimir("Servidor monolito Harpia escutando na porta 3000...")
+srv.escutar("3000", Verdadeiro)
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("testes", "usuario_test.hrp"), `# 🧪 Testes do domínio "Usuario"
+# Rode a suíte com:  harpia checar testes/
+#
+# Estes testes cobrem duas camadas do domínio:
+#   1. Validador (regras puras, sem I/O)
+#   2. Fábrica (point-of-truth para criar usuários válidos)
+
+de "assegura" importe assegure;
+de "../dominio/servicos/validador.hrp" importe validarUsuario;
+de "../dominio/fabricas/usuario.hrp" importe criarUsuario;
+
+testar "validador: usuário com nome vazio deve falhar" {
+	var [valido, erros] = validarUsuario(1, "", "ok@exemplo.com")
+	assegure(valido == Falso)
+	assegure(tamanho(erros) >= 1)
+}
+
+testar "validador: e-mail sem arroba deve falhar" {
+	var [valido, _] = validarUsuario(1, "Nome", "sem-arroba.com")
+	assegure(valido == Falso)
+}
+
+testar "validador: usuário completo deve passar" {
+	var [valido, erros] = validarUsuario(2, "Natan", "natan@Harpia.org")
+	assegure(valido == Verdadeiro)
+	assegure(tamanho(erros) == 0)
+}
+
+testar "fabrica: deve criar usuário quando válido" {
+	var res = criarUsuario(10, "Maria", "maria@exemplo.com")
+	assegure(res["ok"] == Verdadeiro)
+	assegure(res["dados"].id == 10)
+	assegure(res["dados"].nome == "Maria")
+}
+
+testar "fabrica: deve recusar entrada inválida" {
+	var res = criarUsuario(11, "", "")
+	assegure(res["ok"] == Falso)
+	assegure(tamanho(res["erros"]) >= 1)
 }
 `)
 
@@ -270,6 +387,40 @@ harpia servir
 `+"```"+`
 `)
 
+			// ─── Documentação padrão de qualidade ───
+			escreverArquivo(nomeProj, filepath.Join("docs", "padroes.md"), conteudoPadroesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "decisoes.md"), conteudoDecisoesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "testes.md"), conteudoTestesMd)
+
+			// ─── Manifesto de dependências + .gitignore ───
+			escreverArquivo(nomeProj, "dependencias.json", fmt.Sprintf(`{
+  "harpia": ">=0.1.0",
+  "modulos": [],
+  "descricao": "%s gerado a partir do template monolito."
+}
+`, nomeProj))
+
+			escreverArquivo(nomeProj, ".gitignore", `# Build
+dist/
+*.log
+
+# Persistência local
+dados.db
+dados.db-shm
+dados.db-wal
+*.sqlite
+*.sqlite3
+
+# Ambiente
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+`)
+
 			exibirSucessoCompleto(nomeProj, "monolito")
 		},
 	}
@@ -293,8 +444,13 @@ func comandoBackend() *cobra.Command {
 				nomeProj,
 				filepath.Join(nomeProj, "dominio"),
 				filepath.Join(nomeProj, "dominio", "entidades"),
+				filepath.Join(nomeProj, "dominio", "fabricas"),
+				filepath.Join(nomeProj, "dominio", "repositorios"),
+				filepath.Join(nomeProj, "dominio", "servicos"),
+				filepath.Join(nomeProj, "dominio", "eventos"),
 				filepath.Join(nomeProj, "infra"),
 				filepath.Join(nomeProj, "infra", "banco"),
+				filepath.Join(nomeProj, "infra", "http"),
 				filepath.Join(nomeProj, "testes"),
 				filepath.Join(nomeProj, "docs"),
 			}
@@ -306,7 +462,10 @@ func comandoBackend() *cobra.Command {
 				}
 			}
 
-			escreverArquivo(nomeProj, filepath.Join("dominio", "entidades", "produto.hrp"), `exportar classe Produto {
+			// ─── Entidade de domínio rica: Produto ───
+			escreverArquivo(nomeProj, filepath.Join("dominio", "entidades", "produto.hrp"), `# 🧬 Entidade de Domínio
+# Esta é uma classe pura, sem dependências externas.
+exportar classe Produto {
 	inicializar(self, id: Inteiro, nome: Texto, preco: Decimal) {
 		self.id = id
 		self.nome = nome
@@ -315,18 +474,138 @@ func comandoBackend() *cobra.Command {
 }
 `)
 
+			// ─── Serviço de validação de domínio ───
+			escreverArquivo(nomeProj, filepath.Join("dominio", "servicos", "validador.hrp"), `# ✅ Serviço de Validação de Produto
+exportar funcao validarProduto(id, nome, preco) {
+	var erros = []
+	se nome == Nulo ou nome == "" {
+		erros.adiciona("Nome do produto é obrigatório.")
+	}
+	se preco == Nulo ou preco <= 0.0 {
+		erros.adiciona("Preço deve ser maior que zero.")
+	}
+	retorne [tamanho(erros) == 0, erros]
+}
+`)
+
+			// ─── Fábrica para instanciar produtos válidos ───
+			escreverArquivo(nomeProj, filepath.Join("dominio", "fabricas", "produto.hrp"), `# 🛠️ Fábrica de Produtos
+de "../entidades/produto.hrp" importe Produto
+de "../servicos/validador.hrp" importe validarProduto
+
+exportar funcao criarProduto(id, nome, preco) {
+	var [valido, erros] = validarProduto(id, nome, preco)
+	se nao valido {
+		retorne { "ok": Falso, "erros": erros }
+	}
+	retorne { "ok": Verdadeiro, "dados": nova Produto(id, nome, preco) }
+}
+`)
+
+			// ─── Contrato do repositório (Interface) ───
+			escreverArquivo(nomeProj, filepath.Join("dominio", "repositorios", "produtos.hrp"), `# 🗄️ Contrato do Repositório de Produtos (Interface)
+exportar classe RepositorioProdutos {
+	func listar(self) { retorne [] }
+	func inserir(self, produto) { retorne Nulo }
+}
+`)
+
+			// ─── Camada de eventos de domínio (B13) ───
+			escreverArquivo(nomeProj, filepath.Join("dominio", "eventos", "publicador.hrp"), `# 📢 Barramento de Eventos de Domínio
+# ponytail: barramento síncrono em memória para comunicação desacoplada entre agregados
+exportar classe PublicadorEventos {
+	inicializar(self) {
+		self.ouvintes = {}
+	}
+
+	inscrever(self, eventoTipo: Texto, callback) {
+		se self.ouvintes[eventoTipo] == Nulo {
+			self.ouvintes[eventoTipo] = []
+		}
+		self.ouvintes[eventoTipo].adiciona(callback)
+	}
+
+	publicar(self, eventoTipo: Texto, dados) {
+		var lista = self.ouvintes[eventoTipo]
+		se lista != Nulo {
+			para ouvinte em lista {
+				ouvinte(dados)
+			}
+		}
+	}
+}
+`)
+
 			escreverArquivo(nomeProj, filepath.Join("dominio", "README.md"), `# 🧬 Camada de Domínio do Backend (O Coração da API)
 
 Camada central onde residem as regras de negócio puras (entidades e modelos de domínio), livre de conexões com banco de dados ou protocolo de rede HTTP/gRPC.
+
+- **entidades/**: Modelos de dados ricos e tipados (.hrp).
+- **fabricas/**: Fábricas de validação de dados obrigatórios (.hrp).
+- **repositorios/**: Interfaces de abstração de persistência (.hrp).
+- **servicos/**: Lógicas que dependem de múltiplas entidades (.hrp).
+- **eventos/**: Barramento de eventos para acoplamento fraco (.hrp).
 
 ## 📌 Boas Práticas:
 1. **Modelagem de Domínio Rito**: Agregue lógicas, regras fiscais e validações diretamente nos métodos das entidades em "entidades/".
 2. **Independência Total**: O domínio define o que o sistema faz; ele nunca deve saber onde ou como os dados são salvos ou enviados.
 `)
 
+			// ─── Conexão SQLite do backend ───
+			escreverArquivo(nomeProj, filepath.Join("infra", "banco", "conexao.hrp"), `de "bd" importe conectar;
+
+exportar funcao obterBanco() {
+	# Conexão nativa SQLite para persistência embarcada local
+	retorne conectar("sqlite", "dados.db");
+}
+`)
+
+			// ─── Repositório concreto SQLite ───
+			escreverArquivo(nomeProj, filepath.Join("infra", "banco", "produtos.hrp"), `de "./conexao.hrp" importe obterBanco
+de "../../dominio/repositorios/produtos.hrp" importe RepositorioProdutos
+
+exportar classe RepositorioProdutosSQLite herda RepositorioProdutos {
+	inicializar(self) {
+		self.db = obterBanco()
+		# ponytail: cria tabela de forma transparente se não existir
+		self.db.executar("CREATE TABLE IF NOT EXISTS produtos (id INTEGER PRIMARY KEY, nome TEXT, preco REAL)")
+	}
+
+	func listar(self) {
+		var linhas = self.db.consultar("SELECT id, nome, preco FROM produtos")
+		retorne linhas
+	}
+
+	func inserir(self, produto) {
+		self.db.executar("INSERT INTO produtos (id, nome, preco) VALUES (?, ?, ?)", produto.id, produto.nome, produto.preco)
+		retorne produto
+	}
+}
+`)
+
+			// ─── Envelope de Resposta HTTP Padronizado (B14) ───
+			escreverArquivo(nomeProj, filepath.Join("infra", "http", "resposta.hrp"), `# 📦 Envelope de Resposta HTTP
+# ponytail: padronização de respostas JSON para evitar inconsistências no consumo
+exportar funcao responderSucesso(res, dados) {
+	res.definir_status(200)
+	res.enviar_json({
+		"ok": Verdadeiro,
+		"dados": dados,
+		"erro": Nulo
+	})
+}
+
+exportar funcao responderErro(res, status: Inteiro, mensagem: Texto) {
+	res.erro_json(status, mensagem)
+}
+`)
+
 			escreverArquivo(nomeProj, filepath.Join("infra", "README.md"), `# 🔌 Camada de Infraestrutura do Backend (Detalhes Técnicos)
 
 Aqui residem as implementações concretas e adaptadores de entrada/saída (conexões de banco, clientes HTTP, envio de e-mails, etc.).
+
+- **banco/**: Drives, conexões físicas e repositórios concretos SQLite (.hrp).
+- **http/**: Utilitários e middlewares de rede e envelopes HTTP (.hrp).
 
 ## 📌 Boas Práticas:
 1. **Consultas e queries**: Mantenha as consultas brutas SQL e integrações externas focadas nesta camada.
@@ -343,22 +622,78 @@ Uma estrutura robusta e performática voltada para o desenvolvimento de microsse
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "padroes.md"), conteudoPadroesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "decisoes.md"), conteudoDecisoesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "testes.md"), conteudoTestesMd)
 
-			escreverArquivo(nomeProj, "main.hrp", `de "http" importe Servidor;
-de "json" importe analisar;
+			// ─── Suite de testes automatizados do backend ───
+			escreverArquivo(nomeProj, filepath.Join("testes", "produto_test.hrp"), `# 🧪 Testes de Domínio de Produto
+de "assegura" importe assegure
+de "../dominio/servicos/validador.hrp" importe validarProduto
+de "../dominio/fabricas/produto.hrp" importe criarProduto
 
-var api = novo Servidor();
+testar "validador: produto com nome vazio deve falhar" {
+	var [valido, erros] = validarProduto(1, "", 15.0)
+	assegure(valido == Falso)
+	assegure(tamanho(erros) >= 1)
+}
+
+testar "validador: produto com preco negativo deve falhar" {
+	var [valido, _] = validarProduto(1, "Caneta", -1.5)
+	assegure(valido == Falso)
+}
+
+testar "fabrica: cria produto valido" {
+	var res = criarProduto(10, "Caderno", 12.5)
+	assegure(res["ok"] == Verdadeiro)
+	assegure(res["dados"].nome == "Caderno")
+}
+`)
+
+			// ─── Servidor principal com endpoints reais ───
+			// B7: padronizar escutar para api.escutar("8080", Verdadeiro)
+			escreverArquivo(nomeProj, "main.hrp", `de "http" importe Servidor
+de "./infra/banco/produtos.hrp" importe RepositorioProdutosSQLite
+de "./dominio/fabricas/produto.hrp" importe criarProduto
+de "./dominio/eventos/publicador.hrp" importe PublicadorEventos
+de "./infra/http/resposta.hrp" importe responderSucesso, responderErro
+
+var api = nova Servidor()
+var repo = nova RepositorioProdutosSQLite()
+var pub = nova PublicadorEventos()
+
+# Ouvinte de exemplo para eventos de domínio
+pub.inscrever("ProdutoCriado", funcao(dados) {
+	imprimir("📢 Evento recebido: Produto criado! ID: " + dados.id + " | Preço: " + dados.preco)
+})
 
 api.obter("/api/produtos", funcao(req, res) {
-	var resposta = [
-		{ "id": 1, "nome": "Caneta", "preco": 1.50 },
-		{ "id": 2, "nome": "Caderno", "preco": 15.90 }
-	]
-	res.status(200).json(resposta)
-});
+	var produtos = repo.listar()
+	responderSucesso(res, produtos)
+})
+
+api.postar("/api/produtos", funcao(req, res) {
+	# Em ambiente real os dados viriam de req.corpo
+	# ponytail: dados mockados de exemplo para ilustrar o fluxo de criação da fábrica
+	var idUnico = 100 + tamanho(repo.listar())
+	var resFabrica = criarProduto(idUnico, "Novo Item", 19.90)
+
+	se nao resFabrica["ok"] {
+		responderErro(res, 400, "Dados de produto inválidos.")
+		retorne Nulo
+	}
+
+	var produtoValido = resFabrica["dados"]
+	repo.inserir(produtoValido)
+
+	# Dispara o evento de domínio desacoplado
+	pub.publicar("ProdutoCriado", produtoValido)
+
+	responderSucesso(res, produtoValido)
+})
 
 imprimir("Servidor backend ativo na porta 8080...")
-api.ouvir(8080)
+api.escutar("8080", Verdadeiro)
 `)
 
 			escreverArquivo(nomeProj, "README.md", `# 🦅 Bem-vindo ao `+nomeProj+` (Backend Harpia)
@@ -381,6 +716,35 @@ Para executar o seu servidor backend imediatamente, execute no terminal:
 # Executa o servidor na máquina local
 harpia executar main.hrp
 `+"```"+`
+`)
+
+			// ─── Manifesto de dependências + .gitignore (B9/B10) ───
+			escreverArquivo(nomeProj, "dependencias.json", fmt.Sprintf(`{
+  "harpia": ">=0.1.0",
+  "modulos": [],
+  "descricao": "%s gerado a partir do template backend."
+}
+`, nomeProj))
+
+			escreverArquivo(nomeProj, ".gitignore", `# Build
+dist/
+*.log
+
+# Persistência local
+dados.db
+dados.db-shm
+dados.db-wal
+*.sqlite
+*.sqlite3
+
+# Ambiente
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
 `)
 
 			exibirSucessoCompleto(nomeProj, "backend")
@@ -408,6 +772,7 @@ func comandoFrontend() *cobra.Command {
 				filepath.Join(nomeProj, "web", "rotas"),
 				filepath.Join(nomeProj, "web", "pages"),
 				filepath.Join(nomeProj, "web", "componentes"),
+				filepath.Join(nomeProj, "web", "servicos"),
 				filepath.Join(nomeProj, "testes"),
 				filepath.Join(nomeProj, "docs"),
 			}
@@ -419,8 +784,7 @@ func comandoFrontend() *cobra.Command {
 				}
 			}
 
-			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "web" importe h;
-de "../pages/Inicio.hrp" importe RotaInicio;
+			escreverArquivo(nomeProj, filepath.Join("web", "rotas", "rotas.hrp"), `de "../pages/Inicio.hrp" importe RotaInicio;
 
 exportar funcao RotaIndex() {
 	retorne <RotaInicio />;
@@ -444,13 +808,35 @@ exportar estilo CorpoGlobal {
 }
 `)
 
-			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "web" importe sinal, h;
-de "./Inicio.estilo.hrp" importe Aplicacao, EntradaTexto;
+			// ─── Cliente HTTP / API Boilerplate (B6) ───
+			escreverArquivo(nomeProj, filepath.Join("web", "servicos", "api.hrp"), `# 🌐 Cliente de API HTTP
+# ponytail: cliente de rede desacoplado para integração assíncrona com o backend
+exportar classe ClienteApi {
+	inicializar(self, urlBase: Texto) {
+		self.urlBase = urlBase
+	}
+
+	obterProdutos(self) {
+		# ponytail: simulação local assíncrona se não houver backend rodando
+		retorne [
+			{ "id": 1, "nome": "Produto Exemplo A", "preco": 29.90 },
+			{ "id": 2, "nome": "Produto Exemplo B", "preco": 49.90 }
+		]
+	}
+}
+`)
+
+			escreverArquivo(nomeProj, filepath.Join("web", "pages", "Inicio.hrp"), `de "./Inicio.estilo.hrp" importe Aplicacao, EntradaTexto;
+de "../servicos/api.hrp" importe ClienteApi;
 
 exportar funcao RotaInicio() {
 	var nomeSinal = sinal("");
 	var nome = nomeSinal[0];
 	var setNome = nomeSinal[1];
+
+	# Inicializa cliente de API
+	var api = nova ClienteApi("http://localhost:8080")
+	var itens = api.obterProdutos()
 
 	retorne <div class={Aplicacao}>
 		<h1>🦅 Cliente SPA Harpia!</h1>
@@ -461,6 +847,15 @@ exportar funcao RotaInicio() {
 		<se condicao={nome() != ""}>
 			<p style="color: #00A86B; font-weight: bold; font-size: 1.2rem;">Seja muito bem-vindo, {nome()}!</p>
 		</se>
+
+		<div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 8px; display: inline-block;">
+			<h3>Produtos carregados via API:</h3>
+			<ul>
+				para item em itens {
+					<li>{item.nome} - R$ {item.preco}</li>
+				}
+			</ul>
+		</div>
 	</div>;
 }
 `)
@@ -488,6 +883,7 @@ Esta pasta abriga os elementos de renderização dinâmica no navegador (SPA), c
 
 - **pages/**: Estrutura de telas, painéis e páginas em HTML, estilos específicos e lógica associada. Cada página possui a tríade de arquivos integrada: ".hrp" (lógica), ".estilo.hrp" (estilos) e ".html" (marcação visual).
 - **componentes/**: Pasta vazia reservada para criar componentes visuais menores reutilizáveis (como botões, cards, modais, etc.) importados futuramente nas páginas.
+- **servicos/**: Clientes de APIs, adaptadores de rede e gerenciamento de I/O externo (.hrp).
 - **global.estilos.hrp**: Arquivo na raiz de 'web/' contendo os estilos gerais da aplicação.
 - **rotas/**: Telas, dashboards e páginas de roteamento SPA (.hrp).
 
@@ -508,10 +904,29 @@ Uma estrutura reativa focada no cliente SPA (Single Page Application) de altíss
 `)
 
 			escreverArquivo(nomeProj, filepath.Join("docs", "comandos.md"), conteudoComandosMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "padroes.md"), conteudoPadroesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "decisoes.md"), conteudoDecisoesMd)
+			escreverArquivo(nomeProj, filepath.Join("docs", "testes.md"), conteudoTestesMd)
 
-			escreverArquivo(nomeProj, "main.hrp", `de "web" importe montar;
-de "./web/rotas/rotas.hrp" importe RotaIndex;
+			// ─── Testes do Frontend (B4) ───
+			escreverArquivo(nomeProj, filepath.Join("testes", "frontend_test.hrp"), `# 🧪 Testes de Componentes e API do Frontend
+de "assegura" importe assegure
+de "../web/servicos/api.hrp" importe ClienteApi
 
+testar "api: cliente deve retornar lista de produtos mockados" {
+	var api = nova ClienteApi("http://teste")
+	var itens = api.obterProdutos()
+	assegure(tamanho(itens) == 2)
+	assegure(itens[0].nome == "Produto Exemplo A")
+}
+`)
+
+			// ─── Ponto de entrada com Comentários Explicativos de montar() (B11) ───
+			escreverArquivo(nomeProj, "main.hrp", `de "./web/rotas/rotas.hrp" importe RotaIndex;
+
+# O método montar inicializa o motor do Virtual DOM do Harpia no navegador.
+# Argumento 1: O Componente funcional raiz da aplicação (<RotaIndex /> ou função).
+# Argumento 2: O elemento contêiner HTML de destino, ou Nulo para injetar diretamente no body.
 montar(RotaIndex, Nulo);
 `)
 
@@ -536,6 +951,28 @@ Para compilar e servir o seu projeto no navegador, execute no seu terminal:
 harpia servir
 `+"```"+`
 
+`)
+
+			// ─── Manifesto de dependências + .gitignore (B9/B10) ───
+			escreverArquivo(nomeProj, "dependencias.json", fmt.Sprintf(`{
+  "harpia": ">=0.1.0",
+  "modulos": [],
+  "descricao": "%s gerado a partir do template frontend."
+}
+`, nomeProj))
+
+			escreverArquivo(nomeProj, ".gitignore", `# Build
+dist/
+*.log
+
+# Ambiente
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
 `)
 
 			exibirSucessoCompleto(nomeProj, "frontend")
@@ -590,8 +1027,7 @@ func comandoCrieRota() *cobra.Command {
 </div>
 `, nomeLimp, nomeLimp, nomeLimp, nomeLimp, nomeLimp)
 
-			conteudoLogico := fmt.Sprintf(`de "web" importe sinal, importarHtml;
-de "./%s.estilo.hrp" importe Conteiner%s;
+			conteudoLogico := fmt.Sprintf(`de "./%s.estilo.hrp" importe Conteiner%s;
 
 exportar funcao Rota%s() {
 	retorne importarHtml("./%s.html");
@@ -643,8 +1079,7 @@ func comandoCrieComponente() *cobra.Command {
 			caminhoLogico := filepath.Join(pastaDest, nomeLimp+".hrp")
 			caminhoEstilo := filepath.Join(pastaDest, nomeLimp+".estilo.hrp")
 
-			conteudoLogico := fmt.Sprintf(`de "web" importe sinal, h;
-de "./%s.estilo.hrp" importe CaixaDe%s;
+			conteudoLogico := fmt.Sprintf(`de "./%s.estilo.hrp" importe CaixaDe%s;
 
 exportar funcao %s(props) {
 	retorne <div class={CaixaDe%s}>
@@ -778,9 +1213,9 @@ func comandoCrieModelo() *cobra.Command {
 			nome := args[0]
 			nomeLimp := strings.Title(strings.ToLower(nome))
 
-			pastaDest := filepath.Join("dominio", "modelos")
+			pastaDest := filepath.Join("dominio", "entidades")
 			if _, err := os.Stat("web"); err == nil {
-				pastaDest = filepath.Join("dominio", "modelos")
+				pastaDest = filepath.Join("dominio", "entidades")
 			}
 			os.MkdirAll(pastaDest, 0755)
 
@@ -797,7 +1232,7 @@ func comandoCrieModelo() *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Printf("✅ Modelo '%s' gerado com sucesso em: %s\n", nomeLimp, caminho)
+			fmt.Printf("✅ Entidade de domínio '%s' gerada com sucesso em: %s\n", nomeLimp, caminho)
 		},
 	}
 }
@@ -886,8 +1321,6 @@ Este é o controlador mestre das rotas visuais da sua aplicação. Nele você po
 Você pode gerenciar qual tela exibir usando um sinal de texto reativo simples no arquivo "rotas.hrp":
 
 ` + "```" + `harpia
-de "web" importe sinal, h;
-
 exportar funcao RotaMestra() {
 	var telaSinal = sinal("inicio");
 	var tela = telaSinal[0];
@@ -919,11 +1352,58 @@ exportar funcao RotaMestra() {
 Recomenda-se manter o código visual separado na pasta "web/pages/" e carregá-lo dinamicamente de dentro das suas rotas com "importarHtml":
 
 ` + "```" + `harpia
-de "web" importe sinal, importarHtml;
-
 exportar funcao RotaIndex() {
 	# Carrega a página estática de forma ultra veloz e acopla a lógica reativa local
 	retorne importarHtml("../pages/Layout.html");
 }
 ` + "```" + `
 `
+
+const conteudoPadroesMd = `# 📏 Padrões de Código e Convenções do Projeto
+
+Este documento especifica os padrões de design, estilo de escrita de código e convenções arquiteturais estabelecidas para este projeto Harpia.
+
+## 1. Convenção de Idioma e Nomenclatura
+- **Código em Português**: Identificadores (classes, funções, variáveis, arquivos) devem ser escritos preferencialmente em português.
+- **Classes**: PascalCase (ex: ` + "`" + `Usuario` + "`" + `, ` + "`" + `RepositorioUsuarios` + "`" + `).
+- **Funções e Métodos**: camelCase (ex: ` + "`" + `obterPorId` + "`" + `, ` + "`" + `validarUsuario` + "`" + `).
+- **Variáveis**: camelCase (ex: ` + "`" + `usuarioValido` + "`" + `).
+
+## 2. Estrutura de Diretórios (Clean Architecture)
+- **dominio/**: Regras de negócio puras. Nunca dependem de detalhes como HTTP, Banco de Dados ou Frameworks.
+- **infra/**: Implementações de infraestrutura e adaptadores (banco de dados, arquivos locais, clients externos).
+- **web/**: Camada de visualização (SPA) e roteamento de rotas.
+
+## 3. Invariantes de Negócio e Validações
+- **Fábricas**: O único ponto de entrada para instanciar novas entidades no domínio. Toda validação de campos obrigatórios e sanidade deve rodar na fábrica.
+- **Entidades Ricas**: Evitar entidades anêmicas (comportamento centralizado em classes de serviços externos ao domínio).
+`
+
+const conteudoDecisoesMd = `# 🏛️ Registro de Decisões de Arquitetura (ADR)
+
+Este registro documenta as decisões de arquitetura e tecnologia tomadas no projeto, servindo como histórico estruturado.
+
+## ADR 1: Uso de Clean Architecture e DDD em Português
+- **Status**: Aprovado
+- **Contexto**: Facilidade de compreensão de regras de negócio complexas por desenvolvedores lusófonos e redução da barreira de entrada técnica.
+- **Decisão**: Toda a estrutura de pastas do projeto (dominio, infra, web) e nomes de arquivos devem espelhar as terminologias oficiais da Clean Architecture traduzidas.
+- **Consequências**: Maior legibilidade, mas necessita de consistência por parte do time para evitar hibridismo linguístico.
+
+## ADR 2: SQLite Embarcado como Mecanismo de Persistência Padrão
+- **Status**: Aprovado
+- **Contexto**: Facilidade de setup local (zero-config) e portabilidade do banco de dados.
+- **Decisão**: Utilização do SQLite nativo como a base de dados relacional embarcada em projetos Monolito e Backend.
+`
+
+const conteudoTestesMd = `# 🧪 Estratégia de Testes do Projeto
+
+Este guia especifica as políticas de testes unitários, integração e comportamento implementados para assegurar a confiabilidade do software.
+
+## 1. Testes de Domínio (Unitários)
+- **Foco**: Validar todas as regras de negócio declaradas em ` + "`" + `dominio/servicos/` + "`" + ` e fábricas em ` + "`" + `dominio/fabricas/` + "`" + `.
+- **Execução**: ` + "`" + `harpia checar testes/` + "`" + ` ou ferramenta correspondente da suite de testes do CLI.
+
+## 2. Princípios de Pureza
+- **Sem I/O nos Testes de Unidade**: Nunca faça chamadas a banco de dados ou requisições HTTP reais em testes sob a pasta ` + "`" + `testes/dominio/` + "`" + `. Use dublês de testes ou contratos purificados.
+`
+

@@ -82,11 +82,12 @@ func extrairOpenAPI(ast parser.BaseNode, filename string) map[string]interface{}
 							if txt, okTxt := call.Argumentos[0].(*parser.TextoLiteral); okTxt {
 								caminho := txt.Valor
 								httpMethod := metodo
-								if metodo == "obter" {
+								switch metodo {
+								case "obter":
 									httpMethod = "get"
-								} else if metodo == "postar" {
+								case "postar":
 									httpMethod = "post"
-								} else if metodo == "deleter" {
+								case "deleter":
 									httpMethod = "delete"
 								}
 

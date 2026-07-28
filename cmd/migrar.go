@@ -65,7 +65,8 @@ func extrairBloco(c, marcador string) string {
 			continue
 		}
 		if dentro {
-			buf.WriteString(l + "\n")
+			buf.WriteString(l)
+			buf.WriteString("\n")
 		}
 	}
 	return strings.TrimSpace(buf.String())

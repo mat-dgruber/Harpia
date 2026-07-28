@@ -197,6 +197,10 @@ export function criarNo(vno) {
   }
 
   if (typeof vno.tag === 'function') {
+    vno.props = vno.props || {};
+    if (vno.props._ligar && !vno.props.ligar) {
+      vno.props.ligar = vno.props._ligar;
+    }
     const vnodeRendido = vno.tag(vno.props);
     vno._componenteInstancia = vnodeRendido;
     return criarNo(vnodeRendido);
@@ -222,7 +226,7 @@ function atualizarAtributos(el, velhosProps, novosProps) {
   // Remover velhos props
   for (const chave in velhosProps) {
     if (!(chave in novosProps)) {
-      if (chave.startsWith('ao')) {
+      if (/^ao/i.test(chave)) {
         const evento = mapearEvento(chave);
         el.removeEventListener(evento, velhosProps[chave]);
       } else {
@@ -245,15 +249,21 @@ function atualizarAtributos(el, velhosProps, novosProps) {
             el.checked = !!val;
           } else {
             el.value = val === null || val === undefined ? '' : val;
+            if (el.tagName === 'SELECT') {
+              queueMicrotask(() => {
+                el.value = val === null || val === undefined ? '' : val;
+              });
+            }
           }
         });
-        const eventoTipo = el.type === 'checkbox' ? 'change' : 'input';
-        el.addEventListener(eventoTipo, (e) => {
+        const eventoTipos = (el.type === 'checkbox' || el.tagName === 'SELECT') ? ['change', 'input'] : ['input', 'change'];
+        const ouvinte = (e) => {
           const setter = lerSinal ? (lerSinal.set || lerSinal[1]) : null;
           if (setter) {
             setter(el.type === 'checkbox' ? e.target.checked : e.target.value);
           }
-        });
+        };
+        eventoTipos.forEach(ev => el.addEventListener(ev, ouvinte));
         continue;
       }
 
@@ -263,19 +273,25 @@ function atualizarAtributos(el, velhosProps, novosProps) {
         continue;
       }
 
-      if (chave.startsWith('ao')) {
+      if (chave === 'estilo' || chave === 'style') {
+        if (typeof valor === 'object' && valor !== null) {
+          el.style.cssText = '';
+          Object.assign(el.style, valor);
+        } else {
+          el.setAttribute('style', valor || '');
+        }
+        continue;
+      }
+
+      if (/^ao/i.test(chave)) {
         const evento = mapearEvento(chave);
-        if (velhoValor) el.removeEventListener(evento, velhoValor);
+        if (el['_ao_' + evento]) el.removeEventListener(evento, el['_ao_' + evento]);
         const listener = (e) => {
-          if (el.tagName === 'A') {
-            e.preventDefault();
-          }
           valor(e);
         };
+        el['_ao_' + evento] = listener;
         el.addEventListener(evento, listener);
-      } else if (chave === 'estilo' && typeof valor === 'object') {
 
-        Object.assign(el.style, valor);
       } else {
         const attrName = mapearAtributo(chave);
         if (valor === true) {
@@ -291,27 +307,57 @@ function atualizarAtributos(el, velhosProps, novosProps) {
 }
 
 function mapearEvento(nome) {
-  const mapeamento = {
-    aoClicar: 'click',
-    aoMudar: 'change',
-    aoEnviar: 'submit',
-    aoFocar: 'focus',
-    aoDesfocar: 'blur',
-    aoTeclar: 'keydown',
-    aoSoltarTecla: 'keyup',
-    aoEntrarMouse: 'mouseenter',
-    aoSairMouse: 'mouseleave'
-  };
-  return mapeamento[nome] || nome.toLowerCase().replace(/^ao/, '');
+  // Remove o prefixo 'ao' case-insensitive (ex: ao, Ao, AO, aO)
+  const semAo = nome.replace(/^ao/i, '').toLowerCase();
+
+  // Regras de mapeamento adaptativo inteligente por Regex/Substrings conhecidas
+  if (/^(clique|clicar|click)$/.test(semAo)) return 'click';
+  if (/^(mudar|alterar|change)$/.test(semAo)) return 'change';
+  if (/^(enviar|submeter|submit)$/.test(semAo)) return 'submit';
+  if (/^(focar|foco|focus)$/.test(semAo)) return 'focus';
+  if (/^(desfocar|desfoco|blur)$/.test(semAo)) return 'blur';
+  if (/^(teclar|tecla|keydown)$/.test(semAo)) return 'keydown';
+  if (/^(soltartecla|keyup)$/.test(semAo)) return 'keyup';
+  if (/^(entrarmouse|mouseenter)$/.test(semAo)) return 'mouseenter';
+  if (/^(sairmouse|mouseleave)$/.test(semAo)) return 'mouseleave';
+  if (/^(digitar|inserir|input)$/.test(semAo)) return 'input';
+  if (/^(carregar|load)$/.test(semAo)) return 'load';
+  if (/^(duploclique|dblclick)$/.test(semAo)) return 'dblclick';
+  if (/^(passarmouse|mouseover)$/.test(semAo)) return 'mouseover';
+  if (/^(erro|error)$/.test(semAo)) return 'error';
+
+  return semAo;
 }
 
 function mapearAtributo(nome) {
   const mapeamento = {
     classe: 'class',
     identificador: 'id',
+    estilo: 'style',
     corDeFundo: 'bgcolor',
     largura: 'width',
-    altura: 'height'
+    altura: 'height',
+    tipo: 'type',
+    valor: 'value',
+    desabilitado: 'disabled',
+    obrigatorio: 'required',
+    nome: 'name',
+    marcado: 'checked',
+    espacoReservado: 'placeholder',
+    espaco_reservado: 'placeholder',
+    chave: 'key',
+    alvo: 'target',
+    caminho: 'src',
+    fonte: 'src',
+    link: 'href',
+    destino: 'href',
+    endereco: 'href',
+    autoFoco: 'autofocus',
+    auto_foco: 'autofocus',
+    autoCompletar: 'autocomplete',
+    auto_completar: 'autocomplete',
+    leituraApenas: 'readonly',
+    somente_leitura: 'readonly'
   };
   return mapeamento[nome] || nome;
 }
@@ -329,11 +375,13 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
   if (typeof velhoVNo === 'function') velhoVNo = velhoVNo();
   if (typeof novoVNo === 'function') novoVNo = novoVNo();
 
-  if (velhoVNo && typeof velhoVNo.tag === 'function') {
-    velhoVNo = velhoVNo.tag(velhoVNo.props);
+  while (velhoVNo && typeof velhoVNo.tag === 'function') {
+    velhoVNo = velhoVNo._componenteInstancia;
   }
-  if (novoVNo && typeof novoVNo.tag === 'function') {
-    novoVNo = novoVNo.tag(novoVNo.props);
+  while (novoVNo && typeof novoVNo.tag === 'function') {
+    const vnodeRendido = novoVNo.tag(novoVNo.props);
+    novoVNo._componenteInstancia = vnodeRendido;
+    novoVNo = vnodeRendido;
   }
 
   const noFisico = pai.childNodes ? pai.childNodes[index] : null;
@@ -369,9 +417,11 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
     const temChaves = novosFilhos.some(f => f && f.props && (f.props.chave !== undefined || f.props.key !== undefined));
 
     if (temChaves && noFisico) {
+      console.log("[Harpia VDOM] Reconciliando filhos com chaves. Total velhos:", velhosFilhos.length, "Total novos:", novosFilhos.length);
       const mapaVelhos = new Map();
       velhosFilhos.forEach((vno, idx) => {
-        const k = vno && vno.props ? (vno.props.chave ?? vno.props.key) : idx;
+        let k = vno && vno.props ? (vno.props.chave ?? vno.props.key) : idx;
+        if (k === undefined) k = idx;
         const noChild = noFisico.childNodes ? noFisico.childNodes[idx] : null;
         if (k !== undefined && noChild) {
           mapaVelhos.set(k, { vno, el: noChild });
@@ -379,14 +429,20 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
       });
 
       novosFilhos.forEach((novoChildVNo, i) => {
-        const k = novoChildVNo && novoChildVNo.props ? (novoChildVNo.props.chave ?? novoChildVNo.props.key) : i;
+        let k = novoChildVNo && novoChildVNo.props ? (novoChildVNo.props.chave ?? novoChildVNo.props.key) : i;
+        if (k === undefined) k = i;
         const correspondencia = mapaVelhos.get(k);
 
         if (correspondencia) {
+          if (noFisico.childNodes[i] !== correspondencia.el) {
+            console.log("[Harpia VDOM] Reordenando nó físico na posição:", i, "Chave:", k);
+            noFisico.insertBefore(correspondencia.el, noFisico.childNodes[i]);
+          }
           reconciliar(noFisico, correspondencia.vno, novoChildVNo, i);
           mapaVelhos.delete(k);
         } else {
           const novoEl = criarNo(novoChildVNo);
+          console.log("[Harpia VDOM] Criando e inserindo novo nó físico na posição:", i, "Chave:", k);
           if (noFisico.childNodes && noFisico.childNodes[i]) {
             noFisico.insertBefore(novoEl, noFisico.childNodes[i]);
           } else {
@@ -429,6 +485,7 @@ function mudou(no1, no2) {
  * @param {HTMLElement} elementoAlvo - Elemento container no DOM
  */
 export function montar(appComponente, elementoAlvo) {
+  console.log("[Harpia Web] Inicializando montagem reativa da aplicação...");
   let velhoVNo = null;
 
   if (typeof elementoAlvo === 'string') {
@@ -443,6 +500,7 @@ export function montar(appComponente, elementoAlvo) {
 
   efeito(() => {
     const novoVNo = obterVNo();
+    console.log("[Harpia Web] Disparando efeito de renderização global...");
     reconciliar(elementoAlvo, velhoVNo, novoVNo);
     velhoVNo = novoVNo;
   });
@@ -463,7 +521,7 @@ function vincularNos(elFisico, vno) {
     }
 
     for (const chave in vno.props) {
-      if (chave.startsWith('ao')) {
+      if (/^ao/i.test(chave)) {
         const evento = mapearEvento(chave);
         elFisico.addEventListener(evento, vno.props[chave]);
       }
@@ -619,6 +677,359 @@ export function recurso(funcaoAsync) {
   return res;
 }
 
+/**
+ * Gestor de formulários reativos no Harpia (usarFormulario).
+ */
+export function usarFormulario(config) {
+  const valoresIniciais = config.valoresIniciais || {};
+  const [valores, setValores] = sinal({ ...valoresIniciais });
+  const [erros, setErros] = sinal({});
+
+  function campo(nome) {
+    return {
+      value: valores()[nome] || '',
+      onInput: (e) => {
+        const novos = { ...valores(), [nome]: e.target.value };
+        setValores(novos);
+        if (config.validar) {
+          setErros(config.validar(novos) || {});
+        }
+      }
+    };
+  }
+
+  function submeter(aoSubmeter) {
+    return (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      const errs = config.validar ? config.validar(valores()) : {};
+      setErros(errs);
+      if (Object.keys(errs).length === 0) {
+        aoSubmeter(valores());
+      }
+    };
+  }
+
+  return { valores, erros, campo, submeter };
+}
+
+/**
+ * Cache global e hook de consulta HTTP inteligente (usarConsulta / SWR).
+ */
+const cacheGlobalConsultas = new Map();
+
+export function usarConsulta(url, opcoes = {}) {
+  const [dados, setDados] = sinal(cacheGlobalConsultas.get(url) || null);
+  const [carregando, setCarregando] = sinal(!cacheGlobalConsultas.has(url));
+  const [erro, setErro] = sinal(null);
+
+  async function buscar() {
+    try {
+      setCarregando(true);
+      const res = await fetch(url);
+      const data = await res.json();
+      cacheGlobalConsultas.set(url, data);
+      setDados(data);
+      setErro(null);
+    } catch (err) {
+      setErro(err.message || 'Erro ao carregar consulta');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  efeito(() => {
+    buscar();
+  });
+
+  return { dados, carregando, erro, mutarOtimista: (novo) => setDados(novo), recarregar: buscar };
+}
+
+/**
+ * Componente de animações e transições nativas (Animacao).
+ */
+export function Animacao(props) {
+  const tipo = props.tipo || 'fade';
+  const duracao = props.duracao || '300ms';
+  return h('div', {
+    estilo: {
+      transition: ` + "`" + `all ${duracao} ease-in-out` + "`" + `,
+      animation: ` + "`" + `${tipo} ${duracao}` + "`" + `
+    }
+  }, props.children);
+}
+
+/**
+ * Componente de imagem otimizada com lazy loading (ImagemWeb).
+ */
+export function ImagemWeb(props) {
+  return h('img', {
+    src: props.caminho || props.src,
+    alt: props.alt || '',
+    loading: 'lazy',
+    width: props.largura,
+    height: props.altura,
+    classe: props.classe || ''
+  });
+}
+
+/**
+ * Carregador assíncrono de Micro-Frontends (moduloRemoto).
+ */
+export function moduloRemoto(url, nomeComponente) {
+  return function ComponenteRemoto(props) {
+    const [comp, setComp] = sinal(null);
+    efeito(() => {
+      import(/* webpackIgnore: true */ url).then(mod => {
+        setComp(() => mod[nomeComponente] || mod.default);
+      });
+    });
+    return () => {
+      const C = comp();
+      return C ? h(C, props) : h('div', { classe: 'carregando-remoto' }, 'Carregando Módulo Remoto...');
+    };
+  };
+}
+
+/**
+ * Gestor de Tema Escuro/Claro (usarTema).
+ */
+export function usarTema(chave = 'harpia_tema', padrao = 'sistema') {
+  const preferEscuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const salvo = localStorage.getItem(chave);
+  const inicial = salvo || (padrao === 'sistema' ? (preferEscuro ? 'escuro' : 'claro') : padrao);
+  const [tema, setTema] = sinal(inicial);
+
+  efeito(() => {
+    const atual = tema();
+    localStorage.setItem(chave, atual);
+    if (atual === 'escuro') {
+      document.documentElement.classList.add('escuro');
+    } else {
+      document.documentElement.classList.remove('escuro');
+    }
+  });
+
+  const alternar = () => setTema(tema() === 'escuro' ? 'claro' : 'escuro');
+  return [tema, alternar, setTema];
+}
+
+/**
+ * Componente Portal para renderização direta no document.body (Portal).
+ */
+export function Portal(props) {
+  const el = document.createElement('div');
+  el.className = 'harpia-portal';
+  efeito(() => {
+    document.body.appendChild(el);
+    montar(h('div', {}, props.children), el);
+    return () => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    };
+  });
+  return null;
+}
+
+/**
+ * Hook para Drag-and-Drop e Gestos Touch (usarArrastar).
+ */
+export function usarArrastar(aoSoltar) {
+  let itemArrastado = null;
+  return {
+    aoIniciarArrasto: (item) => (e) => {
+      itemArrastado = item;
+      if (e.dataTransfer) e.dataTransfer.setData('text/plain', JSON.stringify(item));
+    },
+    aoSobrepor: (e) => e.preventDefault(),
+    aoSoltar: (itemAlvo) => (e) => {
+      if (e.preventDefault) e.preventDefault();
+      if (aoSoltar && itemArrastado) {
+        aoSoltar(itemArrastado, itemAlvo);
+      }
+    }
+  };
+}
+
+/**
+ * Barra de progresso visual no topo do navegador (BarraDeProgresso).
+ */
+export function BarraDeProgresso(props) {
+  const [carregando, setCarregando] = sinal(false);
+  return h('div', {
+    estilo: {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      height: '3px',
+      width: carregando() ? '100%' : '0%',
+      backgroundColor: props.cor || '#3b82f6',
+      transition: 'width 300ms ease-in-out',
+      zIndex: '99999'
+    }
+  });
+}
+
+/**
+ * Sistema de notificações tostadas reativas (usarNotificacao & NotificacaoToast).
+ */
+const [notificacoes, setNotificacoes] = sinal([]);
+
+export function usarNotificacao() {
+  function adicionar(mensagemOuOpcoes, tipo = 'info', duracao = 4000, opcoes = {}) {
+    let config = {};
+    if (typeof mensagemOuOpcoes === 'object' && mensagemOuOpcoes !== null) {
+      config = { ...mensagemOuOpcoes };
+    } else {
+      config = { mensagem: String(mensagemOuOpcoes || ''), tipo, duracao, ...opcoes };
+    }
+
+    const id = config.id || (Date.now() + Math.random().toString(36).substring(2, 7));
+    const item = {
+      id,
+      mensagem: config.mensagem || '',
+      tipo: config.tipo || 'info',
+      duracao: config.duracao !== undefined ? config.duracao : 4000,
+      posicao: config.posicao || 'topo-direita',
+      icone: config.icone,
+      acaoTexto: config.acaoTexto,
+      aoClicarAcao: config.aoClicarAcao,
+      saindo: false
+    };
+
+    queueMicrotask(() => {
+      setNotificacoes([...notificacoes().filter(n => n.id !== id), item]);
+    });
+
+    if (item.duracao && item.duracao > 0) {
+      item.timerId = setTimeout(() => {
+        remover(id);
+      }, item.duracao);
+    }
+    return id;
+  }
+
+  function remover(id) {
+    const lista = notificacoes();
+    const item = lista.find(n => n.id === id);
+    if (item) {
+      if (item.timerId) clearTimeout(item.timerId);
+      item.saindo = true;
+      setNotificacoes([...lista]);
+      setTimeout(() => {
+        setNotificacoes(notificacoes().filter(n => n.id !== id));
+      }, 300);
+    }
+  }
+
+  function limpar() {
+    setNotificacoes([]);
+  }
+
+  return {
+    adicionar,
+    remover,
+    limpar,
+    sucesso: (msg, dur, opts) => adicionar(msg, 'sucesso', dur, opts),
+    erro: (msg, dur, opts) => adicionar(msg, 'erro', dur, opts),
+    info: (msg, dur, opts) => adicionar(msg, 'info', dur, opts),
+    avisar: (msg, dur, opts) => adicionar(msg, 'aviso', dur, opts),
+    lista: notificacoes
+  };
+}
+
+export function NotificacaoToast(props) {
+  props = props || {};
+  const { lista, remover } = usarNotificacao();
+  const posProp = props.posicao || 'topo-direita';
+
+  if (typeof document !== 'undefined' && !document.getElementById('harpia-toast-styles')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'harpia-toast-styles';
+    styleEl.textContent = '@keyframes harpiaToastEntrada { 0% { opacity: 0; transform: translateX(60px) scale(0.92); } 100% { opacity: 1; transform: translateX(0) scale(1); } } @keyframes harpiaToastSaida { 0% { opacity: 1; transform: translateX(0) scale(1); max-height: 100px; margin-bottom: 0px; } 100% { opacity: 0; transform: translateX(60px) scale(0.92); max-height: 0px; margin-bottom: -10px; padding: 0; } } @keyframes harpiaToastProgresso { from { width: 100%; } to { width: 0%; } } .harpia-toast-item { animation: harpiaToastEntrada 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; will-change: transform, opacity; } .harpia-toast-item.saindo { animation: harpiaToastSaida 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }';
+    document.head.appendChild(styleEl);
+  }
+
+  const estilosPosicao = {
+    position: 'fixed',
+    zIndex: '999999',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    maxWidth: '420px',
+    width: 'calc(100% - 32px)',
+    pointerEvents: 'none',
+    top: posProp.includes('topo') ? '20px' : 'auto',
+    bottom: posProp.includes('rodape') ? '20px' : 'auto',
+    right: posProp.includes('direita') ? '20px' : 'auto',
+    left: posProp.includes('esquerda') ? '20px' : (posProp.includes('centro') ? '50%' : 'auto'),
+    transform: posProp.includes('centro') ? 'translateX(-50%)' : 'none'
+  };
+
+  const temasCores = {
+    sucesso: { border: '#10b981', texto: '#ecfdf5', icone: '✓', barra: '#10b981' },
+    erro: { border: '#f43f5e', texto: '#fff1f2', icone: '✕', barra: '#f43f5e' },
+    aviso: { border: '#f59e0b', texto: '#fffbeb', icone: '⚡', barra: '#f59e0b' },
+    info: { border: '#3b82f6', texto: '#eff6ff', icone: 'ℹ', barra: '#3b82f6' }
+  };
+
+  return h('div', { style: estilosPosicao }, 
+    lista().map(item => {
+      const tema = temasCores[item.tipo] || temasCores.info;
+      const dur = item.duracao !== undefined ? item.duracao : 4000;
+      
+      return h('div', {
+        key: item.id,
+        className: 'harpia-toast-item ' + (item.saindo ? 'saindo' : ''),
+        style: {
+          pointerEvents: 'auto',
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px',
+          borderRadius: '10px',
+          background: '#18181b',
+          borderLeft: '4px solid ' + tema.border,
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
+          backdropFilter: 'blur(12px)',
+          color: tema.texto,
+          fontSize: '14px',
+          fontWeight: '500',
+          fontFamily: 'sans-serif'
+        }
+      }, [
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px' } }, [
+          h('span', { style: { fontSize: '16px', color: tema.border, fontWeight: 'bold' } }, item.icone || tema.icone),
+          h('span', {}, item.mensagem)
+        ]),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } }, [
+          item.acaoTexto ? h('button', {
+            onClick: () => { if (item.aoClicarAcao) item.aoClicarAcao(); remover(item.id); },
+            style: { background: 'transparent', border: '1px solid ' + tema.border, color: tema.border, padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }
+          }, item.acaoTexto) : null,
+          h('button', {
+            onClick: () => remover(item.id),
+            style: { background: 'transparent', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '16px', lineHeight: '1', padding: '4px' }
+          }, '✕')
+        ]),
+        dur > 0 ? h('div', {
+          style: {
+            position: 'absolute',
+            bottom: '0',
+            left: '0',
+            height: '3px',
+            background: tema.barra,
+            animation: 'harpiaToastProgresso ' + dur + 'ms linear forwards'
+          }
+        }) : null
+      ]);
+    })
+  );
+}
+
+
+
+
 
 
 const mapaContextos = new Map();
@@ -668,16 +1079,26 @@ export function FronteiraDeErro(props) {
  * Componente nativo de navegação SPA sem recarregamento de página.
  */
 export function Link(props) {
-  const { para, children, ...restanteProps } = props || {};
+  const { para, precarregar, children, ...restanteProps } = props || {};
   const aoClicarOriginal = restanteProps.aoClicar;
   restanteProps.aoClicar = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (para) navegar(para);
+    if (para && para !== '#') navegar(para);
     if (aoClicarOriginal) aoClicarOriginal(e);
   };
+  if (precarregar && para && para !== '#') {
+    restanteProps.aoEntrarMouse = () => {
+      if (typeof window !== 'undefined' && window.__harpiaRotas && window.__harpiaRotas[para]) {
+        // Pré-carrega assincronamente a rota na memória antes do clique
+        const rotaFn = window.__harpiaRotas[para];
+        if (typeof rotaFn === 'function') rotaFn();
+      }
+    };
+  }
   restanteProps.href = para || '#';
   return h('a', restanteProps, children);
 }
+
 
 /**
  * Componente nativo de Suspense/Aguardar para dados assíncronos e recursos.
@@ -906,9 +1327,22 @@ if (typeof window !== 'undefined') {
     Aguardar,
     Escolha,
     Caso,
-    Padrao
+    Padrao,
+    usarFormulario,
+    Animacao,
+    ImagemWeb,
+    moduloRemoto,
+    usarTema,
+    Portal,
+    usarArrastar,
+    BarraDeProgresso,
+    usarNotificacao,
+    NotificacaoToast
   });
 }
+
+
+
 
 
 `;

@@ -104,10 +104,23 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 	}
 
 	entryDir, _ := filepath.Abs(filepath.Dir(opts.Entrada))
+	projDir := entryDir
+	for {
+		if _, err := os.Stat(filepath.Join(projDir, "web")); err == nil {
+			break
+		}
+		parent := filepath.Dir(projDir)
+		if parent == projDir || parent == "." || parent == "/" {
+			projDir = entryDir
+			break
+		}
+		projDir = parent
+	}
+
 	rotasDir := ""
 	rotasPaths := []string{
-		filepath.Join(entryDir, "rotas"),
-		filepath.Join(entryDir, "web", "rotas"),
+		filepath.Join(projDir, "rotas"),
+		filepath.Join(projDir, "web", "rotas"),
 	}
 	for _, p := range rotasPaths {
 		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
@@ -115,6 +128,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			break
 		}
 	}
+
 
 
 	type RotaInfo struct {
@@ -214,13 +228,8 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		return fmt.Errorf("erro ao criar diretório de saída '%s': %w", opts.Saida, err)
 	}
 
-	appPath := filepath.Join(opts.Saida, "app.js")
-	if err = os.WriteFile(appPath, []byte("import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador } from './runtime-web.js';\n\n"+jsOutput), 0644); err != nil {
-		return fmt.Errorf("erro ao gravar app.js: %w", err)
-	}
-
 	absEntrada, _ := filepath.Abs(opts.Entrada)
-	webDir := filepath.Join(entryDir, "web")
+	webDir := filepath.Join(projDir, "web")
 	if fi, err := os.Stat(webDir); err == nil && fi.IsDir() {
 		_ = filepath.Walk(webDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() || filepath.Ext(path) != ".hrp" {
@@ -243,19 +252,54 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			subTranspiler := &TranspilerWeb{
 				Estrito:          opts.Estrito,
 				DiretorioBase:    filepath.Dir(path),
-				DiretorioProjeto: entryDir,
+				DiretorioProjeto: projDir,
 			}
 			subJs := subTranspiler.Transpile(fileAst)
 			transpiler.Styles = append(transpiler.Styles, subTranspiler.Styles...)
-			jsOutput += "\n" + subJs
-			rel, _ := filepath.Rel(entryDir, path)
+			rel, _ := filepath.Rel(projDir, path)
 
 
 			destJs := filepath.Join(opts.Saida, strings.TrimSuffix(rel, ".hrp")+".js")
 			_ = os.MkdirAll(filepath.Dir(destJs), 0755)
-			return os.WriteFile(destJs, []byte(subJs), 0644)
+			importHeaderSub := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(rel, "/")) + "runtime-web.js';\n\n"
+			_ = os.WriteFile(destJs, []byte(importHeaderSub+subJs), 0644)
+
+			// Copia também sem o prefixo web/ para resolver imports relativos como ./../componentes/navbar.js
+			if strings.HasPrefix(rel, "web/") {
+				relSemWeb := strings.TrimPrefix(rel, "web/")
+				destJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
+				_ = os.MkdirAll(filepath.Dir(destJsSemWeb), 0755)
+				importHeaderSubSemWeb := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relSemWeb, "/")) + "runtime-web.js';\n\n"
+				_ = os.WriteFile(destJsSemWeb, []byte(importHeaderSubSemWeb+subJs), 0644)
+			}
+			return nil
 		})
 	}
+
+
+	relEntrada, _ := filepath.Rel(projDir, absEntrada)
+	destEntradaJs := filepath.Join(opts.Saida, strings.TrimSuffix(relEntrada, ".hrp")+".js")
+	_ = os.MkdirAll(filepath.Dir(destEntradaJs), 0755)
+	importHeaderEntrada := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relEntrada, "/")) + "runtime-web.js';\n\n"
+	_ = os.WriteFile(destEntradaJs, []byte(importHeaderEntrada+jsOutput), 0644)
+
+	if strings.HasPrefix(relEntrada, "web/") {
+		relSemWeb := strings.TrimPrefix(relEntrada, "web/")
+		destEntradaJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
+		_ = os.MkdirAll(filepath.Dir(destEntradaJsSemWeb), 0755)
+		importHeaderEntradaSemWeb := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relSemWeb, "/")) + "runtime-web.js';\n\n"
+		_ = os.WriteFile(destEntradaJsSemWeb, []byte(importHeaderEntradaSemWeb+jsOutput), 0644)
+	}
+
+	appPath := filepath.Join(opts.Saida, "app.js")
+	importHeader := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './runtime-web.js';\n\n"
+	if err = os.WriteFile(appPath, []byte(importHeader+jsOutput), 0644); err != nil {
+		return fmt.Errorf("erro ao gravar app.js: %w", err)
+	}
+
+
+
+
 
 
 	estiloPath := filepath.Join(opts.Saida, "estilos.css")
@@ -280,21 +324,68 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 	}
 
 	indexPath := filepath.Join(opts.Saida, "index.html")
-	htmlTemplate := `<!DOCTYPE html>
+	customIndexPath := filepath.Join(entryDir, "index.html")
+	var htmlContent string
+	if conteudoCustom, errC := os.ReadFile(customIndexPath); errC == nil {
+		htmlContent = string(conteudoCustom)
+	} else {
+		htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harpia App</title>
     <link rel="stylesheet" href="estilos.css">
+    <!--
+      Dica de DX: Caso use bare modules como '@backend/modulo', configure um Import Map
+      para mapear os identificadores para os proxies Javascript gerados, por exemplo:
+      <script type="importmap">
+        {
+          "imports": {
+            "@backend/filmes": "./web/backend/filmes.js"
+          }
+        }
+      </script>
+    -->
 </head>
-<body>
+<body class="CorpoGlobal">
     <div id="app"></div>
-    <script type="module" src="./app.js"></script>
+    <script>
+      window.tamanho = function(valor) {
+        if (valor === null || valor === undefined) return 0;
+        if (typeof valor.length === 'number') return valor.length;
+        if (valor instanceof Map || valor instanceof Set) return valor.size;
+        if (typeof valor === 'object') return Object.keys(valor).length;
+        return 0;
+      };
+      window.inteiro = function(v) {
+        if (v === null || v === undefined) return 0;
+        let n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      };
+      window.decimal = function(v) {
+        if (v === null || v === undefined) return 0.0;
+        let n = parseFloat(v);
+        return isNaN(n) ? 0.0 : n;
+      };
+      window.texto = function(v) {
+        if (v === null || v === undefined) return "";
+        return String(v);
+      };
+    </script>
+    <script type="module">
+      import { h, montar } from './runtime-web.js';
+      import { MeuApp } from './app.js';
+
+      if (typeof MeuApp === 'function') {
+        montar(MeuApp, document.getElementById('app'));
+      }
+    </script>
 </body>
 </html>`
+	}
 
-	if err = os.WriteFile(indexPath, []byte(htmlTemplate), 0644); err != nil {
+	if err = os.WriteFile(indexPath, []byte(htmlContent), 0644); err != nil {
 		return fmt.Errorf("erro ao gravar index.html: %w", err)
 	}
 
@@ -416,9 +507,10 @@ func comandoCompilar() *cobra.Command {
 				cmdBuild := exec.Command("go", "build", "-o", saidaBin, tmpGoFile)
 				cmdBuild.Stdout = os.Stdout
 				cmdBuild.Stderr = os.Stderr
-				if alvo == "wasm" {
+				switch alvo {
+				case "wasm":
 					cmdBuild.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
-				} else if alvo == "wasi" {
+				case "wasi":
 					cmdBuild.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
 				}
 				if errBuild := cmdBuild.Run(); errBuild != nil {

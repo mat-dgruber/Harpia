@@ -14,11 +14,12 @@ import (
 
 // ponytail: comando 'servir' que atua como Dev Server ultra-leve.
 // Em vez de usar complexos watchers fsnotify e sockets de HMR que dão leaks de memória,
-// ele re-compila o projeto sob demanda do browser de forma instantânea (on-request build, <5ms)
 // e serve os assets estáticos de forma integrada.
 func comandoServir() *cobra.Command {
 	var porta int
+
 	var entrada string
+	var diretorio string
 	var saidaTemp string
 
 	servir := &cobra.Command{
@@ -29,6 +30,49 @@ func comandoServir() *cobra.Command {
 				entrada = args[0]
 			}
 
+			// Se a flag --diretorio for informada, serve a pasta estática pré-compilada!
+			if diretorio != "" {
+				pAbs, err := filepath.Abs(diretorio)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "erro ao resolver diretório '%s': %v\n", diretorio, err)
+					os.Exit(1)
+				}
+				if _, err := os.Stat(pAbs); os.IsNotExist(err) {
+					fmt.Fprintf(os.Stderr, "erro: diretório '%s' não existe.\n", diretorio)
+					os.Exit(1)
+				}
+
+				fs := http.FileServer(http.Dir(pAbs))
+				corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Access-Control-Allow-Origin", "*")
+					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+					if reqHeaders := r.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
+						w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+					} else {
+						w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+					}
+					if r.Method == "OPTIONS" {
+						w.WriteHeader(http.StatusOK)
+						return
+					}
+					fs.ServeHTTP(w, r)
+				})
+				http.Handle("/", corsHandler)
+
+				url := fmt.Sprintf("http://localhost:%d", porta)
+				fmt.Printf("\n🚀 Servidor Estático Harpia rodando em %s (diretório: %s)\n", url, pAbs)
+				fmt.Println("   Pressione Ctrl+C para encerrar.")
+
+				server := &http.Server{
+					Addr: fmt.Sprintf(":%d", porta),
+				}
+				if err := server.ListenAndServe(); err != nil {
+					fmt.Fprintf(os.Stderr, "❌ Erro ao iniciar o servidor na porta %d: %v\n", porta, err)
+					os.Exit(1)
+				}
+				return
+			}
+
 			// ponytail: autodetecta o arquivo de entrada se nenhum for especificado!
 			// Procura main.hrp, index.hrp, app.hrp no diretório atual ou na pasta web/
 			if entrada == "" {
@@ -37,6 +81,7 @@ func comandoServir() *cobra.Command {
 					filepath.Join("web", "main.hrp"),
 					filepath.Join("web", "index.hrp"),
 					filepath.Join("web", "rotas", "index.hrp"),
+					filepath.Join("web", "rotas", "rotas.hrp"),
 				}
 				for _, cand := range candidatos {
 					if _, err := os.Stat(cand); err == nil {
@@ -102,7 +147,6 @@ func comandoServir() *cobra.Command {
 				return err
 			}
 
-
 			// Build inicial instantâneo
 			tInicio := time.Now()
 			errBuild := executarComSpinner("Compilando projeto de desenvolvimento", fazerBuild)
@@ -130,7 +174,6 @@ func comandoServir() *cobra.Command {
 					diretorioParaVer = entryDir
 				}
 				ultimoCheck := time.Now()
-
 
 				for {
 					time.Sleep(500 * time.Millisecond)
@@ -171,7 +214,6 @@ func comandoServir() *cobra.Command {
 					}
 				}
 			}()
-
 
 			// Rota especial do SSE de Hot-Reload
 			http.HandleFunc("/hot-reload", func(w http.ResponseWriter, r *http.Request) {
@@ -222,6 +264,19 @@ func comandoServir() *cobra.Command {
 
 			// Handler HTTP integrado para servir arquivos e injetar hot-reload dinâmico
 			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+				if reqHeaders := r.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
+					w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+				} else {
+					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				}
+
+				if r.Method == "OPTIONS" {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+
 				caminho := r.URL.Path
 
 				if caminho == "/" {
@@ -320,7 +375,7 @@ func comandoServir() *cobra.Command {
 
 			url := fmt.Sprintf("http://localhost:%d", porta)
 			fmt.Printf("\n🚀 Harpia Dev Server rodando em %s\n", url)
-			fmt.Println("✨ Hot-Reload ativo — edições em .hrp, .html ou .css atualizam o navegador instantaneamente.")
+			fmt.Println("✨ Hot-Reload ativo — edições em .hrp, .html ou .css atualizan o navegador instantaneamente.")
 			fmt.Println("   Pressione Ctrl+C para encerrar.")
 			fmt.Println()
 
@@ -338,5 +393,6 @@ func comandoServir() *cobra.Command {
 
 	servir.Flags().IntVarP(&porta, "porta", "p", 3000, "Porta de escuta do Dev Server local")
 	servir.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .hrp de entrada principal")
+	servir.Flags().StringVarP(&diretorio, "diretorio", "d", "", "Diretório de arquivos estáticos para servir")
 	return servir
 }

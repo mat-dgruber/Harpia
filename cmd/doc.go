@@ -171,7 +171,8 @@ func gerarDocMarkdown(arquivo string, elementos []DocElement) string {
 		sb.WriteString(fmt.Sprintf("```Harpia\n%s\n```\n\n", el.Assinatura))
 		sb.WriteString("### Descrição\n")
 		for _, desc := range el.Descricao {
-			sb.WriteString(desc + "\n")
+			sb.WriteString(desc)
+			sb.WriteString("\n")
 		}
 		sb.WriteString("\n---\n\n")
 	}
