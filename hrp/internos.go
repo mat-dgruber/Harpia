@@ -41,7 +41,9 @@ func adicionaContextoSeNaoTiver(err error, context *Contexto) {
 		}
 		erro.Coluna = context.ColunaAtual
 		erro.Token = context.TokenAtual
-		erro.Arquivo = context.ArquivoAtual
+		if erro.Arquivo == "" {
+			erro.Arquivo = context.ArquivoAtual
+		}
 		erro.Codigo = context.CodigoAtual
 	}
 
@@ -56,7 +58,9 @@ func adicionaContextoSeNaoTiver(err error, context *Contexto) {
 func Chamar(obj Objeto, args Objeto) (Objeto, error) {
 	var argsTupla Tupla
 
-	if t, ok := args.(Tupla); ok {
+	if args == nil {
+		argsTupla = Tupla{}
+	} else if t, ok := args.(Tupla); ok {
 		argsTupla = t
 	} else {
 		argsTupla = Tupla{args}
@@ -152,6 +156,9 @@ func ObtemAtributoRecursivamente(classe Objeto, nome string) Objeto {
 // ObtemAtributoS executa a resolução dinâmica de atributos e métodos associados em qualquer objeto.
 // Respeita a assinatura de protocolo 'I__obtem_attributo__' ou recorre à busca recursiva de herança e descritores.
 func ObtemAtributoS(inst Objeto, nome string) (Objeto, error) {
+	if inst == nil || inst == Nulo {
+		return nil, NewErroF(AtributoErro, "O objeto 'Nulo' não suporta o acesso a atributos ('%s')", nome)
+	}
 	if I, ok := inst.(I__obtem_attributo__); ok {
 		return I.M__obtem_attributo__(nome)
 	}
@@ -204,6 +211,9 @@ func InstanciaDe(obj Objeto, tipos any) (Booleano, error) {
 
 // ObtemItem é a ponte unificadora que aciona o protocolo de acesso indexado por colchetes [] (I__obtem_item__).
 func ObtemItem(inst, arg Objeto) (Objeto, error) {
+	if inst == nil || inst == Nulo {
+		return nil, NewErroF(TipagemErro, "O objeto 'Nulo' não suporta o uso de índices")
+	}
 	if I, ok := inst.(I__obtem_item__); ok {
 		return I.M__obtem_item__(arg)
 	}
@@ -213,6 +223,9 @@ func ObtemItem(inst, arg Objeto) (Objeto, error) {
 
 // DefineItem é a ponte unificadora que aciona o protocolo de escrita indexada por colchetes [] (I__define_item__).
 func DefineItem(inst, chave, valor Objeto) (Objeto, error) {
+	if inst == nil || inst == Nulo {
+		return nil, NewErroF(TipagemErro, "O objeto 'Nulo' não suporta a atribuição por índice")
+	}
 	if I, ok := inst.(I__define_item__); ok {
 		return I.M__define_item__(chave, valor)
 	}
@@ -222,6 +235,9 @@ func DefineItem(inst, chave, valor Objeto) (Objeto, error) {
 
 // DefineAtributo aciona e executa a atribuição de propriedades lógicas por meio de ponto (I__define_atributo__).
 func DefineAtributo(obj Objeto, nome string, valor Objeto) error {
+	if obj == nil || obj == Nulo {
+		return NewErroF(TipagemErro, "O objeto 'Nulo' não suporta a definição de atributos")
+	}
 	if def, ok := obj.(I__define_atributo__); ok {
 		return def.M__define_atributo__(nome, valor)
 	}

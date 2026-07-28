@@ -43,6 +43,7 @@ type Contexto struct {
 var (
 	contextoAtivoMu sync.RWMutex
 	contextoAtivo   *Contexto
+	OnEnvLoaded     []func()
 )
 
 func ObterContextoAtivo() *Contexto {
@@ -89,31 +90,40 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 	return context
 }
 
-// carregarArquivoEnv tenta ler o arquivo .harpia.env no diretório dado e exporta suas variáveis para o processo.
+// carregarArquivoEnv tenta ler arquivos de ambiente (.harpia.env e .env) no diretório dado e exporta suas variáveis para o processo.
 // Linhas em branco e comentários (iniciados com #) são ignorados silenciosamente.
 func carregarArquivoEnv(dir string) {
-	caminho := filepath.Join(dir, ".harpia.env")
-	f, err := os.Open(caminho)
-	if err != nil {
-		return // arquivo não existe ou não é acessível — silencioso
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		linha := strings.TrimSpace(scanner.Text())
-		if linha == "" || strings.HasPrefix(linha, "#") {
-			continue
+	for _, nome := range []string{".harpia.env", ".env"} {
+		caminho := filepath.Join(dir, nome)
+		f, err := os.Open(caminho)
+		if err != nil {
+			continue // arquivo não existe ou não é acessível — silencioso
 		}
-		partes := strings.SplitN(linha, "=", 2)
-		if len(partes) == 2 {
-			chave := strings.TrimSpace(partes[0])
-			valor := strings.TrimSpace(partes[1])
-			// Somente define se a variável ainda não estiver no ambiente (não sobrescreve vars de sistema)
-			if os.Getenv(chave) == "" {
-				os.Setenv(chave, valor)
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			linha := strings.TrimSpace(scanner.Text())
+			if linha == "" || strings.HasPrefix(linha, "#") {
+				continue
+			}
+			partes := strings.SplitN(linha, "=", 2)
+			if len(partes) == 2 {
+				chave := strings.TrimSpace(partes[0])
+				valor := strings.TrimSpace(partes[1])
+				// Somente define se a variável ainda não estiver no ambiente (não sobrescreve vars de sistema)
+				if os.Getenv(chave) == "" {
+					os.Setenv(chave, valor)
+				}
 			}
 		}
+		if err := scanner.Err(); err != nil {
+			// Ignorado de forma silenciosa e segura
+		}
+		f.Close()
+	}
+
+	for _, fn := range OnEnvLoaded {
+		fn()
 	}
 }
 
@@ -258,6 +268,13 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 		return nil, err
 	}
 	defer c.EncerrarTrabalho()
+
+	oldArquivo := c.ArquivoAtual
+	oldCodigo := c.CodigoAtual
+	defer func() {
+		c.ArquivoAtual = oldArquivo
+		c.CodigoAtual = oldCodigo
+	}()
 
 	modulo, err := c.Modulos.NewModulo(c, implementacao)
 	if err != nil {

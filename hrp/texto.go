@@ -32,6 +32,8 @@ func NewTexto(arg any) (Objeto, error) {
 	switch obj := arg.(type) {
 	case nil:
 		return Texto(""), nil
+	case _Nulo:
+		return Texto("Nulo"), nil
 	case string:
 		unquoted, err := strconv.Unquote(obj)
 		if err == nil {
@@ -55,7 +57,7 @@ func NewTexto(arg any) (Objeto, error) {
 		return O.M__texto__()
 	}
 
-	return nil, nil
+	return Texto(fmt.Sprintf("%v", arg)), nil
 }
 
 func init() {
@@ -299,4 +301,35 @@ func init() {
 	TipoTexto.Mapa["minusculas"] = NewMetodoOuPanic("minusculas", func(inst Objeto) (Objeto, error) {
 		return Texto(strings.ToLower(string(inst.(Texto)))), nil
 	}, "retorna uma cópia do texto com todas as letras em minúsculas")
+
+	TipoTexto.Mapa["trocar"] = NewMetodoOuPanic("trocar", func(inst Objeto, args Tupla) (Objeto, error) {
+		if err := VerificaNumeroArgumentos("trocar", true, args, 2, 2); err != nil {
+			return nil, err
+		}
+		antigo, ok1 := args[0].(Texto)
+		novo, ok2 := args[1].(Texto)
+		if !ok1 || !ok2 {
+			return nil, NewErroF(TipagemErro, "Os argumentos de 'trocar' devem ser do tipo 'Texto'")
+		}
+		original := string(inst.(Texto))
+		resultado := strings.ReplaceAll(original, string(antigo), string(novo))
+		return Texto(resultado), nil
+	}, "retorna uma cópia do texto substituindo as ocorrências de um termo por outro")
+
+	TipoTexto.Mapa["dividir"] = NewMetodoOuPanic("dividir", func(inst Objeto, args Tupla) (Objeto, error) {
+		if err := VerificaNumeroArgumentos("dividir", true, args, 1, 1); err != nil {
+			return nil, err
+		}
+		separador, ok := args[0].(Texto)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "O argumento de 'dividir' deve ser do tipo 'Texto'")
+		}
+		original := string(inst.(Texto))
+		partes := strings.Split(original, string(separador))
+		saida := make(Tupla, 0, len(partes))
+		for _, p := range partes {
+			saida = append(saida, Texto(p))
+		}
+		return saida, nil
+	}, "divide o texto em uma tupla de substrings usando o separador fornecido")
 }

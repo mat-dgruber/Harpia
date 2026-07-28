@@ -50,7 +50,7 @@ func (i *Interpretador) Inicializa() (Objeto, error) {
 	case *parser.Bloco:
 		declaracoes = ast.Declaracoes
 	default:
-		return nil, i.criarErroF(TipagemErro, "Quando usar o método `Inicializa()`, a ast deve ser do tipo `Programa` ou `Bloco`")
+		return nil, i.criarErroNoNode(ast, TipagemErro, "Quando usar o método `Inicializa()`, a ast deve ser do tipo `Programa` ou `Bloco`")
 	}
 
 	return i.Visite(declaracoes)
@@ -86,6 +86,10 @@ func (i *Interpretador) Visite(nodes []parser.BaseNode) (Objeto, error) {
 // Antes de avaliar as propriedades do nó, ele atualiza as coordenadas da VM no 'Contexto'
 // utilizando o mapa de posições físicas do parser. Isso garante que tracebacks tenham as coordenadas físicas reais do erro.
 func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
+	if i.Contexto != nil {
+		i.Contexto.ArquivoAtual = i.Arquivo
+		i.Contexto.CodigoAtual = i.Codigo
+	}
 	if i.Posicoes != nil {
 		tok := i.Posicoes[astNode]
 		if tok == nil {
@@ -220,7 +224,7 @@ func (i *Interpretador) visiteDeclVar(node *parser.DeclVar) (Objeto, error) {
 
 	if node.Tipo != "" && i.Contexto.Opcs.Estrito {
 		if !ValidarTipo(node.Tipo, valor) {
-			return nil, NewErroF(TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", node.Nome, node.Tipo, valor.Tipo().Nome)
+			return nil, i.criarErroNoNode(node, TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", node.Nome, node.Tipo, valor.Tipo().Nome)
 		}
 	}
 
@@ -389,7 +393,7 @@ func (i *Interpretador) visiteOpUnaria(node *parser.OpUnaria) (Objeto, error) {
 		return Nao(operando)
 	}
 
-	return nil, NewErroF(TipagemErro, "A operação '%s' não é suportada para o tipo '%s'", node.Operador, operando.Tipo().Nome)
+	return nil, i.criarErroNoNode(node, TipagemErro, "A operação '%s' não é suportada para o tipo '%s'", node.Operador, operando.Tipo().Nome)
 }
 
 // visiteOpBinaria resolve expressões matemáticas e lógicas binárias, executando avaliações em short-circuit para 'e' / 'ou'.
@@ -429,35 +433,50 @@ func (i *Interpretador) visiteOpBinaria(node *parser.OpBinaria) (Objeto, error) 
 
 	switch node.Operador {
 	case "+":
-		return Adiciona(esquerda, direita)
+		val, err := Adiciona(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "*":
-		return Multiplica(esquerda, direita)
+		val, err := Multiplica(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "-":
-		return Subtrai(esquerda, direita)
+		val, err := Subtrai(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "/":
-		return Divide(esquerda, direita)
+		val, err := Divide(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "//":
-		return DivideInteiro(esquerda, direita)
+		val, err := DivideInteiro(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "%":
-		return Mod(esquerda, direita)
+		val, err := Mod(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "<":
-		return MenorQue(esquerda, direita)
+		val, err := MenorQue(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "<=":
-		return MenorOuIgual(esquerda, direita)
+		val, err := MenorOuIgual(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "==":
-		return Igual(esquerda, direita)
+		val, err := Igual(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "!=":
-		return Diferente(esquerda, direita)
+		val, err := Diferente(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case ">":
-		return MaiorQue(esquerda, direita)
+		val, err := MaiorQue(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case ">=":
-		return MaiorOuIgual(esquerda, direita)
+		val, err := MaiorOuIgual(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "|":
-		return Ou(esquerda, direita)
+		val, err := Ou(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "&":
-		return E(esquerda, direita)
+		val, err := E(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "em":
-		return Em(direita, esquerda)
+		val, err := Em(direita, esquerda)
+		return val, i.anotarErro(node, err)
 	case "instancia":
 		// Trata o operador 'instancia de'
 		inst, ok := esquerda.(*Instancia)
@@ -479,7 +498,7 @@ func (i *Interpretador) visiteOpBinaria(node *parser.OpBinaria) (Objeto, error) 
 		return Falso, nil
 	}
 
-	return nil, NewErroF(TipagemErro, "A operação '%s' não é suportada entre os tipos '%s' e '%s'", node.Operador, esquerda.Tipo().Nome, direita.Tipo().Nome)
+	return nil, i.criarErroNoNode(node, TipagemErro, "A operação '%s' não é suportada entre os tipos '%s' e '%s'", node.Operador, esquerda.Tipo().Nome, direita.Tipo().Nome)
 }
 
 func (i *Interpretador) visiteIdentificador(node *parser.Identificador) (Objeto, error) {
@@ -602,7 +621,7 @@ func (i *Interpretador) visiteReatribuicao(node *parser.Reatribuicao) (Objeto, e
 			simb, err := i.Escopo.ObterSimbolo(obj.Nome)
 			if err == nil && simb != nil && simb.Tipo != "" {
 				if !ValidarTipo(simb.Tipo, valor) {
-					return nil, NewErroF(TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", obj.Nome, simb.Tipo, valor.Tipo().Nome)
+					return nil, i.criarErroNoNode(obj, TipagemErro, "O tipo do valor atribuído à variável '%s' não coincide com o tipo '%s' (tipo obtido: '%s')", obj.Nome, simb.Tipo, valor.Tipo().Nome)
 				}
 			}
 		}
@@ -697,7 +716,13 @@ func (i *Interpretador) visiteAcessoMembro(node *parser.AcessoMembro) (Objeto, e
 	}
 
 	membro := node.Membro.(*parser.Identificador).Nome
-	return ObtemAtributoS(dono, membro)
+	val, err := ObtemAtributoS(dono, membro)
+	if err != nil {
+		// ponytail: ancora o erro no nó do acesso (ex: mapa["args"]) para que o
+		// traceback aponte o arquivo de quem chamou, não o Contexto global.
+		return nil, i.anotarErro(node, err)
+	}
+	return val, nil
 }
 
 // visiteBlocoPara gerencia e executa loops de repetição iterativos (para-em), tratando exceções FimIteracao graciosamente.
@@ -875,7 +900,7 @@ func (i *Interpretador) visiteDeclClasse(node *parser.DeclClasse) (Objeto, error
 		}
 		baseClasse, ok := baseVal.(*ClasseObj)
 		if !ok {
-			return nil, NewErroF(TipagemErro, "a classe base '%s' deve ser uma classe", node.Heranca)
+			return nil, i.criarErroNoNode(node, TipagemErro, "a classe base '%s' deve ser uma classe", node.Heranca)
 		}
 		classe.Base = baseClasse
 	}
@@ -1047,10 +1072,65 @@ func (i *Interpretador) visiteTenteCapture(node *parser.TenteCaptureFinalmente) 
 	return i.visite(node.CaptureBlock)
 }
 
-// criarErroF aloca e formata erros associando automaticamente os metadados do contexto da VM.
-func (i *Interpretador) criarErroF(tipo *Tipo, format string, args ...any) error {
+// anotarErro sobrescreve as coordenadas do erro com as do nó da AST, mantendo a mensagem original.
+// Usado quando o erro nasce em uma função sem acesso ao nó (ex: aritmetica.go) e precisa
+// ancorar o traceback no operador chamador de visitaOpBinaria/visiteOpUnaria.
+// ponytail: no-op silencioso se o nó não tiver posição mapeada ou o erro não for *Erro.
+func (i *Interpretador) anotarErro(node parser.BaseNode, err error) error {
+	if err == nil {
+		return nil
+	}
+	hrpErr, ok := err.(*Erro)
+	if !ok {
+		return err
+	}
+	if i.Posicoes != nil && node != nil {
+		if tok, ok := i.Posicoes[node]; ok && tok != nil {
+			hrpErr.Token = tok
+			if tok.Inicio != nil {
+				hrpErr.Linha = tok.Inicio.Linha - 1
+				hrpErr.Coluna = tok.Inicio.Coluna
+			}
+		}
+	}
+	// ponytail: ancora arquivo/codigo no proprio Interpretador (snapshot)
+	// em vez de cair no Contexto global, evitando tracebacks falsos em main.hrp
+	// quando o erro nasce dentro de modulo importado.
+	if hrpErr.Arquivo == "" && i.Arquivo != "" {
+		hrpErr.Arquivo = i.Arquivo
+	}
+	if hrpErr.Codigo == "" && i.Codigo != "" {
+		hrpErr.Codigo = i.Codigo
+	}
+	return hrpErr
+}
+
+// criarErroNoNode é uma variação de criarErroF que ancora as coordenadas do erro no nó
+// da AST que disparou a falha (em vez do frame atual da VM). Sem isso, tracebacks de
+// operadores/aritimética acabavam apontando para o handler de RPC/spawn em main.hrp.
+// ponytail: usar Posicoes do parser; fallback silencioso para o contexto da VM quando ausente.
+func (i *Interpretador) criarErroNoNode(node parser.BaseNode, tipo *Tipo, format string, args ...any) error {
 	erro := NewErroF(tipo, format, args...)
-	erro.AdicionarContexto(i.Contexto)
+	if i.Posicoes != nil && node != nil {
+		if tok, ok := i.Posicoes[node]; ok && tok != nil {
+			erro.Token = tok
+			if tok.Inicio != nil {
+				erro.Linha = tok.Inicio.Linha - 1
+				erro.Coluna = tok.Inicio.Coluna
+			}
+		}
+	}
+	// Só adiciona contexto do frame se nenhuma coordenada de linha foi resolvida pelo nó.
+	if erro.Linha == -1 {
+		erro.AdicionarContexto(i.Contexto)
+	}
+	// ponytail: idem anotarErro — ancora arquivo/codigo no proprio Interpretador.
+	if erro.Arquivo == "" && i.Arquivo != "" {
+		erro.Arquivo = i.Arquivo
+	}
+	if erro.Codigo == "" && i.Codigo != "" {
+		erro.Codigo = i.Codigo
+	}
 	return erro
 }
 
@@ -1221,7 +1301,8 @@ func (i *Interpretador) visiteNoParaJSX(node *parser.NoParaJSX) (Objeto, error) 
 }
 
 func (i *Interpretador) visiteDeclEstilo(node *parser.DeclEstilo) (Objeto, error) {
-	// Ignora blocos estilo no backend (não geram nós de árvore VDOM física)
+	// Ignora blocos estilo no backend, mas os define no escopo como texto com o próprio nome para importações funcionarem
+	i.Escopo.DefinirSimbolo(NewVarSimbolo(node.Nome, Texto(node.Nome)))
 	return Nulo, nil
 }
 
@@ -1279,7 +1360,7 @@ func (i *Interpretador) visiteDeclEnum(node *parser.DeclEnum) (Objeto, error) {
 	return Nulo, nil
 }
 
-func (i *Interpretador) visiteDeclInterface(node *parser.DeclInterface) (Objeto, error) {
+func (i *Interpretador) visiteDeclInterface(_ *parser.DeclInterface) (Objeto, error) {
 	// Interfaces funcionam como especificações de contrato estáticas para o Linter.
 	// Em runtime, o registro armazena um metadado sintético nulo.
 	return Nulo, nil

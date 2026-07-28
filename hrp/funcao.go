@@ -1,6 +1,7 @@
 package hrp
 
 import (
+	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
@@ -9,17 +10,20 @@ import (
 // Ela armazena o corpo de instruções (AST Bloco), a relação ordenada de parâmetros formais esperados,
 // o supervisor (Contexto) de execução da VM, e o escopo léxico estático no qual ela foi originalmente declarada.
 type Funcao struct {
-	Nome        string                     // Nome identificador da função (disponível sob a constante '__nome__').
-	Doc         Texto                      // Bloco de documentação explicativo (disponível sob a constante '__doc__').
-	args        []string                   // Relação ordenada de nomes textuais correspondentes aos argumentos.
-	defaults    map[string]parser.BaseNode // Valores padrões para os argumentos (AST)
-	corpo       *parser.Bloco              // O bloco de nós da AST correspondente ao corpo físico da função.
-	contexto    *Contexto                  // Ponteiro de referência ao supervisor global da VM.
-	escopo      *Escopo                    // O escopo de enquadramento original de declaração (Lexical Scope).
-	Estatico    bool                       // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
-	tiposParams map[string]string          // Mapeamento dos tipos estritos exigidos pelos parâmetros formais.
-	tipoRetorno string                     // O tipo de retorno esperado de forma estrita.
-	Assincrono  bool                       // Flag que sinaliza se a função é assíncrona.
+	Nome          string                     // Nome identificador da função (disponível sob a constante '__nome__').
+	Doc           Texto                      // Bloco de documentação explicativo (disponível sob a constante '__doc__').
+	args          []string                   // Relação ordenada de nomes textuais correspondentes aos argumentos.
+	defaults      map[string]parser.BaseNode // Valores padrões para os argumentos (AST)
+	corpo         *parser.Bloco              // O bloco de nós da AST correspondente ao corpo físico da função.
+	contexto      *Contexto                  // Ponteiro de referência ao supervisor global da VM.
+	escopo        *Escopo                    // O escopo de enquadramento original de declaração (Lexical Scope).
+	declArquivo   string                     // Snapshot do arquivo onde a função foi declarada (origem do Posicoes).
+	declCodigo    string                     // Snapshot do código-fonte do arquivo de declaração.
+	declPosicoes  map[parser.BaseNode]*lexer.Token // Snapshot do mapa de posições do parser do arquivo de declaração.
+	Estatico      bool                       // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
+	tiposParams   map[string]string          // Mapeamento dos tipos estritos exigidos pelos parâmetros formais.
+	tipoRetorno   string                     // O tipo de retorno esperado de forma estrita.
+	Assincrono    bool                       // Flag que sinaliza se a função é assíncrona.
 }
 
 // TipoFuncao especifica as assinaturas e os metadados de classe do tipo Funcao na VM.
@@ -32,13 +36,38 @@ func (f *Funcao) Tipo() *Tipo {
 
 // NewFuncao é o construtor padrão em Go para alocar novas Funções na VM.
 func NewFuncao(nome string, corpo *parser.Bloco, contexto *Contexto, escopo *Escopo) *Funcao {
-	return &Funcao{
+	f := &Funcao{
 		Nome:     nome,
 		corpo:    corpo,
 		contexto: contexto,
 		escopo:   escopo,
 		defaults: make(map[string]parser.BaseNode),
 	}
+	// ponytail: snapshot do arquivo/codigo/posicoes no momento da declaração para que
+	// tracebacks de execução apontem para o arquivo de origem da função, não para o
+	// módulo que a chamou (corrige #21: false-positive main.hrp:N ao chamar @backend).
+	if contexto != nil {
+		f.declArquivo = contexto.ArquivoAtual
+		f.declCodigo = contexto.CodigoAtual
+		if prog, ok := contextoUltimoPrograma(contexto); ok {
+			f.declPosicoes = prog.Posicoes
+		}
+	}
+	return f
+}
+
+// contextoUltimoPrograma busca o *parser.Programa correspondente ao arquivo atual do contexto
+// percorrendo o cache de módulos carregados. Usado em NewFuncao para snapshot do Posicoes.
+func contextoUltimoPrograma(c *Contexto) (*parser.Programa, bool) {
+	if c == nil || c.ArquivoAtual == "" || c.Modulos == nil {
+		return nil, false
+	}
+	mod, err := c.Modulos.ObterModulo(c.ArquivoAtual)
+	if err != nil || mod == nil || mod.Impl == nil || mod.Impl.Ast == nil {
+		return nil, false
+	}
+	prog, ok := mod.Impl.Ast.(*parser.Programa)
+	return prog, ok
 }
 
 // Args retorna a relação ordenada de parâmetros formais da função.
@@ -144,7 +173,15 @@ func (f *Funcao) M__chame__(args Tupla) (Objeto, error) {
 	}
 
 	newInterpret := &Interpretador{Ast: f.corpo, Contexto: f.contexto, Escopo: escopo}
-	if f.contexto != nil && f.contexto.ArquivoAtual != "" {
+	// ponytail: usa o snapshot capturado no momento da declaração para ancorar
+	// tracebacks no arquivo onde a função foi escrita, não no módulo chamador.
+	if f.declArquivo != "" {
+		newInterpret.Arquivo = f.declArquivo
+		newInterpret.Codigo = f.declCodigo
+		if f.declPosicoes != nil {
+			newInterpret.Posicoes = f.declPosicoes
+		}
+	} else if f.contexto != nil && f.contexto.ArquivoAtual != "" {
 		newInterpret.Arquivo = f.contexto.ArquivoAtual
 		newInterpret.Codigo = f.contexto.CodigoAtual
 		if f.contexto.Modulos != nil {

@@ -227,6 +227,16 @@ func Diferente(a, b Objeto) (Objeto, error) {
 		return res, nil
 	}
 
+	if _, ok := a.(I__igual__); ok {
+		eqRes, err := Igual(a, b)
+		if err == nil {
+			eqBool, ok := eqRes.(Booleano)
+			if ok {
+				return NewBooleano(!bool(eqBool))
+			}
+		}
+	}
+
 	return nil, NewErroF(TipagemErro, "A operação '!=' não é suportada entre os tipos '%s' e '%s'", a.Tipo().Nome, b.Tipo().Nome)
 }
 
