@@ -22,14 +22,14 @@ func TestFuncaoSimples(t *testing.T) {
 	}
 
 	for _, esperado := range tokens {
-		token := lex.ProximoToken()
+		token := lex.PróximoToken()
 		if token.Tipo != esperado.Tipo || token.Valor != esperado.Valor {
 			t.Errorf("Esperado: (%v, %s), Obtido: (%v, %s)", esperado.Tipo, esperado.Valor, token.Tipo, token.Valor)
 		}
 	}
 
 	// Verifica se o último token é EOF.
-	ultimoToken := lex.ProximoToken()
+	ultimoToken := lex.PróximoToken()
 	if ultimoToken.Tipo != lexer.TokenFimDeArquivo {
 		t.Errorf("Esperado: TokenFimDeArquivo, Obtido: %v", ultimoToken.Tipo)
 	}
@@ -171,14 +171,54 @@ func TestLexer(t *testing.T) {
 	}
 
 	for _, esperado := range tokens {
-		token := lex.ProximoToken()
+		token := lex.PróximoToken()
 		if token.Tipo != esperado.Tipo || token.Valor != esperado.Valor {
 			t.Errorf("Esperado: (%v, %s), Obtido: (%v, %s)", esperado.Tipo, esperado.Valor, token.Tipo, token.Valor)
 		}
 	}
 
 	// Verifica se o último token é EOF.
-	ultimoToken := lex.ProximoToken()
+	ultimoToken := lex.PróximoToken()
+	if ultimoToken.Tipo != lexer.TokenFimDeArquivo {
+		t.Errorf("Esperado: TokenFimDeArquivo, Obtido: %v", ultimoToken.Tipo)
+	}
+}
+
+func TestShebangEComentarioBloco(t *testing.T) {
+	input := `#!/usr/bin/env harpia
+/*
+ * Comentário de bloco
+ * em múltiplas linhas
+ */
+var x = 10; /* Comentário de bloco inline */
+const y = 20;
+`
+
+	lex := lexer.NewLexer(input)
+	tokens := []lexer.Token{
+		{Tipo: lexer.TokenNovaLinha, Valor: "\n"},
+		{Tipo: lexer.TokenVar, Valor: "var"},
+		{Tipo: lexer.TokenIdentificador, Valor: "x"},
+		{Tipo: lexer.TokenIgual, Valor: "="},
+		{Tipo: lexer.TokenInteiro, Valor: "10"},
+		{Tipo: lexer.TokenPontoEVirgula, Valor: ";"},
+		{Tipo: lexer.TokenNovaLinha, Valor: "\n"},
+		{Tipo: lexer.TokenConst, Valor: "const"},
+		{Tipo: lexer.TokenIdentificador, Valor: "y"},
+		{Tipo: lexer.TokenIgual, Valor: "="},
+		{Tipo: lexer.TokenInteiro, Valor: "20"},
+		{Tipo: lexer.TokenPontoEVirgula, Valor: ";"},
+		{Tipo: lexer.TokenNovaLinha, Valor: "\n"},
+	}
+
+	for i, esperado := range tokens {
+		token := lex.PróximoToken()
+		if token.Tipo != esperado.Tipo || token.Valor != esperado.Valor {
+			t.Errorf("[%d] Esperado: (%v, %q), Obtido: (%v, %q)", i, esperado.Tipo, esperado.Valor, token.Tipo, token.Valor)
+		}
+	}
+
+	ultimoToken := lex.PróximoToken()
 	if ultimoToken.Tipo != lexer.TokenFimDeArquivo {
 		t.Errorf("Esperado: TokenFimDeArquivo, Obtido: %v", ultimoToken.Tipo)
 	}

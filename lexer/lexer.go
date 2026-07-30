@@ -32,6 +32,10 @@ func NewLexer(entrada string) *Lexer {
 
 	l.avancar()
 
+	if l.ch == '#' && l.peek() == '!' {
+		l.ignorarComentario()
+	}
+
 	return l
 }
 
@@ -133,6 +137,21 @@ func (l *Lexer) ignorarComentario() {
 		l.avancar()
 	}
 	l.avancar()
+}
+
+// ignorarComentarioBloco pula todos os caracteres até encontrar a sequência de fechamento de comentário de bloco '*/'
+func (l *Lexer) ignorarComentarioBloco() {
+	l.avancar() // consome '/'
+	l.avancar() // consome '*'
+
+	for !l.fimDeArquivo() {
+		if l.ch == '*' && l.peek() == '/' {
+			l.avancar() // consome '*'
+			l.avancar() // consome '/'
+			break
+		}
+		l.avancar()
+	}
 }
 
 // SubString é um fatiador seguro que extrai uma partição do slice de bytes original
@@ -293,6 +312,12 @@ func (l *Lexer) PróximoToken() *Token {
 	// Trata comentários de linha única '#' ou '//' (deve rodar antes de operadores simples para evitar colisão com '/')
 	if ch == '#' || (ch == '/' && l.peek() == '/') {
 		l.ignorarComentario()
+		return l.PróximoToken()
+	}
+
+	// Trata comentários de bloco '/* ... */'
+	if ch == '/' && l.peek() == '*' {
+		l.ignorarComentarioBloco()
 		return l.PróximoToken()
 	}
 
