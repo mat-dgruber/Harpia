@@ -2,48 +2,32 @@ package lexer
 
 import (
 	"strings"
+	"unicode"
 	"unicode/utf8"
-
-	"github.com/mat-dgruber/Harpia/compartilhado"
 )
 
 // Lexer é a máquina de estados que executa o processo de varredura (scanning) de caracteres
 // e os transforma em uma sequência de tokens lógicos.
 //
-// O Lexer lê a string de entrada incrementalmente, gerenciando o cursor físico, a linha
+// O Lexer lê o slice de bytes de entrada incrementalmente, gerenciando o cursor físico, a linha
 // e a coluna atuais para alimentar diagnósticos precisos em caso de falhas de análise.
 type Lexer struct {
-	entrada string // O código fonte completo em formato textual.
-	carater string // O caractere Unicode (runa) sob análise corrente no cursor.
-	coluna  int    // O índice de coluna física do caractere sob análise (base 1).
-	linha   int    // O número da linha física correspondente no código fonte (base 1).
-
-	// Campos de suporte operacional
-	tamanho   int   // Quantidade conceitual total de caracteres Unicode (runas) na entrada.
-	indice    int   // Posição conceitual corrente do cursor em caracteres Unicode (base 0).
-	byteCache []int // Cache pré-calculado de offsets de bytes para acesso aleatório O(1) rápido.
+	fonte         []byte // O código fonte completo em formato de slice de bytes UTF-8.
+	ch            rune   // O caractere Unicode (runa) sob análise corrente no cursor.
+	largura       int    // Largura em bytes do caractere corrente.
+	offset        int    // Posição de byte corrente do cursor no slice fonte.
+	proximoOffset int    // Próxima posição de byte a ser lida.
+	linha         int    // O número da linha física correspondente no código fonte (base 1).
+	coluna        int    // O índice de coluna física do caractere sob análise (base 1).
 }
 
 // NewLexer aloca e prepara uma nova instância operacional de Lexer para o código fonte informado.
-//
-// O construtor realiza as seguintes etapas de pré-processamento:
-//  1. Normalização de quebras de linha (substitui \r\n ou \r por \n puro).
-//  2. Cálculo de quantidade de runas em UTF-8 nativo para dar suporte correto a caracteres acentuados.
-//  3. Construção do cache de índices de bytes para permitir mapeamento ultra veloz O(1) de caracteres para bytes.
-//  4. Inicialização de coordenadas e carregamento do caractere inicial via avancar().
-//
-// Parâmetros:
-//   - entrada: string contendo o código-fonte bruto do script Harpia.
-//
-// Retorna um ponteiro para a struct Lexer pronta para iniciar a tokenização.
 func NewLexer(entrada string) *Lexer {
-	entrada = strings.ReplaceAll(entrada, "\r", "")
+	fonte := []byte(strings.ReplaceAll(entrada, "\r", ""))
 	l := &Lexer{
-		entrada:   entrada,
-		tamanho:   utf8.RuneCountInString(entrada),
-		indice:    -1,
-		linha:     1,
-		byteCache: compartilhado.IndiceBytePorCarater(entrada),
+		fonte:  fonte,
+		linha:  1,
+		coluna: 0,
 	}
 
 	l.avancar()
@@ -52,58 +36,50 @@ func NewLexer(entrada string) *Lexer {
 }
 
 // fimDeArquivo verifica se o cursor de leitura do interpretador atingiu ou passou o limite físico
-// de caracteres Unicode presentes no código fonte.
-//
-// Retorna true se o índice atual for maior ou igual ao tamanho total de runas, indicando que não há
-// mais caracteres disponíveis para leitura.
+// de bytes presentes no código fonte.
 func (l *Lexer) fimDeArquivo() bool {
-	return l.indice >= l.tamanho
+	return l.offset >= len(l.fonte)
 }
 
-// proximoCarater faz uma espreitadela (lookahead) de um caractere à frente do cursor de leitura.
-//
-// Permite que o analisador tome decisões condicionais de desvio de fluxo (como diferenciar
-// o operador de atribuição '=' de igualdade '==' ou reatribuição '+='), sem avançar o cursor físico.
-//
-// Retorna uma string contendo o caractere seguinte em UTF-8 ou uma string vazia se atingir o EOF.
-func (l *Lexer) proximoCarater() string {
-	if l.indice+1 >= l.tamanho {
-		return ""
+// peek faz uma espreitadela (lookahead) de 1 caractere à frente do cursor de leitura.
+func (l *Lexer) peek() rune {
+	if l.proximoOffset >= len(l.fonte) {
+		return 0
 	}
-
-	return compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice+1, l.byteCache)
+	r, _ := utf8.DecodeRune(l.fonte[l.proximoOffset:])
+	return r
 }
 
-// caraterRelativo espreita um caractere em uma posição relativa ao cursor atual de forma segura,
-// fornecendo lookahead arbitrário (positivo ou negativo) sem alterar o estado interno do cursor.
-//
-// Parâmetros:
-//   - offset: o deslocamento em relação à posição atual (ex: 2 para espreitar dois caracteres à frente).
-//
-// Retorna o caractere na coordenada calculada ou uma string vazia se estiver fora dos limites do arquivo.
-func (l *Lexer) caraterRelativo(offset int) string {
-	if l.indice+offset >= l.tamanho || l.indice+offset < 0 {
-		return ""
+// peekN faz uma espreitadela de n caracteres à frente do cursor de leitura.
+func (l *Lexer) peekN(n int) rune {
+	if n <= 0 {
+		return l.ch
 	}
-	return compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice+offset, l.byteCache)
+	pos := l.proximoOffset
+	var r rune
+	for i := 1; i <= n; i++ {
+		if pos >= len(l.fonte) {
+			return 0
+		}
+		var w int
+		r, w = utf8.DecodeRune(l.fonte[pos:])
+		pos += w
+	}
+	return r
 }
 
 // ignorarComentarioHTML pula todos os caracteres até encontrar a sequência de fechamento de comentário HTML '-->'
-//
-// Este método é útil para dar suporte a comentários HTML dentro de blocos de marcação JSX
-// que são compilados de forma transparente no Harpia.
 func (l *Lexer) ignorarComentarioHTML() {
-	// Avança os 4 caracteres iniciais '<!--'
 	l.avancar() // consome '<'
 	l.avancar() // consome '!'
 	l.avancar() // consome '-'
 	l.avancar() // consome '-'
 
 	for !l.fimDeArquivo() {
-		if l.carater == "-" && l.proximoCarater() == "-" {
+		if l.ch == '-' && l.peek() == '-' {
 			l.avancar() // consome o primeiro '-'
 			l.avancar() // consome o segundo '-'
-			if l.carater == ">" {
+			if l.ch == '>' {
 				l.avancar() // consome o '>'
 				break
 			}
@@ -114,87 +90,81 @@ func (l *Lexer) ignorarComentarioHTML() {
 }
 
 // avancar incrementa a posição do cursor em um caractere e carrega a nova runa correspondente.
-//
-// Se o caractere recém-carregado for uma quebra de linha ('\n'), o Lexer atualiza as coordenadas
-// físicas, incrementando o contador de linhas e zerando o cursor de colunas. Do contrário, avança a coluna.
 func (l *Lexer) avancar() {
-	if l.fimDeArquivo() {
+	l.offset = l.proximoOffset
+	if l.proximoOffset >= len(l.fonte) {
+		l.ch = 0
+		l.largura = 0
 		return
 	}
+	r, w := utf8.DecodeRune(l.fonte[l.proximoOffset:])
+	l.ch = r
+	l.largura = w
+	l.proximoOffset += w
 
-	l.indice += 1
-	l.carater = compartilhado.ObtemCaraterPorIndice(l.entrada, l.indice, l.byteCache)
-
-	if l.carater == "\n" {
-		l.linha += 1
+	if l.ch == '\n' {
+		l.linha++
 		l.coluna = 0
-		return
+	} else {
+		l.coluna++
 	}
-
-	l.coluna += 1
 }
 
-// posicaoAtual captura as coordenadas geográficas (linha, coluna, índice absoluto)
+// posicaoAtual captura as coordenadas geográficas (coluna, linha, offset absoluto de byte)
 // do caractere corrente no código, retornando um objeto *PosicaoToken alocado dinamicamente.
 func (l *Lexer) posicaoAtual() *PosicaoToken {
-	return &PosicaoToken{l.coluna, l.linha, l.indice}
+	return &PosicaoToken{
+		Coluna: l.coluna,
+		Linha:  l.linha,
+		Indice: l.offset,
+	}
 }
 
 // ignorarEspacos avança o cursor descartando e pulando caracteres inofensivos de espaço em branco e tabulação.
-// Não pula quebras de linha '\n', que são tratadas como tokens separadores lógicos de instruções no Harpia.
 func (l *Lexer) ignorarEspacos() {
-	for (l.carater == " " || l.carater == "\t") && !l.fimDeArquivo() {
+	for (l.ch == ' ' || l.ch == '\t') && !l.fimDeArquivo() {
 		l.avancar()
 	}
 }
 
 // ignorarComentario pula todos os caracteres que compõem uma linha de comentário (iniciada pelo caractere '#')
-// até encontrar o delimitador de quebra de linha ('\n') ou o término do arquivo.
 func (l *Lexer) ignorarComentario() {
-	for (l.carater != "\n") && !l.fimDeArquivo() {
+	for l.ch != '\n' && !l.fimDeArquivo() {
 		l.avancar()
 	}
 	l.avancar()
 }
 
-// subString é um fatiador seguro que extrai uma partição da string original delimitada
-// por posições conceituais em caracteres Unicode, convertendo-as de forma segura e rápida em offsets de bytes.
-//
-// Parâmetros:
-//   - inicio: o índice conceitual da runa de início (base 0).
-//   - fim: o índice conceitual da runa de fim (limite exclusivo).
-//
-// Retorna a substring correspondente.
-func (l *Lexer) subString(inicio, fim int) string {
-	inicioByte := compartilhado.IndiceCaraterParaByte(l.entrada, inicio, l.byteCache)
-	fimByte := compartilhado.IndiceCaraterParaByte(l.entrada, fim, l.byteCache)
-	return l.entrada[inicioByte:fimByte]
+// SubString é um fatiador seguro que extrai uma partição do slice de bytes original
+// delimitado por offsets de bytes.
+func (l *Lexer) SubString(inicio, fim int) string {
+	if inicio < 0 {
+		inicio = 0
+	}
+	if fim > len(l.fonte) {
+		fim = len(l.fonte)
+	}
+	if inicio >= fim {
+		return ""
+	}
+	return string(l.fonte[inicio:fim])
 }
 
 // lerIdentificador consome sequencialmente caracteres alfanuméricos ou sublinhas (_) que compõem
 // o nome de uma variável, classe, função ou palavra reservada.
-//
-// Ao final da leitura, faz a verificação na tabela de palavras reservadas (tokensIdentificadores).
-// Se coincidir, o token genérico é promovido à palavra-chave correspondente (ex: TokenSe).
-//
-// Retorna um Token classificado como TokenIdentificador ou como a palavra-chave correspondente.
 func (l *Lexer) lerIdentificador() *Token {
 	inicio := l.posicaoAtual()
 
 	for {
 		l.avancar()
 
-		if !(compartilhado.ContemApenasAlfaNum(l.carater) || l.carater == "_") {
+		if !(unicode.IsLetter(l.ch) || unicode.IsDigit(l.ch) || l.ch == '_') {
 			break
 		}
 	}
 
-	fim := &PosicaoToken{
-		Coluna: l.coluna,
-		Linha:  l.linha,
-		Indice: l.indice,
-	}
-	valor := l.subString(inicio.Indice, fim.Indice)
+	fim := l.posicaoAtual()
+	valor := l.SubString(inicio.Indice, fim.Indice)
 	tipo := TokenIdentificador
 
 	if t, ok := tokensIdentificadores[valor]; ok {
@@ -205,23 +175,19 @@ func (l *Lexer) lerIdentificador() *Token {
 }
 
 // lerNumero consome sequencialmente dígitos e o caractere separador decimal '.' para fatiar literais numéricos.
-//
-// Diferencia de forma automatizada números inteiros (TokenInteiro) de dízimas ou reais (TokenDecimal).
-//
-// Retorna um Token estruturado correspondente ao tipo numérico identificado.
 func (l *Lexer) lerNumero() *Token {
 	inicio := l.posicaoAtual()
 
 	for {
 		l.avancar()
 
-		if !(compartilhado.ContemApenasDigitos(l.carater) || l.carater == ".") {
+		if !(unicode.IsDigit(l.ch) || l.ch == '.') {
 			break
 		}
 	}
 
 	fim := l.posicaoAtual()
-	valor := l.subString(inicio.Indice, fim.Indice)
+	valor := l.SubString(inicio.Indice, fim.Indice)
 
 	tipo := TokenInteiro
 	if strings.Contains(valor, ".") {
@@ -231,13 +197,22 @@ func (l *Lexer) lerNumero() *Token {
 	return newToken(tipo, valor, inicio, fim)
 }
 
+// lerEntidadeHTML consome uma entidade HTML do tipo &#DIGITS; ou &NAME; (como &#8595; ou &nbsp;).
+func (l *Lexer) lerEntidadeHTML() {
+	l.avancar() // consome '&'
+	for !l.fimDeArquivo() && l.ch != ';' && l.ch != ' ' && l.ch != '\n' {
+		l.avancar()
+	}
+	if !l.fimDeArquivo() && l.ch == ';' {
+		l.avancar() // consome ';'
+	}
+}
+
 // lerTexto consome uma cadeia literal delimitada por aspas simples (') ou aspas duplas ("),
 // tratando de forma transparente sequências de escape do delimitador (ex: \" ou \').
-//
-// Retorna um Token classificado como TokenTexto contendo a string extraída (incluindo as aspas delimitadoras).
 func (l *Lexer) lerTexto() *Token {
 	inicio := l.posicaoAtual()
-	delimitador := l.carater
+	delimitador := l.ch
 
 	for {
 		if l.fimDeArquivo() {
@@ -245,28 +220,55 @@ func (l *Lexer) lerTexto() *Token {
 		}
 		l.avancar()
 
-		if l.carater == delimitador {
-			l.avancar()
-			break
+		if l.ch == '\\' {
+			l.avancar() // Pula o caractere de escape '\' e preserva o caractere seguinte
+			continue
 		}
 
-		if l.carater == "\\" && l.proximoCarater() == delimitador {
+		if l.ch == delimitador {
 			l.avancar()
+			break
 		}
 	}
 
 	fim := l.posicaoAtual()
-	return newToken(TokenTexto, l.subString(inicio.Indice, fim.Indice), inicio, fim)
+	return newToken(TokenTexto, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 }
 
-// ProximoToken é o ponto de entrada principal do analisador léxico.
-//
-// Executa a máquina de transições lógica: ignora espaços em branco, lida com comentários,
-// avalia caracteres únicos nos dicionários estáticos de operadores, consome números, strings,
-// identificadores de palavras-chave e retorna a próxima estrutura Token de forma sequencial.
-//
-// Retorna um Token alocado contendo as informações completas de classificação e localização física.
-func (l *Lexer) ProximoToken() *Token {
+// SnapshotLex captura o estado completo do cursor léxico para permitir rollback.
+type SnapshotLex struct {
+	offset        int
+	proximoOffset int
+	ch            rune
+	largura       int
+	linha         int
+	coluna        int
+}
+
+// Estado retorna um snapshot imutável do estado atual do lexer.
+func (l *Lexer) Estado() SnapshotLex {
+	return SnapshotLex{
+		offset:        l.offset,
+		proximoOffset: l.proximoOffset,
+		ch:            l.ch,
+		largura:       l.largura,
+		linha:         l.linha,
+		coluna:        l.coluna,
+	}
+}
+
+// Restaurar devolve o lexer ao estado capturado em um snapshot anterior.
+func (l *Lexer) Restaurar(s SnapshotLex) {
+	l.offset = s.offset
+	l.proximoOffset = s.proximoOffset
+	l.ch = s.ch
+	l.largura = s.largura
+	l.linha = s.linha
+	l.coluna = s.coluna
+}
+
+// PróximoToken é o ponto de entrada principal do analisador léxico.
+func (l *Lexer) PróximoToken() *Token {
 	l.ignorarEspacos()
 
 	if l.fimDeArquivo() {
@@ -278,33 +280,50 @@ func (l *Lexer) ProximoToken() *Token {
 		}
 	}
 
-	carater := l.carater
+	ch := l.ch
 	inicio := l.posicaoAtual()
 
+	// ponytail: reconhece entidades HTML (&#DIGITS; ou &NAME; ex: &#8595; ou &nbsp;)
+	if ch == '&' && (l.peek() == '#' || unicode.IsLetter(l.peek())) {
+		l.lerEntidadeHTML()
+		fim := l.posicaoAtual()
+		return newToken(TokenEntidadeHTML, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+	}
+
 	// Trata comentários de linha única '#' ou '//' (deve rodar antes de operadores simples para evitar colisão com '/')
-	if carater == "#" || (carater == "/" && l.proximoCarater() == "/") {
+	if ch == '#' || (ch == '/' && l.peek() == '/') {
 		l.ignorarComentario()
-		return l.ProximoToken()
+		return l.PróximoToken()
 	}
 
 	// ponytail: trata comentários HTML '<!-- ... -->' de forma nativa para excelente DX no JSX
-	if carater == "<" && l.proximoCarater() == "!" {
-		if l.caraterRelativo(2) == "-" && l.caraterRelativo(3) == "-" {
+	if ch == '<' && l.peek() == '!' {
+		if l.peekN(2) == '-' && l.peekN(3) == '-' {
 			l.ignorarComentarioHTML()
-			return l.ProximoToken()
+			return l.PróximoToken()
 		}
 	}
 
+	// ponytail: trata operador spread '...'
+	if ch == '.' && l.peek() == '.' && l.peekN(2) == '.' {
+		l.avancar()
+		l.avancar()
+		l.avancar()
+		fim := l.posicaoAtual()
+		return newToken(TokenTresPontos, "...", inicio, fim)
+	}
+
 	// Se for um caractere operador catalogado ou operador de negação '!' ou '?'
-	if tipo, ok := tokensSimples[carater]; ok || carater == "!" || carater == "?" {
+	strVal := string(ch)
+	if tipo, ok := tokensSimples[strVal]; ok || ch == '!' || ch == '?' {
 		for {
 			if l.fimDeArquivo() {
 				break
 			}
 			l.avancar()
 			// Guloso: tenta aglutinar caracteres subsequentes para formar operadores compostos (ex: '=' + '=' = '==')
-			if t, ok := tokensSimples[carater+l.carater]; ok {
-				carater += l.carater
+			if t, ok := tokensSimples[strVal+string(l.ch)]; ok {
+				strVal += string(l.ch)
 				tipo = t
 				continue
 			}
@@ -313,26 +332,26 @@ func (l *Lexer) ProximoToken() *Token {
 		}
 
 		fim := l.posicaoAtual()
-		return newToken(tipo, carater, inicio, fim)
+		return newToken(tipo, strVal, inicio, fim)
 	}
 
-	switch carater {
-	case "\"", "'":
+	switch ch {
+	case '"', '\'':
 		return l.lerTexto()
 	default:
 		// Se iniciar com letra ou sublinha, lê como identificador
-		if compartilhado.ContemApenasLetras(carater) || carater == "_" {
+		if unicode.IsLetter(ch) || ch == '_' {
 			return l.lerIdentificador()
 		}
 
 		// Se iniciar com dígito, lê como literal numérico
-		if compartilhado.ContemApenasDigitos(carater) {
+		if unicode.IsDigit(ch) {
 			return l.lerNumero()
 		}
 	}
 
 	// Caso não coincida com nenhuma regra, sinaliza um erro léxico e avança o cursor
-	errTok := &Token{Tipo: TokenErro, Valor: l.carater, Inicio: inicio, Fim: l.posicaoAtual()}
+	errTok := &Token{Tipo: TokenErro, Valor: string(l.ch), Inicio: inicio, Fim: l.posicaoAtual()}
 	l.avancar()
 	return errTok
 }
