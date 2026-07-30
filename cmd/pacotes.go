@@ -1,8 +1,11 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +16,30 @@ import (
 
 	"github.com/spf13/cobra"
 )
+
+// calcularSHA256 calcula o hash SHA-256 dos dados e retorna a string hexadecimal de 64 caracteres.
+func calcularSHA256(dados []byte) string {
+	hash := sha256.Sum256(dados)
+	return fmt.Sprintf("%x", hash)
+}
+
+func obterCaminhoELockfile() (string, *Lockfile) {
+	caminhos := []string{"harpia.lock", "harpia.lock.json", "pacote.lock", "pacote.lock.json"}
+	for _, caminho := range caminhos {
+		if conteudo, err := os.ReadFile(caminho); err == nil {
+			if lock, err := parseLockfile(conteudo); err == nil {
+				if lock.Pacotes == nil {
+					lock.Pacotes = make(map[string]PacoteLockInfo)
+				}
+				return caminho, lock
+			}
+		}
+	}
+	return "harpia.lock", &Lockfile{
+		VersaoLock: "1.0",
+		Pacotes:    make(map[string]PacoteLockInfo),
+	}
+}
 
 // PacoteManifest representa o arquivo de manifesto pacote.hrp ou pacote.json
 // mapeando o conjunto de dependências externas declaradas pelo projeto.
@@ -30,13 +57,23 @@ func comandoInstalar() *cobra.Command {
 		Aliases: []string{"instale", "install"},
 		Short:   "Instala dependências do projeto registradas no pacote.hrp ou pacote.json",
 		Run: func(cmd *cobra.Command, args []string) {
+			caminhoLock, lock := obterCaminhoELockfile()
+
 			// Se o usuário passou argumentos diretamente, instala o pacote específico
 			if len(args) == 2 {
 				nome := args[0]
 				urlOuVersao := args[1]
 				urlInstalar := urlOuVersao
+				shaEsperado := ""
 
-				if !strings.HasPrefix(urlOuVersao, "http://") && !strings.HasPrefix(urlOuVersao, "https://") {
+				if lockInfo, emLock := lock.Pacotes[nome]; emLock {
+					if lockInfo.Versao == urlOuVersao && lockInfo.URL != "" {
+						urlInstalar = lockInfo.URL
+						shaEsperado = lockInfo.SHA256
+					}
+				}
+
+				if !strings.HasPrefix(urlInstalar, "http://") && !strings.HasPrefix(urlInstalar, "https://") {
 					fmt.Printf("Buscando pacote '%s' na versão '%s' no registro remoto...\n", nome, urlOuVersao)
 					resolved, err := obterUrlDoRegistro(nome, urlOuVersao)
 					if err != nil {
@@ -47,29 +84,54 @@ func comandoInstalar() *cobra.Command {
 				}
 
 				fmt.Printf("Instalando pacote '%s' de %s...\n", nome, urlInstalar)
-				err := baixarEExtrairPacote(nome, urlInstalar)
+				hashCalculado, err := baixarEExtrairPacote(nome, urlInstalar, shaEsperado)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Erro ao instalar %s: %v\n", nome, err)
 					os.Exit(1)
 				}
 				salvarDependenciaNoManifesto(nome, urlOuVersao)
+				lock.Pacotes[nome] = PacoteLockInfo{
+					Versao: urlOuVersao,
+					URL:    urlInstalar,
+					SHA256: hashCalculado,
+				}
+				salvarLockfile(caminhoLock, lock)
 				return
 			}
 
 			if len(args) == 1 {
 				nome := args[0]
-				fmt.Printf("Buscando pacote '%s' no registro remoto...\n", nome)
-				urlPacote, err := obterUrlDoRegistro(nome, "")
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "Erro ao resolver pacote: %v\n", err)
-					os.Exit(1)
+				urlInstalar := ""
+				shaEsperado := ""
+				versaoRegistrada := ""
+
+				if lockInfo, emLock := lock.Pacotes[nome]; emLock && lockInfo.URL != "" {
+					urlInstalar = lockInfo.URL
+					shaEsperado = lockInfo.SHA256
+					versaoRegistrada = lockInfo.Versao
+				} else {
+					fmt.Printf("Buscando pacote '%s' no registro remoto...\n", nome)
+					urlPacote, err := obterUrlDoRegistro(nome, "")
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Erro ao resolver pacote: %v\n", err)
+						os.Exit(1)
+					}
+					urlInstalar = urlPacote
+					versaoRegistrada = urlPacote
 				}
-				err = baixarEExtrairPacote(nome, urlPacote)
+
+				hashCalculado, err := baixarEExtrairPacote(nome, urlInstalar, shaEsperado)
 				if err != nil {
 					fmt.Fprintf(os.Stderr, "Erro ao instalar %s: %v\n", nome, err)
 					os.Exit(1)
 				}
-				salvarDependenciaNoManifesto(nome, urlPacote)
+				salvarDependenciaNoManifesto(nome, versaoRegistrada)
+				lock.Pacotes[nome] = PacoteLockInfo{
+					Versao: versaoRegistrada,
+					URL:    urlInstalar,
+					SHA256: hashCalculado,
+				}
+				salvarLockfile(caminhoLock, lock)
 				return
 			}
 
@@ -101,41 +163,70 @@ func comandoInstalar() *cobra.Command {
 
 			fmt.Printf("Instalando %d dependências de %s...\n", len(manifesto.Dependencias), manifestoPath)
 
-			// ponytail: executa as instalações de forma assíncrona
-			canalErros := make(chan error, len(manifesto.Dependencias))
+			type resInstalacao struct {
+				nome   string
+				versao string
+				url    string
+				sha256 string
+				err    error
+			}
+
+			canalResultados := make(chan resInstalacao, len(manifesto.Dependencias))
 			for nome, urlOuVersao := range manifesto.Dependencias {
 				go func(n, uv string) {
 					urlInstalar := uv
-					if !strings.HasPrefix(uv, "http://") && !strings.HasPrefix(uv, "https://") {
+					shaEsperado := ""
+
+					if lockInfo, emLock := lock.Pacotes[n]; emLock && lockInfo.URL != "" {
+						urlInstalar = lockInfo.URL
+						shaEsperado = lockInfo.SHA256
+					} else if !strings.HasPrefix(uv, "http://") && !strings.HasPrefix(uv, "https://") {
 						resolved, err := obterUrlDoRegistro(n, uv)
 						if err != nil {
-							canalErros <- fmt.Errorf("falha ao resolver '%s' na versão '%s': %v", n, uv, err)
+							canalResultados <- resInstalacao{err: fmt.Errorf("falha ao resolver '%s' na versão '%s': %v", n, uv, err)}
 							return
 						}
 						urlInstalar = resolved
 					}
 
-					err := baixarEExtrairPacote(n, urlInstalar)
+					hashCalculado, err := baixarEExtrairPacote(n, urlInstalar, shaEsperado)
 					if err != nil {
-						canalErros <- fmt.Errorf("falha no pacote %s: %v", n, err)
+						canalResultados <- resInstalacao{err: fmt.Errorf("falha no pacote %s: %v", n, err)}
 						return
 					}
-					canalErros <- nil
+
+					canalResultados <- resInstalacao{
+						nome:   n,
+						versao: uv,
+						url:    urlInstalar,
+						sha256: hashCalculado,
+						err:    nil,
+					}
 				}(nome, urlOuVersao)
 			}
 
-			// Aguarda a finalização de todas as goroutines
 			erros := 0
 			for i := 0; i < len(manifesto.Dependencias); i++ {
-				if err := <-canalErros; err != nil {
-					fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				res := <-canalResultados
+				if res.err != nil {
+					fmt.Fprintf(os.Stderr, "Erro: %v\n", res.err)
 					erros++
+				} else {
+					lock.Pacotes[res.nome] = PacoteLockInfo{
+						Versao: res.versao,
+						URL:    res.url,
+						SHA256: res.sha256,
+					}
 				}
 			}
 
 			if erros > 0 {
 				fmt.Fprintf(os.Stderr, "Instalação concluída com %d falhas.\n", erros)
 				os.Exit(1)
+			}
+
+			if err := salvarLockfile(caminhoLock, lock); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao salvar lockfile: %v\n", err)
 			}
 
 			fmt.Println("✅ Todas as dependências foram instaladas com sucesso em ./pt_modulos/")
@@ -185,36 +276,41 @@ func parseManifesto(conteudo []byte) (*PacoteManifest, error) {
 }
 
 // baixarEExtrairPacote baixa síncronamente o arquivo comprimido (.zip) da dependência,
-// descompacta e extrai seus arquivos na pasta local './pt_modulos/', aplicando de forma estrita
-// uma validação de caminho contra vulnerabilidades críticas de Zip Slip (Path Traversal).
-func baixarEExtrairPacote(nome, url string) error {
+// calcula e valida a integridade via checksum SHA-256 se fornecido, descompacta e extrai seus
+// arquivos na pasta local './pt_modulos/', aplicando validação contra Zip Slip.
+func baixarEExtrairPacote(nome, url string, sha256Esperado string) (string, error) {
 	// ponytail: relatórios textuais dinâmicos de progresso para DX amigável
 	fmt.Printf("  ➔ [%s] Baixando dependência de %s...\n", nome, url)
 	resp, err := http.Get(url)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("status HTTP inválido: %s", resp.Status)
+		return "", fmt.Errorf("status HTTP inválido: %s", resp.Status)
 	}
 
 	corpo, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return "", err
+	}
+
+	hashObtido := calcularSHA256(corpo)
+	if sha256Esperado != "" && sha256Esperado != hashObtido {
+		return "", fmt.Errorf("HRP-LOCK-001: Falha na verificação de integridade SHA-256 do pacote %s (esperado: %s, obtido: %s)", nome, sha256Esperado, hashObtido)
 	}
 
 	fmt.Printf("  ➔ [%s] Extraindo arquivos na pasta local...\n", nome)
 	reader, err := zip.NewReader(bytes.NewReader(corpo), int64(len(corpo)))
 	if err != nil {
-		return fmt.Errorf("arquivo baixado não é um zip válido: %v", err)
+		return "", fmt.Errorf("arquivo baixado não é um zip válido: %v", err)
 	}
 
 	pastaDest := filepath.Join("pt_modulos", nome)
 	err = os.MkdirAll(pastaDest, 0755)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for _, arquivo := range reader.File {
@@ -224,7 +320,7 @@ func baixarEExtrairPacote(nome, url string) error {
 		caminhoLimpo := filepath.Clean(caminhoFisico)
 		pastaLimpa := filepath.Clean(pastaDest)
 		if !strings.HasPrefix(caminhoLimpo, pastaLimpa) {
-			return fmt.Errorf("caminho de arquivo ilegal detectado no pacote ZIP: %s", arquivo.Name)
+			return "", fmt.Errorf("caminho de arquivo ilegal detectado no pacote ZIP: %s", arquivo.Name)
 		}
 
 		if arquivo.FileInfo().IsDir() {
@@ -233,30 +329,30 @@ func baixarEExtrairPacote(nome, url string) error {
 		}
 
 		if err := os.MkdirAll(filepath.Dir(caminhoFisico), 0755); err != nil {
-			return err
+			return "", err
 		}
 
 		origem, err := arquivo.Open()
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		destino, err := os.OpenFile(caminhoFisico, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, arquivo.Mode())
 		if err != nil {
 			origem.Close()
-			return err
+			return "", err
 		}
 
 		_, err = io.Copy(destino, origem)
 		origem.Close()
 		destino.Close()
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
 	fmt.Printf("  ✓ [%s] Instalado com sucesso em ./pt_modulos/\n", nome)
-	return nil
+	return hashObtido, nil
 }
 
 // ponytail: URL oficial contendo os metadados centralizados do índice de pacotes

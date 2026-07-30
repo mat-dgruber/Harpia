@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -90,7 +92,7 @@ func TestBaixarEExtrairPacote(t *testing.T) {
 	os.Chdir(tempDir)
 	defer os.Chdir(oldWd)
 
-	err = baixarEExtrairPacote("teste_modulo", server.URL)
+	_, err = baixarEExtrairPacote("teste_modulo", server.URL, "")
 	if err != nil {
 		t.Fatalf("Erro ao baixar/extrair pacote: %v", err)
 	}
@@ -169,5 +171,135 @@ func TestObterUrlDoRegistro(t *testing.T) {
 	_, err = obterUrlDoRegistro("banco-dados", "9.9.9")
 	if err == nil {
 		t.Errorf("Esperava erro ao buscar versão inexistente")
+	}
+}
+
+func TestCalcularSHA256(t *testing.T) {
+	dados := []byte("")
+	esperado := "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+	obtido := calcularSHA256(dados)
+	if obtido != esperado {
+		t.Errorf("SHA256 para string vazia incorreto. Esperado: %s, obtido: %s", esperado, obtido)
+	}
+
+	dados = []byte("harpia")
+	esperado = "8ddd29a5a18b3228c9b3c9a152954669c691f6870e1139dbd3d90037b640b55d"
+	obtido = calcularSHA256(dados)
+	if obtido != esperado {
+		t.Errorf("SHA256 para 'harpia' incorreto. Esperado: %s, obtido: %s", esperado, obtido)
+	}
+}
+
+func TestVerificacaoIntegridadeSHA256(t *testing.T) {
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+	f, err := zipWriter.Create("main.hrp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.Write([]byte("imprimir('teste integrity')"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	zipWriter.Close()
+
+	zipBytes := buf.Bytes()
+	hashCorreto := calcularSHA256(zipBytes)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.Write(zipBytes)
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	oldWd, _ := os.Getwd()
+	os.Chdir(tempDir)
+	defer os.Chdir(oldWd)
+
+	// 1. Deve falhar com HRP-LOCK-001 se SHA-256 for divergente
+	hashRetornado, err := baixarEExtrairPacote("pkg_test", server.URL, "0000000000000000000000000000000000000000000000000000000000000000")
+	if err == nil {
+		t.Fatalf("Esperava erro de integridade HRP-LOCK-001, mas a instalacao teve sucesso")
+	}
+	if !bytes.Contains([]byte(err.Error()), []byte("HRP-LOCK-001")) {
+		t.Errorf("Mensagem de erro esperada HRP-LOCK-001, obtido: %v", err)
+	}
+
+	// 2. Deve ter sucesso com hash correto
+	hashRetornado, err = baixarEExtrairPacote("pkg_test", server.URL, hashCorreto)
+	if err != nil {
+		t.Fatalf("Erro inesperado com hash correto: %v", err)
+	}
+	if hashRetornado != hashCorreto {
+		t.Errorf("Hash retornado incorreto. Esperado %s, obtido %s", hashCorreto, hashRetornado)
+	}
+}
+
+func TestInstalacaoDeterministicaComLockfile(t *testing.T) {
+	var buf bytes.Buffer
+	zipWriter := zip.NewWriter(&buf)
+	f, err := zipWriter.Create("index.hrp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.Write([]byte("imprimir('locked pkg')"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	zipWriter.Close()
+
+	zipBytes := buf.Bytes()
+	hashZip := calcularSHA256(zipBytes)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.Write(zipBytes)
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	oldWd, _ := os.Getwd()
+	os.Chdir(tempDir)
+	defer os.Chdir(oldWd)
+
+	// Cria pacote.json
+	manifestContent := []byte(`{
+		"dependencias": {
+			"meu-modulo": "1.0.0"
+		}
+	}`)
+	err = os.WriteFile("pacote.json", manifestContent, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Cria harpia.lock com URL travada no servidor mock
+	lockContent := []byte(`{
+		"versao_lock": "1.0",
+		"pacotes": {
+			"meu-modulo": {
+				"versao": "1.0.0",
+				"url": "` + server.URL + `",
+				"sha256": "` + hashZip + `"
+			}
+		}
+	}`)
+	err = os.WriteFile("harpia.lock", lockContent, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := comandoInstalar()
+	cmd.SetArgs([]string{})
+	err = cmd.Execute()
+	if err != nil {
+		t.Fatalf("comandoInstalar falhou: %v", err)
+	}
+
+	// Verifica se arquivo foi extraído
+	caminhoArquivo := filepath.Join("pt_modulos", "meu-modulo", "index.hrp")
+	if _, err := os.Stat(caminhoArquivo); os.IsNotExist(err) {
+		t.Errorf("Modulo instalado via lockfile nao foi encontrado em %s", caminhoArquivo)
 	}
 }
