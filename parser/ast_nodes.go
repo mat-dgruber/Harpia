@@ -368,7 +368,10 @@ func (*DeclVarDestructuring) isExpr()   {}
 func (*DeclDesestruturacao) isExpr()    {}
 func (*OpCoalescenciaNula) isExpr()     {}
 func (*AcessoMembroOpcional) isExpr()   {}
+func (*ChamadaOpcional) isExpr()        {}
+func (*IndexacaoOpcional) isExpr()      {}
 func (*DeclEnum) isExpr()               {}
+
 func (*DeclInterface) isExpr()          {}
 
 // DeclEnum representa uma enumeração nativa (ex: enum Status { Pendente, Concluido })
@@ -406,6 +409,21 @@ type AcessoMembroOpcional struct {
 	Objeto BaseNode
 	Membro BaseNode
 }
+
+// ChamadaOpcional representa a chamada de função com navegabilidade segura 'fn?.(a, b)'.
+type ChamadaOpcional struct {
+	NoBase
+	Funcao     BaseNode
+	Argumentos []BaseNode
+}
+
+// IndexacaoOpcional representa a indexação/acesso por colchete com navegabilidade segura 'lista?.[0]'.
+type IndexacaoOpcional struct {
+	NoBase
+	Objeto    BaseNode
+	Argumento BaseNode
+}
+
 
 // AtributoJSX representa um atributo em uma tag JSX (ex: classe="p-4" ou aoClicar={clique})
 type AtributoJSX struct {

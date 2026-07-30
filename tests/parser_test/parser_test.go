@@ -314,4 +314,27 @@ func TestDiagnosticosRicos(t *testing.T) {
 	}
 }
 
+func TestEncadeamentoOpcionalCompleto(t *testing.T) {
+	codigo := `
+		var res1 = fn?.(1, 2)
+		var res2 = lista?.[0]
+	`
+	p := parser.NewParserFromString(codigo, "teste_opt.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro sintático: %v", err)
+	}
+	if len(ast.Declaracoes) != 2 {
+		t.Fatalf("Esperava 2 declarações, obteve %d", len(ast.Declaracoes))
+	}
+	decl1 := ast.Declaracoes[0].(*parser.DeclVar)
+	if _, ok := decl1.Inicializador.(*parser.ChamadaOpcional); !ok {
+		t.Errorf("Esperava *parser.ChamadaOpcional, obteve %T", decl1.Inicializador)
+	}
+	decl2 := ast.Declaracoes[1].(*parser.DeclVar)
+	if _, ok := decl2.Inicializador.(*parser.IndexacaoOpcional); !ok {
+		t.Errorf("Esperava *parser.IndexacaoOpcional, obteve %T", decl2.Inicializador)
+	}
+}
+
 

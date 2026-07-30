@@ -1326,7 +1326,58 @@ func (p *Parser) parsePotencia() (BaseNode, error) {
 	return esquerda, nil
 }
 
+func (p *Parser) parseListaArgumentos() ([]BaseNode, error) {
+	if err := p.consome("("); err != nil {
+		return nil, err
+	}
+
+	var argumentos []BaseNode
+	for p.token.Tipo != lexer.TokenFechaParenteses {
+		if p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			continue
+		}
+
+		var expressao BaseNode
+		var err error
+
+		// Verifica se é uma atribuição nomeada (identificador seguido de '=')
+		if p.token.Tipo == lexer.TokenIdentificador && p.próximoToken != nil && p.próximoToken.Tipo == lexer.TokenIgual {
+			nome := p.token.Valor
+			p.avancar() // consome o identificador
+			p.avancar() // consome '='
+			valor, err := p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+			expressao = &ArgumentoNomeado{Nome: nome, Valor: valor}
+		} else {
+			expressao, err = p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		argumentos = append(argumentos, expressao)
+
+		if p.token.Tipo == lexer.TokenVirgula {
+			p.avancar()
+			continue
+		}
+
+		if p.token.Tipo != lexer.TokenFechaParenteses {
+			return nil, p.errof("esperava ',' ou ')' na lista de argumentos, mas recebi '%s'", p.token.Valor)
+		}
+	}
+
+	if err := p.consome(")"); err != nil {
+		return nil, err
+	}
+	return argumentos, nil
+}
+
 // parsePrimario resolve acessos a membros (.), chamadas de funções e indexação de arrays com colchetes [].
+
 func (p *Parser) parsePrimario() (BaseNode, error) {
 	atom, err := p.parseAtomo()
 	if err != nil {
@@ -1341,15 +1392,38 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 			for p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
 				p.avancar()
 			}
-			membro, err := p.parseAtomo()
-			if err != nil {
-				return nil, err
-			}
 
-			if ehOpcional {
-				atom = &AcessoMembroOpcional{Objeto: atom, Membro: membro}
+			if ehOpcional && p.token.Tipo == lexer.TokenAbreParenteses {
+				args, err := p.parseListaArgumentos()
+				if err != nil {
+					return nil, err
+				}
+				chamada := &ChamadaOpcional{Funcao: atom, Argumentos: args}
+				p.registrar(chamada, p.token)
+				atom = chamada
+			} else if ehOpcional && p.token.Tipo == lexer.TokenAbreColchetes {
+				p.avancar()
+				arg, err := p.parseExpressao()
+				if err != nil {
+					return nil, err
+				}
+				if err := p.consome("]"); err != nil {
+					return nil, err
+				}
+				idx := &IndexacaoOpcional{Objeto: atom, Argumento: arg}
+				p.registrar(idx, p.token)
+				atom = idx
 			} else {
-				atom = &AcessoMembro{Dono: atom, Membro: membro}
+				membro, err := p.parseAtomo()
+				if err != nil {
+					return nil, err
+				}
+
+				if ehOpcional {
+					atom = &AcessoMembroOpcional{Objeto: atom, Membro: membro}
+				} else {
+					atom = &AcessoMembro{Dono: atom, Membro: membro}
+				}
 			}
 		} else if p.token.Tipo == lexer.TokenAbreParenteses {
 			chamada := &ChamadaFuncao{Identificador: atom}
@@ -1358,52 +1432,11 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 				p.registrar(ident, p.token)
 			}
 
-			if err := p.consome("("); err != nil {
+			args, err := p.parseListaArgumentos()
+			if err != nil {
 				return nil, err
 			}
-
-			for p.token.Tipo != lexer.TokenFechaParenteses {
-				if p.token.Tipo == lexer.TokenNovaLinha {
-					p.avancar()
-					continue
-				}
-
-				var expressao BaseNode
-				var err error
-
-				// Verifica se é uma atribuição nomeada (identificador seguido de '=')
-				if p.token.Tipo == lexer.TokenIdentificador && p.próximoToken != nil && p.próximoToken.Tipo == lexer.TokenIgual {
-					nome := p.token.Valor
-					p.avancar() // consome o identificador
-					p.avancar() // consome '='
-					valor, err := p.parseExpressao()
-					if err != nil {
-						return nil, err
-					}
-					expressao = &ArgumentoNomeado{Nome: nome, Valor: valor}
-				} else {
-					expressao, err = p.parseExpressao()
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				chamada.Argumentos = append(chamada.Argumentos, expressao)
-
-				if p.token.Tipo == lexer.TokenVirgula {
-					p.avancar()
-					continue
-				}
-
-				if p.token.Tipo != lexer.TokenFechaParenteses {
-					return nil, p.errof("esperava ',' ou ')' na lista de argumentos, mas recebi '%s'", p.token.Valor)
-				}
-			}
-
-			if err := p.consome(")"); err != nil {
-				return nil, err
-			}
-
+			chamada.Argumentos = args
 			atom = chamada
 		} else if p.token.Tipo == lexer.TokenAbreColchetes {
 			p.avancar()
