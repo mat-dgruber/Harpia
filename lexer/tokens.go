@@ -126,11 +126,14 @@ const (
 	// REATRIBUIÇÕES COM ACUMULADORES (OPERADORES COMPOSTOS)
 	// ============================================================================
 
-	TokenMaisIgual       // +=
-	TokenMenosIgual      // -=
-	TokenAsteriscoIgual  // *=
-	TokenBarraIgual      // /=
-	TokenBarraBarraIgual // //=
+	TokenMaisIgual                      // +=
+	TokenMenosIgual                     // -=
+	TokenAsteriscoIgual                 // *=
+	TokenBarraIgual                     // /=
+	TokenBarraBarraIgual                // //=
+	TokenInterrogacaoInterrogacaoIgual // ??=
+	TokenBoolOuIgual                   // ||=
+	TokenBoolEIgual                    // &&=
 
 	// ============================================================================
 	// OPERADORES LÓGICOS BOOLEANOS

@@ -279,7 +279,7 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 		}
 
 		token := p.token.Tipo
-		if token >= lexer.TokenMaisIgual && token <= lexer.TokenBarraBarraIgual || token == lexer.TokenIgual {
+		if token >= lexer.TokenMaisIgual && token <= lexer.TokenBoolEIgual || token == lexer.TokenIgual {
 			reatribuicao := &Reatribuicao{Objeto: expressao, Operador: p.token.Valor}
 			p.avancar()
 

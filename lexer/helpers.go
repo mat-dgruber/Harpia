@@ -37,11 +37,14 @@ var tokensSimples = map[string]TokenType{
 	"@":  TokenArroba,
 
 	// Reatribuições (atribuições com atalhos aritméticos)
-	"+=":  TokenMaisIgual,
-	"-=":  TokenMenosIgual,
-	"*=":  TokenAsteriscoIgual,
-	"/=":  TokenBarraIgual,
-	"//=": TokenBarraBarraIgual,
+	"+=":   TokenMaisIgual,
+	"-=":   TokenMenosIgual,
+	"*=":   TokenAsteriscoIgual,
+	"/=":   TokenBarraIgual,
+	"//=":  TokenBarraBarraIgual,
+	"??=":  TokenInterrogacaoInterrogacaoIgual,
+	"||=":  TokenBoolOuIgual,
+	"&&=":  TokenBoolEIgual,
 
 	// Operadores Bitwise
 	"|":  TokenBitABitOu,

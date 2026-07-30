@@ -613,6 +613,12 @@ func (l *Lexer) PróximoToken() *Token {
 
 	case '|':
 		if l.peek() == '|' {
+			if l.peekN(2) == '=' {
+				l.avancar()
+				l.avancar()
+				l.avancar()
+				return newToken(TokenBoolOuIgual, "||=", inicio, l.posicaoAtual())
+			}
 			l.avancar()
 			l.avancar()
 			return newToken(TokenBoolOu, "||", inicio, l.posicaoAtual())
@@ -636,6 +642,12 @@ func (l *Lexer) PróximoToken() *Token {
 			return newToken(TokenEntidadeHTML, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 		}
 		if l.peek() == '&' {
+			if l.peekN(2) == '=' {
+				l.avancar()
+				l.avancar()
+				l.avancar()
+				return newToken(TokenBoolEIgual, "&&=", inicio, l.posicaoAtual())
+			}
 			l.avancar()
 			l.avancar()
 			return newToken(TokenBoolE, "&&", inicio, l.posicaoAtual())
@@ -659,6 +671,12 @@ func (l *Lexer) PróximoToken() *Token {
 
 	case '?':
 		if l.peek() == '?' {
+			if l.peekN(2) == '=' {
+				l.avancar()
+				l.avancar()
+				l.avancar()
+				return newToken(TokenInterrogacaoInterrogacaoIgual, "??=", inicio, l.posicaoAtual())
+			}
 			l.avancar()
 			l.avancar()
 			return newToken(TokenInterrogacaoInterrogacao, "??", inicio, l.posicaoAtual())

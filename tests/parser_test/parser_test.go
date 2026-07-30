@@ -206,6 +206,37 @@ func TestParseInterface(t *testing.T) {
 	}
 }
 
+func TestAtribucaoLogicaECoalescente(t *testing.T) {
+	codigo := `
+		var x = Nulo
+		x ??= 10
+		var y = Falso
+		y ||= Verdadeiro
+		var z = Verdadeiro
+		z &&= Falso
+	`
+	p := parser.NewParserFromString(codigo, "teste_op.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro sintático: %v", err)
+	}
+	if len(ast.Declaracoes) != 6 {
+		t.Fatalf("Esperava 6 instruções, obteve %d", len(ast.Declaracoes))
+	}
+	reatr, ok := ast.Declaracoes[1].(*parser.Reatribuicao)
+	if !ok || reatr.Operador != "??=" {
+		t.Errorf("Esperava reatribuição com '??=', obteve %+v", ast.Declaracoes[1])
+	}
+	reatrY, okY := ast.Declaracoes[3].(*parser.Reatribuicao)
+	if !okY || reatrY.Operador != "||=" {
+		t.Errorf("Esperava reatribuição com '||=', obteve %+v", ast.Declaracoes[3])
+	}
+	reatrZ, okZ := ast.Declaracoes[5].(*parser.Reatribuicao)
+	if !okZ || reatrZ.Operador != "&&=" {
+		t.Errorf("Esperava reatribuição com '&&=', obteve %+v", ast.Declaracoes[5])
+	}
+}
+
 func TestNoPosicaoCoordenadas(t *testing.T) {
 	p := parser.NewParserFromString("var x = 42", "teste.hrp")
 	ast, err := p.Parse()
