@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -13,11 +15,16 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/parser"
 	"github.com/spf13/cobra"
 )
+
+func gerarImportHeaderWeb(relPath string) string {
+	depth := strings.Count(relPath, "/")
+	prefix := "./" + strings.Repeat("../", depth)
+	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento } from '" + prefix + "runtime-web.js';\n\n"
+}
 
 // OpcsCompilarWeb agrupa as opções para a função compilarParaWeb.
 type OpcsCompilarWeb struct {
@@ -44,7 +51,6 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		if conteudoLint, errL := os.ReadFile(opts.Entrada); errL == nil {
 			if prog, errP := parser.NewParserFromString(string(conteudoLint), opts.Entrada).Parse(); errP == nil && prog != nil {
 
-
 				linter := &Linter{
 					Posicoes:          prog.Posicoes,
 					DiretorioAtual:    filepath.Dir(opts.Entrada),
@@ -70,10 +76,6 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		}
 	}
 
-
-
-
-
 	conteudoEntrada, err := os.ReadFile(opts.Entrada)
 	if err != nil {
 		return fmt.Errorf("erro ao ler arquivo '%s': %w", opts.Entrada, err)
@@ -84,7 +86,6 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		return fmt.Errorf("erro de compilação/sintaxe: %w", err)
 	}
 
-
 	transpiler := &TranspilerWeb{
 		Estrito:          opts.Estrito,
 		DiretorioBase:    filepath.Dir(opts.Entrada),
@@ -93,14 +94,8 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 	jsOutput := transpiler.Transpile(ast)
 
 	// ponytail: garante visibilidade do componente raiz no bundle final.
-	if !strings.Contains(jsOutput, "export function MeuApp") {
-		if strings.Contains(jsOutput, "function MeuApp(") {
-			jsOutput = stringsReplaceOnce(jsOutput, "function MeuApp(", "export function MeuApp(")
-		} else if strings.Contains(jsOutput, "export function RotaIndex") || strings.Contains(jsOutput, "function RotaIndex") {
-			jsOutput += "\nexport function MeuApp() { return RotaIndex(); }\n"
-		} else {
-			jsOutput += "\nexport function MeuApp() { return typeof renderizarApp === 'function' ? renderizarApp() : null; }\n"
-		}
+	if strings.Contains(jsOutput, "function MeuApp(") && !strings.Contains(jsOutput, "export function MeuApp(") {
+		jsOutput = stringsReplaceOnce(jsOutput, "function MeuApp(", "export function MeuApp(")
 	}
 
 	entryDir, _ := filepath.Abs(filepath.Dir(opts.Entrada))
@@ -129,8 +124,6 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		}
 	}
 
-
-
 	type RotaInfo struct {
 		Caminho string
 		Nome    string
@@ -154,14 +147,33 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 					layoutAst, err := parser.NewParserFromString(string(conteudoLayout), path).Parse()
 					if err == nil {
 						layoutJs := transpiler.Transpile(layoutAst)
-						jsOutput += fmt.Sprintf("\nfunction LayoutGlobal(props) {\n%s\n}\n", layoutJs)
+						// ponytail: extrai imports e constantes de estilo para o topo do bundle
+						var layoutImports []string
+						var layoutBodyLines []string
+						for _, line := range strings.Split(layoutJs, "\n") {
+							trimmed := strings.TrimSpace(line)
+							if (strings.HasPrefix(trimmed, "import ") && strings.HasSuffix(trimmed, ";")) ||
+								(strings.HasPrefix(trimmed, "const ") && strings.Contains(trimmed, " = \"") && strings.HasSuffix(trimmed, ";")) {
+								layoutImports = append(layoutImports, line)
+							} else {
+								layoutBodyLines = append(layoutBodyLines, line)
+							}
+						}
+						for _, imp := range layoutImports {
+							if strings.HasPrefix(strings.TrimSpace(imp), "import ") {
+								imp = corrigirCaminhoImport(imp, path, projDir)
+							}
+							if !strings.Contains(jsOutput, imp) {
+								jsOutput = imp + "\n" + jsOutput
+							}
+						}
+						jsOutput += fmt.Sprintf("\nfunction LayoutGlobal(props) {\n%s\n}\n", strings.Join(layoutBodyLines, "\n"))
 					}
 				}
 				return nil
 			}
 
 			conteudoRota, err := os.ReadFile(path)
-
 
 			if err != nil {
 				return nil
@@ -172,6 +184,32 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				return nil
 			}
 			routeJs := transpiler.Transpile(routeAst)
+
+			// ponytail: extrai imports do corpo da rota e coloca no topo do bundle
+			// (imports JS não podem ficar dentro de corpos de função)
+			var routeImports []string
+			var routeBodyLines []string
+			for _, line := range strings.Split(routeJs, "\n") {
+				trimmed := strings.TrimSpace(line)
+				if strings.HasPrefix(trimmed, "import ") && strings.HasSuffix(trimmed, ";") {
+					routeImports = append(routeImports, line)
+				} else if strings.HasPrefix(trimmed, "const ") && strings.Contains(trimmed, " = \"") && strings.HasSuffix(trimmed, ";") {
+					// ponytail: constantes de estilo (ex: const SidebarContainer = "SidebarContainer") também vão pro topo
+					routeImports = append(routeImports, line)
+				} else {
+					routeBodyLines = append(routeBodyLines, line)
+				}
+			}
+			routeJs = strings.Join(routeBodyLines, "\n")
+			for _, imp := range routeImports {
+				if strings.HasPrefix(strings.TrimSpace(imp), "import ") {
+					imp = corrigirCaminhoImport(imp, path, projDir)
+				}
+				// evita duplicatas de import no bundle
+				if !strings.Contains(jsOutput, imp) {
+					jsOutput = imp + "\n" + jsOutput
+				}
+			}
 
 			rel, _ := filepath.Rel(rotasDir, path)
 			baseName := rel[:len(rel)-len(filepath.Ext(rel))]
@@ -191,12 +229,57 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				routePath = routePath[:len(routePath)-6]
 			}
 
-			cleanCompName := strings.NewReplacer("[", "", "]", "").Replace(componentName)
-			jsOutput += fmt.Sprintf("\nfunction Rota_%s(props) {\n%s\n}\n", cleanCompName, routeJs)
+			cleanCompName := strings.NewReplacer("[", "", "]", "", "-", "_", " ", "_").Replace(componentName)
+
+			// Se o código da rota já contiver declaração de função (ex: export function RotaX() ou function RotaX())
+			routeJsClean := strings.ReplaceAll(routeJs, "export function ", "function ")
+			routeJsClean = strings.ReplaceAll(routeJsClean, "export default function ", "function ")
+
+			if strings.Contains(routeJsClean, "function ") {
+				var funcDeclared string
+				for _, l := range strings.Split(routeJsClean, "\n") {
+					tr := strings.TrimSpace(l)
+					if strings.HasPrefix(tr, "function ") {
+						parts := strings.Fields(tr)
+						if len(parts) >= 2 {
+							fnName := parts[1]
+							if idx := strings.Index(fnName, "("); idx != -1 {
+								fnName = fnName[:idx]
+							}
+							if fnName != "" {
+								funcDeclared = fnName
+								break
+							}
+						}
+					}
+				}
+
+				if funcDeclared != "" && jaDeclaradoOuImportado(jsOutput, funcDeclared) {
+					// Função já importada ou declarada no bundle principal (ex: via main.hrp)
+					rotaWrapper := "Rota_" + cleanCompName
+					if !jaDeclaradoOuImportado(jsOutput, rotaWrapper) {
+						jsOutput += fmt.Sprintf("\nfunction %s(props) {\n  return %s(props);\n}\n", rotaWrapper, funcDeclared)
+					}
+				} else {
+					jsOutput += "\n" + routeJsClean + "\n"
+					rotaWrapper := "Rota_" + cleanCompName
+					if funcDeclared != "" {
+						if funcDeclared != rotaWrapper && !jaDeclaradoOuImportado(jsOutput, rotaWrapper) {
+							jsOutput += fmt.Sprintf("\nfunction %s(props) {\n  return %s(props);\n}\n", rotaWrapper, funcDeclared)
+						}
+					} else if !jaDeclaradoOuImportado(jsOutput, rotaWrapper) {
+						jsOutput += fmt.Sprintf("\nfunction %s(props) {\n  return typeof Rota%s === 'function' ? Rota%s(props) : null;\n}\n", rotaWrapper, cleanCompName, cleanCompName)
+					}
+				}
+			} else {
+				rotaWrapper := "Rota_" + cleanCompName
+				if !jaDeclaradoOuImportado(jsOutput, rotaWrapper) {
+					jsOutput += fmt.Sprintf("\nfunction %s(props) {\n%s\n}\n", rotaWrapper, routeJsClean)
+				}
+			}
 
 			// Converte /usuarios/[id] em /usuarios/:id
 			paramRoutePath := routePath
-
 
 			if strings.Contains(paramRoutePath, "[") && strings.Contains(paramRoutePath, "]") {
 				for {
@@ -215,13 +298,33 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		})
 	}
 
+	// ponytail: garante exportação automática de funções raiz principais para novos projetos
+	for _, fnName := range []string{"Aplicacao", "MeuApp", "App", "Main"} {
+		if strings.Contains(jsOutput, "function "+fnName) && !strings.Contains(jsOutput, "export function "+fnName) && !strings.Contains(jsOutput, "export {"+fnName) {
+			jsOutput = strings.ReplaceAll(jsOutput, "function "+fnName, "export function "+fnName)
+		}
+	}
 
 	if len(rotas) > 0 {
-		var routeMappings []string
-		for _, r := range rotas {
-			routeMappings = append(routeMappings, fmt.Sprintf("'%s': Rota_%s", r.Caminho, r.Nome))
+		if !jaDeclaradoOuImportado(jsOutput, "MeuApp") {
+			var routeMappings []string
+			for _, r := range rotas {
+				routeMappings = append(routeMappings, fmt.Sprintf("'%s': Rota_%s", r.Caminho, r.Nome))
+			}
+			if strings.Contains(jsOutput, "function LayoutGlobal") {
+				jsOutput += fmt.Sprintf("\nexport function MeuApp() {\n  return h(LayoutGlobal, {}, roteador({\n    %s\n  }));\n}\n", strings.Join(routeMappings, ",\n    "))
+			} else {
+				jsOutput += fmt.Sprintf("\nexport function MeuApp() {\n  return roteador({\n    %s\n  });\n}\n", strings.Join(routeMappings, ",\n    "))
+			}
 		}
-		jsOutput += fmt.Sprintf("\nexport function MeuApp() {\n  return roteador({\n    %s\n  });\n}\n", strings.Join(routeMappings, ",\n    "))
+	} else if !jaDeclaradoOuImportado(jsOutput, "MeuApp") {
+		if strings.Contains(jsOutput, "export function RotaIndex") || strings.Contains(jsOutput, "function RotaIndex") {
+			jsOutput += "\nexport function MeuApp() { return RotaIndex(); }\n"
+		} else if strings.Contains(jsOutput, "export function App") || strings.Contains(jsOutput, "function App") {
+			jsOutput += "\nexport function MeuApp() { return typeof App === 'function' ? App() : null; }\n"
+		} else {
+			jsOutput += "\nexport function MeuApp() { return typeof renderizarApp === 'function' ? renderizarApp() : null; }\n"
+		}
 	}
 
 	if err = os.MkdirAll(opts.Saida, 0755); err != nil {
@@ -235,7 +338,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			if err != nil || info.IsDir() || filepath.Ext(path) != ".hrp" {
 				return nil
 			}
-			if path == absEntrada || filepath.Base(path) == "servidor.hrp" {
+			if path == absEntrada || path == filepath.Join(projDir, "servidor.hrp") {
 				return nil
 			}
 
@@ -258,10 +361,9 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			transpiler.Styles = append(transpiler.Styles, subTranspiler.Styles...)
 			rel, _ := filepath.Rel(projDir, path)
 
-
 			destJs := filepath.Join(opts.Saida, strings.TrimSuffix(rel, ".hrp")+".js")
 			_ = os.MkdirAll(filepath.Dir(destJs), 0755)
-			importHeaderSub := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(rel, "/")) + "runtime-web.js';\n\n"
+			importHeaderSub := gerarImportHeaderWeb(rel)
 			_ = os.WriteFile(destJs, []byte(importHeaderSub+subJs), 0644)
 
 			// Copia também sem o prefixo web/ para resolver imports relativos como ./../componentes/navbar.js
@@ -269,38 +371,32 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				relSemWeb := strings.TrimPrefix(rel, "web/")
 				destJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
 				_ = os.MkdirAll(filepath.Dir(destJsSemWeb), 0755)
-				importHeaderSubSemWeb := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relSemWeb, "/")) + "runtime-web.js';\n\n"
+				importHeaderSubSemWeb := gerarImportHeaderWeb(relSemWeb)
 				_ = os.WriteFile(destJsSemWeb, []byte(importHeaderSubSemWeb+subJs), 0644)
 			}
 			return nil
 		})
 	}
 
-
 	relEntrada, _ := filepath.Rel(projDir, absEntrada)
 	destEntradaJs := filepath.Join(opts.Saida, strings.TrimSuffix(relEntrada, ".hrp")+".js")
 	_ = os.MkdirAll(filepath.Dir(destEntradaJs), 0755)
-	importHeaderEntrada := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relEntrada, "/")) + "runtime-web.js';\n\n"
+	importHeaderEntrada := gerarImportHeaderWeb(relEntrada)
 	_ = os.WriteFile(destEntradaJs, []byte(importHeaderEntrada+jsOutput), 0644)
 
 	if strings.HasPrefix(relEntrada, "web/") {
 		relSemWeb := strings.TrimPrefix(relEntrada, "web/")
 		destEntradaJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
 		_ = os.MkdirAll(filepath.Dir(destEntradaJsSemWeb), 0755)
-		importHeaderEntradaSemWeb := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './" + strings.Repeat("../", strings.Count(relSemWeb, "/")) + "runtime-web.js';\n\n"
+		importHeaderEntradaSemWeb := gerarImportHeaderWeb(relSemWeb)
 		_ = os.WriteFile(destEntradaJsSemWeb, []byte(importHeaderEntradaSemWeb+jsOutput), 0644)
 	}
 
 	appPath := filepath.Join(opts.Saida, "app.js")
-	importHeader := "import { h, sinal, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar } from './runtime-web.js';\n\n"
+	importHeader := gerarImportHeaderWeb("")
 	if err = os.WriteFile(appPath, []byte(importHeader+jsOutput), 0644); err != nil {
 		return fmt.Errorf("erro ao gravar app.js: %w", err)
 	}
-
-
-
-
-
 
 	estiloPath := filepath.Join(opts.Saida, "estilos.css")
 	var cssContent string
@@ -322,12 +418,64 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		fmt.Printf("Aviso: stdlib runtime física não encontrada em %s. Gerando cópia padrão...\n", runtimeSrcPath)
 		_ = os.WriteFile(runtimeDestPath, []byte(FallbackRuntimeWebJS), 0644)
 	}
+	webSubDir := filepath.Join(opts.Saida, "web")
+	if _, errStat := os.Stat(webSubDir); errStat == nil {
+		_ = copiarArquivo(runtimeDestPath, filepath.Join(webSubDir, "runtime-web.js"))
+	}
 
 	indexPath := filepath.Join(opts.Saida, "index.html")
 	customIndexPath := filepath.Join(entryDir, "index.html")
 	var htmlContent string
 	if conteudoCustom, errC := os.ReadFile(customIndexPath); errC == nil {
 		htmlContent = string(conteudoCustom)
+		if !strings.Contains(htmlContent, "estilos.css") && strings.Contains(htmlContent, "</head>") {
+			htmlContent = strings.Replace(htmlContent, "</head>", "    <link rel=\"stylesheet\" href=\"/estilos.css\">\n</head>", 1)
+		}
+		if !strings.Contains(htmlContent, "runtime-web.js") {
+			scriptBlock := `
+    <script>
+      window.tamanho = function(valor) {
+        if (valor === null || valor === undefined) return 0;
+        if (typeof valor.length === 'number') return valor.length;
+        if (valor instanceof Map || valor instanceof Set) return valor.size;
+        if (typeof valor === 'object') return Object.keys(valor).length;
+        return 0;
+      };
+      window.inteiro = function(v) {
+        if (v === null || v === undefined) return 0;
+        let n = parseInt(v, 10);
+        return isNaN(n) ? 0 : n;
+      };
+      window.decimal = function(v) {
+        if (v === null || v === undefined) return 0.0;
+        let n = parseFloat(v);
+        return isNaN(n) ? 0.0 : n;
+      };
+      window.texto = function(v) {
+        if (v === null || v === undefined) return "";
+        return String(v);
+      };
+    </script>
+    <script type="module">
+      import { h, montar } from '/runtime-web.js';
+      import * as AppExports from '/app.js';
+
+      const RootComponent = AppExports.MeuApp || AppExports.Aplicacao || AppExports.App || AppExports.Main || AppExports.default || Object.values(AppExports).find(v => typeof v === 'function');
+
+      if (typeof RootComponent === 'function') {
+        montar(RootComponent, document.getElementById('app') || 'app');
+      } else {
+        console.warn('[Harpia Web] Nenhum componente raiz exportado (MeuApp, Aplicacao, App) foi encontrado em app.js.');
+      }
+    </script>`
+			if strings.Contains(htmlContent, "</body>") {
+				htmlContent = strings.Replace(htmlContent, "</body>", scriptBlock+"\n</body>", 1)
+			} else if strings.Contains(htmlContent, "</html>") {
+				htmlContent = strings.Replace(htmlContent, "</html>", scriptBlock+"\n</html>", 1)
+			} else {
+				htmlContent += scriptBlock
+			}
+		}
 	} else {
 		htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -335,14 +483,14 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harpia App</title>
-    <link rel="stylesheet" href="estilos.css">
+    <link rel="stylesheet" href="/estilos.css">
     <!--
       Dica de DX: Caso use bare modules como '@backend/modulo', configure um Import Map
       para mapear os identificadores para os proxies Javascript gerados, por exemplo:
       <script type="importmap">
         {
           "imports": {
-            "@backend/filmes": "./web/backend/filmes.js"
+            "@backend/filmes": "/web/backend/filmes.js"
           }
         }
       </script>
@@ -374,11 +522,15 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
       };
     </script>
     <script type="module">
-      import { h, montar } from './runtime-web.js';
-      import { MeuApp } from './app.js';
+      import { h, montar } from '/runtime-web.js';
+      import * as AppExports from '/app.js';
 
-      if (typeof MeuApp === 'function') {
-        montar(MeuApp, document.getElementById('app'));
+      const RootComponent = AppExports.MeuApp || AppExports.Aplicacao || AppExports.App || AppExports.Main || AppExports.default || Object.values(AppExports).find(v => typeof v === 'function');
+
+      if (typeof RootComponent === 'function') {
+        montar(RootComponent, document.getElementById('app') || 'app');
+      } else {
+        console.warn('[Harpia Web] Nenhum componente raiz exportado (MeuApp, Aplicacao, App) foi encontrado em app.js.');
       }
     </script>
 </body>
@@ -403,15 +555,27 @@ func comandoCompilar() *cobra.Command {
 	var estrito bool
 	var otimizarAssets bool
 	var pularLinter bool
+	var osTarget string
+	var archTarget string
+	var ajuda bool
 
 	compilar := &cobra.Command{
-		Use:   "compilar",
-		Short: "Compila/Transpila o código Harpia para a plataforma Web",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "compilar",
+		Aliases:       []string{"construir"},
+		Short:         "Compila/Transpila o código Harpia para a plataforma Web",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if ajuda {
+				return cmd.Help()
+			}
+
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			cur, err := os.Getwd()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "erro ao obter diretório atual:", err)
-				os.Exit(1)
+				return fmt.Errorf("erro ao obter diretório atual: %w", err)
 			}
 
 			if len(args) > 0 {
@@ -434,8 +598,7 @@ func comandoCompilar() *cobra.Command {
 			}
 
 			if entrada == "" {
-				fmt.Fprintln(os.Stderr, "erro: nenhum arquivo de entrada especificado e nenhum arquivo padrão (main.hrp, index.hrp) encontrado.")
-				os.Exit(1)
+				return fmt.Errorf("erro: nenhum arquivo de entrada especificado e nenhum arquivo padrão (main.hrp, index.hrp) encontrado.")
 			}
 
 			if saida == "" {
@@ -447,8 +610,7 @@ func comandoCompilar() *cobra.Command {
 			}
 
 			if alvo != "web" && alvo != "nativo" && alvo != "wasm" && alvo != "wasi" {
-				fmt.Fprintf(os.Stderr, "erro: alvo de compilação '%s' não suportado. Alvos suportados: web, nativo, wasm, wasi\n", alvo)
-				os.Exit(1)
+				return fmt.Errorf("erro: alvo de compilação '%s' não suportado. Alvos suportados: web, nativo, wasm, wasi", alvo)
 			}
 
 			// Helper de spinner animado
@@ -462,10 +624,10 @@ func comandoCompilar() *cobra.Command {
 					for {
 						select {
 						case <-parar:
-							fmt.Print("\r\033[K")
+							fmt.Fprint(out, "\r\033[K")
 							return
 						default:
-							fmt.Printf("\r%s %s...", frames[i%len(frames)], mensagem)
+							fmt.Fprintf(out, "\r%s %s...", frames[i%len(frames)], mensagem)
 							i++
 							time.Sleep(80 * time.Millisecond)
 						}
@@ -484,8 +646,7 @@ func comandoCompilar() *cobra.Command {
 
 				_, ast, err := ctx.TransformarEmAst(entrada, false, cur)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Erro de compilação/sintaxe: %v\n", err)
-					os.Exit(1)
+					return fmt.Errorf("Erro de compilação/sintaxe: %w", err)
 				}
 				if prog, ok := ast.(*parser.Programa); ok {
 					ast = Otimizar(prog)
@@ -495,8 +656,7 @@ func comandoCompilar() *cobra.Command {
 
 				tmpGoFile := filepath.Join(cur, "main_aot.go")
 				if err = os.WriteFile(tmpGoFile, []byte(goCode), 0644); err != nil {
-					fmt.Fprintf(os.Stderr, "erro ao gravar arquivo Go temporário: %v\n", err)
-					os.Exit(1)
+					return fmt.Errorf("erro ao gravar arquivo Go temporário: %v", err)
 				}
 				defer os.Remove(tmpGoFile)
 
@@ -505,20 +665,33 @@ func comandoCompilar() *cobra.Command {
 					saidaBin = "app"
 				}
 				cmdBuild := exec.Command("go", "build", "-o", saidaBin, tmpGoFile)
-				cmdBuild.Stdout = os.Stdout
-				cmdBuild.Stderr = os.Stderr
+				cmdBuild.Stdout = out
+				cmdBuild.Stderr = errOut
 				switch alvo {
 				case "wasm":
 					cmdBuild.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
 				case "wasi":
 					cmdBuild.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
 				}
-				if errBuild := cmdBuild.Run(); errBuild != nil {
-					fmt.Fprintf(os.Stderr, "erro ao executar go build: %v\n", errBuild)
-					os.Exit(1)
+
+				if osTarget != "" {
+					if cmdBuild.Env == nil {
+						cmdBuild.Env = os.Environ()
+					}
+					cmdBuild.Env = append(cmdBuild.Env, "GOOS="+osTarget)
 				}
-				fmt.Printf("🚀 Compilação AOT (%s) concluída com sucesso!\n", alvo)
-				return
+				if archTarget != "" {
+					if cmdBuild.Env == nil {
+						cmdBuild.Env = os.Environ()
+					}
+					cmdBuild.Env = append(cmdBuild.Env, "GOARCH="+archTarget)
+				}
+
+				if errBuild := cmdBuild.Run(); errBuild != nil {
+					return fmt.Errorf("erro ao executar go build: %w", errBuild)
+				}
+				fmt.Fprintf(out, "🚀 Compilação AOT (%s) concluída com sucesso!\n", alvo)
+				return nil
 			}
 
 			// Alvo web: usa a função pura compilarParaWeb com spinner
@@ -534,17 +707,17 @@ func comandoCompilar() *cobra.Command {
 			})
 
 			if errComp != nil {
-				fmt.Fprintf(os.Stderr, "❌ Erro na compilação: %v\n", errComp)
-				os.Exit(1)
+				return fmt.Errorf("❌ Erro na compilação: %w", errComp)
 			}
 
-			fmt.Printf("🚀 Compilação Web concluída com sucesso em %v!\n", time.Since(tInicio).Round(time.Millisecond))
-			fmt.Printf("📦 Artefatos gerados em '%s/':\n", saida)
-			fmt.Println("  - index.html     (Ponto de entrada HTML)")
-			fmt.Println("  - runtime-web.js (Engine de Reatividade & Virtual DOM)")
-			fmt.Println("  - app.js         (Código de aplicação transpilado)")
-			fmt.Println("  - estilos.css    (Estilos unificados e utilitários)")
-			fmt.Println()
+			fmt.Fprintf(out, "🚀 Compilação Web concluída com sucesso em %v!\n", time.Since(tInicio).Round(time.Millisecond))
+			fmt.Fprintf(out, "📦 Artefatos gerados em '%s/':\n", saida)
+			fmt.Fprintln(out, "  - index.html     (Ponto de entrada HTML)")
+			fmt.Fprintln(out, "  - runtime-web.js (Engine de Reatividade & Virtual DOM)")
+			fmt.Fprintln(out, "  - app.js         (Código de aplicação transpilado)")
+			fmt.Fprintln(out, "  - estilos.css    (Estilos unificados e utilitários)")
+			fmt.Fprintln(out)
+			return nil
 		},
 	}
 
@@ -554,6 +727,9 @@ func comandoCompilar() *cobra.Command {
 	compilar.Flags().BoolVar(&estrito, "estrito", false, "Ativa anotações JSDoc para tipagem estática")
 	compilar.Flags().BoolVar(&otimizarAssets, "otimizar-assets", false, "Otimiza e comprime imagens de assets (PNG, JPG, JPEG) para a saída")
 	compilar.Flags().BoolVar(&pularLinter, "pular-linter", false, "Pula a checagem do linter antes de compilar")
+	compilar.Flags().StringVar(&osTarget, "os", "", "Sistema operacional alvo para compilação nativa (darwin, linux, windows)")
+	compilar.Flags().StringVar(&archTarget, "arch", "", "Arquitetura de CPU alvo para compilação nativa (amd64, arm64, 386)")
+	compilar.Flags().BoolVar(&ajuda, "ajuda", false, "Exibe a ajuda do comando")
 	return compilar
 }
 
@@ -596,12 +772,21 @@ func otimizarECopiarAssets(srcDir, destDir string, otimizar bool) error {
 	}
 
 	extensions := map[string]bool{
-		".png":  true,
-		".jpg":  true,
-		".jpeg": true,
-		".gif":  true,
-		".svg":  true,
-		".webp": true,
+		".png":         true,
+		".jpg":         true,
+		".jpeg":        true,
+		".gif":         true,
+		".svg":         true,
+		".webp":        true,
+		".ico":         true,
+		".webmanifest": true,
+		".manifest":    true,
+		".json":        true,
+		".woff":        true,
+		".woff2":       true,
+		".ttf":         true,
+		".otf":         true,
+		".eot":         true,
 	}
 
 	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
@@ -616,7 +801,6 @@ func otimizarECopiarAssets(srcDir, destDir string, otimizar bool) error {
 			return nil
 		}
 
-
 		ext := strings.ToLower(filepath.Ext(path))
 		if !extensions[ext] {
 			return nil
@@ -628,20 +812,39 @@ func otimizarECopiarAssets(srcDir, destDir string, otimizar bool) error {
 		}
 
 		destPath := filepath.Join(destDir, rel)
-		err = os.MkdirAll(filepath.Dir(destPath), 0755)
-		if err != nil {
+		if err = os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
 			return err
 		}
 
 		if otimizar && (ext == ".jpg" || ext == ".jpeg" || ext == ".png") {
-			err = otimizarImagemFisica(path, destPath, ext)
-			if err == nil {
-				gerarWebPSeDisponivel(path, destPath)
-				return nil
-			}
+			_ = otimizarImagemFisica(path, destPath, ext)
+			gerarWebPSeDisponivel(path, destPath)
+		} else {
+			_ = copiarArquivo(path, destPath)
 		}
 
-		return copiarArquivo(path, destPath)
+		if strings.HasPrefix(rel, "web/") {
+			relSemWeb := strings.TrimPrefix(rel, "web/")
+			destSemWeb := filepath.Join(destDir, relSemWeb)
+			_ = os.MkdirAll(filepath.Dir(destSemWeb), 0755)
+			_ = copiarArquivo(path, destSemWeb)
+		}
+
+		baseLower := strings.ToLower(filepath.Base(path))
+		if baseLower == "favicon.ico" || baseLower == "favicon.svg" || baseLower == "apple-touch-icon.png" {
+			destRaiz := filepath.Join(destDir, baseLower)
+			_ = copiarArquivo(path, destRaiz)
+
+			destImg := filepath.Join(destDir, "assets", "img", baseLower)
+			_ = os.MkdirAll(filepath.Dir(destImg), 0755)
+			_ = copiarArquivo(path, destImg)
+
+			destFavicon := filepath.Join(destDir, "assets", "favicon", baseLower)
+			_ = os.MkdirAll(filepath.Dir(destFavicon), 0755)
+			_ = copiarArquivo(path, destFavicon)
+		}
+
+		return nil
 	})
 }
 
@@ -684,4 +887,88 @@ func otimizarImagemFisica(origem, destino, ext string) error {
 	}
 
 	return jpeg.Encode(out, img, &jpeg.Options{Quality: 75})
+}
+
+// ponytail: corrige caminhos relativos de importações extraídas de rotas/layouts para que fiquem corretos e únicos no bundle final app.js
+func corrigirCaminhoImport(line string, sourceFile string, projDir string) string {
+	var quoteChar string
+	startIdx := strings.Index(line, "from \"")
+	if startIdx != -1 {
+		startIdx += 6
+		quoteChar = "\""
+	} else {
+		startIdx = strings.Index(line, "from '")
+		if startIdx != -1 {
+			startIdx += 6
+			quoteChar = "'"
+		}
+	}
+	if startIdx == -1 {
+		return line
+	}
+	endIdx := strings.Index(line[startIdx:], quoteChar)
+	if endIdx == -1 {
+		return line
+	}
+	endIdx += startIdx
+
+	importPath := line[startIdx:endIdx]
+	if !strings.HasPrefix(importPath, ".") || importPath == "./runtime-web.js" {
+		return line
+	}
+
+	dir := filepath.Dir(sourceFile)
+	absTarget := filepath.Clean(filepath.Join(dir, importPath))
+
+	rel, err := filepath.Rel(projDir, absTarget)
+	if err != nil {
+		return line
+	}
+
+	relClean := strings.TrimPrefix(rel, "web/")
+
+	relClean = filepath.ToSlash(relClean)
+
+	if !strings.HasPrefix(relClean, ".") {
+		relClean = "./" + relClean
+	}
+
+	return line[:startIdx] + relClean + line[endIdx:]
+}
+
+func jaDeclaradoOuImportado(jsCode, nome string) bool {
+	if nome == "" {
+		return false
+	}
+	padroes := []string{
+		"function " + nome + "(",
+		"function " + nome + " (",
+		"export function " + nome + "(",
+		"export function " + nome + " (",
+		"const " + nome + " =",
+		"let " + nome + " =",
+		"var " + nome + " =",
+		"export let " + nome + " =",
+		"export const " + nome + " =",
+	}
+	for _, p := range padroes {
+		if strings.Contains(jsCode, p) {
+			return true
+		}
+	}
+	for _, line := range strings.Split(jsCode, "\n") {
+		tr := strings.TrimSpace(line)
+		if strings.HasPrefix(tr, "import ") && strings.Contains(tr, "{") && strings.Contains(tr, "}") {
+			if idxStart := strings.Index(tr, "{"); idxStart != -1 {
+				if idxEnd := strings.Index(tr, "}"); idxEnd > idxStart {
+					for _, item := range strings.Split(tr[idxStart+1:idxEnd], ",") {
+						if strings.TrimSpace(item) == nome {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+	return false
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"image"
 	"image/png"
 	"os"
@@ -10,6 +11,21 @@ import (
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
+
+func TestParseIndexHrp(t *testing.T) {
+	hrpPath := "../../projetos/portal-harpia/web/rotas/index.hrp"
+	conteudo, err := os.ReadFile(hrpPath)
+	if err != nil {
+		t.Skipf("Arquivo não encontrado: %v", err)
+	}
+
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	_, err = ctx.StringParaAst(string(conteudo), hrpPath)
+	if err != nil {
+		t.Fatalf("Erro ao analisar index.hrp: %v", err)
+	}
+}
 
 func TestTranspileWeb(t *testing.T) {
 	codigo := `
@@ -43,12 +59,12 @@ func TestTranspileWeb(t *testing.T) {
 	jsOutput := transpiler.Transpile(ast)
 
 	// Validações básicas de transpilação
-	if !strings.Contains(jsOutput, "let contadorSinal = sinal(5);") {
-		t.Errorf("Código JS esperado 'let contadorSinal = sinal(5);' não encontrado")
+	if !strings.Contains(jsOutput, "let [contadorSinal, definirContadorSinal] = sinal(5);") {
+		t.Errorf("Código JS esperado 'let [contadorSinal, definirContadorSinal] = sinal(5);' não encontrado")
 	}
 
-	if !strings.Contains(jsOutput, "h('div', { classe: \"App\" }") {
-		t.Errorf("JSX esperado 'h('div', { classe: \"App\" }' não encontrado. Recebido: %s", jsOutput)
+	if !strings.Contains(jsOutput, "h('div', { \"classe\": \"App\" }") {
+		t.Errorf("JSX esperado 'h('div', { \"classe\": \"App\" }' não encontrado. Recebido: %s", jsOutput)
 	}
 
 	if !strings.Contains(jsOutput, "((contador() > 2) ? h('span', {}, \"Alto\") : null)") {
@@ -385,17 +401,17 @@ func TestTranspileRecursosAvancadosWeb(t *testing.T) {
 	}
 
 	// 2. Valida o binding ligar transpilar para _ligar
-	if !strings.Contains(js, "_ligar: nome") {
+	if !strings.Contains(js, "\"_ligar\": nome") {
 		t.Errorf("Esperava transpilação de 'ligar' para '_ligar'. Recebido: %s", js)
 	}
 
 	// 3. Valida modificador de eventos com prevenir (preventDefault)
-	if !strings.Contains(js, "aoEnviar: (e) => { e.preventDefault(); (submeter)(e); }") {
+	if !strings.Contains(js, "\"aoEnviar\": (e) => { e.preventDefault(); (submeter)(e); }") {
 		t.Errorf("Esperava transpilação de modificador 'aoEnviar_prevenir'. Recebido: %s", js)
 	}
 
 	// 4. Valida se o importarHtml inlinou dinamicamente o template HTML
-	if !strings.Contains(js, "h('div', { classe: \"Card\" }") {
+	if !strings.Contains(js, "h('div', { \"classe\": \"Card\" }") {
 		t.Errorf("Esperava inline dinâmico do HTML via 'importarHtml'. Recebido: %s", js)
 	}
 }
@@ -430,5 +446,37 @@ func TestOtimizarECopiarAssets(t *testing.T) {
 	destPng := filepath.Join(distDir, "foto.png")
 	if _, err := os.Stat(destPng); os.IsNotExist(err) {
 		t.Errorf("Arquivo PNG otimizado não foi gerado na pasta dist")
+	}
+}
+
+func TestComandoCompilarFlagsCross(t *testing.T) {
+	cmd := comandoCompilar()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+	cmd.SetArgs([]string{"--ajuda"})
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("erro ao executar comando: %v", err)
+	}
+
+	outStr := buf.String()
+	if !strings.Contains(outStr, "--os") || !strings.Contains(outStr, "--arch") {
+		t.Errorf("flags --os e --arch devem estar presentes na ajuda: %s", outStr)
+	}
+}
+
+func TestComandoCompilarAliasConstruir(t *testing.T) {
+	cmd := comandoCompilar()
+	temConstruir := false
+	for _, alias := range cmd.Aliases {
+		if alias == "construir" {
+			temConstruir = true
+			break
+		}
+	}
+	if !temConstruir {
+		t.Errorf("comando compilar deve ter o alias 'construir', aliases atuais: %v", cmd.Aliases)
 	}
 }
