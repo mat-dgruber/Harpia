@@ -48,7 +48,7 @@ var (
 //
 // Esta função encapsula o acoplamento do Cobra e registra na instância raiz (raiz) do console
 // os comandos secundários disponíveis:
-//   - `atualize`: Busca e instala novas releases binárias a partir do GitHub.
+//   - `atualizar` (ou `atualize`): Busca e instala novas releases binárias a partir do GitHub.
 //   - `executar` (exec): Interpreta arquivos Harpia (.pt) ou pequenos trechos passados diretamente via terminal.
 //   - `testar`: Varre o diretório em busca de arquivos `.hrp`/`.pt` e executa os blocos `teste`/blocos nativos.
 //   - `checar`: Linter estático — analisa a AST em busca de erros semânticos sem executar (escopo, redeclaração, constantes).
@@ -105,7 +105,7 @@ func InstalarComandos(raiz *cobra.Command) {
 	add(comandoPublicar(), "web")
 
 	// Ferramentas & Utilitários
-	add(comandoAtualize(), "ferramentas")
+	add(comandoAtualizar(), "ferramentas")
 	add(comandoLsp(), "ferramentas")
 	add(comandoDiagramar(), "ferramentas")
 	add(comandoDoc(), "ferramentas")
