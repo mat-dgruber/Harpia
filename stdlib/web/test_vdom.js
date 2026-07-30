@@ -1,4 +1,4 @@
-import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce } from './runtime-web.js';
+import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce, criarRef, usarTransicao, usarAtraso, semRastreio, untrack, lote, batch, aoMontar, aoDesmontar } from './runtime-web.js';
 
 // Mock ultra-simples e corrigido do DOM para rodar os testes em ambiente Node.js / Deno sem browser
 if (typeof document === 'undefined') {
@@ -31,7 +31,17 @@ if (typeof document === 'undefined') {
           delete this.props[name];
         },
         appendChild(child) {
+          if (child) child.parentNode = this;
           this.childNodes.push(child);
+        },
+        insertBefore(newChild, refChild) {
+          if (newChild) newChild.parentNode = this;
+          const idx = this.childNodes.indexOf(refChild);
+          if (idx > -1) {
+            this.childNodes.splice(idx, 0, newChild);
+          } else {
+            this.childNodes.push(newChild);
+          }
         },
         removeChild(child) {
           const idx = this.childNodes.indexOf(child);
@@ -40,6 +50,7 @@ if (typeof document === 'undefined') {
           }
         },
         replaceChild(newChild, oldChild) {
+          if (newChild) newChild.parentNode = this;
           const idx = this.childNodes.indexOf(oldChild);
           if (idx > -1) {
             this.childNodes[idx] = newChild;
@@ -186,6 +197,130 @@ async function rodarTestes() {
   } else {
     console.log("Erro: listener 'error' não encontrado!");
   }
+
+  console.log("\n=== 6. TESTANDO REFS E HOOKS AVANÇADOS (criarRef, usarTransicao) ===");
+  const meuInputRef = criarRef();
+  const testRefContainer = document.createElement("div");
+
+  function AppRef() {
+    return h("input", { ref: meuInputRef, placeholder: "Digite aqui" });
+  }
+
+  montar(AppRef, testRefContainer);
+  await Promise.resolve();
+
+  console.log("Ref do elemento input atribuída com sucesso:", meuInputRef.current !== null ? "OK" : "FALHA");
+
+  const [pendente, iniciarTransicao] = usarTransicao();
+  let transicaoExecutada = false;
+
+  iniciarTransicao(() => {
+    transicaoExecutada = true;
+  });
+
+  await Promise.resolve();
+  await new Promise(r => setTimeout(r, 10));
+
+  console.log("Transição executada assincronamente:", transicaoExecutada ? "OK" : "FALHA");
+
+  console.log("\n=== 7. TESTANDO FUNÇÃO DE LIMPEZA (CLEANUP) EM EFEITO ===");
+  const [val, setVal] = sinal(1);
+  let limpezaExecutada = false;
+
+  const pararEfeito = efeito(() => {
+    const v = val();
+    return () => {
+      limpezaExecutada = true;
+    };
+  });
+
+  setVal(2);
+  await Promise.resolve();
+  console.log("Limpeza disparada ao re-executar efeito:", limpezaExecutada ? "OK" : "FALHA");
+
+  limpezaExecutada = false;
+  pararEfeito();
+  console.log("Limpeza disparada ao cancelar efeito manualmente:", limpezaExecutada ? "OK" : "FALHA");
+
+  console.log("\n=== 8. TESTANDO PRIMITIVAS REATIVAS AVANÇADAS (semRastreio, lote, aoMontar, aoDesmontar) ===");
+
+  // 8.1 semRastreio / untrack
+  const [sRastreavel, setSRastreavel] = sinal(10);
+  const [sNaoRastreavel, setSNaoRastreavel] = sinal(100);
+  let execucoesSemRastreio = 0;
+  let valorNaoRastreado = 0;
+
+  efeito(() => {
+    execucoesSemRastreio++;
+    const a = sRastreavel();
+    valorNaoRastreado = semRastreio(() => sNaoRastreavel());
+  });
+
+  console.log("Inicial semRastreio - valor lido:", valorNaoRastreado === 100 ? "OK" : "FALHA");
+
+  setSNaoRastreavel(200);
+  await Promise.resolve();
+  console.log("Alterar sinal não rastreado não dispara efeito:", execucoesSemRastreio === 1 ? "OK" : "FALHA");
+
+  setSRastreavel(20);
+  await Promise.resolve();
+  console.log("Alterar sinal rastreado dispara efeito e lê novo valor não rastreado:", execucoesSemRastreio === 2 && valorNaoRastreado === 200 ? "OK" : "FALHA");
+
+  // Testa alias untrack
+  let valorUntrack = untrack(() => sNaoRastreavel());
+  console.log("Alias untrack funciona:", valorUntrack === 200 ? "OK" : "FALHA");
+
+  // 8.2 lote / batch
+  const [aLote, setALote] = sinal(0);
+  const [bLote, setBLote] = sinal(0);
+  let execucoesLote = 0;
+
+  efeito(() => {
+    aLote();
+    bLote();
+    execucoesLote++;
+  });
+
+  execucoesLote = 0; // reset
+  lote(() => {
+    setALote(1);
+    setBLote(2);
+  });
+  console.log("lote executa de forma agrupada (execuções do efeito = 1):", execucoesLote === 1 ? "OK" : "FALHA");
+
+  execucoesLote = 0;
+  batch(() => {
+    setALote(10);
+    setBLote(20);
+  });
+  console.log("Alias batch executa de forma agrupada (execuções do efeito = 1):", execucoesLote === 1 ? "OK" : "FALHA");
+
+  // 8.3 aoMontar e aoDesmontar
+  let montouContador = 0;
+  let desmontouContador = 0;
+  const [sMontar, setSMontar] = sinal(1);
+
+  const pararAppMontar = efeito(() => {
+    sMontar(); // cria dependência reativa
+    aoMontar(() => {
+      montouContador++;
+      return () => {
+        desmontouContador++;
+      };
+    });
+    aoDesmontar(() => {
+      desmontouContador++;
+    });
+  });
+
+  console.log("aoMontar executou no início (1 vez):", montouContador === 1 ? "OK" : "FALHA");
+
+  setSMontar(2); // re-executa efeito
+  await Promise.resolve();
+  console.log("aoMontar NÃO re-executa em atualizações de sinal (continua 1):", montouContador === 1 ? "OK" : "FALHA");
+
+  pararAppMontar(); // desmonta/dispara cancelamento do efeito
+  console.log("aoDesmontar executou ao desmontar efeito (2 callbacks):", desmontouContador === 2 ? "OK" : "FALHA");
 }
 
 rodarTestes().catch(console.error);
