@@ -23,7 +23,7 @@ type Lexer struct {
 
 // NewLexer aloca e prepara uma nova instância operacional de Lexer para o código fonte informado.
 func NewLexer(entrada string) *Lexer {
-	fonte := []byte(strings.ReplaceAll(entrada, "\r", ""))
+	fonte := []byte(entrada)
 	l := &Lexer{
 		fonte:  fonte,
 		linha:  1,
@@ -51,6 +51,9 @@ func (l *Lexer) peek() rune {
 		return 0
 	}
 	r, _ := utf8.DecodeRune(l.fonte[l.proximoOffset:])
+	if r == '\r' {
+		return '\n'
+	}
 	return r
 }
 
@@ -102,6 +105,14 @@ func (l *Lexer) avancar() {
 		return
 	}
 	r, w := utf8.DecodeRune(l.fonte[l.proximoOffset:])
+	if r == '\r' {
+		if l.proximoOffset+w < len(l.fonte) && l.fonte[l.proximoOffset+w] == '\n' {
+			l.proximoOffset += w
+			r, w = utf8.DecodeRune(l.fonte[l.proximoOffset:])
+		} else {
+			r = '\n'
+		}
+	}
 	l.ch = r
 	l.largura = w
 	l.proximoOffset += w
@@ -218,26 +229,47 @@ func (l *Lexer) lerNumero() *Token {
 		if p == 'x' || p == 'X' {
 			l.avancar() // consome '0'
 			l.avancar() // consome 'x'/'X'
+			digitos := 0
 			for isHexDigit(l.ch) || l.ch == '_' {
+				if isHexDigit(l.ch) {
+					digitos++
+				}
 				l.avancar()
 			}
 			fim := l.posicaoAtual()
+			if digitos == 0 {
+				return newToken(TokenErro, "literal numérico malformado", inicio, fim)
+			}
 			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 		} else if p == 'b' || p == 'B' {
 			l.avancar() // consome '0'
 			l.avancar() // consome 'b'/'B'
+			digitos := 0
 			for isBinDigit(l.ch) || l.ch == '_' {
+				if isBinDigit(l.ch) {
+					digitos++
+				}
 				l.avancar()
 			}
 			fim := l.posicaoAtual()
+			if digitos == 0 {
+				return newToken(TokenErro, "literal numérico malformado", inicio, fim)
+			}
 			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 		} else if p == 'o' || p == 'O' {
 			l.avancar() // consome '0'
 			l.avancar() // consome 'o'/'O'
+			digitos := 0
 			for isOctDigit(l.ch) || l.ch == '_' {
+				if isOctDigit(l.ch) {
+					digitos++
+				}
 				l.avancar()
 			}
 			fim := l.posicaoAtual()
+			if digitos == 0 {
+				return newToken(TokenErro, "literal numérico malformado", inicio, fim)
+			}
 			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 		}
 	}

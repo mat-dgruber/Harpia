@@ -10,6 +10,7 @@ package lexer
 var tokensSimples = map[string]TokenType{
 	"\n": TokenNovaLinha,
 
+	"!":  TokenBoolNao,
 	"=":  TokenIgual,
 	"+":  TokenMais,
 	"-":  TokenMenos,
@@ -33,6 +34,7 @@ var tokensSimples = map[string]TokenType{
 	"[":  TokenAbreColchetes,
 	"]":  TokenFechaColchetes,
 	":":  TokenDoisPontos,
+	"@":  TokenArroba,
 
 	// Reatribuições (atribuições com atalhos aritméticos)
 	"+=":  TokenMaisIgual,
@@ -49,12 +51,20 @@ var tokensSimples = map[string]TokenType{
 	"<<": TokenDeslocEsquerda,
 	">>": TokenDeslocDireita,
 
+	// Operadores Lógicos (sinônimos de 'ou' e 'e')
+	"||": TokenBoolOu,
+	"&&": TokenBoolE,
+
 	// Recursos de acesso e encadeamento
-	".":  TokenPonto,
+	".":   TokenPonto,
+	"...": TokenTresPontos,
 	"|>": TokenPipe,
 	"??": TokenInterrogacaoInterrogacao,
 	"?.": TokenPontoInterrogacao,
 	"?":  TokenInterrogacao,
+
+	// Arrow function (params) => expr ou (params) => { ... }
+	"=>": TokenSeta,
 }
 
 // tokensIdentificadores atua como a tabela de símbolos de palavras-chave reservadas do Harpia.

@@ -263,3 +263,58 @@ func TestStringNaoTerminada(t *testing.T) {
 	}
 }
 
+func TestBugFixesEInStreamCRLF(t *testing.T) {
+	t.Run("Negação !", func(t *testing.T) {
+		lex := lexer.NewLexer("!verdadeiro")
+		tok1 := lex.PróximoToken()
+		if tok1.Tipo != lexer.TokenBoolNao || tok1.Valor != "!" {
+			t.Errorf("Esperado (TokenBoolNao, '!'), obtido (%v, %q)", tok1.Tipo, tok1.Valor)
+		}
+		tok2 := lex.PróximoToken()
+		if tok2.Tipo != lexer.TokenIdentificador || tok2.Valor != "verdadeiro" {
+			t.Errorf("Esperado (TokenIdentificador, 'verdadeiro'), obtido (%v, %q)", tok2.Tipo, tok2.Valor)
+		}
+	})
+
+	t.Run("Base sem digitos 0x", func(t *testing.T) {
+		lex := lexer.NewLexer("0x + 1")
+		tok1 := lex.PróximoToken()
+		if tok1.Tipo != lexer.TokenErro || tok1.Valor != "literal numérico malformado" {
+			t.Errorf("Esperado (TokenErro, 'literal numérico malformado'), obtido (%v, %q)", tok1.Tipo, tok1.Valor)
+		}
+		tok2 := lex.PróximoToken()
+		if tok2.Tipo != lexer.TokenMais || tok2.Valor != "+" {
+			t.Errorf("Esperado (TokenMais, '+'), obtido (%v, %q)", tok2.Tipo, tok2.Valor)
+		}
+	})
+
+	t.Run("CRLF in-stream", func(t *testing.T) {
+		code := "var x = 1;\r\nconst y = 2;"
+		lex := lexer.NewLexer(code)
+		esperados := []struct {
+			tipo  lexer.TokenType
+			valor string
+		}{
+			{lexer.TokenVar, "var"},
+			{lexer.TokenIdentificador, "x"},
+			{lexer.TokenIgual, "="},
+			{lexer.TokenInteiro, "1"},
+			{lexer.TokenPontoEVirgula, ";"},
+			{lexer.TokenNovaLinha, "\n"},
+			{lexer.TokenConst, "const"},
+			{lexer.TokenIdentificador, "y"},
+			{lexer.TokenIgual, "="},
+			{lexer.TokenInteiro, "2"},
+			{lexer.TokenPontoEVirgula, ";"},
+		}
+
+		for i, esp := range esperados {
+			tok := lex.PróximoToken()
+			if tok.Tipo != esp.tipo || tok.Valor != esp.valor {
+				t.Errorf("[%d] Esperado (%v, %q), obtido (%v, %q)", i, esp.tipo, esp.valor, tok.Tipo, tok.Valor)
+			}
+		}
+	})
+}
+
+
