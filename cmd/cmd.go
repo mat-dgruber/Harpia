@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 // Package cmd agrupa, estrutura e instala os subcomandos que compõem a CLI (Interface de Linha de Comando) do Harpia.
 //
 // O pacote atua como o ponto central de integração entre a inicialização do executável (definido no arquivo principal main.go)
@@ -66,34 +68,54 @@ var (
 //
 // Centralizar aqui simplifica a leitura arquitetural e a leitura do help da CLI.
 func InstalarComandos(raiz *cobra.Command) {
-	raiz.AddCommand(comandoAtualize())
-	raiz.AddCommand(comandoExecutar())
-	raiz.AddCommand(comandoTestar())
-	raiz.AddCommand(comandoChecar())
-	raiz.AddCommand(comandoErroCLI())
-	raiz.AddCommand(comandoCompilar())
-	raiz.AddCommand(comandoServir())
-	raiz.AddCommand(comandoNovo())
-	raiz.AddCommand(comandoCrie())
-	raiz.AddCommand(comandoLsp())
-	raiz.AddCommand(comandoPlayground())
-	raiz.AddCommand(comandoFormatar())
-	raiz.AddCommand(comandoInstalar())
-	raiz.AddCommand(comandoDiagramar())
-	raiz.AddCommand(comandoTui())
-	raiz.AddCommand(comandoDoc())
-	raiz.AddCommand(comandoEmpacotar())
-	raiz.AddCommand(comandoStressar())
-	raiz.AddCommand(comandoDepurar())
-	raiz.AddCommand(comandoCopiloto())
-	raiz.AddCommand(comandoGerar())
-	raiz.AddCommand(comandoMigrar())
-	raiz.AddCommand(comandoPwa())
-	raiz.AddCommand(comandoI18n())
-	raiz.AddCommand(comandoSwagger())
-	raiz.AddCommand(comandoAuditar())
-	raiz.AddCommand(comandoPublicar())
-	raiz.AddCommand(comandoCompletar())
+	raiz.AddGroup(
+		&cobra.Group{ID: "execucao", Title: "Execução & Desenvolvimento:"},
+		&cobra.Group{ID: "qualidade", Title: "Qualidade & Análise:"},
+		&cobra.Group{ID: "web", Title: "Servidor, Banco & Web:"},
+		&cobra.Group{ID: "ferramentas", Title: "Ferramentas & Utilitários:"},
+	)
+
+	add := func(c *cobra.Command, groupID string) {
+		c.GroupID = groupID
+		raiz.AddCommand(c)
+	}
+
+	// Execução & Desenvolvimento
+	add(comandoExecutar(), "execucao")
+	add(comandoCompilar(), "execucao")
+	add(comandoNovo(), "execucao")
+	add(comandoCrie(), "execucao")
+	add(comandoInstalar(), "execucao")
+	add(comandoTui(), "execucao")
+	add(comandoPlayground(), "execucao")
+
+	// Qualidade & Análise
+	add(comandoTestar(), "qualidade")
+	add(comandoChecar(), "qualidade")
+	add(comandoAuditar(), "qualidade")
+	add(comandoCopiloto(), "qualidade")
+	add(comandoFormatar(), "qualidade")
+	add(comandoDepurar(), "qualidade")
+
+	// Servidor, Banco & Web
+	add(comandoServir(), "web")
+	add(comandoMigrar(), "web")
+	add(comandoPwa(), "web")
+	add(comandoSwagger(), "web")
+	add(comandoPublicar(), "web")
+
+	// Ferramentas & Utilitários
+	add(comandoAtualize(), "ferramentas")
+	add(comandoLsp(), "ferramentas")
+	add(comandoDiagramar(), "ferramentas")
+	add(comandoDoc(), "ferramentas")
+	add(comandoEmpacotar(), "ferramentas")
+	add(comandoStressar(), "ferramentas")
+	add(comandoGerar(), "ferramentas")
+	add(comandoI18n(), "ferramentas")
+	add(comandoCompletar(), "ferramentas")
+	add(comandoErroCLI(), "ferramentas")
+	add(comandoVersao(), "ferramentas")
 }
 
 
