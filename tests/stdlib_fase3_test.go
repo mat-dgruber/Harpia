@@ -99,9 +99,9 @@ func TestModuloHttp(t *testing.T) {
 	de "http" importe Servidor, requisitar
 
 	var server = nova Servidor()
-	server.usar(funcao(req, res, proximo) {
+	server.usar(funcao(req, res, próximo) {
 		res.definir_cabecalho("X-Middleware", "Ativo")
-		proximo()
+		próximo()
 	})
 
 	server.obter("/ola/:nome", funcao(req, res) {
@@ -229,8 +229,7 @@ func TestModuloYaml(t *testing.T) {
 	codigo := `
 	de "yaml" importe analisar, serializar
 
-	var obj = analisar("nome: Harpia
-versao: 1")
+	var obj = analisar("nome: Harpia\nversao: 1")
 	var nome = obj["nome"]
 	var textoYaml = serializar({"nome": "Harpia"})
 	`

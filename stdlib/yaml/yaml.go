@@ -1,6 +1,9 @@
 package yaml
 
 import (
+	"fmt"
+	"strings"
+
 	"gopkg.in/yaml.v3"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -62,6 +65,12 @@ func converteParahrp(dados any) hrp.Objeto {
 			mapa.M__define_item__(hrp.Texto(k), converteParahrp(val))
 		}
 		return mapa
+	case map[any]any:
+		mapa := hrp.NewMapaVazio()
+		for k, val := range v {
+			mapa.M__define_item__(hrp.Texto(fmt.Sprint(k)), converteParahrp(val))
+		}
+		return mapa
 	}
 	return hrp.Nulo
 }
@@ -76,8 +85,9 @@ func met_yaml_analisar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
+	str := strings.ReplaceAll(string(texto.(hrp.Texto)), "\\n", "\n")
 	var dados any
-	err = yaml.Unmarshal([]byte(texto.(hrp.Texto)), &dados)
+	err = yaml.Unmarshal([]byte(str), &dados)
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao analisar string YAML: %v", err)
 	}

@@ -279,10 +279,12 @@ func (l *Lexer) lerTexto() *Token {
 	delimitador := l.ch
 
 	for {
-		if l.fimDeArquivo() {
-			break
-		}
 		l.avancar()
+
+		if l.fimDeArquivo() || l.ch == '\n' {
+			fim := l.posicaoAtual()
+			return newToken(TokenErro, "string não terminada", inicio, fim)
+		}
 
 		if l.ch == '\\' {
 			l.avancar() // Pula o caractere de escape '\' e preserva o caractere seguinte

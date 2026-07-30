@@ -249,3 +249,17 @@ func TestNumerosAvancados(t *testing.T) {
 		}
 	}
 }
+
+func TestStringNaoTerminada(t *testing.T) {
+	input := `"Texto sem fechar`
+	lex := lexer.NewLexer(input)
+	tok := lex.PróximoToken()
+
+	if tok.Tipo != lexer.TokenErro {
+		t.Errorf("Esperado TokenErro, obtido: %v", tok.Tipo)
+	}
+	if tok.Valor != "string não terminada" {
+		t.Errorf("Esperado 'string não terminada', obtido: %q", tok.Valor)
+	}
+}
+
