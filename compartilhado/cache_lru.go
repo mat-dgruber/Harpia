@@ -1,7 +1,6 @@
 package compartilhado
 
 import (
-	"hash/fnv"
 	"sync"
 )
 
@@ -40,21 +39,23 @@ func (s *shardLRU) obter(chave string) ([]int, bool) {
 		return nil, false
 	}
 	s.moverParaInicio(no)
-	return no.elem.valor, true
+	return append([]int(nil), no.elem.valor...), true
 }
 
 func (s *shardLRU) armazenar(chave string, valor []int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	valorCopia := append([]int(nil), valor...)
+
 	if no, ok := s.tabela[chave]; ok {
-		no.elem.valor = valor
+		no.elem.valor = valorCopia
 		s.moverParaInicio(no)
 		return
 	}
 
 	novoNo := &noLRU{
-		elem: elementoLRU{chave: chave, valor: valor},
+		elem: elementoLRU{chave: chave, valor: valorCopia},
 	}
 
 	if len(s.tabela) >= s.capacidade && s.fim != nil {
@@ -113,41 +114,65 @@ func (s *shardLRU) limpar() {
 	s.fim = nil
 }
 
-type shardedCache struct {
+const (
+	fnvOffset32 = 2166136261
+	fnvPrime32  = 16777619
+)
+
+func hashFNV1a(chave string) uint32 {
+	var h uint32 = fnvOffset32
+	for i := 0; i < len(chave); i++ {
+		h ^= uint32(chave[i])
+		h *= fnvPrime32
+	}
+	return h
+}
+
+type ShardedCache struct {
 	shards    []*shardLRU
 	numShards uint32
 }
 
-func novoShardedCache(numShards int, capPorShard int) *shardedCache {
+func NovoShardedCache(numShards int, capPorShard int) *ShardedCache {
 	shards := make([]*shardLRU, numShards)
 	for i := 0; i < numShards; i++ {
 		shards[i] = novoShardLRU(capPorShard)
 	}
-	return &shardedCache{
+	return &ShardedCache{
 		shards:    shards,
 		numShards: uint32(numShards),
 	}
 }
 
-func (sc *shardedCache) obterShard(chave string) *shardLRU {
-	h := fnv.New32a()
-	_, _ = h.Write([]byte(chave))
-	idx := h.Sum32() % sc.numShards
+func (sc *ShardedCache) obterShard(chave string) *shardLRU {
+	idx := hashFNV1a(chave) % sc.numShards
 	return sc.shards[idx]
 }
 
-func (sc *shardedCache) Obter(chave string) ([]int, bool) {
+func (sc *ShardedCache) Obter(chave string) ([]int, bool) {
 	return sc.obterShard(chave).obter(chave)
 }
 
-func (sc *shardedCache) Armazenar(chave string, valor []int) {
+func (sc *ShardedCache) Armazenar(chave string, valor []int) {
 	sc.obterShard(chave).armazenar(chave, valor)
 }
 
-func (sc *shardedCache) Limpar() {
+func (sc *ShardedCache) Limpar() {
 	for _, shard := range sc.shards {
 		shard.limpar()
 	}
 }
 
-var globalCache = novoShardedCache(256, 64)
+var globalCache = NovoShardedCache(256, 64)
+
+func ObterDoCache(chave string) ([]int, bool) {
+	return globalCache.Obter(chave)
+}
+
+func ArmazenarNoCache(chave string, valor []int) {
+	globalCache.Armazenar(chave, valor)
+}
+
+func LimparCache() {
+	globalCache.Limpar()
+}
