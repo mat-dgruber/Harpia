@@ -1,8 +1,7 @@
 package lexer_test
 
 import (
-	// "reflect"
-
+	"strings"
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/lexer"
@@ -411,5 +410,25 @@ func TestRecursosAvancadosLexer(t *testing.T) {
 		}
 	})
 }
+
+func TestLexerBasesENumerosSeparados(t *testing.T) {
+	codigo := "0xFF 0b1010 0o755 1_000_000 `string bruta\ncom linha`"
+	l := lexer.NovoLexer(codigo, "teste.hrp")
+	tokens := l.ObterTokens()
+
+	if len(tokens) < 5 {
+		t.Fatalf("Esperava pelo menos 5 tokens, obteve %d", len(tokens))
+	}
+	if tokens[0].Valor != "0xFF" || tokens[1].Valor != "0b1010" || tokens[2].Valor != "0o755" {
+		t.Errorf("Falha em literais de base: %+v", tokens[:3])
+	}
+	if tokens[3].Valor != "1_000_000" {
+		t.Errorf("Falha em separador numérico: %s", tokens[3].Valor)
+	}
+	if tokens[4].Tipo != lexer.TokenTexto || !strings.Contains(tokens[4].Valor, "string bruta") {
+		t.Errorf("Falha em raw string: %+v", tokens[4])
+	}
+}
+
 
 

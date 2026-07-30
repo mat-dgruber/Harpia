@@ -6,6 +6,37 @@ import (
 	"unicode/utf8"
 )
 
+// Bit flags para classificação O(1) de caracteres na tabela de consulta ASCII.
+const (
+	flagEspaco byte = 1 << iota // Espaço em branco: ' ', '\t', '\r', '\n'
+	flagDigito                  // Dígito decimal: '0'-'9'
+	flagLetra                   // Letra de identificador ASCII: 'a'-'z', 'A'-'Z', '_'
+	flagHex                     // Dígito hexadecimal: '0'-'9', 'a'-'f', 'A'-'F'
+)
+
+// tabelaASCII permite classificação O(1) de caracteres ASCII (0..255).
+var tabelaASCII [256]byte
+
+func init() {
+	tabelaASCII[' '] |= flagEspaco
+	tabelaASCII['\t'] |= flagEspaco
+	tabelaASCII['\r'] |= flagEspaco
+	tabelaASCII['\n'] |= flagEspaco
+
+	for c := '0'; c <= '9'; c++ {
+		tabelaASCII[byte(c)] |= flagDigito | flagHex
+	}
+	for c := 'a'; c <= 'f'; c++ {
+		tabelaASCII[byte(c)] |= flagHex | flagLetra
+		tabelaASCII[byte(c-'a'+'A')] |= flagHex | flagLetra
+	}
+	for c := 'g'; c <= 'z'; c++ {
+		tabelaASCII[byte(c)] |= flagLetra
+		tabelaASCII[byte(c-'g'+'G')] |= flagLetra
+	}
+	tabelaASCII['_'] |= flagLetra
+}
+
 // Lexer é a máquina de estados que executa o processo de varredura (scanning) de caracteres
 // e os transforma em uma sequência de tokens lógicos.
 //
@@ -37,6 +68,24 @@ func NewLexer(entrada string) *Lexer {
 	}
 
 	return l
+}
+
+// NovoLexer aloca e prepara uma nova instância operacional de Lexer para o código fonte e nome de arquivo informados.
+func NovoLexer(entrada string, arquivo ...string) *Lexer {
+	return NewLexer(entrada)
+}
+
+// ObterTokens executa o lexer até o fim do arquivo e retorna todos os tokens acumulados.
+func (l *Lexer) ObterTokens() []*Token {
+	var tokens []*Token
+	for {
+		tok := l.PróximoToken()
+		tokens = append(tokens, tok)
+		if tok.Tipo == TokenFimDeArquivo {
+			break
+		}
+	}
+	return tokens
 }
 
 // fimDeArquivo verifica se o cursor de leitura do interpretador atingiu ou passou o limite físico
@@ -221,6 +270,22 @@ func (l *Lexer) SubString(inicio, fim int) string {
 	return string(l.fonte[inicio:fim])
 }
 
+// isLetterOrUnderscore verifica se a runa é uma letra ou '_' usando O(1) na tabela ASCII.
+func isLetterOrUnderscore(r rune) bool {
+	if r >= 0 && r < 128 {
+		return tabelaASCII[byte(r)]&flagLetra != 0
+	}
+	return unicode.IsLetter(r)
+}
+
+// isDigit verifica se a runa é um dígito decimal usando O(1) na tabela ASCII.
+func isDigit(r rune) bool {
+	if r >= 0 && r < 128 {
+		return tabelaASCII[byte(r)]&flagDigito != 0
+	}
+	return unicode.IsDigit(r)
+}
+
 // lerIdentificador consome sequencialmente caracteres alfanuméricos ou sublinhas (_) que compõem
 // o nome de uma variável, classe, função ou palavra reservada.
 func (l *Lexer) lerIdentificador() *Token {
@@ -229,7 +294,7 @@ func (l *Lexer) lerIdentificador() *Token {
 	for {
 		l.avancar()
 
-		if !(unicode.IsLetter(l.ch) || unicode.IsDigit(l.ch) || l.ch == '_') {
+		if !(isLetterOrUnderscore(l.ch) || isDigit(l.ch)) {
 			break
 		}
 	}
@@ -245,9 +310,9 @@ func (l *Lexer) lerIdentificador() *Token {
 	return newToken(tipo, valor, inicio, fim)
 }
 
-// isHexDigit verifica se a runa é um dígito hexadecimal válido (0-9, a-f, A-F).
+// isHexDigit verifica se a runa é um dígito hexadecimal válido (0-9, a-f, A-F) usando O(1) ASCII lookup table.
 func isHexDigit(r rune) bool {
-	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
+	return r >= 0 && r < 128 && (tabelaASCII[byte(r)]&flagHex != 0)
 }
 
 // isBinDigit verifica se a runa é um dígito binário válido (0 ou 1).
@@ -320,15 +385,15 @@ func (l *Lexer) lerNumero() *Token {
 
 		if l.ch == 'e' || l.ch == 'E' {
 			p := l.peek()
-			if unicode.IsDigit(p) || p == '_' {
+			if isDigit(p) || p == '_' {
 				l.avancar() // consome 'e'/'E'
-			} else if (p == '+' || p == '-') && (unicode.IsDigit(l.peekN(2)) || l.peekN(2) == '_') {
+			} else if (p == '+' || p == '-') && (isDigit(l.peekN(2)) || l.peekN(2) == '_') {
 				l.avancar() // consome 'e'/'E'
 				l.avancar() // consome '+' ou '-'
 			}
 		}
 
-		if !(unicode.IsDigit(l.ch) || l.ch == '.' || l.ch == '_') {
+		if !(isDigit(l.ch) || l.ch == '.' || l.ch == '_') {
 			break
 		}
 	}
@@ -384,9 +449,9 @@ func (l *Lexer) lerTexto() *Token {
 	return newToken(TokenTexto, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 }
 
-// lerTextoRaw consome uma cadeia literal multilinha delimitada por crases (`...`),
+// lerStringBruta consome uma cadeia literal multilinha delimitada por crases (`...`),
 // sem tratar caracteres de escape.
-func (l *Lexer) lerTextoRaw() *Token {
+func (l *Lexer) lerStringBruta() *Token {
 	inicio := l.posicaoAtual()
 	l.avancar() // consome '`'
 
@@ -401,6 +466,11 @@ func (l *Lexer) lerTextoRaw() *Token {
 
 	fim := l.posicaoAtual()
 	return newToken(TokenErro, "string raw não terminada", inicio, fim)
+}
+
+// lerTextoRaw mantido para retrocompatibilidade.
+func (l *Lexer) lerTextoRaw() *Token {
+	return l.lerStringBruta()
 }
 
 // SnapshotLex captura o estado completo do cursor léxico para permitir rollback.
@@ -697,14 +767,14 @@ func (l *Lexer) PróximoToken() *Token {
 		return l.lerTexto()
 
 	case '`':
-		return l.lerTextoRaw()
+		return l.lerStringBruta()
 
 	default:
-		if unicode.IsLetter(ch) || ch == '_' {
+		if isLetterOrUnderscore(ch) {
 			return l.lerIdentificador()
 		}
 
-		if unicode.IsDigit(ch) {
+		if isDigit(ch) {
 			return l.lerNumero()
 		}
 	}
