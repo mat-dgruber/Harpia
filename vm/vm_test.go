@@ -7,6 +7,25 @@ import (
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
+func TestOpcodesV2(t *testing.T) {
+	opcodes := []Opcode{
+		OP_PUSH_CONST, OP_POP, OP_DUP, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_DIV_INT, OP_MOD,
+		OP_EQ, OP_NEQ, OP_LT, OP_LTE, OP_GT, OP_GTE, OP_JMP, OP_JMP_FALSO,
+		OP_CARREGAR_LOCAL, OP_ARMAZENAR_LOCAL, OP_CARREGAR_GLOBAL, OP_ARMAZENAR_GLOBAL,
+		OP_CHAMAR, OP_RETORNE, OP_AWAIT, OP_CRIAR_FUNCAO, OP_RETORNE_CONST, OP_RETORNE_VAR,
+		OP_NEG, OP_NOT, OP_CRIAR_LISTA, OP_CRIAR_MAPA, OP_OBTER_INDICE, OP_DEFINIR_INDICE,
+		OP_OBTER_ATRIBUTO, OP_DEFINIR_ATRIBUTO, OP_COALESCE, OP_ACESSAR_OPCIONAL,
+		OP_SETUP_TRY, OP_POP_TRY, OP_LANCAR,
+	}
+
+	for _, op := range opcodes {
+		nome := NomeOpcode(op)
+		if nome == "OP_DESCONHECIDO" {
+			t.Errorf("Opcode 0x%X retornou NomeOpcode OP_DESCONHECIDO", op)
+		}
+	}
+}
+
 func TestVMExecucaoExpressoesSimples(t *testing.T) {
 	testes := []struct {
 		nome     string
