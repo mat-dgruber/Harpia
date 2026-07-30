@@ -1,6 +1,9 @@
 package compartilhado
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // StringParaInt converte uma representação textual de número em um inteiro de 64 bits (int64).
 //
@@ -19,6 +22,30 @@ func StringParaInt(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
+// StringParaIntBase converte uma string numerica (decimal, hex 0x, binario 0b, octal 0o) em int64.
+func StringParaIntBase(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	base := 10
+	sLimpa := s
+
+	if len(s) > 2 {
+		prefixo := strings.ToLower(s[:2])
+		switch prefixo {
+		case "0x":
+			base = 16
+			sLimpa = s[2:]
+		case "0b":
+			base = 2
+			sLimpa = s[2:]
+		case "0o":
+			base = 8
+			sLimpa = s[2:]
+		}
+	}
+
+	return strconv.ParseInt(sLimpa, base, 64)
+}
+
 // StringParaDec converte a representação textual de um número de ponto flutuante em float64.
 //
 // Parâmetros:
@@ -34,4 +61,14 @@ func StringParaInt(s string) (int64, error) {
 // Fundamental para a correta tipagem e instanciação do tipo 'Decimal' da linguagem Harpia.
 func StringParaDec(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
+}
+
+// IntParaString converte um valor int64 em sua representacao textual.
+func IntParaString(v int64) string {
+	return strconv.FormatInt(v, 10)
+}
+
+// DecParaString converte um valor float64 em sua representacao textual.
+func DecParaString(v float64) string {
+	return strconv.FormatFloat(v, 'f', -1, 64)
 }
