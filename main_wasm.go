@@ -22,7 +22,7 @@ var (
 // main inicializa a ponte WASM exportando funções de avaliação de código Harpia
 // para o objeto global do JavaScript e mantendo a execução viva por meio de canais.
 func main() {
-	c := make(chan struct{}, 0)
+	c := make(chan struct{})
 
 	// Expõe a função global rodarHarpia no escopo do JavaScript (window/globalThis).
 	// Exemplo de uso em JS:

@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -45,7 +47,7 @@ func TestCmdExecutarComPerfil(t *testing.T) {
 	if !strings.Contains(output, "RELATÓRIO DE PERFILAMENTO DA VM") {
 		t.Errorf("Esperava relatório de perfilamento na saída, obtive:\n%s", output)
 	}
-	if !strings.Contains(output, "OP_CARREGAR_VAR") {
+	if !strings.Contains(output, "OP_CARREGAR_LOCAL") && !strings.Contains(output, "OP_CARREGAR_GLOBAL") {
 		t.Errorf("Esperava encontrar opcodes catalogados no relatório, obtive:\n%s", output)
 	}
 }

@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 // ponytail: emissor de CSS enxuto para blocos `estilo` do Harpia.
