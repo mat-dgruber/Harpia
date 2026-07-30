@@ -104,6 +104,9 @@ Transpila ou compila o código-fonte Harpia para alvos específicos (como a Web 
 - **Flag `-a`, `--alvo`**: Alvo da compilação. Valores suportados: `web` (padrão, transpila para Virtual DOM e JS puro), `nativo` (AOT via transpilação e build Go nativo), `wasm` (compilação para WebAssembly).
 - **Flag `-e`, `--entrada`**: Ponto de entrada/arquivo principal do projeto.
 - **Flag `-s`, `--saida`**: Pasta destino onde os arquivos estáticos ou binários serão salvos (padrão: `dist`).
+- **Arquitetura Virtual DOM & Reatividade Web**:
+  - **Diferenciação de Componentes**: A reconciliação (`reconciliar`) valida a igualdade de funções componentes (`no1.tag !== no2.tag`) antes do unwrap da árvore. Se a rota ou layout se altera (ex: `LayoutDocs` → `Layout`), o VDOM executa `replaceChild`, descartando completamente o nó anterior e prevenindo o vazamento de barras laterais ou elementos de tela antigos.
+  - **Estabilidade de Índices (`null`)**: A função `h()` preserva placeholders `null` nos arrays de filhos para renderizações condicionais, garantindo alinhamento de posições 1:1 e impedindo acúmulo e duplicação de páginas em re-renders.
 
 #### 4. `harpia servir [flags]` (Alias: `serve`, `servidor`)
 
@@ -345,21 +348,29 @@ type Token struct {
 
 O Lexer varre identificadores textuais e executa uma busca em tabela hash (`tokensIdentificadores`). Se o lexema coincidir com alguma chave reservada, o token genérico `TokenIdentificador` é promovido para a palavra-chave dedicada (ex: `TokenSe`, `TokenRetorne`, `TokenClasse`):
 
-- **Estrutura Condicional e de Fluxo**: `se`, `senao`, `enquanto`, `para`, `em`, `retorne`, `pare`, `continue`, `assincrono`, `aguarde`
+- **Estrutura Condicional e de Fluxo**: `se`, `senao`, `enquanto`, `para`, `em`, `escolha`, `caso`, `quando`, `retorne`, `pare`, `continue`, `assincrono`, `aguarde`
 - **Definições e Escopos**: `var`, `const`, `func`, `funcao`, `classe`, `estende`, `self`, `estatico`, `enum`, `interface`, `exportar`
 - **Módulos**: `importe`, `de`
 - **Testes e Garantias**: `testar`, `assegura`
 - **Constantes e Operadores**: `Verdadeiro`, `Falso`, `Nulo`, `ou`, `e`, `nao`, `nova`, `??` (coalescência nula), `?.` (encadeamento opcional)
 - **Controle de Erros**: `tente`, `capture`, `finalmente`
 
+### Otimizações e Recursos do Lexer (V2)
+
+1. **Tabela de Classificação ASCII $O(1)$ (`tabelaASCII [256]byte`)**: Tabela de acesso direto por índice que classifica os primeiros 256 bytes (caracteres ASCII) sem alocação ou desvio condicional excessivo.
+2. **Literais Numéricos em Bases Alternativas**: Suporte nativo a Hexadecimal (`0x1F_2A`), Binário (`0b1010`), Octal (`0o755`) e Notação Científica (`1e10`, `3.14e-5`).
+3. **Separadores de Dígitos Visual `_`**: Permitido em inteiros, decimais e bases alternativas (`1_000_000`, `0xFF_FF`).
+4. **Raw Strings (Backticks `` `...` ``)**: Textos literais multilinha sem processamento de escape.
+5. **Comentários de Documentação (`TokenComentarioDoc`)**: Identifica comentários triplos (`///`) e de bloco (`/** ... */`), preservando o texto documental para associação à AST.
+
 ### Métodos e Algoritmo Operacional do `Lexer`
 
 O fluxo operacional e os métodos chaves da máquina de estados do Lexer são descritos abaixo:
 
 1. **`NewLexer(entrada string) *Lexer`**: Aloca e pré-processa o Lexer, normalizando quebras de linha (removendo `\r`), gerando o cache mapeado de runas para bytes para permitir fatiamentos em tempo constante $O(1)$ e engatando a leitura do primeiro caractere.
-2. **`ProximoToken() *Token`**: O método principal consumido pelo Parser. Pula espaços em branco, lida com comentários de linha única e comentários HTML multilinha no JSX, e resolve os caracteres em tokens tipados de forma linear.
+2. **`próximoToken() *Token`**: O método principal consumido pelo Parser. Pula espaços em branco, lida com comentários de linha única e comentários HTML multilinha no JSX, e resolve os caracteres em tokens tipados de forma linear.
 3. **`avancar()`**: Avança o cursor físico de leitura em um caractere Unicode e atualiza a coluna física corrente. Caso encontre um `\n`, incrementa a contagem de linhas e zera a coluna.
-4. **`proximoCarater() string`**: Espreita um caractere adiante do cursor de leitura (lookahead 1) de forma não destrutiva, essencial para o algoritmo guloso que aglutina operadores compostos (ex: `=` + `=` torna-se `==`).
+4. **`próximoCarater() string`**: Espreita um caractere adiante do cursor de leitura (lookahead 1) de forma não destrutiva, essencial para o algoritmo guloso que aglutina operadores compostos (ex: `=` + `=` torna-se `==`).
 5. **`caraterRelativo(offset int) string`**: lookahead arbitrário de múltiplos caracteres (positivo ou negativo) usado, por exemplo, para decifrar tags de abertura e fechamento de blocos de comentários HTML (`<!-- ... -->`).
 6. **`lerIdentificador() *Token`**: Consome sequencialmente caracteres alfanuméricos ou sublinhas (`_`), fatiando a string e realizando a promoção de palavra-chave a partir de `tokensIdentificadores`.
 7. **`lerNumero() *Token`**: Lê caracteres numéricos e diferencia perfeitamente `TokenInteiro` de `TokenDecimal` ao interceptar pontos flutuantes.
@@ -370,7 +381,7 @@ O fluxo operacional e os métodos chaves da máquina de estados do Lexer são de
 
 O `Lexer` implementa um mecanismo de espreita (_lookahead_) de caracteres não destrutivo de extrema importância para diferenciar operadores que compartilham caracteres iniciais comuns (como `=`, `==`, `+=`, `/`, `//`, `//=`).
 
-- **Lookahead 1 (`proximoCarater()`)**: Obtém o caractere imediatamente subsequente ao cursor de leitura. É utilizado pelo algoritmo guloso (_greedy tokenization_) para colagem contínua de símbolos:
+- **Lookahead 1 (`próximoCarater()`)**: Obtém o caractere imediatamente subsequente ao cursor de leitura. É utilizado pelo algoritmo guloso (_greedy tokenization_) para colagem contínua de símbolos:
   ```go
   // Guloso: tenta aglutinar caracteres subsequentes para formar operadores compostos
   if t, ok := tokensSimples[carater+l.carater]; ok {
@@ -392,10 +403,10 @@ Para assegurar uma excelente experiência de desenvolvimento (DX) tanto em scrip
    - Essenciais para a escrita de comentários estruturados dentro de elementos de marcação JSX.
    - Detectados dinamicamente na máquina de estados principal por meio do lookahead arbitrário:
      ```go
-     if carater == "<" && l.proximoCarater() == "!" {
+     if carater == "<" && l.próximoCarater() == "!" {
          if l.caraterRelativo(2) == "-" && l.caraterRelativo(3) == "-" {
              l.ignorarComentarioHTML()
-             return l.ProximoToken()
+             return l.próximoToken()
          }
      }
      ```
@@ -446,13 +457,13 @@ A descida recursiva força uma prioridade de resolução estrita. Os operadores 
 Para evitar redundância de código em todas as regras de operadores binários associativos à esquerda, o parser adota uma assinatura elegante baseada em funções de ordem superior:
 
 ```go
-func (p *Parser) parseEsqLst(proximo func() (BaseNode, error), proxOp func() (string, bool)) (BaseNode, error) {
-    esq, err := proximo()
+func (p *Parser) parseEsqLst(próximo func() (BaseNode, error), proxOp func() (string, bool)) (BaseNode, error) {
+    esq, err := próximo()
     if err != nil { return nil, err }
     for {
         op, ok := proxOp()
         if !ok { return esq, nil }
-        dir, err := proximo()
+        dir, err := próximo()
         if err != nil { return nil, err }
         esq = &OpBinaria{esq, op, dir}
     }
@@ -466,6 +477,12 @@ O parser possui um registrador de coordenadas geográficas acionado na criação
 - **`registrar(node BaseNode, tok *lexer.Token)`**: Mapeia o nó da AST recém-criado para seu token físico correspondente no mapa `posicoes`. Se a VM encontrar um erro em tempo de execução ao avaliar o nó, ela recupera o token original neste mapa e exibe o traceback com linha, coluna e trecho de código sublinhado em Português.
 
 Principais métodos do `Parser` (`parser/parser.go`):
+
+1. **`parseEscolha()`**: Implementa o suporte a Pattern Matching Estrutural (`escolha expressao { caso padrao quando guarda { ... } }`), gerando nós `DeclEscolha` e `CasoEscolha`.
+2. **`parseExpressao()` e Suffix Parsers Opcionais**: Suportam encadeamento opcional seguro `?.()`, `?.[idx]` e `?.prop` (`ChamadaOpcional`, `IndexacaoOpcional`, `AcessoMembroOpcional`).
+3. **`consumirDocComment()`**: Captura e associa comentários de documentação triplos (`///`) e de bloco (`/** */`) acumulados no Lexer ao campo `DocComments string` de nós de declaração.
+4. **`formatarErro()` e `ErroSintatico`**: Constrói diagnósticos sintáticos ricos contendo trecho da linha do código, indicador posicional em acentos circunflexos (`^^^^`), código `HRP-E101` e dica de resolução pedagógica em português.
+5. **Suíte de Benchmarks (`BenchmarkLexer` e `BenchmarkParser`)**: Benchmarks automatizados de vazão de processamento e alocações de heap em `tests/parser_test/parser_bench_test.go`.
 
 1. **`NewParserFromString(code string, filepath string) *Parser`**: Construtor de conveniência que instancia o `Lexer` e carrega o arquivo de origem.
 2. **`Parse() (*Programa, error)`**: Ponto de entrada do analisador. Varre todas as instruções até o `EOF` e devolve o nó raiz `Programa`.
@@ -504,8 +521,10 @@ O compilador transborda recursos modernos para renderização declarativa na Web
 - **`DeclInterface`**: Define contratos estruturais (ex: `interface Autenticador { func login(u, s) }`). Mapeia o nome da interface (`Nome`) e o slice de assinaturas de métodos esperadas (`Metodos []MetodoAssinatura`).
 - **`MetodoAssinatura`**: Modela o nome, parâmetros formais e tipo de retorno esperado de um método exigido em interfaces.
 
-#### 4. Operadores e Expressões Modernas
+#### 4. Operadores, Decoradores e Expressões Modernas
 
+- **`Decorador`**: Modela a sintaxe de anotações e decoradores (`@depreciado`, `@rota("/api")`) sobre funções ou classes, armazenando o identificador `Nome`, a lista de expressões em `Argumentos`, e o nó da declaração decorada `Alvo`.
+- **`NoSpread`**: Operador spread/rest (`...args`) para aceitar argumentos variádicos em funções, assim como realizar o espalhamento elegante de elementos em listas (`[1, ...outros]`) e pares em mapas (`{ ...padrao, chave: "valor" }`).
 - **`OpTernaria`**: Representa desvios de expressão condensados (ex: `condicao ? entao : senao`). Mapeia os nós de `Condicao`, `Entao` e `Senao`.
 - **`OpCoalescenciaNula`**: Representa a operação de fallback automático para nulos (ex: `valor ?? "padrao"`). Armazena o nó esquerdo (`Esq`) e o nó direito (`Dir`).
 - **`AcessoMembroOpcional`**: Representa a navegação segura contra referências nulas (ex: `usuario?.endereco?.rua`). Armazena o `Objeto` base e o nó `Membro` a ser acessado.
@@ -703,7 +722,7 @@ O Harpia oferece suporte a iteração unificada via laços `para-em`:
 A iteração e verificação de coleções em tempo de execução são facilitadas por funções especializadas em `hrp/sequencia.go`:
 
 - **`Iter(obj Objeto) (Objeto, error)`**: Obtém o iterador ativo para qualquer objeto colecionável que implemente o método mágico `__iter__` (`I__iter__`). Isso inicia o cursor que possibilita o funcionamento seguro do laço `para-em`.
-- **`Proximo(obj Objeto) (Objeto, error)`**: Invoca o método mágico `__proximo__` (`I__proximo__`) de um iterador, controlando de forma padronizada o retorno de elementos ou o disparo da exceção `FimIteracao` (`PSC-0010`) para encerrar laços de repetição.
+- **`próximo(obj Objeto) (Objeto, error)`**: Invoca o método mágico `__próximo__` (`I__próximo__`) de um iterador, controlando de forma padronizada o retorno de elementos ou o disparo da exceção `FimIteracao` (`PSC-0010`) para encerrar laços de repetição.
 - **`Em(a, b Objeto) (Objeto, error)`**: Avalia a pertinência de um elemento dentro de um contêiner através do operador `em` (ex: `valor em lista`), acionando o protocolo polimórfico `__contem__` (`I__contem__`).
 
 ### Mecanismo e Operadores Aritméticos de Atribuição e Unários
@@ -992,6 +1011,7 @@ Protocolo de rede HTTP (Cliente e Servidor). Requer `de "http" importe ...`.
 #### 📋 Documentação Interativa de API Nativa (`/docs` & `/docs.json`)
 
 Quando um servidor HTTP do Harpia é inicializado por meio do método `.escutar(porta)`, o interpretador injeta automaticamente dois endpoints globais de documentação pública se não forem previamente registrados pelo desenvolvedor:
+
 - **`GET /docs.json`**: Retorna a especificação estruturada das rotas compatível com o padrão **OpenAPI 3.0** em formato JSON.
 - **`GET /docs`**: Retorna a interface do **Super Console Interativo** (Harpia Console), uma UI de alta qualidade para exploração, testes e monitoramento de suas APIs.
 
@@ -1036,9 +1056,9 @@ O console fornece uma experiência de desenvolvimento de altíssimo nível para 
 
 7. **Configurações Globais**:
    - **Modo Correnteza (Throttling)**: Menu de rede para simular condições reais de tráfego:
-     - *Bossa Nova*: Sem limitação de rede (desempenho nativo rápido).
-     - *3G de Interior*: Adiciona latência artificial de conexões lentas.
-     - *Instabilidade Tropical*: Introduz falhas aleatórias de conexão para testar a resiliência do frontend.
+     - _Bossa Nova_: Sem limitação de rede (desempenho nativo rápido).
+     - _3G de Interior_: Adiciona latência artificial de conexões lentas.
+     - _Instabilidade Tropical_: Introduz falhas aleatórias de conexão para testar a resiliência do frontend.
    - **Modo Autorizar**: Permite salvar um Bearer Token que será automaticamente injetado no cabeçalho `Authorization` de todas as requisições de teste subsequentes.
 
 ---
@@ -1048,6 +1068,7 @@ O console fornece uma experiência de desenvolvimento de altíssimo nível para 
 O desenvolvedor pode prover metadados de documentação de duas maneiras equivalentes:
 
 ###### Abordagem 1: Comentários Especiais de Documentação `///` (Recomendado)
+
 A maneira mais limpa e moderna de documentar APIs. Escreva comentários iniciados com três barras (`///`) imediatamente antes da declaração da rota:
 
 ```harpia
@@ -1063,6 +1084,7 @@ srv.postar("/rpc/filmes/criarFilme", funcao(req, res) {
 ```
 
 ###### Abordagem 2: Metadados via 3º Argumento (Dicionário de Configuração)
+
 Passe um mapa do Harpia contendo as especificações como o terceiro argumento dos métodos de rota:
 
 ```harpia
@@ -1415,6 +1437,53 @@ Verifica:
 - **Shadowing de nomes** em escopos filhos (Aviso educativo, Severidade LSP 2) - gera apenas um alerta amigável de sombreamento, mantendo o processo de build ativo e funcional.
 - **Reatribuição de `const`** (preservando a regra de imutabilidade).
 - **Identificadores não declarados** (com fallback para a stdlib via tabela `globalsLinter`).
+
+### 2.3. Arrow Functions (`=>`)
+
+Funções anônimas de sintaxe concisa para manipuladores de eventos e expressões de alta ordem:
+
+- **Parâmetro Único sem Parênteses**: `x => x * 2`
+- **Múltiplos Parâmetros**: `(a, b) => a + b`
+- **Corpo em Bloco**: `(ev) => { imprimir(ev); retorne Verdadeiro; }`
+- **Mecânica AST**: O parser identifica o símbolo `=>` após identificadores ou tupla de parâmetros, gerando um nó `DeclFuncao` anônimo.
+
+### 2.4. Decoradores (`@nome`)
+
+Sintaxe declarativa de anotação de meta-programação em funções e classes:
+
+- **Sem Argumentos**:
+  ```harpia
+  @depreciado
+  funcao antiga() {}
+  ```
+- **Com Argumentos**:
+  ```harpia
+  @rota("/api/v1/usuarios")
+  classe ControladorUsuario {}
+  ```
+- **Mecânica AST**: O token `@` (`TokenArroba`) gera nós `Decorador`, contendo o identificador `Nome`, a lista de expressões em `Argumentos` e a declaração alvo `Alvo`. Suporta encadeamento de múltiplos decoradores sobre a mesma instrução.
+
+### 2.5. Operador Spread / Rest (`...args`)
+
+Espalhamento e agregação de coleções e parâmetros:
+
+- **Funções Variádicas**: `funcao soma(...numeros) { ... }`
+- **Espalhamento em Listas**: `var lista = [1, ...outros, 2]`
+- **Mesclagem em Mapas**: `var configuracao = { ...padrao, ativo: Verdadeiro }`
+- **Mecânica AST**: O token `...` (`TokenTresPontos`) encapsula expressões em nós `NoSpread`, desempacotados dinamicamente pela VM e pelo transpiler web.
+
+### 2.6. Resolução de Imports Curtos da Stdlib
+
+Inclusão de bibliotecas virtuais e nativas da stdlib sem necessidade do prefixo relativo `./`:
+
+```harpia
+de "sinais" importe sinal, efeito
+de "matematica" importe PI, raiz
+de "web" importe renderizar
+```
+
+A VM (`hrp/importe.go`) e o Transpiler Web (`cmd/transpiler_web.go`) interceptam especificadores curtos de stdlib e os vinculam diretamente aos módulos embutidos correspondentes.
+
 - **Parâmetros duplicados** na mesma assinatura de função.
 
 Para detalhes de implementação, ver `cmd/checar.go`.

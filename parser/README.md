@@ -39,9 +39,10 @@ Os nós da AST representam as estruturas semânticas da linguagem. Eles são div
 - **`Programa`**: O nó raiz de toda a AST, encapsulando a lista de instruções, o arquivo de origem e as posições de depuração.
 - **`Bloco`**: Uma lista de instruções pertencentes a um escopo físico (delimitado por chaves `{}`).
 
-### 2. Declarações e Atribuições:
+### 2. Declarações, Decoradores e Atribuições:
 
 - **`DeclVar`**: Representa declarações de variáveis mutáveis (`var x`) ou constantes imutáveis (`const y`), suportando anotações estáticas de tipo (ex: `var x: Inteiro`). O tipo é armazenado no campo `Tipo string` (vazio se nenhuma anotação for informada).
+- **`Decorador`**: Representa anotações de decoradores (`@depreciado`, `@rota("/api")`) aplicados sobre declarações de funções ou classes, armazenando `Nome`, `Argumentos` e a instrução decorada `Alvo`.
 - **`Reatribuicao`**: Modificações de variáveis ou reatribuições com acumuladores aritméticos (ex: `x += 1`, `y //= 2`).
 
 ### 3. Operações lógicas, de bit e matemáticas:
@@ -49,12 +50,29 @@ Os nós da AST representam as estruturas semânticas da linguagem. Eles são div
 - **`OpBinaria`**: Cálculos aritméticos ou lógicos envolvendo dois operandos (esquerda e direita).
 - **`OpUnaria`**: Inversões lógicas (`nao x`), bitwise (`~x`) ou aritméticas (`-x`).
 - **`OpPipe`**: Encadeamentos expressivos utilizando o operador pipe (`|>`).
+- **`NoSpread`**: Operador spread/rest (`...args`) utilizado no espalhamento de parâmetros de função, listas e entradas de mapas.
 
 ### 4. Coleções Literais Primitivas:
 
 - **`ListaLiteral`**: Vetores ordenados mutáveis (ex: `[1, 2]`).
 - **`TuplaLiteral`**: Vetores ordenados imutáveis (ex: `(1, 2)`).
 - **`MapaLiteral` / `MapaPar`**: Estruturas de chaves e valores (dicionários), aceitando chaves estáticas ou expressões dinâmicas (ex: `{[expressao]: valor}`).
+
+### 5. Sintaxe Moderna e Recursos Avançados do Parser:
+
+- **Encadeamento Opcional Completo**: Suporte a chamadas e acessos seguros nulos `?.()`, `?.[idx]` e `?.prop` (`ChamadaOpcional`, `IndexacaoOpcional`, `AcessoMembroOpcional`).
+- **Pattern Matching Estrutural (`escolha`)**: Análise de laços de correspondência de padrões via `escolha expressao { caso padrao quando guarda { ... } }` (`DeclEscolha` e `CasoEscolha`), aceitando literais, wildcards (`_`) e desestruturação de listas/mapas.
+- **Preservação de DocComments**: Captura automática de comentários triplos (`///`) e de bloco (`/** */`) associando-os diretamente ao campo `DocComments string` das declarações (`DeclVar`, `DeclFuncao`, `DeclClasse`, `DeclEnum`, `DeclInterface`).
+- **Diagnósticos Ricos de IDE**: Estrutura `ErroSintatico` contendo linha do código fonte, indicador visual com acentos circunflexos (`^^^^`), código de erro único (ex: `HRP-E101`) e dica contextual explicativa em português.
+- **Suíte de Benchmarks**: Benchmarks de throughput e alocação de memória (`BenchmarkLexer` e `BenchmarkParser`) em `tests/parser_test/parser_bench_test.go`.
+- **Arrow Functions (`=>`)**: Suporte a sintaxe de funções anônimas concisas com um ou múltiplos parâmetros, com ou sem parênteses, e com corpo de expressão única ou bloco (`x => x + 1`, `(a, b) => { retorne a + b }`). É sintetizado como um nó `DeclFuncao` anônimo.
+- **Desambiguação de `||` e `|>`**: O token `||` é tratado como disjunção lógica (`OpBinaria` com operador `ou`), enquanto `|>` canaliza expressões (`OpPipe`).
+- **Literais em Strings JSX**: Strings contendo o caractere `<` (ex: `"se n <= 1"`) são parseadas integralmente como `TextoLiteral` sem disparar falsos positivos do parser JSX.
+- **Ternário em Atributos JSX (`style={...}`)**: Aceita expressões ternárias `OpTernaria` aninhadas em atributos de componentes JSX mesmo com quebras de linha.
+- **Concatenação Multilinha em `<style>` JSX**: Blocos de estilo embutidos em JSX aceitam concatenações binárias de strings com quebras de linha (`".card { ... }" + "\n.hover { ... }"`).
+- **Imports Curtos de Módulos**: Instruções `ImporteDe` aceitam caminhos curtos sem prefixo relativo para bibliotecas virtuais da stdlib (`de "sinais" importe ...`).
+- **Operador Spread/Rest (`NoSpread`)**: O token `...` gera nós `NoSpread` permitindo aceitar parâmetros variádicos em funções (`funcao soma(...numeros)`), espalhar listas (`[1, ...outros]`) e fundir mapas (`{ ...padrao, chave: "valor" }`).
+- **Decoradores (`Decorador`)**: Anotações marcadas com `@` geram nós `Decorador` que encapsulam o nome, argumentos opcionais e a declaração alvo (`@depreciado`, `@rota("/api")`).
 
 ---
 
@@ -117,15 +135,15 @@ Para reduzir centenas de linhas redundantes e loops repetitivos de precedência 
 
 ```go
 func (p *Parser) parseEsqLst(
-    proximo func() (BaseNode, error),
+    próximo func() (BaseNode, error),
     proxOp func() (string, bool),
 ) (BaseNode, error) {
-    esq, err := proximo()
+    esq, err := próximo()
     if err != nil { return nil, err }
     for {
         op, ok := proxOp()
         if !ok { return esq, nil }
-        dir, err := proximo()
+        dir, err := próximo()
         if err != nil { return nil, err }
         esq = &OpBinaria{esq, op, dir}
     }
@@ -246,4 +264,3 @@ Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de d
 ```
 
 Como observado no JSON acima, o nó de multiplicação `*` foi corretamente aninhado como filho direito do nó de soma `+`. Isso prova que a ordem de precedência gramatical do Harpia foi perfeitamente executada, garantindo que `20 * 3` seja avaliado prioritariamente antes da adição de `10`.
-

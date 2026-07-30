@@ -72,11 +72,12 @@ O Harpia foi concebido sob uma perspectiva dupla:
 - [x] Retorno do `LastInsertId` numérico nos métodos de inserção do `QueryBuilder` e `ConexaoSQL.executar`
 - [x] Resiliência a objetos `Nulo` na conversão de tipos SQL (`toGoType`) e varredura recursiva de endpoints RPC no compilador Web
 - [x] Roteamento HTTP Ponderado por pesos no backend e mapeamento adaptativo de eventos case-insensitive baseado em regex no runtime-web.js
-
-
-
+- [x] Desduplicação inteligente de imports no transpilador JS (`cmd/transpiler_web.go`) evitando SyntaxError por reimportação do `runtime-web.js`
+- [x] Resolução de filhos em componentes JSX (`props.children`) no motor VDOM do `runtime-web.js`
+- [x] SPA Fallback nativo no servidor Dev e Handler SSR (`cmd/servir.go`, `stdlib/http/ssr.go`) para suporte a rotas virtuais do roteador de cliente
 
 - ✅ Formatador automático de código para projetos inteiros (`harpia formatar ./...`)
+- ✅ Maturidade Lexer & Parser V2: Tabela ASCII $O(1)$, bases numéricas (hex/bin/octal), separadores `_`, raw strings multilinha, encadeamento opcional `?.()`, pattern matching `escolha`/`caso`/`quando`, preservação de docstrings e suíte de benchmarks
 - ✅ Carregamento automático de variáveis de ambiente (`.harpia.env`) na inicialização da VM
 - ✅ Linter recursivo para arquivos locais (`harpia checar`)
 - ✅ Suporte a PWA (manifest + service worker) integrado ao output de `harpia compilar --alvo=web`
@@ -513,7 +514,7 @@ A Fase 7 marca a abertura oficial do Harpia para o mundo. O foco é fornecer uma
 
 #### 7.2 — Portal Oficial e Playground Online (`harpia.org`)
 
-- [ ] Lançamento do site oficial com tutoriais interativos e documentação completa da biblioteca padrão organizada por categorias.
+- [ ] Lançamento do site oficial com Tutoriais interativos e documentação completa da biblioteca padrão organizada por categorias.
 - [ ] **Playground Online Interativo (WebAssembly):** Um editor online rodando 100% no navegador via WASM, permitindo que qualquer pessoa teste a linguagem com exemplos prontos sem instalar nada localmente.
 - [ ] Catálogo interativo de Códigos de Erro (`PSC-XXXX`) com explicações didáticas em português e exemplos de como corrigi-los.
 
@@ -596,6 +597,205 @@ FUTURA: FASE 7 — Lançamento Público e Consolidação da Comunidade (PLANEJAD
 ├── [ ] Fórum de discussões, Servidor do Discord e Processo de RFCs em português
 └── [ ] Artigos de lançamento e templates/boilerplates estruturados de projetos comuns
 ```
+
+---
+
+## 🛠️ Melhorias Identificadas no Parser e Linguagem (2026-07-28)
+
+> Levantamento feito durante a construção do Portal Harpia (`portal-harpia`) ao exercitar
+> o compilador em código real de produção. Cada item abaixo foi identificado por um sintoma
+> observável (erro de parse, runtime confuso ou DX ruim) e classificado por categoria,
+> esforço e impacto.
+
+### Sumário Executivo
+
+| #   | Melhoria                                               | Categoria    | Esforço | Impacto | Status       | Origem                      |
+| --- | ------------------------------------------------------ | ------------ | ------- | ------- | ------------ | --------------------------- |
+| 1   | Arrow functions `params => expr` / `params => { ... }` | Parser       | M       | Alto    | ✅ Concluído | playground/index.hrp        |
+| 2   | `\|\|` como OR lógico distinto do pipe `\|>`           | Lexer/Parser | M       | Alto    | ✅ Concluído | playground/index.hrp        |
+| 3   | `<` literal dentro de strings sem disparar JSX         | Lexer        | M       | Alto    | ✅ Concluído | fatorial.txt template       |
+| 4   | Ternário dentro de JSX `style={...}`                   | Parser JSX   | B       | Médio   | ✅ Concluído | template-ativo styles       |
+| 5   | `tente/capture` capturar panics Go nativos             | VM/Stdlib    | M       | Alto    | ✅ Concluído | servidor.hrp robots/sitemap |
+| 6   | Import curto para stdlib (`de "sinais"`)               | Resolver     | B       | Médio   | ✅ Concluído | playground/index.hrp        |
+| 7   | `<style>` aceitar concatenação `{"a" + "b"}`           | Parser JSX   | B       | Baixo   | ✅ Concluído | playground/index.hrp        |
+| 8   | Single-parameter arrow sem parens `x => x + 1`         | Parser       | B       | Médio   | ✅ Concluído | (junto com #1)              |
+| 9   | Spread em listas/mapas `...args`                       | Parser       | M       | Médio   | ✅ Concluído | geral                       |
+| 10  | Decorator syntax `@depreciado`                         | Parser       | M       | Médio   | ✅ Concluído | roadmap existente           |
+
+### Detalhamento Técnico
+
+#### 1. Arrow Functions
+
+**Sintoma atual:** `evento => definirCodigo(evento.alvo.valor)` falha com
+`o token '>' não é reconhecido`. Usuário precisa escrever `funcao(evento) { ... }`.
+
+**Solução proposta:**
+
+- No parser, dentro de `parseExpressaoInterno` ou como nova camada após `parseTernario`,
+  detectar a forma `(params) => body` ou `param => body`.
+- Sintetizar um `DeclFuncao` com `Nome = ""` (função anônima), reaproveitando `parseDeclFuncaoParametro` e `parseBloco`.
+- Suportar duas formas de corpo:
+  - `(x) => x + 1` — expressão única, embrulhada em um `Bloco` com `RetorneNode`.
+  - `(x) => { corpo }` — bloco normal.
+- Single-param sem parens: `x => x + 1` (opcional, pode ser liberado por flag).
+
+**Arquivos:** `parser/parser.go` (modificar `parseAtomo` no `TokenAbreParenteses`).
+
+#### 2. `||` como OR lógico distinto do pipe `|>`
+
+**Sintoma atual:** `dados.saida || dados.erro || "(sem saída)"` falha com
+`o token '|' não é reconhecido`. O token `||` está mapeado para pipe.
+
+**Solução proposta:**
+
+- Separar `TokenPipe` (`|>`) e `TokenOu` (`||`) no lexer.
+- Hoje o lexer consome `|>` como 2 caracteres; precisa lookahead para distinguir.
+- Ajustar precedência no parser: `||` (lógico) entre `parseDisjuncao` e `parsePipe`,
+  alinhado ao JS.
+
+**Arquivos:** `lexer/lexer.go`, `parser/parser.go`, `ast_nodes.go`.
+
+#### 3. `<` literal dentro de strings sem disparar JSX
+
+**Sintoma atual:** `"funcao fatorial(n) { se n <= 1 ... }"` falha — `<=` inicia
+interpolação JSX.
+
+**Solução proposta:**
+
+- No lexer, ao ler `TokenTexto`, identificar contexto. Se dentro de literal de texto
+  puro, `<` deve ser literal. JSX só dispara fora de strings.
+- Heurística: quando `parseAtomo` vê `TokenMenorQue`, verificar se estamos dentro
+  de uma string (já consumida) — se sim, é literal. Hoje o `parseAtomo` já recebe
+  o token texto como `TokenTexto` separado, então o `<` que vem a seguir é de fato
+  tratado como JSX. A correção está em distinguir: `<` após `TokenTexto` é JSX
+  (template literal) mas `<` dentro de string bruta deve ser preservado.
+- Alternativa: lexer detecta se a string contém `{` ... `}` para saber se é template;
+  se for template puro (sem `{}`), o `<` interno é texto.
+
+**Arquivos:** `lexer/lexer.go`, `parser/parser.go` (parseAtomo).
+
+#### 4. Ternário dentro de JSX `style={...}`
+
+**Sintoma atual:** `style={cond ? "a" : "b"}` falha com
+`era esperado o token '}', mas no lugar foi encontrado '\n'`.
+
+**Solução proposta:**
+
+- O parser JSX atual consome `=` e tenta ler expressão, mas o ternário `? :`
+  confunde o fechamento `}`.
+- Solução: tornar o lexer/parser de atributo JSX ciente de ternários aninhados,
+  ou parsear a expressão inteira dentro de `{...}` até balancear chaves.
+
+**Arquivos:** `parser/parser.go` (parseJSXAtributo).
+
+#### 5. `tente/capture` capturar panics Go nativos
+
+**Sintoma atual:** `/robots.txt` e `/sitemap.xml` retornam 500 quando `ler()`
+falha. O `tente { var conteudo = ler("./robots.txt") ... } capture { res.enviar(fallback) }`
+não captura o erro nativo do Go.
+
+**Solução proposta:**
+
+- A VM tree-walk e a VM bytecode devem envolver chamadas a funções builtin em
+  `defer recover()` que converta o panic em `RuntimeErro` Harpia.
+- Arquivos prováveis: `vm/vm.go`, `vm/interpretador.go`, `builtins/`.
+
+**Arquivos:** `vm/`, `builtins/arquivos.go`.
+
+#### 6. Import curto para stdlib (`de "sinais"`)
+
+**Sintoma atual:** `de "sinais" importe sinal, efeito` falha com
+`Importações não relativas só estão disponíveis para módulos embutidos`.
+
+**Solução proposta:**
+
+- O resolver deve tentar primeiro como builtin registrado; se não achar, como caminho
+  relativo; se não achar, erro.
+- Hoje `sinais` não é builtin. Decisão de design: registrar módulos reativos do
+  runtime-web como builtin virtual (apenas transpilação, sem runtime server-side).
+
+**Arquivos:** `parser/resolver.go` (ou similar), `builtins/registro.go`.
+
+#### 7. `<style>` aceitar concatenação `{"a" + "b"}`
+
+**Sintoma atual:** `<style>{"..." + "..."}</style>` falha — quebra na junção.
+
+**Solução proposta:**
+
+- O parser JSX trata filhos `{...}` como expressão única; concatenação de strings
+  deveria funcionar mas está falhando na quebra de linha implícita.
+- Solução: suprimir nova-linha dentro de chaves JSX filhas quando o conteúdo é
+  uma expressão única.
+
+**Arquivos:** `parser/parser.go` (parseJSXFilhos).
+
+#### 8. Single-parameter arrow sem parens
+
+**Sintoma atual:** `x => x + 1` falha com mesmo erro de #1.
+
+**Solução proposta:** Idem #1, apenas uma flag de aceitação.
+
+#### 9. Spread operator `...args`
+
+**Sintoma atual:** `funcao soma(...nums) { ... }` não é suportado.
+
+**Solução proposta:**
+
+- Adicionar `TokenTresPontos` no lexer.
+- Adicionar nó AST `Spread{Expressao}`.
+- Tratar em: parâmetros de função (último posição), argumentos de chamada,
+  elementos de lista literal, pares de mapa.
+
+**Arquivos:** `lexer/`, `parser/`, `vm/`.
+
+#### 10. Decorator syntax `@nome`
+
+**Sintoma atual:** `@depreciado funcao foo() { ... }` não reconhecido.
+
+**Solução proposta:**
+
+- Token `TokenArroba` já existe (usado por media queries).
+- Reutilizar ou duplicar para decorator de funções/classes.
+- AST: novo nó `Decorator{Nome, Argumentos, Alvo}`.
+
+**Arquivos:** `parser/parser.go`, `ast_nodes.go`.
+
+### Critérios de Priorização
+
+**P0 (Concluído ✅):**
+
+- ✅ #5 (tente/capture captura panics nativos) — capturado via `defer recover()` na VM e interpretador (`hrp/interpretador.go`).
+- ✅ #1 + #8 (arrow functions com e sem parênteses) — implementado no parser (`tentarParseArrowFuncao`), interpretador e transpiler, com cobertura de testes completa.
+- ✅ #2 (`||` como OR lógico distinto do pipe `|>`) — tokens e precedência separados no lexer e parser.
+
+**P1 (Concluído ✅):**
+
+- ✅ #2 (separar `||` de `|>`).
+- ✅ #3 (`<` em strings/código literal sem quebrar parser).
+- ✅ #4 (ternário em JSX style/atributos com suporte a quebras de linha).
+
+**P2 (backlog):**
+
+- #6 (imports curtos).
+- #7 (concatenação em `<style>`).
+- #9 (spread).
+- #10 (decorators).
+
+### Estimativa de Esforço Agregado
+
+- P0: ~3-4 dias (parser + VM).
+- P1: ~2-3 dias.
+- P2: ~4-5 dias (mais testes + edge cases).
+
+### Métricas de Sucesso
+
+- Cobertura de testes do parser: ≥ 90% em todos os nós AST.
+- Todos os arquivos `.hrp` do `portal-harpia/` compilam sem warnings.
+- Playground consegue executar código Harpia real (não-stub).
+
+---
+
+_Roadmap de melhorias do compilador adicionado em 2026-07-28 após construção do Portal Harpia._
 
 ---
 
