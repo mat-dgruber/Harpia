@@ -4,6 +4,7 @@ package ia
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -16,6 +17,7 @@ type Agente struct {
 	Provedor   hrp.Texto
 	Modelo     hrp.Texto
 	Historico  *hrp.Lista
+	mu         sync.Mutex
 }
 
 // TipoAgente define e registra a classe Agente na VM.

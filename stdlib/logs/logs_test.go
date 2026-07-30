@@ -51,15 +51,15 @@ func TestLogsConfigurarJSON(t *testing.T) {
 		met_logs_configurar(nil, hrp.Tupla{hrp.Texto("texto")})
 	}()
 
-	oldStdout := os.Stdout
+	oldStderr := os.Stderr
 	r, w, _ := os.Pipe()
-	os.Stdout = w
+	os.Stderr = w
 
 	args := hrp.Tupla{hrp.Texto("Acesso negado")}
 	_, err := met_logs_erro(nil, args)
 
 	w.Close()
-	os.Stdout = oldStdout
+	os.Stderr = oldStderr
 
 	if err != nil {
 		t.Fatalf("Erro ao logar erro: %v", err)

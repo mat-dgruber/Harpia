@@ -5,6 +5,7 @@ package email
 import (
 	"fmt"
 	"net/smtp"
+	"strings"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -30,17 +31,25 @@ func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	assunto := fmt.Sprintf("%v", mapa["assunto"])
 	corpoHtml := fmt.Sprintf("%v", mapa["corpoHtml"])
 
+	// Sanitiza cabeçalhos contra CRLF Injection
+	paraClean := strings.NewReplacer("\r", "", "\n", "").Replace(para)
+	assuntoClean := strings.NewReplacer("\r", "", "\n", "").Replace(assunto)
+
 	if servidor == "<nil>" || porta == "<nil>" {
 		// Simulação de envio local para desenvolvimento/teste para evitar bloqueios ou exceptions
-		fmt.Printf("📧 [SIMULAÇÃO EMAIL] Enviado para '%s' | Assunto: '%s'\n", para, assunto)
+		fmt.Printf("📧 [SIMULAÇÃO EMAIL] Enviado para '%s' | Assunto: '%s'\n", paraClean, assuntoClean)
 		return hrp.Booleano(true), nil
 	}
 
-	auth := smtp.PlainAuth("", usuario, senha, servidor)
-	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", para, assunto, corpoHtml))
+	var auth smtp.Auth
+	if usuario != "" && usuario != "<nil>" {
+		auth = smtp.PlainAuth("", usuario, senha, servidor)
+	}
+
+	msg := fmt.Appendf(nil, "To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", paraClean, assuntoClean, corpoHtml)
 
 	addr := fmt.Sprintf("%s:%s", servidor, porta)
-	err := smtp.SendMail(addr, auth, usuario, []string{para}, msg)
+	err := smtp.SendMail(addr, auth, usuario, []string{paraClean}, msg)
 	if err != nil {
 		return hrp.Booleano(false), hrp.NewErroF(hrp.ValorErro, "Erro ao enviar e-mail via SMTP: %v", err)
 	}

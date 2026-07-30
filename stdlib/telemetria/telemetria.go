@@ -1,6 +1,8 @@
 package telemetria
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,14 +14,15 @@ import (
 
 // Representação interna de Span do OpenTelemetry em formato JSON leve
 type Span struct {
-	TraceID   string    `json:"trace_id"`
-	SpanID    string    `json:"span_id"`
-	Nome      string    `json:"name"`
-	Servico   string    `json:"service"`
-	Inicio    time.Time `json:"start_time"`
-	Fim       time.Time `json:"end_time"`
-	DuracaoMs int64     `json:"duration_ms"`
-	Status    string    `json:"status"`
+	TraceID   string       `json:"trace_id"`
+	SpanID    string       `json:"span_id"`
+	Nome      string       `json:"name"`
+	Servico   string       `json:"service"`
+	Inicio    time.Time    `json:"start_time"`
+	Fim       time.Time    `json:"end_time"`
+	DuracaoMs int64        `json:"duration_ms"`
+	Status    string       `json:"status"`
+	mu        sync.RWMutex `json:"-"`
 }
 
 var TipoSpan = hrp.TipoObjeto.NewTipo("Span", "Span de rastreamento de OpenTelemetry")
@@ -37,12 +40,14 @@ func (s *Span) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				st, _ := hrp.NewTexto(args[0])
 				status = string(st.(hrp.Texto))
 			}
+			s.mu.Lock()
 			s.Fim = time.Now()
 			s.DuracaoMs = s.Fim.Sub(s.Inicio).Milliseconds()
 			s.Status = status
+			bytes, _ := json.Marshal(s)
+			s.mu.Unlock()
 
 			// Exporta o Trace/Span em JSON estruturado para Stdout
-			bytes, _ := json.Marshal(s)
 			fmt.Fprintln(os.Stdout, string(bytes))
 			return hrp.Nulo, nil
 		}, ""), nil
@@ -72,9 +77,11 @@ func (t *Tracer) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, err
 			}
 
+			b := make([]byte, 12)
+			_, _ = rand.Read(b)
 			now := time.Now().UnixNano()
-			traceID := fmt.Sprintf("%x", now)
-			spanID := fmt.Sprintf("%x", now&0xffff)
+			traceID := fmt.Sprintf("%x%s", now, hex.EncodeToString(b[:8]))
+			spanID := hex.EncodeToString(b[8:])
 
 			return &Span{
 				TraceID: traceID,

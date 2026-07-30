@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 // Package soquete implementa suporte a conexões de rede de baixo nível (sockets) TCP/IP
 // da biblioteca padrão do Harpia, utilizando chamadas de sistema Unix/POSIX.
 //

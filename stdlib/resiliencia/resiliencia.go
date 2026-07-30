@@ -28,6 +28,37 @@ type Disjuntor struct {
 	ultimaFalha        time.Time
 }
 
+// TipoDisjuntor define a representação na VM.
+var TipoDisjuntor = hrp.NewTipo("Disjuntor", "Circuit Breaker para resiliência")
+
+func (d *Disjuntor) Tipo() *hrp.Tipo {
+	return TipoDisjuntor
+}
+
+func (d *Disjuntor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	switch nome {
+	case "permitir":
+		return hrp.NewMetodoOuPanic("permitir", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			return hrp.Booleano(d.Permitir()), nil
+		}, "Verifica se a requisição pode ser processada."), nil
+	case "registrarSucesso":
+		return hrp.NewMetodoOuPanic("registrarSucesso", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			d.RegistrarSucesso()
+			return hrp.Nulo, nil
+		}, "Registra sucesso e reseta falhas."), nil
+	case "registrarFalha":
+		return hrp.NewMetodoOuPanic("registrarFalha", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			d.RegistrarFalha()
+			return hrp.Nulo, nil
+		}, "Registra uma falha e altera estado se limite for atingido."), nil
+	case "estado":
+		return hrp.NewMetodoOuPanic("estado", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			return hrp.Texto(d.Estado()), nil
+		}, "Retorna estado atual do disjuntor."), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Disjuntor", nome)
+}
+
 // NovoDisjuntor constrói e configura uma nova instância da máquina de estados do Circuit Breaker.
 func NovoDisjuntor(limite int, timeoutSegundos float64) *Disjuntor {
 	return &Disjuntor{
@@ -92,6 +123,23 @@ type LimiteDeTaxa struct {
 	ultimo    time.Time
 }
 
+// TipoLimiteDeTaxa define a representação na VM.
+var TipoLimiteDeTaxa = hrp.NewTipo("LimiteDeTaxa", "Rate Limiter Token Bucket")
+
+func (l *LimiteDeTaxa) Tipo() *hrp.Tipo {
+	return TipoLimiteDeTaxa
+}
+
+func (l *LimiteDeTaxa) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	switch nome {
+	case "permitir":
+		return hrp.NewMetodoOuPanic("permitir", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			return hrp.Booleano(l.Permitir()), nil
+		}, "Tenta consumir token e retorna verdadeiro se permitido."), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em LimiteDeTaxa", nome)
+}
+
 // NovoLimiteDeTaxa cria um limitador com capacidade máxima e velocidade de restauração de tokens/s.
 func NovoLimiteDeTaxa(max float64, porSegundo float64) *LimiteDeTaxa {
 	return &LimiteDeTaxa{
@@ -126,6 +174,34 @@ type Retentativa struct {
 	Tentativas   int
 	BaseEsperaMs float64
 	FatorBackoff float64
+}
+
+// TipoRetentativa define a representação na VM.
+var TipoRetentativa = hrp.NewTipo("Retentativa", "Mecanismo de Retry com Backoff")
+
+func (r *Retentativa) Tipo() *hrp.Tipo {
+	return TipoRetentativa
+}
+
+func (r *Retentativa) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	switch nome {
+	case "executar":
+		return hrp.NewMetodoOuPanic("executar", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) < 1 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "executar esperava 1 argumento (função)")
+			}
+			fn := args[0]
+			err := r.Executar(func() error {
+				_, errExec := hrp.Chamar(fn, hrp.Tupla{})
+				return errExec
+			})
+			if err != nil {
+				return nil, err
+			}
+			return hrp.Verdadeiro, nil
+		}, "Executa uma função com política de retentativa e backoff exponencial."), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Retentativa", nome)
 }
 
 // NovaRetentativa cria um configurador de retries com valores de mercado recomendados (3 tentativas).
@@ -195,7 +271,7 @@ func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, hrp.NewErroF(hrp.ValorErro, "limite de taxa inválido (deve ser entre 0 e %d)", MaxLimiteDisjuntor)
 	}
 	d := NovoDisjuntor(int(limVal), float64(timeout.(hrp.Decimal)))
-	return hrp.Texto(d.estado), nil
+	return d, nil
 }
 
 // met_novo_limite implementa 'novo_limite_de_taxa(max, porSegundo)' em nível de script Harpia.
@@ -211,8 +287,8 @@ func met_novo_limite(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = NovoLimiteDeTaxa(float64(max.(hrp.Decimal)), float64(porSeg.(hrp.Decimal)))
-	return hrp.Verdadeiro, nil
+	l := NovoLimiteDeTaxa(float64(max.(hrp.Decimal)), float64(porSeg.(hrp.Decimal)))
+	return l, nil
 }
 
 // met_nova_retentativa implementa 'nova_retentativa(tentativas?, base?, fator?)' em nível de script Harpia.
@@ -244,5 +320,5 @@ func met_nova_retentativa(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			r.FatorBackoff = float64(f.(hrp.Decimal))
 		}
 	}
-	return hrp.Verdadeiro, nil
+	return r, nil
 }

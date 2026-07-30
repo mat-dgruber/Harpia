@@ -48,6 +48,20 @@ func (c *Contador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			c.info.mu.Unlock()
 			return hrp.Nulo, nil
 		}, "Soma mais uma unidade ao contador."), nil
+	case "incrementar_por":
+		return hrp.NewMetodoOuPanic("incrementar_por", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("incrementar_por", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			val, err := hrp.NewDecimal(args[0])
+			if err != nil {
+				return nil, err
+			}
+			c.info.mu.Lock()
+			c.info.Valor += float64(val.(hrp.Decimal))
+			c.info.mu.Unlock()
+			return hrp.Nulo, nil
+		}, "Soma um valor numérico decimal ao contador."), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Contador", nome)
 }
@@ -83,6 +97,36 @@ func (m *Medidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			m.info.mu.Unlock()
 			return hrp.Nulo, nil
 		}, "Define um valor decimal instantâneo para o medidor."), nil
+	case "incrementar":
+		return hrp.NewMetodoOuPanic("incrementar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			delta := 1.0
+			if len(args) >= 1 {
+				val, err := hrp.NewDecimal(args[0])
+				if err != nil {
+					return nil, err
+				}
+				delta = float64(val.(hrp.Decimal))
+			}
+			m.info.mu.Lock()
+			m.info.Valor += delta
+			m.info.mu.Unlock()
+			return hrp.Nulo, nil
+		}, "Incrementa o valor do medidor."), nil
+	case "decrementar":
+		return hrp.NewMetodoOuPanic("decrementar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			delta := 1.0
+			if len(args) >= 1 {
+				val, err := hrp.NewDecimal(args[0])
+				if err != nil {
+					return nil, err
+				}
+				delta = float64(val.(hrp.Decimal))
+			}
+			m.info.mu.Lock()
+			m.info.Valor -= delta
+			m.info.mu.Unlock()
+			return hrp.Nulo, nil
+		}, "Decrementar o valor do medidor."), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Medidor", nome)
 }
@@ -106,6 +150,8 @@ func met_metricas_criarContador(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, er
 	if !ok {
 		info = &MetricaInfo{Nome: nomeStr, Descricao: descStr, Tipo: "counter"}
 		registro[nomeStr] = info
+	} else if info.Tipo != "counter" {
+		return nil, hrp.NewErroF(hrp.ValorErro, "métrica '%s' já registrada com o tipo '%s'", nomeStr, info.Tipo)
 	}
 
 	return &Contador{info: info}, nil
@@ -130,6 +176,8 @@ func met_metricas_criarMedidor(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, err
 	if !ok {
 		info = &MetricaInfo{Nome: nomeStr, Descricao: descStr, Tipo: "gauge"}
 		registro[nomeStr] = info
+	} else if info.Tipo != "gauge" {
+		return nil, hrp.NewErroF(hrp.ValorErro, "métrica '%s' já registrada com o tipo '%s'", nomeStr, info.Tipo)
 	}
 
 	return &Medidor{info: info}, nil

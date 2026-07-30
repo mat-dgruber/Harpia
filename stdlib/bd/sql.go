@@ -5,10 +5,37 @@ package bd
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
+
+var rxIdentificadorSQL = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$`)
+
+func validarIdentificadorSQL(id string) error {
+	id = strings.TrimSpace(id)
+	if id == "*" {
+		return nil
+	}
+	if !rxIdentificadorSQL.MatchString(id) {
+		return hrp.NewErroF(hrp.ValorErro, "Identificador SQL inválido: '%s'", id)
+	}
+	return nil
+}
+
+var operadoresSegurosSQL = map[string]bool{
+	"=": true, "!=": true, "<>": true, "<": true, ">": true, "<=": true, ">=": true,
+	"LIKE": true, "like": true, "NOT LIKE": true, "not like": true, "IS": true, "is": true, "IS NOT": true, "is not": true,
+}
+
+func validarOperadorSQL(op string) error {
+	op = strings.TrimSpace(op)
+	if !operadoresSegurosSQL[op] {
+		return hrp.NewErroF(hrp.ValorErro, "Operador SQL inválido ou inseguro: '%s'", op)
+	}
+	return nil
+}
 
 // MaxLimiteRegistrosSQL impõe um teto para consultas do QueryBuilder para mitigar exaustão de recursos.
 const MaxLimiteRegistrosSQL = 1000000
@@ -93,6 +120,10 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				lista.Adiciona(mapaLinha)
 			}
 
+			if errIter := rows.Err(); errIter != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao iterar resultados SQL: %v", errIter)
+			}
+
 			return lista, nil
 		}, "Executa uma query SQL de seleção (SELECT) e devolve uma Lista de Mapas."), nil
 
@@ -106,6 +137,10 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
+			nomeTab := string(tabelaTexto.(hrp.Texto))
+			if errVal := validarIdentificadorSQL(nomeTab); errVal != nil {
+				return nil, errVal
+			}
 			var schema hrp.Mapa
 			if len(args) == 2 {
 				s, ok := args[1].(hrp.Mapa)
@@ -116,7 +151,7 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 			return &QueryBuilder{
 				conexao: c,
-				tabela:  string(tabelaTexto.(hrp.Texto)),
+				tabela:  nomeTab,
 				schema:  schema,
 			}, nil
 		}, "Prepara uma tabela para uso com QueryBuilder e validações de esquema opcional."), nil
@@ -231,6 +266,11 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				}
 				lista.Itens = append(lista.Itens, m)
 			}
+
+			if errIter := rows.Err(); errIter != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao iterar resultados SQL na transação: %v", errIter)
+			}
+
 			return lista, nil
 		}, "Executa consulta transacional de dados."), nil
 	}
@@ -268,7 +308,11 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				if err != nil {
 					return nil, err
 				}
-				q.selecionados = append(q.selecionados, string(col.(hrp.Texto)))
+				colStr := string(col.(hrp.Texto))
+				if errVal := validarIdentificadorSQL(colStr); errVal != nil {
+					return nil, errVal
+				}
+				q.selecionados = append(q.selecionados, colStr)
 			}
 			return q, nil
 		}, "Seleciona um subconjunto de colunas físicas para a query."), nil
@@ -283,11 +327,19 @@ func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
+			colStr := string(coluna.(hrp.Texto))
+			if errVal := validarIdentificadorSQL(colStr); errVal != nil {
+				return nil, errVal
+			}
 			operador, err := hrp.NewTexto(args[1])
 			if err != nil {
 				return nil, err
 			}
-			q.condicoes = append(q.condicoes, fmt.Sprintf("%s %s ?", string(coluna.(hrp.Texto)), string(operador.(hrp.Texto))))
+			opStr := string(operador.(hrp.Texto))
+			if errVal := validarOperadorSQL(opStr); errVal != nil {
+				return nil, errVal
+			}
+			q.condicoes = append(q.condicoes, fmt.Sprintf("%s %s ?", colStr, opStr))
 			q.args = append(q.args, args[2])
 			return q, nil
 		}, "Adiciona uma restrição condicional de seleção no filtro (WHERE)."), nil

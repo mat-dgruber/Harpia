@@ -26,7 +26,7 @@ func (sn *SequenciaNumerica) M__iter__() (hrp.Objeto, error) {
 	return sn, nil
 }
 
-// M__proximo__ avança e calcula a próxima iteração lógica do laço:
+// M__próximo__ avança e calcula a próxima iteração lógica do laço:
 //
 // Regras operacionais:
 //   - Se o passo for positivo e o valor atual atingir ou passar o limite superior (Fim),
@@ -34,16 +34,17 @@ func (sn *SequenciaNumerica) M__iter__() (hrp.Objeto, error) {
 //   - Se o passo for negativo e o valor atual atingir ou passar o limite inferior (Fim),
 //     lança a exceção controlada 'hrp.FimIteracao'.
 //   - Caso contrário, acumula o incremento ('Passo') no valor 'Atual' e retorna este número inteiro.
-func (sn *SequenciaNumerica) M__proximo__() (hrp.Objeto, error) {
-	if sn.Passo > 0 && sn.Atual >= sn.Fim {
+func (sn *SequenciaNumerica) M__próximo__() (hrp.Objeto, error) {
+	proximo := sn.Atual + sn.Passo
+	if sn.Passo > 0 && proximo >= sn.Fim {
 		return nil, hrp.NewErro(hrp.FimIteracao, hrp.Nulo)
 	}
 
-	if sn.Passo < 0 && sn.Atual <= sn.Fim {
+	if sn.Passo < 0 && proximo <= sn.Fim {
 		return nil, hrp.NewErro(hrp.FimIteracao, hrp.Nulo)
 	}
 
-	sn.Atual += sn.Passo
+	sn.Atual = proximo
 	return sn.Atual, nil
 }
 
@@ -95,7 +96,7 @@ func met_emb_sequencia(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		}
 
 	default:
-		if fim, err = hrp.NewInteiro(args[1]); err != nil {
+		if fim, err = hrp.NewInteiro(args[0]); err != nil {
 			return nil, err
 		}
 	}
@@ -104,7 +105,7 @@ func met_emb_sequencia(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		Inicio: inicio.(hrp.Inteiro),
 		Fim:    fim.(hrp.Inteiro),
 		Passo:  passo.(hrp.Inteiro),
-		Atual:  0,
+		Atual:  inicio.(hrp.Inteiro) - passo.(hrp.Inteiro),
 	}
 	return sn, nil
 }

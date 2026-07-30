@@ -16,7 +16,7 @@ func validarCampo(tipoEsperado string, valor interface{}) bool {
 		return ok
 	case "inteiro":
 		if f, ok := valor.(float64); ok {
-			return f == float64(int(f))
+			return f == float64(int64(f))
 		}
 		return false
 	case "decimal":

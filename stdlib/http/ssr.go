@@ -21,11 +21,28 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 		req := args[0].(*Requisicao)
 		res := args[1].(*Resposta)
 
-		caminhoFisico := filepath.Join(diretorioDist, string(req.Caminho))
+		caminhoFisico := filepath.Clean(filepath.Join(diretorioDist, string(req.Caminho)))
+		distLimpo := filepath.Clean(diretorioDist)
+
+		// Valida se o caminho físico não sofreu Path Traversal escapando do diretório dist
+		if !strings.HasPrefix(caminhoFisico, distLimpo) {
+			res.Status = 403
+			res.Corpo = hrp.Texto("Acesso negado")
+			return hrp.Nulo, nil
+		}
+
 		info, err := os.Stat(caminhoFisico)
 
-		// Se o arquivo estático físico existir (e não for um diretório), serve-o diretamente com cabeçalhos MIME corretos.
+		// Se o arquivo estático físico existir (e não for arquivo HTML), serve-o diretamente com cabeçalhos MIME corretos.
+		servirFisico := false
 		if err == nil && !info.IsDir() {
+			ext := filepath.Ext(caminhoFisico)
+			if ext != ".html" {
+				servirFisico = true
+			}
+		}
+
+		if servirFisico {
 			bytes, err := os.ReadFile(caminhoFisico)
 			if err != nil {
 				res.Status = 500

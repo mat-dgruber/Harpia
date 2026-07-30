@@ -122,11 +122,35 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	h.Write([]byte(unsignedToken))
 	expectedSig := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 
-	if hmac.Equal([]byte(partes[2]), []byte(expectedSig)) {
-		return hrp.Booleano(true), nil
+	if !hmac.Equal([]byte(partes[2]), []byte(expectedSig)) {
+		return hrp.Booleano(false), nil
 	}
 
-	return hrp.Booleano(false), nil
+	// Valida a expiração do token se a claim 'exp' estiver presente no payload
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(partes[1])
+	if err != nil {
+		return hrp.Booleano(false), nil
+	}
+
+	var payloadMap map[string]interface{}
+	if err := json.Unmarshal(payloadBytes, &payloadMap); err == nil {
+		if expVal, ok := payloadMap["exp"]; ok {
+			var expUnix int64
+			switch v := expVal.(type) {
+			case float64:
+				expUnix = int64(v)
+			case int64:
+				expUnix = v
+			case string:
+				fmt.Sscanf(v, "%d", &expUnix)
+			}
+			if expUnix > 0 && time.Now().Unix() > expUnix {
+				return hrp.Booleano(false), nil
+			}
+		}
+	}
+
+	return hrp.Booleano(true), nil
 }
 
 var _gerarHashSenha = hrp.NewMetodoOuPanic("gerarHashSenha", met_gerarHashSenha, "Gera o hash Bcrypt criptográfico de uma senha.")

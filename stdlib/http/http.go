@@ -203,13 +203,13 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 // RotaMeta armazena os metadados declarativos registrados junto de uma rota HTTP.
 type RotaMeta struct {
-	Resumo              string
-	Descricao           string
-	Tags                []string
-	Corpo               map[string]any // Esquema ou dicionário de exemplo/tipagem do corpo
-	Respostas           map[string]string
-	Deprecated          bool
-	MensagemDeprecacao  string
+	Resumo             string
+	Descricao          string
+	Tags               []string
+	Corpo              map[string]any // Esquema ou dicionário de exemplo/tipagem do corpo
+	Respostas          map[string]string
+	Deprecated         bool
+	MensagemDeprecacao string
 }
 
 // tentarInferirMetaDeComentarios extrai comentários de documentação '///' imediatamente anteriores à chamada da rota.
@@ -509,7 +509,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					return hrp.Nulo, nil
 				}, "Retorna as especificações OpenAPI do servidor em formato JSON.")
 			}
-			if s.rotas["GET"]["/docs"] == nil {
+			if s.rotas["GET"]["/docs"] == nil && s.rotas["GET"]["/*"] == nil {
 				s.rotas["GET"]["/docs"] = hrp.NewMetodoOuPanic("docs_html", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
 					if len(handlerArgs) < 2 {
 						return nil, fmt.Errorf("argumentos inválidos no docs_html")
@@ -579,6 +579,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				}
 
 				if handler == nil {
+					fmt.Fprintf(os.Stderr, "[DEBUG] 404 para %s %s | rotas=%v\n", req.Method, req.URL.Path, rotasMetodo)
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Rota não encontrada"))
 					return
@@ -600,7 +601,9 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					reqHeaders.M__define_item__(hrp.Texto(k), hrp.Texto(strings.Join(vals, ", ")))
 				}
 
-				bodyBytes, _ := io.ReadAll(req.Body)
+				// Limita o corpo da requisição a 10MB para prevenir DoS por exaustão de memória
+				bodyReader := http.MaxBytesReader(w, req.Body, 10*1024*1024)
+				bodyBytes, _ := io.ReadAll(bodyReader)
 				// Se houver parâmetros de rota (:id), mescla no objeto de requisição adicionando dinamicamente
 				reqParams := hrp.NewMapaVazio()
 				for k, v := range params {
@@ -645,8 +648,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				copy(mws, s.middlewares)
 				s.mu.RUnlock()
 
-				var executarProximo func(idx int) error
-				executarProximo = func(idx int) error {
+				var executarpróximo func(idx int) error
+				executarpróximo = func(idx int) error {
 					if idx >= len(mws) {
 						// Finalizou os middlewares: executa o handler principal
 						_, errHandler := hrp.Chamar(handler, hrp.Tupla{reqObj, resObj})
@@ -654,16 +657,16 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					}
 
 					mw := mws[idx]
-					proximoCb := hrp.NewMetodoOuPanic("proximo", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-						err := executarProximo(idx + 1)
+					próximoCb := hrp.NewMetodoOuPanic("próximo", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+						err := executarpróximo(idx + 1)
 						if err != nil {
 							return nil, err
 						}
 						return hrp.Nulo, nil
 					}, "Avança para o próximo middleware ou handler")
 
-					// Tenta chamar o middleware com (req, res, proximo)
-					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj, proximoCb})
+					// Tenta chamar o middleware com (req, res, próximo)
+					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj, próximoCb})
 					if errMw != nil {
 						// Se o erro foi por falta de argumento (middleware declarou só 2 params req, res), chama com 2 params e avança
 						if strings.Contains(errMw.Error(), "esperava no máximo 2 argumentos") {
@@ -671,20 +674,22 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 							if errMw2 != nil {
 								return errMw2
 							}
-							return executarProximo(idx + 1)
+							return executarpróximo(idx + 1)
 						}
 						return errMw
 					}
 					return nil
 				}
 
-				if errChain := executarProximo(0); errChain != nil {
+				if errChain := executarpróximo(0); errChain != nil {
 					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]: %v\n", req.Method, req.URL.Path, errChain)
 					// ponytail: responde com 500 sem derrubar o servidor para preservar as demais requisições
 					resObj.Status = hrp.Inteiro(http.StatusInternalServerError)
 					resObj.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("text/plain; charset=utf-8"))
 					resObj.Corpo = hrp.Texto(fmt.Sprintf("Erro interno: %v", errChain))
+					s.mu.Lock()
 					s.msgsErrosUltimo = errChain
+					s.mu.Unlock()
 				}
 
 				// ponytail: adiciona cabeçalhos CORS por padrão nas respostas normais
@@ -860,7 +865,11 @@ func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		}
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	clienteHTTP := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	res, err := clienteHTTP.Do(req)
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar requisição HTTP: %v", err)
 	}

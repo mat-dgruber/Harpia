@@ -2,6 +2,7 @@ package tempo
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -35,13 +36,20 @@ func (d *DataHora) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		return hrp.NewMetodoOuPanic("formatar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			formato := "02/01/2006 15:04:05"
 			if len(args) > 0 {
-				if f, ok := args[0].(hrp.Texto); ok {
-					formato = string(f)
-					formato = fmt.Sprintf("%v", formato)
+				if f, err := hrp.NewTexto(args[0]); err == nil {
+					formatoStr := string(f.(hrp.Texto))
+					// Suporte amigável a tokens comuns (YYYY, MM, DD, HH, mm, ss)
+					formatoStr = strings.ReplaceAll(formatoStr, "YYYY", "2006")
+					formatoStr = strings.ReplaceAll(formatoStr, "MM", "01")
+					formatoStr = strings.ReplaceAll(formatoStr, "DD", "02")
+					formatoStr = strings.ReplaceAll(formatoStr, "HH", "15")
+					formatoStr = strings.ReplaceAll(formatoStr, "mm", "04")
+					formatoStr = strings.ReplaceAll(formatoStr, "ss", "05")
+					formato = formatoStr
 				}
 			}
-			return hrp.Texto(d.t.Format("02/01/2006 15:04:05")), nil
-		}, ""), nil
+			return hrp.Texto(d.t.Format(formato)), nil
+		}, "Formata a data/hora segundo o padrão especificado ou padrão 'DD/MM/YYYY HH:mm:ss'"), nil
 	case "adicionarDias":
 		return hrp.NewMetodoOuPanic("adicionarDias", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			if len(args) == 0 {

@@ -82,9 +82,9 @@ func TestIteradorNativoTexto(t *testing.T) {
 
 	esperados := []string{"H", "a", "r", "p", "i", "a"}
 	for i, esp := range esperados {
-		item, err := iter.M__proximo__()
+		item, err := iter.M__próximo__()
 		if err != nil {
-			t.Fatalf("M__proximo__() falhou no índice %d: %v", i, err)
+			t.Fatalf("M__próximo__() falhou no índice %d: %v", i, err)
 		}
 		if string(item.(hrp.Texto)) != esp {
 			t.Errorf("item[%d]: esperava '%s', obteve '%v'", i, esp, item)
@@ -92,7 +92,7 @@ func TestIteradorNativoTexto(t *testing.T) {
 	}
 
 	// Próxima chamada deve retornar FimIteracao
-	_, err = iter.M__proximo__()
+	_, err = iter.M__próximo__()
 	if err == nil {
 		t.Error("Esperava FimIteracao após esgotar o Texto, mas não houve erro")
 	}
@@ -108,9 +108,9 @@ func TestIteradorNativoBytes(t *testing.T) {
 
 	esperados := []int64{65, 66, 67}
 	for i, esp := range esperados {
-		item, err := iter.M__proximo__()
+		item, err := iter.M__próximo__()
 		if err != nil {
-			t.Fatalf("M__proximo__() falhou no índice %d: %v", i, err)
+			t.Fatalf("M__próximo__() falhou no índice %d: %v", i, err)
 		}
 		v, ok := item.(hrp.Inteiro)
 		if !ok {
@@ -122,7 +122,7 @@ func TestIteradorNativoBytes(t *testing.T) {
 	}
 
 	// Próxima chamada deve retornar FimIteracao
-	_, err = iter.M__proximo__()
+	_, err = iter.M__próximo__()
 	if err == nil {
 		t.Error("Esperava FimIteracao após esgotar o Bytes, mas não houve erro")
 	}

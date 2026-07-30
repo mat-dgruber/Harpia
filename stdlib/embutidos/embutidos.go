@@ -147,6 +147,24 @@ func init() {
 			},
 			"Cria um sinal reativo estático para SSR no backend",
 		),
+		// sinalPersistente(chave, valorInicial) stub estático para SSR — no browser, sincroniza com localStorage
+		hrp.NewMetodoOuPanic(
+			"sinalPersistente",
+			func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+				if err := hrp.VerificaNumeroArgumentos("sinalPersistente", false, args, 2, 2); err != nil {
+					return nil, err
+				}
+				valor := args[1] // ignora a chave, usa valorInicial
+				getter := hrp.NewMetodoOuPanic("getter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+					return valor, nil
+				}, "")
+				setter := hrp.NewMetodoOuPanic("setter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+					return hrp.Nulo, nil
+				}, "")
+				return hrp.Tupla{getter, setter}, nil
+			},
+			"Cria um sinal reativo persistente (stub SSR)",
+		),
 		// efeito(funcao) executa imediatamente a função informada
 		hrp.NewMetodoOuPanic(
 			"efeito",

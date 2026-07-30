@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -15,6 +16,7 @@ import (
 var (
 	formatoLog = "texto" // "texto" ou "json"
 	usarCores  = true
+	logsMu     sync.RWMutex
 )
 
 // formatarData retorna um timestamp simplificado e inteligível para logs locais em formato de texto.
@@ -41,7 +43,17 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 		}
 	}
 
-	if formatoLog == "json" {
+	logsMu.RLock()
+	fmtLog := formatoLog
+	cores := usarCores
+	logsMu.RUnlock()
+
+	out := os.Stdout
+	if nivel == "ERRO" {
+		out = os.Stderr
+	}
+
+	if fmtLog == "json" {
 		// Formato estruturado para agregadores de logs modernos (ElasticSearch, Grafana Loki, Datadog)
 		logObj := map[string]interface{}{
 			"data":  time.Now().Format(time.RFC3339),
@@ -52,12 +64,12 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 			logObj["metadados"] = meta
 		}
 		bytes, _ := json.Marshal(logObj)
-		fmt.Println(string(bytes))
+		fmt.Fprintln(out, string(bytes))
 	} else {
 		// Modo texto amigável e legível para console local com suporte a escape ANSI
 		corInicio := ""
 		corReset := ""
-		if usarCores && os.Getenv("NO_COLOR") == "" {
+		if cores && os.Getenv("NO_COLOR") == "" {
 			corInicio = cor
 			corReset = "\x1b[0m"
 		}
@@ -68,7 +80,7 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 			metaStr = " " + string(bytes)
 		}
 
-		fmt.Printf("[%s] %s%s%s: %s%s\n", formatarData(), corInicio, nivel, corReset, msgStr, metaStr)
+		fmt.Fprintf(out, "[%s] %s%s%s: %s%s\n", formatarData(), corInicio, nivel, corReset, msgStr, metaStr)
 	}
 
 	return hrp.Nulo, nil
@@ -97,6 +109,9 @@ func met_logs_depurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 // met_logs_configurar implementa 'configurar(formato, cores?)' em nível de script Harpia.
 // Modifica as propriedades globais de renderização (formato: "texto" ou "json").
 func met_logs_configurar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	logsMu.Lock()
+	defer logsMu.Unlock()
+
 	if len(args) >= 1 {
 		if fmtStr, ok := args[0].(hrp.Texto); ok {
 			formatoLog = strings.ToLower(string(fmtStr))

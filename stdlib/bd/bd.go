@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 // Package bd implementa os conectores, gerenciadores e adaptadores de acesso
 // a bancos de dados relacionais (SQL), não-relacionais (NoSQL) e vetoriais do Harpia.
 package bd

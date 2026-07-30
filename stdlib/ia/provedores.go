@@ -8,7 +8,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
+
+var clientIA = &http.Client{
+	Timeout: 60 * time.Second,
+}
 
 // Mensagem representa a estrutura padrão para formatação e mapeamento de mensagens de conversação em JSON.
 type Mensagem struct {
@@ -64,7 +69,7 @@ func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 		return "", err
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
+	resp, err := clientIA.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		// Fallback amigável se o Ollama local não estiver rodando: tentar nuvens
 		if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
@@ -135,7 +140,7 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		return "", err
 	}
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
+	resp, err := clientIA.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
 		return "", err
 	}
@@ -191,7 +196,7 @@ func chamarOpenAI(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := clientIA.Do(req)
 	if err != nil {
 		return "", err
 	}
