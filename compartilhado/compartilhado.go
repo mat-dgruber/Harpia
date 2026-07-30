@@ -1,20 +1,38 @@
 package compartilhado
 
-// ContemApenasAlfaNum analisa se a string informada é estritamente alfanumérica.
-//
-// Parâmetros:
-//   - str: a cadeia textual a ser avaliada.
-//
-// Retorna:
-//   - true se a string contiver apenas dígitos Unicode (0-9) OU apenas letras Unicode
-//     (incluindo caracteres acentuados de qualquer alfabeto suportado pelo padrão Unicode).
-//   - false se a string for vazia ou contiver qualquer outro tipo de caractere (símbolos,
-//     espaços, pontuações ou mistura de letras e números).
-//
-// Decisão de Design:
-// A função delega a lógica para ContemApenasDigitos e ContemApenasLetras para garantir
-// reaproveitamento de código e consistência nas regras de classificação do Lexer do Harpia,
-// evitando caminhos de validação divergentes.
+import (
+	"unicode"
+)
+
+// ContemApenasAlfaNum analisa se a string informada e estritamente composta por letras e/ou digitos Unicode.
 func ContemApenasAlfaNum(str string) bool {
-	return ContemApenasDigitos(str) || ContemApenasLetras(str)
+	if str == "" {
+		return false
+	}
+	for _, char := range str {
+		if !unicode.IsLetter(char) && !unicode.IsDigit(char) {
+			return false
+		}
+	}
+	return true
+}
+
+// EIdentificadorValido verifica se a string e um identificador valido na linguagem Harpia
+// (comeca com letra ou underline _, seguido por letras, digitos ou underline).
+func EIdentificadorValido(str string) bool {
+	if str == "" {
+		return false
+	}
+	for i, char := range str {
+		if i == 0 {
+			if !unicode.IsLetter(char) && char != '_' {
+				return false
+			}
+		} else {
+			if !unicode.IsLetter(char) && !unicode.IsDigit(char) && char != '_' {
+				return false
+			}
+		}
+	}
+	return true
 }
