@@ -297,4 +297,21 @@ func TestDesestruturacao(t *testing.T) {
 	}
 }
 
+func TestDiagnosticosRicos(t *testing.T) {
+	codigo := "var x = 10 +"
+	p := parser.NewParserFromString(codigo, "teste_diag.hrp")
+	_, err := p.Parse()
+	if err == nil {
+		t.Fatalf("Esperava erro sintático")
+	}
+	erros := p.Erros()
+	if len(erros) == 0 {
+		t.Fatalf("Nenhum ErroSintatico acumulado")
+	}
+	e := erros[0]
+	if e.Codigo == "" || e.LinhaFonte == "" || e.Indicador == "" {
+		t.Errorf("ErroSintatico sem campos de diagnóstico ricos: %+v", e)
+	}
+}
+
 

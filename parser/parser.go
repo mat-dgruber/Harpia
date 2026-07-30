@@ -173,19 +173,7 @@ func (p *Parser) parseDeclaracao() (BaseNode, error) {
 		if errSintatico, ok := err.(*ErroSintatico); ok {
 			p.erros = append(p.erros, *errSintatico)
 		} else {
-			var ini, fim lexer.PosicaoToken
-			if tok != nil {
-				ini = tok.Inicio
-				fim = tok.Fim
-			}
-			p.erros = append(p.erros, ErroSintatico{
-				Mensagem: err.Error(),
-				Inicio:   ini,
-				Fim:      fim,
-				Token:    tok,
-				Arquivo:  p.arquivo,
-				Codigo:   p.codigo,
-			})
+			p.erros = append(p.erros, *p.formatarErro("HRP-E101", err.Error(), ObterDicaSintatica(err.Error())))
 		}
 		p.sincronizar()
 		return nil, nil
@@ -2083,12 +2071,16 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 }
 
 type ErroSintatico struct {
-	Mensagem string
-	Inicio   lexer.PosicaoToken
-	Fim      lexer.PosicaoToken
-	Token    *lexer.Token
-	Arquivo  string
-	Codigo   string
+	Mensagem    string
+	Inicio      lexer.PosicaoToken
+	Fim         lexer.PosicaoToken
+	Token       *lexer.Token
+	Arquivo     string
+	Codigo      string
+	LinhaFonte  string
+	Indicador   string
+	Dica        string
+	CodigoFonte string
 }
 
 func (p *Parser) Erros() []ErroSintatico {
@@ -2114,11 +2106,10 @@ func (p *Parser) sincronizar() {
 // Error renderiza o erro sintático com informações ricas de posição: arquivo, linha, coluna
 // e destaca o trecho de código culpado — similar ao renderizador do Erro em hrp/erros.go.
 func (e *ErroSintatico) Error() string {
-	usarCores := strings.Contains(strings.ToLower(e.Mensagem), "") // sempre tenta cores
-	_ = usarCores
 	corErro := "\x1b[1;31m"
 	corCodigo := "\x1b[1;37m"
 	corPonteiro := "\x1b[1;36m"
+	corDica := "\x1b[1;33m"
 	corReset := "\x1b[0m"
 
 	arquivoStr := e.Arquivo
@@ -2126,35 +2117,38 @@ func (e *ErroSintatico) Error() string {
 		arquivoStr = "<desconhecido>"
 	}
 
+	codigoErro := e.Codigo
+	if codigoErro == "" {
+		codigoErro = "HRP-E101"
+	}
+
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("\n%serro[PSC-0001]%s: %sSintaxeErro%s — %s\n",
-		corErro, corReset, corCodigo, corReset, e.Mensagem))
+	sb.WriteString(fmt.Sprintf("\n%serro[%s]%s: %sSintaxeErro%s — %s\n",
+		corErro, codigoErro, corReset, corCodigo, corReset, e.Mensagem))
 
 	if e.Token != nil && e.Token.Inicio.Linha > 0 {
 		linha := e.Token.Inicio.Linha
 		coluna := e.Token.Inicio.Coluna
-		linhaExibicao := linha // Linha já base 1 no lexer
 
-		sb.WriteString(fmt.Sprintf("  %s┌──>%s %s:%d:%d\n", corPonteiro, corReset, arquivoStr, linhaExibicao, coluna))
+		sb.WriteString(fmt.Sprintf("  %s┌──>%s %s:%d:%d\n", corPonteiro, corReset, arquivoStr, linha, coluna))
 		sb.WriteString(fmt.Sprintf("  %s│%s\n", corPonteiro, corReset))
 
-		if e.Codigo != "" {
-			linhas := strings.Split(e.Codigo, "\n")
-			idxLinha := linha - 1 // converter para base 0
+		linhaTexto := e.LinhaFonte
+		if linhaTexto == "" && e.CodigoFonte != "" {
+			linhas := strings.Split(e.CodigoFonte, "\n")
+			idxLinha := linha - 1
 			if idxLinha >= 0 && idxLinha < len(linhas) {
-				linhaTexto := linhas[idxLinha]
-				sb.WriteString(fmt.Sprintf("%s%d │%s %s\n", corPonteiro, linhaExibicao, corReset, linhaTexto))
+				linhaTexto = linhas[idxLinha]
+			}
+		}
 
-				sb.WriteString(fmt.Sprintf("  %s│%s ", corPonteiro, corReset))
-				if coluna > 0 {
-					for j := 0; j < len(linhaTexto) && j < coluna-1; j++ {
-						if linhaTexto[j] == '\t' {
-							sb.WriteRune('\t')
-						} else {
-							sb.WriteRune(' ')
-						}
-					}
-				}
+		if linhaTexto != "" {
+			sb.WriteString(fmt.Sprintf("%s%d │%s %s\n", corPonteiro, linha, corReset, linhaTexto))
+
+			sb.WriteString(fmt.Sprintf("  %s│%s ", corPonteiro, corReset))
+			if e.Indicador != "" {
+				sb.WriteString(fmt.Sprintf("%s%s%s\n", corErro, e.Indicador, corReset))
+			} else {
 				tamanho := 1
 				if len(e.Token.Valor) > 0 && e.Token.Valor != "\n" {
 					tamanho = len(e.Token.Valor)
@@ -2168,23 +2162,92 @@ func (e *ErroSintatico) Error() string {
 		sb.WriteString(fmt.Sprintf("  %s│%s %s%s%s\n", corPonteiro, corReset, corErro, e.Mensagem, corReset))
 	}
 
+	if e.Dica != "" {
+		sb.WriteString(fmt.Sprintf("  %sdica:%s %s\n", corDica, corReset, e.Dica))
+	}
+
 	return sb.String()
 }
 
-func (p *Parser) erro(msg string) error {
+func ObterDicaSintatica(msg string) string {
+	msgLower := strings.ToLower(msg)
+	switch {
+	case strings.Contains(msgLower, "esperado o token ';'"):
+		return "Adicione ';' ou uma quebra de linha para encerrar a instrução."
+	case strings.Contains(msgLower, "esperado o token"):
+		return "Verifique a sintaxe e certifique-se de incluir os delimitadores ou pontuações esperadas."
+	case strings.Contains(msgLower, "constante") && strings.Contains(msgLower, "inicializador"):
+		return "Toda constante deve ser declarada com um valor inicial (ex: const X = 10)."
+	case strings.Contains(msgLower, "capture") || strings.Contains(msgLower, "finalmente"):
+		return "Um bloco 'tente' exige ao menos um bloco 'capture (erro)' ou 'finalmente'."
+	default:
+		return "Verifique a sintaxe ao redor do token indicado."
+	}
+}
+
+func (p *Parser) formatarErro(codigo string, msg string, dica string) *ErroSintatico {
 	var ini, fim lexer.PosicaoToken
 	if p.token != nil {
 		ini = p.token.Inicio
 		fim = p.token.Fim
 	}
-	return &ErroSintatico{
-		Mensagem: msg,
-		Inicio:   ini,
-		Fim:      fim,
-		Token:    p.token,
-		Arquivo:  p.arquivo,
-		Codigo:   p.codigo,
+
+	linhaFonte := ""
+	indicador := ""
+	if p.token != nil && p.token.Inicio.Linha > 0 && p.codigo != "" {
+		linhas := strings.Split(p.codigo, "\n")
+		idxLinha := p.token.Inicio.Linha - 1
+		if idxLinha >= 0 && idxLinha < len(linhas) {
+			linhaFonte = linhas[idxLinha]
+			col := p.token.Inicio.Coluna
+			if col < 1 {
+				col = 1
+			}
+			tamanho := len(p.token.Valor)
+			if tamanho < 1 || p.token.Valor == "\n" {
+				tamanho = 1
+			}
+
+			var sb strings.Builder
+			for j := 0; j < len(linhaFonte) && j < col-1; j++ {
+				if linhaFonte[j] == '\t' {
+					sb.WriteRune('\t')
+				} else {
+					sb.WriteRune(' ')
+				}
+			}
+			sb.WriteString(strings.Repeat("^", tamanho))
+			indicador = sb.String()
+		}
 	}
+	if indicador == "" {
+		indicador = "^"
+	}
+
+	if codigo == "" {
+		codigo = "HRP-E101"
+	}
+
+	if dica == "" {
+		dica = ObterDicaSintatica(msg)
+	}
+
+	return &ErroSintatico{
+		Mensagem:    msg,
+		Inicio:      ini,
+		Fim:         fim,
+		Token:       p.token,
+		Arquivo:     p.arquivo,
+		Codigo:      codigo,
+		LinhaFonte:  linhaFonte,
+		Indicador:   indicador,
+		Dica:        dica,
+		CodigoFonte: p.codigo,
+	}
+}
+
+func (p *Parser) erro(msg string) error {
+	return p.formatarErro("HRP-E101", msg, ObterDicaSintatica(msg))
 }
 
 func (p *Parser) errof(format string, args ...interface{}) error {
