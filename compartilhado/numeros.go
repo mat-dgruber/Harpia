@@ -22,9 +22,21 @@ func StringParaInt(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
-// StringParaIntBase converte uma string numerica (decimal, hex 0x, binario 0b, octal 0o) em int64.
+// StringParaIntBase converte uma string numerica (decimal, hex 0x, binario 0b, octal 0o, com sinal opcional) em int64.
 func StringParaIntBase(s string) (int64, error) {
 	s = strings.TrimSpace(s)
+	if len(s) == 0 {
+		return 0, strconv.ErrSyntax
+	}
+
+	sinal := int64(1)
+	if strings.HasPrefix(s, "-") {
+		sinal = -1
+		s = s[1:]
+	} else if strings.HasPrefix(s, "+") {
+		s = s[1:]
+	}
+
 	base := 10
 	sLimpa := s
 
@@ -43,7 +55,11 @@ func StringParaIntBase(s string) (int64, error) {
 		}
 	}
 
-	return strconv.ParseInt(sLimpa, base, 64)
+	val, err := strconv.ParseInt(sLimpa, base, 64)
+	if err != nil {
+		return 0, err
+	}
+	return val * sinal, nil
 }
 
 // StringParaDec converte a representação textual de um número de ponto flutuante em float64.

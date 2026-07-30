@@ -134,6 +134,12 @@ type ShardedCache struct {
 }
 
 func NovoShardedCache(numShards int, capPorShard int) *ShardedCache {
+	if numShards <= 0 {
+		numShards = 256
+	}
+	if capPorShard <= 0 {
+		capPorShard = 64
+	}
 	shards := make([]*shardLRU, numShards)
 	for i := 0; i < numShards; i++ {
 		shards[i] = novoShardLRU(capPorShard)

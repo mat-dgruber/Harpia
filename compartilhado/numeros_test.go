@@ -11,9 +11,15 @@ func TestStringParaIntBase(t *testing.T) {
 		comErro  bool
 	}{
 		{"123", 123, false},
+		{"-123", -123, false},
+		{"+123", 123, false},
 		{"0x1A", 26, false},
+		{"-0x1A", -26, false},
+		{"+0x1A", 26, false},
 		{"0b1010", 10, false},
+		{"-0b1010", -10, false},
 		{"0o755", 493, false},
+		{"-0o755", -493, false},
 		{"invalido", 0, true},
 	}
 
