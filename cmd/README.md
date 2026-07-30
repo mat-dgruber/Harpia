@@ -445,18 +445,38 @@ harpia diagramar
 - **Colorização de Violações**: Identifica e colore dinamicamente o fluxo do diagrama gerado: linhas verdes representam conexões arquiteturais saudáveis, enquanto **linhas vermelhas grossas destacam violações** de dependência no mapa visual.
 - **Exportação de SVG em 1 Clique**: O arquivo HTML interativo gerado traz embutido um script de renderização interativa do Mermaid.js via CDN de alta velocidade que inclui um botão para baixar a imagem vetorial `.svg` com as proporções perfeitas direto pelo navegador de forma portátil.
 
-### 18. Subcomando: `instalar` — Gerenciador de Módulos
+### 18. Subcomando: `instalar` — Gerenciador de Módulos e Lockfile
 
-Download e resolvedor de dependências assíncrono:
+Download e resolvedor de dependências assíncrono determinístico:
 
 ```bash
 harpia instalar [nome-do-pacote] [versao-opcional]
 ```
 
-- **Resolução Remota e Registro Central**: Agora permite buscar pacotes públicos diretamente pelo nome do registro central em português (`URL_REGISTRO_CENTRAL`).
-- **Gestão de Versões Semver**: Suporta a resolução de dependências baseadas em restrições de versão semver diretamente no arquivo de manifesto `pacote.hrp` ou `pacote.json` (ex: `"banco-dados": "1.0.0"`, `"banco-dados": "latest"`), resolvendo os caminhos remotos dos arquivos ZIP compactados automaticamente.
-- Lê o arquivo de manifesto em português `pacote.hrp` (ou `pacote.json`), baixa os pacotes zip associados e os extrai de forma automatizada sob a pasta local `pt_modulos/` exibindo relatórios de progresso de download em tempo real.
+- **Resolução Remota e Registro Central**: Permite buscar pacotes públicos diretamente pelo nome do registro central em português (`URL_REGISTRO_CENTRAL`).
+- **Resolução Determinística via Lockfile (`harpia.lock` / `harpia.lock.json`)**: Suporta o travamento determinístico de versões, URLs e checksums SHA-256. Quando um lockfile existe no projeto, a instalação prioriza rigorosamente as versões e hashes travadas.
+- **Validação de Integridade Checksum SHA-256**: Todo pacote baixado tem seu hash SHA-256 verificado em memória antes da extração. Caso o hash difira do esperado registrado no lockfile, o processo aborta imediatamente emitindo o erro `HRP-LOCK-001`.
+- **Suporte Duplo a Formatos de Lockfile**: O parser interno (`cmd/lockfile.go`) tenta primeiro a desserialização do formato padrão JSON. Se o conteúdo não for JSON válido, realiza fallback automático para o formato chave-valor declarativo Harpia (`versao_lock = "1.0"`, `[nome-pacote]`, etc).
 - **Segurança de Extração (Anti-Zip Slip)**: Implementa um validador de sanidade de caminhos (`filepath.Clean` e verificação de prefixo) que bloqueia na hora a extração de arquivos maliciosos contendo caminhos de travessia de diretório (`..`), impedindo que pacotes ZIP corrompidos sobrescrevam ou criem arquivos fora da pasta alvo do projeto.
+
+---
+
+### 18-B. Subcomando: `pacote` — Ciclo de Vida de Dependências
+
+Gerencia o ciclo de vida completo dos pacotes e dependências do projeto através de subcomandos dedicados:
+
+```bash
+harpia pacote adicionar <nome> [versao-ou-url]
+harpia pacote remover <nome>
+harpia pacote listar
+harpia pacote limpar
+```
+
+- **`adicionar` (`add`)**: Resolve, instala e registra uma nova dependência no manifesto (`pacote.json` / `pacote.hrp`) e no lockfile de forma atômica.
+- **`remover` (`remove`, `rm`)**: Remove os arquivos do módulo em `pt_modulos/<nome>`, remove a chave do manifesto e atualiza o lockfile.
+- **`listar` (`list`, `ls`)**: Exibe uma listagem formatada de todos os pacotes registrados e instalados no projeto com suas versões.
+- **`limpar` (`clean`)**: Limpa por completo o cache local e a pasta `pt_modulos/`.
+
 
 ### 19. Subcomando: `empacotar` — Compilador e Gerador de Binários Standalone / WASM
 

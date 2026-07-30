@@ -85,6 +85,10 @@ meu-app/
 - **Reatividade Nativa (SPA):** Transpilação reativa eficiente para a web (`--alvo=web`) baseada em Sinais (`var [contador, definirContador] = sinal(0)`), Efeitos e Estado Global.
 - **Estilização Nativa:** Blocos de estilo CSS integrados nativamente e classes utilitárias na estrutura de marcação.
 - **Contrato RPC Automático:** Comunicação simplificada entre o Front-end e o Back-end sem a necessidade de APIs manuais complexas.
+- **Lexer Zero-Alloc:** Analisador léxico escrito à mão, com tabela ASCII O(1), coordenadas de token por valor e normalização CRLF em-fluxo.
+- **Comentários Aninhados & Doc-Comments:** Suporte a blocos `/* */` aninhados e comentários `///`/`/** */` preservados como `TokenComentarioDoc` para LSP e geradores de documentação.
+- **Entidades HTML Inline:** Reconhecimento de `&copy;`, `&#8595;` e `&#x1F600;` em fragmentos JSX, com terminação tolerante a documentos malformados.
+- **Snapshot/Restore do Cursor:** API `Estado()` / `Restaurar()` permite que o Parser faça backtracking léxico sem custo de alocação.
 
 ---
 
@@ -195,11 +199,21 @@ Formata a indentação e o estilo visual de arquivos Harpia, aplicando indentaç
 
 ### 13. `harpia instalar` (ou `instale`, `install`)
 
-Instala dependências do projeto registradas no `pacote.hrp` ou `pacote.json`, buscando metadados no índice de pacotes centralizado em `./pt_modulos/`.
+Instala dependências do projeto de forma determinística utilizando lockfiles (`harpia.lock` / `harpia.lock.json`) com validação de integridade SHA-256 (`HRP-LOCK-001`).
 
 - **Uso:** `harpia instalar [pacote-opcional] [url-ou-versao-opcional]`
 - **Flags:**
   - `-f, --arquivo`: Caminho do arquivo de manifesto personalizado.
+
+### 13-B. `harpia pacote` (ou `pacotes`, `pkg`)
+
+Gerencia o ciclo de vida completo de pacotes e dependências através dos subcomandos `adicionar`, `remover`, `listar` e `limpar`.
+
+- **Uso:**
+  - `harpia pacote adicionar <nome> [versao-ou-url]`
+  - `harpia pacote remover <nome>`
+  - `harpia pacote listar`
+  - `harpia pacote limpar`
 
 ### 14. `harpia diagramar`
 

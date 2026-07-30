@@ -162,10 +162,10 @@ Execute 'harpia atualizar' para revisar mudanças antes de instalar.
 
 ## 3. Exemplos de Documentação
 
-### 3.1 Página de Tutorial (Markdown)
+### 3.1 Página de tutorial (Markdown)
 
 ````markdown
-# Tutorial: Seu Primeiro Programa em Harpia
+# tutorial: Seu Primeiro Programa em Harpia
 
 Bem-vindo! Neste guia, você criará um programa simples que
 valida emails e exibe mensagens personalizadas.

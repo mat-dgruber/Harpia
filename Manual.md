@@ -30,6 +30,7 @@ Este documento foi elaborado para servir tanto como um guia definitivo para dese
 20. [WebAssembly (WASM), WASI e Microsserviços Corporativos](#capítulo-20--webassembly-wasm-wasi-e-microsserviços-corporativos)
 21. [Documentação Ininterrupta e Estilo de Contribuição](#capítulo-21--documentação-ininterrupta-e-estilo-de-contribuição)
 22. [Práticas de Segurança e Programação Defensiva](#capítulo-22--práticas-de-segurança-e-programação-defensiva)
+23. [Máquina Virtual de Bytecode e Compilador (`vm/`)](#capítulo-23--máquina-virtual-de-bytecode-e-compilador-vm)
 
 ---
 
@@ -166,7 +167,18 @@ Analisa recursivamente a estrutura física do projeto para mapear e validar a hi
 
 Gerenciador de pacotes e dependências assíncrono para o ecossistema Harpia.
 
-- **Resolução Remota Semver**: Permite baixar pacotes públicos e resolver restrições de versão semver (ex: `banco-dados: 1.0.0`) diretamente de um registro JSON remoto central em português, gravando o módulo na pasta local `pt_modulos/`.
+- **Resolução Remota e Lockfile Determinístico**: Permite baixar pacotes públicos e resolver dependências utilizando lockfiles (`harpia.lock` / `harpia.lock.json`). Suporta formato duplo (JSON e chave-valor HRP).
+- **Integridade Checksum SHA-256**: Valida o hash SHA-256 dos arquivos baixados em memória contra o esperado no lockfile, disparando o código de erro `HRP-LOCK-001` em caso de divergência.
+- **Proteção Anti-Zip Slip**: Garante a higienização de caminhos no fatiamento de arquivos ZIP compactados.
+
+#### 12-B. `harpia pacote <subcomando>`
+
+Gerencia o ciclo de vida completo de pacotes e dependências no projeto.
+
+- **`adicionar <pacote> [versao-ou-url]`** (alias `add`): Baixa, extrai, atualiza o manifesto (`pacote.json`/`pacote.hrp`) e o lockfile.
+- **`remover <pacote>`** (aliases `remove`, `rm`): Remove o módulo de `pt_modulos/`, atualiza o manifesto e limpa a entrada do lockfile.
+- **`listar`** (aliases `list`, `ls`): Exibe a listagem de todas as dependências registradas e instaladas com suas versões.
+- **`limpar`** (alias `clean`): Esvazia e remove por completo a pasta local `pt_modulos/`.
 
 #### 13. `harpia stressar [arquivo] [flags]`
 
@@ -434,15 +446,80 @@ Para assegurar uma excelente experiência de desenvolvimento (DX) tanto em scrip
 Como base contratual para o analisador léxico, o Harpia define uma especificação formal de referência no formato do gerador de compiladores **ANTLR4** (`gramatica/HarpiaLexer.g4`). Ela classifica e delimita todas as categorias de tokens da linguagem:
 
 - **Tokens Primordiais**: `FALSO` ('Falso'), `VERDADEIRO` ('Verdadeiro') e `NULO` ('Nulo').
-- **Palavras-Chave de Controle**: `SE` ('se'), `SENAO` ('senao'), `VAR` ('var'), `CONST` ('const'), `IMPORTE` ('importe'), `DE` ('de'), `RETORNE` ('retorne'), `FUNC` ('func'), `OU` ('ou'), `E` ('e'), `NAO` ('nao'), `PARE` ('pare'), `CONTINUE` ('continue'), `PARA` ('para'), `EM` ('em'), `NOVA` ('nova') e `ASSEGURA` ('assegura').
+- **Palavras-Chave de Controle e Fluxo**: `SE`, `SENAO`, `ENQUANTO`, `PARA`, `EM`, `VAR`, `CONST`, `FUNC`, `RETORNE`, `PARE`, `CONTINUE`, `TENTE`, `CAPTURE`, `FINALMENTE`, `ESCOLHA`, `CASO`, `QUANDO`, `IMPORTE`, `DE`, `EXPORTAR`, `NOVA`, `CLASSE`, `ESTENDE`, `SELF`, `ESTATICO`, `ENUM`, `INTERFACE`, `ASSINCRONO`, `AGUARDE`, `ESTILO`, `TESTAR`, `ASSEGURA`.
 - **Regras de Literais Dinâmicos**:
-  - `ID`: Identificadores de variáveis, funções e classes, compostos por letras ou sublinhas (`_`) seguidos de qualquer combinação de letras ou dígitos.
-  - `TEXTO`: Strings envoltas em aspas duplas, com suporte completo a caracteres de escape.
-  - `DIGITOS` e `LETRAS`: Definições auxiliares ASCII de caracteres para composição lexical.
-- **Operadores de Reatribuição**: `OPERADOR_REATRIBUICAO` unifica operadores compostos como `+=`, `-=`, `*=`, `/=`, `%=`, etc.
-- **Operadores e Delimitadores de Sintaxe**: Define símbolos de pontuação e caracteres matemáticos, lógicos e relacionais, além de operadores bitwise (`|`, `^`, `&`, `~`, `<<`, `>>`).
+  - `ID`: Identificadores com suporte a Unicode PT-BR (`módulos`, `seção`, `área`).
+  - `TEXTO`: Strings em aspas duplas, aspas simples ou crases (template strings).
+  - `LITERAL_INTEIRO` e `LITERAL_DECIMAL`: Numerais decimais, hexadecimais (`0x`), binários (`0b`), octais (`0o`) e ponto flutuante.
+- **Operadores de Reatribuição**: `OPERADOR_REATRIBUICAO` unifica `=` e acumuladores compostos (`+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`, `**=`, `??=`, `||=`, `&&=`).
+- **Operadores Avançados**: Operadores lógicos (`ou`, `e`, `nao`), bitwise (`|`, `^`, `&`, `~`, `<<`, `>>`), Pipe (`|>`), Coalescência Nula (`??`), Chaining Opcional (`?.`), Ternário (`? :`), Spread (`...`), Decorador (`@`) e Seta (`->`).
 
 _Nota de Design_: O lexer em Go (`lexer/lexer.go`) replica fielmente cada um dos comportamentos e tokens declarados nesta especificação, garantindo suporte nativo e resiliente a caracteres Unicode (UTF-8).
+
+### Tratamento de Quebras de Linha (CRLF)
+
+O lexer do Harpia adota uma estratégia de **normalização CRLF em-fluxo** dentro de `avancar()`, evitando que o restante do código tenha que tratar variantes de quebra de linha como caso especial.
+
+| Entrada | Comportamento |
+|---|---|
+| `\n` (Unix/macOS moderno) | Incrementa `linha`, zera `coluna`. |
+| `\r\n` (Windows) | Lidos como **um único** caractere lógico de nova linha. `linha` é incrementada **uma única vez**. |
+| `\r` solitário (Mac clássico) | Convertido em `\n` lógico, incrementando `linha` igualmente. |
+| `\r` antes de caractere não-`\n` | Tratado como `\n` lógico, evitando "engolir" conteúdo após um carriage return solitário. |
+
+Benefícios: contadores de linha refletem a contagem visual do usuário, independente do SO de origem; ferramentas dependentes de `TokenNovaLinha` (formatação, REPL, debugger) podem assumir um único modelo de quebra de linha.
+
+### Entidades HTML Inline
+
+Para suportar fragmentos Harpia embutidos em arquivos `.html` ou templates JSX, o lexer reconhece **entidades HTML inline** iniciadas por `&`:
+
+- `&#8595;` — Entidade numérica decimal (`&#` seguido de dígitos e `;`).
+- `&#x1F600;` — Entidade numérica hexadecimal (`&#x` seguido de dígitos hexadecimais e `;`).
+- `&nbsp;`, `&copy;`, `&` — Entidades nomeadas (lexema alfanumérico seguido de `;`).
+
+Comportamento de `lerEntidadeHTML()`:
+1. Consome o `&` inicial.
+2. Avança até encontrar `;`, espaço em branco ou fim de linha.
+3. Emite um token do tipo `TokenEntidadeHTML` englobando o intervalo consumido (incluindo o `&` e o `;` final).
+
+A **decodificação semântica** (transformar `&copy;` em `©`) é responsabilidade do parser/compilador, não do lexer — manter o lexer "burro" permite que diferentes alvos de compilação (HTML puro, JSX, Markdown) resolvam entidades de forma distinta.
+
+Tolerância a documentos malformados: o lexer não emite erro caso a entidade não termine em `;` — ele consome até o próximo espaço em branco ou fim de linha, emitindo o token com a string parcial. Isso permite que ferramentas de lint identifiquem o problema sem que o lexer falhe catastroficamente.
+
+### Comentários de Bloco Aninhados
+
+Diferente da maioria das linguagens, Harpia suporta **comentários de bloco aninhados**: o contador `profundidade` em `ignorarComentarioBloco()` rastreia quantos `/*` foram abertos e exige o mesmo número de `*/` para fechar. Isso permite comentar trechos de código que já contêm outros blocos comentados, sem a necessidade de ajustes manuais no conteúdo interior.
+
+O comportamento equivalente vale para `lerComentarioDocBloco()` (blocos `/** ... */`), preservando o aninhamento também para doc-comments que estejam dentro de outros blocos.
+
+### Snapshot e Backtracking do Cursor
+
+Para casos onde o Parser precisa "experimentar" uma interpretação e desfazer caso a hipótese se mostre falsa, o lexer expõe dois métodos complementares:
+
+- **`Estado() SnapshotLex`**: Captura o estado completo do cursor (offset, proximoOffset, ch, largura, linha, coluna) retornando uma struct por valor.
+- **`Restaurar(s SnapshotLex)`**: Restaura todos os campos do cursor, garantindo que o lexer volte exatamente ao mesmo ponto de quando `Estado()` foi chamado.
+
+Padrão típico de uso no Parser:
+
+```go
+estado := lexer.Estado()
+// ... tenta nova interpretação, possivelmente avançando o cursor ...
+if err != nil {
+    lexer.Restaurar(estado)
+}
+```
+
+A captura por valor preserva o padrão zero-alloc, evitando fugas desnecessárias para a heap.
+
+### Sincronização com o Linter (`globalsLinter`)
+
+O mapa `tokensIdentificadores` em `helpers.go` (palavras-chave reservadas e primitivas como `Verdadeiro`, `Falso`, `Nulo`) deve permanecer em sincronia com a lista de globais reconhecidas pelo linter em `cmd/checar.go` (`globalsLinter`). A manutenção é deliberadamente manual — adicionar uma palavra-chave exige:
+
+1. Inserção em `tokensIdentificadores`.
+2. Inserção em `globalsLinter` (se for globalmente acessível sem `importe`).
+3. Atualização da gramática ANTLR4 (`gramatica/HarpiaLexer.g4`).
+
+Drift entre estas três listas pode gerar diagnósticos falsos de "identificador não declarado" no `harpia checar`.
 
 ---
 
@@ -468,6 +545,8 @@ A descida recursiva força uma prioridade de resolução estrita. Os operadores 
 | **2**  | Soma e Subtração         | `+`, `-` (Concatenação textual também no `+`)          |
 | **1**  | Multiplicação e Divisão  | `*`, `/`, `//` (divisão inteira), `%` (resto/módulo)   |
 | **0**  | Sinais e Exponenciação   | `+`, `-`, `~` (unários); `**` (exponenciação)          |
+
+> **Documentação Complementar**: A especificação exaustiva da API pública do pacote `parser` (struct `Parser`, nós da AST, fluxo de precedência, recuperação de erros `sincronizar()`, renderização `HRP-E101` e exemplos de uso) reside em [`parser/README.md`](parser/README.md). Os arquivos-fonte estão documentados no estilo **Godoc** em [`parser/parser.go`](parser/parser.go), [`parser/ast_nodes.go`](parser/ast_nodes.go) e [`parser/helpers.go`](parser/helpers.go).
 
 ### O Padrão Otimizado `parseEsqLst`
 
@@ -551,14 +630,15 @@ O compilador transborda recursos modernos para renderização declarativa na Web
 
 Para garantir o rigor gramatical das expressões e comandos, o Harpia expõe sua gramática de precedência e regras de árvore sintática no formato **ANTLR4** (`gramatica/HarpiaParser.g4`). Suas principais definições incluem:
 
-- **Regra Raiz (`programa`)**: Define a entrada como uma sequência opcional de declarações terminadas por `EOF`.
+- **Regra Raiz (`programa`)**: Define a entrada como uma sequência opcional de declarações terminada por `EOF`, com ponto e vírgula 100% opcional (`fim_instrucao`).
 - **Declarações e Atribuições**:
-  - `declaracao` ramifica-se em instruções simples (atribuições de variáveis/constantes, retornos, imports, asserções, `pare`, `continue`) e compostas (funções, `se/senao`, `para`).
-  - `atribuicao_variavel` e `atribuicao_constante` detalham a inicialização de símbolos.
-- **Importação e Módulos**: Regras detalhadas para suportar importações completas (`importe "x";`) ou parciais de escopo (`de "x" importe y, z;`).
-- **Definições Funcionais (`declaracao_funcao`)**: Controla a assinatura de métodos, definição de parâmetros opcionais e suporte à tipagem estática de variáveis.
-- **Controle de Fluxo e Loops**: Estrutura as expressões condicionais `se`, `senao se` e `senao`, além de laços `para-em` (`declaracao_para`).
-- **Hierarquia de Precedência de Expressões**: Define os níveis de precedência estritos representados na AST por meio de regras aninhadas (de `disjuncao` até `potencia`).
+  - `declaracao` ramifica-se em instruções simples e compostas.
+  - `atribuicao` suporta declarações simples, constantes e desestruturação de listas/mapas.
+- **Importação e Exportação**: Mapeia `importe`, `de ... importe` e `exportar`.
+- **Estruturas de Controle e Fluxo**: Condicionais `se/senao`, laço condicional `enquanto`, laço iterativo `para-em`, tratamento de exceções `tente/capture/finalmente` e pattern matching `escolha/caso/quando`.
+- **POO, Enums e Interfaces**: Declarações formais de `classe` (com herança `estende` e membros `estatico`), `enum` e `interface`.
+- **Estilos e Testes Nativos**: Blocos de estilização CSS nativa (`estilo`) e suíte de testes integrada (`testar`).
+- **Hierarquia de Precedência de Expressões**: Organizada em 14 níveis formais (do Ternário e Pipe até Exponenciação).
 - **Terminais e Coleções**: Regras para instanciar classes (`nova Classe()`), acessos a membros (`.`), chamadas, indexações (`[]`), e literais primários (listas, tuplas, mapas, etc.).
 
 _Nota de Design_: O parser escrito à mão em Go (`parser/parser.go`) implementa um Parser de Descida Recursiva que consome e valida recursivamente cada uma destas construções formais, transformando-as em nós estruturados de nossa AST.
@@ -622,6 +702,7 @@ As variáveis ativas e constantes são mantidas em estruturas `Escopo`:
 - **Escopo Léxico (Lexical Scoping)**: Cada `Escopo` mantém um link de referência para seu escopo pai (`Pai *Escopo`).
 - **Algoritmo de Busca (`ObterValor`)**: Busca primeiro na tabela local de símbolos. Se a chave não constar, sobe de forma recursiva investigando o escopo do pai. Se atingir a raiz primordial sem sucesso, verifica o módulo de embutidos antes de lançar o erro controlado `NomeErro` (PSC-0005).
 - **Sincronização de Concorrência do Escopo**: Cada escopo de variáveis conta com seu próprio `sync.RWMutex` para sincronização fina de leitura e escrita concorrente. Isso previne colisões de mapas em Go durante execuções paralelas de corotinas em background que acessam variáveis comuns.
+- **Reciclagem de Escopos e Proteção de Closures (`sync.Pool`)**: Para minimizar alocações de memória em chamadas de funções de alta frequência, a VM recicla instâncias de `Escopo` através de `sync.Pool` (`poolEscopo`). Ao encerrar a execução de uma função ou bloco, o escopo invoca `Reciclar()`. Caso o escopo tenha sido retido por uma closure (função anônima que captura variáveis locais), a chamada `Capturar()` marca o escopo e seus ancestrais, prevenindo a reciclagem prematura do pool.
 - **Locks de Grão Fino em Símbolos**: Símbolos individuais do runtime (`hrp.Simbolo`) contam com bloqueios de mutex específicos (`sync.RWMutex`) para ler e definir seu valor de forma atômica e segura.
 - **Cooperação Segura com o Garbage Collector**: A listagem de símbolos pelo Garbage Collector utiliza o método seguro `ObterSimbolosSeguro()`, que gera uma cópia rasa estável da tabela de símbolos do escopo sob um lock de leitura, integrando com o algoritmo de varredura e quebra de ciclos de forma 100% thread-safe.
 
@@ -1783,7 +1864,7 @@ A VM de pilha do Harpia integra suporte nativo a concorrência assíncrona basea
 
 - **Palavras-Chave**: `assincrono` e `aguarde`.
 - **Mapeamento de Funções Assíncronas**: Funções marcadas com o modificador `assincrono funcao` têm seu flag `Assincrono` ativado pelo compilador de bytecode.
-- **Inovação de Loop de Eventos Baseado em Goroutines**: Ao disparar uma chamada de função assíncrona (`OP_CHAMAR`), a VM detecta o flag ativo e, em vez de bloquear o fluxo principal de execução, delega a sua execução em background a uma nova goroutine leve do Go, retornando imediatamente um objeto `Promessa`.
+- **Inovação de Loop de Eventos Baseado em Goroutines e Thread-Safety**: Ao disparar uma chamada de função assíncrona (`OP_CHAMAR`), a VM detecta o flag ativo e, em vez de bloquear o fluxo principal de execução, delega a sua execução em background a uma nova goroutine leve do Go, retornando imediatamente um objeto `Promessa`. A estrutura `Promessa` é 100% thread-safe e protegida por `sync.Mutex`, garantindo a execução de callbacks e mudanças de estado sem data races em chamadas concorrentes a `Resolver`, `Rejeitar` e `Registre`.
 - **Suspensão Cooperativa via `aguarde` (`OP_AWAIT`)**: Quando a instrução `aguarde` é executada sobre uma `Promessa` ativa, a execução do frame atual da VM cede cooperativamente. Ela registra um callback de encerramento na promessa (`prom.Registre`) e aguarda por meio de um canal seguro do Go (`chan hrp.Objeto`) até que a promessa seja resolvida com sucesso ou rejeitada por erro, garantindo que outras operações concorrentes em background progridam sem travar a VM.
 - **Modelo CSP de Concorrência por Canais (Fase B)**: Integração do tipo nativo global `Canal` para troca sincronizada e thread-safe de dados entre goroutines (processos de background):
   - **`nova Canal()`**: Cria uma nova instância de canal de comunicação unificado.
@@ -2606,3 +2687,25 @@ Substituições globais de strings ou expressões regulares agressivas de limpez
       assinatura = assinatura.slice(0, -1).trim();
     }
     ```
+
+---
+
+## Capítulo 23 — Máquina Virtual de Bytecode e Compilador (`vm/`)
+
+O pacote `vm` provê a infraestrutura de compilação single-pass para bytecode de 16 bits e execução nativa em máquina virtual baseada em pilha com $O(1)$ para variáveis locais e tabela de constantes internadas em tempo de compilação.
+
+### 23.1. Compilador de Bytecode (`Compilador`)
+
+- **Estatística de Constantes ($O(1)$ Interning)**: A estrutura `Compilador` mantém um mapa de deduplicação (`constMap map[string]uint16`) para garantir busca e reaproveitamento $O(1)$ de constantes literais.
+- **Estruturas Suportadas**:
+  - **Laços `para-em` (`BlocoPara`)**: Compilação automatizada de iteração em coleções, com desvios incondicionais e remendo de pulos (`remendarPulosPare`).
+  - **Controle de Fluxo**: Instruções `pare` (`PareNode`) e `continue` (`ContinueNode`) resolvem seus endereços na pilha de laços `LoopStack`.
+  - **Atribuição Composta e Escritas em Coleções/Atributos**: Suporte nativo a `+=`, `-=`, `*=`, `/=`, `//=`, `%=` em variáveis locais/globais, propriedades de objetos (`obj.prop = val`) e elementos de coleções (`arr[idx] = val`).
+
+### 23.2. Máquina Virtual Baseada em Pilha (`VM`)
+
+- **Loop Despacho Zero-Alloc**: Ciclo principal `switch` executado sobre a fatia de bytecode com acesso direto a operandos `uint16` em BigEndian.
+- **Slots Locais em $O(1)$**: Variáveis locais resolvidas em tempo de compilação e acessadas diretamente em `frame.Locais[slot]`, com pré-alocação automática de capacidade para evitar realocações no heap Go.
+- **Tratamento de Exceções Nativo**: Opcodes `OP_SETUP_TRY`, `OP_POP_TRY` e `OP_LANCAR` realizam unwinding da pilha de operandos e desviam o apontador de instrução (`IP`) diretamente para o manipulador `capture`.
+- **Propriedade Nativa `.tamanho`**: Coleções (`Lista`, `Tupla`, `Mapa`, `Texto`, `Bytes`) expõem o atributo `.tamanho` resolvido via interface `I__tamanho__` em runtime.
+

@@ -1,7 +1,9 @@
+de continuidade
+
 # Especificação de Design — Redesign da Página Principal do Portal Harpia
 
-**Data**: 2026-07-29  
-**Status**: Aprovado  
+**Data**: 2026-07-29
+**Status**: Aprovado
 **Alvo**: `projetos/portal-harpia/web/rotas/index.hrp`
 
 ---
@@ -30,6 +32,7 @@ A paleta oficial da Harpia segue o conceito de **Dark Mode Nativo**:
 ## 3. Estrutura Detalhada das Seções
 
 ### Seção 1: Hero Banner (Cabeçalho de Impacto)
+
 - **Logotipo Refinado**: Imagem do logo com aura iluminada em `#F2A900`.
 - **Título**: "Linguagem de Programação Full-stack <span style="color: #F2A900">100% Brasileira</span>".
 - **Subtítulo**: "Soberania, Precisão e Foco Absoluto. Full-stack do zero ao deploy com Clean Architecture, DDD e Reatividade nativa em português."
@@ -43,7 +46,9 @@ A paleta oficial da Harpia segue o conceito de **Dark Mode Nativo**:
 ---
 
 ### Seção 2: Grid de Diferenciais & Inovações (8 Cards)
+
 Cards interativos com efeito *glassmorphism* em `#171E26` com bordas sutis em `rgba(242, 169, 0, 0.15)`:
+
 1. **Clean Architecture & DDD**: Estrutura nativa de diretórios (`dominio/`, `infra/`, `web/`, `testes/`).
 2. **Reatividade por Sinais**: Mudanças cirúrgicas no DOM via `sinal()` e `efeito()` sem re-renderizar a árvore inteira.
 3. **SPA + SSR Nativo**: Runtime VDOM ultraleve (~5KB) e renderização no servidor com `srv.servir_app()`.
@@ -56,14 +61,17 @@ Cards interativos com efeito *glassmorphism* em `#171E26` com bordas sutis em `r
 ---
 
 ### Seção 3: Ecossistema Dev Tools (VS Code, TUI, CLI)
+
 Apresentação visual e explicativa das ferramentas oficiais de desenvolvimento:
+
 - **Extensão VS Code Harpia**: Syntax highlighting TextMate oficial, autocompletar e snippets.
 - **TUI/REPL de 3 Painéis**: Editor/REPL, Inspetor de VM/Memória e Log/Saída no terminal.
-- **Utilitários CLI**: `harpia migrar` (Migrations SQLite/Postgres), `harpia pwa` (Gerador PWA) e `harpia i18n` (Extração de traduções).
+- **Utilitários CLI**: `harpia migrar` (Migrations SQLite/Postgres), `harpia pwa` (Gerador PWA), `harpia i18n` (Extração de traduções), `harpia instalar` e `harpia pacote` (Gerenciador de Módulos e Lockfile Determinístico com SHA-256 `harpia.lock`).
 
 ---
 
 ### Seção 4: Quick Start (Instalação e Primeiros Passos em 3 Passos)
+
 - Passo 1: Script de Instalação no Linux, macOS ou Windows.
 - Passo 2: Criação de novo monolito DDD (`harpia novo meu-app --tipo=monolito`).
 - Passo 3: Execução e desenvolvimento (`harpia executar`).
@@ -71,7 +79,9 @@ Apresentação visual e explicativa das ferramentas oficiais de desenvolvimento:
 ---
 
 ### Seção 5: Tabela Comparativa de Recursos Nativos
+
 Comparação direta entre Harpia (.hrp), JavaScript/TypeScript, Go, Python e Rust/Elixir:
+
 - Reatividade DOM por Sinais (~5KB)
 - SSR + SPA Unificado na mesma linguagem
 - Conectores Multi-banco na Stdlib
@@ -82,7 +92,9 @@ Comparação direta entre Harpia (.hrp), JavaScript/TypeScript, Go, Python e Rus
 ---
 
 ### Seção 6: Demonstração de Código Reativo & DDD
+
 Exibição de exemplos limpos de código usando o componente `BlocoCodigo`:
+
 - Exemplo 1: `dominio/usuario.hrp` (Entidade DDD, Sinais e Métodos).
 - Exemplo 2: `servidor.hrp` (Rota HTTP, Query Builder e Injeção de Dependência).
 - Exemplo 3: `web/componentes/contador.hrp` (Componente UI com Reatividade e Estilização Nativas).
@@ -90,7 +102,9 @@ Exibição de exemplos limpos de código usando o componente `BlocoCodigo`:
 ---
 
 ### Seção 7: Perguntas Frequentes (FAQ Expandido - 8 Perguntas)
+
 Perguntas sanadas em acordeões (`<details>`/`<summary>`):
+
 1. O que é a Harpia e qual a sua proposta?
 2. Como funciona o diagnóstico de erros com IA Local?
 3. Quais alvos de compilação a Harpia suporta (VM, Web, WASM, WASI)?
@@ -103,6 +117,7 @@ Perguntas sanadas em acordeões (`<details>`/`<summary>`):
 ---
 
 ### Seção 8: Chamada para Ação & Comunidade
+
 Card imponente convidando desenvolvedores para o GitHub, Guia de Contribuição e Licença Open-Source.
 
 ---
@@ -110,5 +125,6 @@ Card imponente convidando desenvolvedores para o GitHub, Guia de Contribuição 
 ## 4. Plano de Verificação
 
 Após a atualização de `projetos/portal-harpia/web/rotas/index.hrp`:
+
 - Validar a compilação e execução do Portal Harpia.
 - Verificar a integridade visual dos componentes e das cores oficiais do `BRAND_GUIDELINES.md`.

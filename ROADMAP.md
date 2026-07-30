@@ -371,11 +371,15 @@ O Harpia identifica onde e como está rodando por meio de **Alvos de Compilaçã
 - [x] `harpia formatar arquivo.hrp`
 - [x] Integração via LSP
 
-#### 5.5 — Gerenciador de pacotes
+#### 5.5 — Gerenciador de pacotes e Lockfile Determinístico
 
 - [x] `hrp instalar nome-do-pacote`
 - [x] Registro central em PT
-- [x] `pacote.hrp` com dependências e semver
+- [x] `pacote.hrp` / `pacote.json` com dependências e semver
+- [x] Resolução determinística e suporte a Lockfile (`harpia.lock` / `harpia.lock.json` com parser duplo JSON/HRP)
+- [x] Verificação de integridade via checksum SHA-256 (`HRP-LOCK-001` em caso de divergência)
+- [x] Subcomandos de ciclo de vida de pacotes: `harpia pacote` (`adicionar`, `remover`, `listar`, `limpar`)
+
 
 #### 5.6 — Console Interativo de Terminal (TUI Didática)
 
