@@ -41,7 +41,9 @@ type DeclVar struct {
 	Nome          string   // Nome (identificador) do símbolo.
 	Tipo          string   // Identificador de tipo opcional para tipagem estática (ex: "Inteiro").
 	Inicializador BaseNode // Expressão inicial opcional para atribuição (ex: x = 10).
+	DocComments   string   // Comentários de documentação associados (/// ou /** */).
 }
+
 
 // DeclVarDestructuring representa a desestruturação de variáveis (ex: var [a, b] = sinal(0)).
 type DeclVarDestructuring struct {
@@ -99,7 +101,9 @@ type DeclFuncao struct {
 	Estatico    bool                   // Verdadeiro se for um método estático de classe (ex: 'estatico func').
 	TipoRetorno string                 // Anotação opcional de tipo de retorno.
 	Assincrono  bool                   // Verdadeiro se a função for assíncrona ('assincrono funcao')
+	DocComments string                 // Comentários de documentação associados (/// ou /** */).
 }
+
 
 // AguardeNode representa a expressão 'aguarde <expr>'
 type AguardeNode struct {
@@ -267,10 +271,12 @@ type AsseguraNode struct {
 // DeclClasse representa a declaração formal de classes e tipos orientados a objetos.
 type DeclClasse struct {
 	NoBase
-	Nome    string        // Nome da classe declarada.
-	Heranca string        // Nome opcional da classe pai da qual herda atributos e comportamentos.
-	Metodos []*DeclFuncao // Relação de funções e métodos pertencentes à classe.
+	Nome        string        // Nome da classe declarada.
+	Heranca     string        // Nome opcional da classe pai da qual herda atributos e comportamentos.
+	Metodos     []*DeclFuncao // Relação de funções e métodos pertencentes à classe.
+	DocComments string        // Comentários de documentação associados (/// ou /** */).
 }
+
 
 // OpPipe representa operações de encadeamento fluído de funções baseadas no operador pipe (ex: x |> dobrar()).
 type OpPipe struct {
@@ -380,8 +386,9 @@ func (*DeclInterface) isExpr()          {}
 // DeclEnum representa uma enumeração nativa (ex: enum Status { Pendente, Concluido })
 type DeclEnum struct {
 	NoBase
-	Nome    string
-	Valores []string
+	Nome        string
+	Valores     []string
+	DocComments string
 }
 
 // MetodoAssinatura representa a assinatura de um método exigido em uma Interface
@@ -395,9 +402,11 @@ type MetodoAssinatura struct {
 // DeclInterface representa um contrato de interface (ex: interface Repositorio { func salvar(item) })
 type DeclInterface struct {
 	NoBase
-	Nome    string
-	Metodos []MetodoAssinatura
+	Nome        string
+	Metodos     []MetodoAssinatura
+	DocComments string
 }
+
 
 // OpCoalescenciaNula representa o operador de coalescência nula 'a ?? b'.
 type OpCoalescenciaNula struct {

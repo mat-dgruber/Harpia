@@ -20,6 +20,7 @@ type Parser struct {
 	codigo       string                    // Cópia do código-fonte original.
 	arquivo      string                    // Caminho físico ou identificação lógica do arquivo analisado.
 	erros        []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
+	ultimoDocComment string                 // Comentários de documentação acumulados imediatamente antes de uma declaração.
 }
 
 // NewParser é o construtor padrão que inicializa e carrega os primeiros tokens de análise.
@@ -49,10 +50,21 @@ func (p *Parser) proximoTokenSemComentario() *lexer.Token {
 	for {
 		tok := p.lex.PróximoToken()
 		if tok.Tipo == lexer.TokenComentarioDoc {
+			if p.ultimoDocComment == "" {
+				p.ultimoDocComment = tok.Valor
+			} else {
+				p.ultimoDocComment += "\n" + tok.Valor
+			}
 			continue
 		}
 		return tok
 	}
+}
+
+func (p *Parser) consumirDocComment() string {
+	doc := p.ultimoDocComment
+	p.ultimoDocComment = ""
+	return strings.TrimSpace(doc)
 }
 
 // avancar move as referências de cursores sintáticos de tokens um passo adiante.
@@ -480,13 +492,14 @@ func (p *Parser) parseRetorne() (*RetorneNode, error) {
 
 // parseFuncao analisa declarações de funções normais.
 func (p *Parser) parseFuncao() (*DeclFuncao, error) {
+	docComments := p.consumirDocComment()
 	if p.token.Tipo != lexer.TokenFunc {
 		return nil, p.errof("era esperado o token 'func' ou 'funcao', mas no lugar foi encontrado '%s'", p.token.Valor)
 	}
 	tokFunc := p.token
 	p.avancar()
 
-	funcao := &DeclFuncao{}
+	funcao := &DeclFuncao{DocComments: docComments}
 	p.registrar(funcao, tokFunc)
 
 	if p.token.Tipo == lexer.TokenIdentificador {
@@ -560,11 +573,12 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 // parseClasse analisa declarações de novas classes (Orientação a Objetos) e seus respectivos métodos.
 func (p *Parser) parseClasse() (*DeclClasse, error) {
+	docComments := p.consumirDocComment()
 	if err := p.consome("classe"); err != nil {
 		return nil, err
 	}
 
-	classe := &DeclClasse{}
+	classe := &DeclClasse{DocComments: docComments}
 	classe.Nome = p.token.Valor
 	p.avancar()
 
@@ -774,6 +788,7 @@ func (p *Parser) parseDeclFuncaoParametro() (*DeclFuncaoParametro, error) {
 
 // parseVariavel analisa a declaração de variáveis e constantes imutáveis: 'var x: Inteiro = 10;'
 func (p *Parser) parseVariavel() (BaseNode, error) {
+	docComments := p.consumirDocComment()
 	constante := p.token.Valor == "const"
 	p.avancar()
 
@@ -781,7 +796,7 @@ func (p *Parser) parseVariavel() (BaseNode, error) {
 		return p.parseDesestruturacao(constante)
 	}
 
-	decl := &DeclVar{Constante: constante}
+	decl := &DeclVar{Constante: constante, DocComments: docComments}
 	decl.Nome = p.token.Valor
 	p.avancar()
 
@@ -920,6 +935,7 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 
 
 func (p *Parser) parseEnum() (BaseNode, error) {
+	docComments := p.consumirDocComment()
 	p.avancar() // consome 'enum'
 	if p.token.Tipo != lexer.TokenIdentificador {
 		return nil, p.errof("era esperado um nome para a enumeração após 'enum'")
@@ -952,7 +968,7 @@ func (p *Parser) parseEnum() (BaseNode, error) {
 		return nil, err
 	}
 
-	return &DeclEnum{Nome: nomeEnum, Valores: valores}, nil
+	return &DeclEnum{Nome: nomeEnum, Valores: valores, DocComments: docComments}, nil
 }
 
 func (p *Parser) parseEscolha() (BaseNode, error) {
@@ -1029,6 +1045,7 @@ func (p *Parser) parseEscolha() (BaseNode, error) {
 
 
 func (p *Parser) parseInterface() (BaseNode, error) {
+	docComments := p.consumirDocComment()
 	p.avancar() // consome 'interface'
 	if p.token.Tipo != lexer.TokenIdentificador {
 		return nil, p.errof("era esperado um nome para a interface após 'interface'")
@@ -1094,7 +1111,7 @@ func (p *Parser) parseInterface() (BaseNode, error) {
 		return nil, err
 	}
 
-	return &DeclInterface{Nome: nomeInterface, Metodos: metodos}, nil
+	return &DeclInterface{Nome: nomeInterface, Metodos: metodos, DocComments: docComments}, nil
 }
 
 // parseExpressao analisa o escopo geral de expressões complexas.

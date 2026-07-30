@@ -1,10 +1,12 @@
 package parser_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/parser"
 )
+
 
 func TestParseEstilo(t *testing.T) {
 	codigo := `
@@ -364,6 +366,28 @@ func TestPatternMatchingEscolha(t *testing.T) {
 		t.Errorf("Falha no parse de DeclEscolha: %+v", ast.Declaracoes[0])
 	}
 }
+
+func TestASTDocstrings(t *testing.T) {
+	codigo := `
+		/// Documentação da função soma
+		funcao soma(a, b) {
+			retorne a + b
+		}
+	`
+	p := parser.NewParserFromString(codigo, "teste_doc.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro sintático: %v", err)
+	}
+	if len(ast.Declaracoes) != 1 {
+		t.Fatalf("Esperava 1 declaração")
+	}
+	fn, ok := ast.Declaracoes[0].(*parser.DeclFuncao)
+	if !ok || !strings.Contains(fn.DocComments, "Documentação da função soma") {
+		t.Errorf("Falha ao capturar DocComments na AST: %+v", fn)
+	}
+}
+
 
 
 
