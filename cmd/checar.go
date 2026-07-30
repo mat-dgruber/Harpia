@@ -687,26 +687,28 @@ func comandoChecar() *cobra.Command {
 	var estritoArquitetura bool
 
 	checar := &cobra.Command{
-		Use:   "checar [caminho]",
-		Short: "Realiza a checagem semântica/linting estático no código",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "checar [caminho]",
+		Short:         "Realiza a checagem semântica/linting estático no código",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			caminho := "."
 			if len(args) > 0 {
 				caminho = args[0]
 			}
 
-
 			arquivos, err := encontrarArquivosTeste(caminho)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "erro ao encontrar arquivos:", err)
-				os.Exit(1)
+				fmt.Fprintln(errOut, "erro ao encontrar arquivos:", err)
+				return err
 			}
 
 			totalErros := 0
 			totalAvisos := 0
 			var diagnostics []LSPDiagnostic
-
-
 
 			for _, arq := range arquivos {
 				conteudo, errRead := os.ReadFile(arq)
@@ -724,12 +726,11 @@ func comandoChecar() *cobra.Command {
 							Message:  err.Error(),
 						})
 					} else {
-						fmt.Printf("Erro de Sintaxe em %s: %v\n", arq, err)
+						fmt.Fprintf(out, "Erro de Sintaxe em %s: %v\n", arq, err)
 					}
 					totalErros++
 					continue
 				}
-
 
 				dirArq := filepath.Dir(arq)
 				linter := &Linter{
@@ -776,7 +777,7 @@ func comandoChecar() *cobra.Command {
 							if errObj.Severity == 2 {
 								icon = "⚠️"
 							}
-							fmt.Printf("  %s  [%s:%d:%d] %s\n", icon, filepath.Base(arq), line+1, col+1, errObj.Message)
+							fmt.Fprintf(out, "  %s  [%s:%d:%d] %s\n", icon, filepath.Base(arq), line+1, col+1, errObj.Message)
 						}
 					}
 				}
@@ -784,21 +785,22 @@ func comandoChecar() *cobra.Command {
 
 			if formato == "json" {
 				bytes, _ := json.MarshalIndent(diagnostics, "", "  ")
-				fmt.Println(string(bytes))
+				fmt.Fprintln(out, string(bytes))
 				if totalErros > 0 {
-					os.Exit(1)
+					return fmt.Errorf("checagem encontrou %d erro(s)", totalErros)
 				}
-				return
+				return nil
 			}
 
 			if totalErros > 0 || totalAvisos > 0 {
-				fmt.Printf("\nChecagem concluída com %d erro(s) e %d aviso(s) semântico(s).\n", totalErros, totalAvisos)
+				fmt.Fprintf(out, "\nChecagem concluída com %d erro(s) e %d aviso(s) semântico(s).\n", totalErros, totalAvisos)
 				if totalErros > 0 {
-					os.Exit(1)
+					return fmt.Errorf("checagem encontrou %d erro(s)", totalErros)
 				}
 			} else {
-				fmt.Println("Nenhum problema semântico encontrado.")
+				fmt.Fprintln(out, "Nenhum problema semântico encontrado.")
 			}
+			return nil
 		},
 	}
 

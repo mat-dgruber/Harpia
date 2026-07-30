@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -294,7 +296,7 @@ Responsável pela interface do usuário (UI) e controle de rotas no navegador (S
 
 			escreverArquivo(nomeProj, "main.hrp", `de "./web/rotas/rotas.hrp" importe RotaIndex;
 
-funcao Aplicacao() {
+exportar funcao Aplicacao() {
 	retorne <div class="App">
 		<RotaIndex />
 	</div>;
@@ -466,7 +468,7 @@ func comandoBackend() *cobra.Command {
 			escreverArquivo(nomeProj, filepath.Join("dominio", "entidades", "produto.hrp"), `# 🧬 Entidade de Domínio
 # Esta é uma classe pura, sem dependências externas.
 exportar classe Produto {
-	inicializar(self, id: Inteiro, nome: Texto, preco: Decimal) {
+	funcao inicializar(self, id: Inteiro, nome: Texto, preco: Decimal) {
 		self.id = id
 		self.nome = nome
 		self.preco = preco
@@ -812,11 +814,11 @@ exportar estilo CorpoGlobal {
 			escreverArquivo(nomeProj, filepath.Join("web", "servicos", "api.hrp"), `# 🌐 Cliente de API HTTP
 # ponytail: cliente de rede desacoplado para integração assíncrona com o backend
 exportar classe ClienteApi {
-	inicializar(self, urlBase: Texto) {
+	funcao inicializar(self, urlBase: Texto) {
 		self.urlBase = urlBase
 	}
 
-	obterProdutos(self) {
+	funcao obterProdutos(self) {
 		# ponytail: simulação local assíncrona se não houver backend rodando
 		retorne [
 			{ "id": 1, "nome": "Produto Exemplo A", "preco": 29.90 },

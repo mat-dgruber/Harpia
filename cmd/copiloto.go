@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -135,20 +137,26 @@ type funcaoDetectada struct {
 	Parametro string // assinatura do parâmetro extraída (texto da linha de abertura).
 }
 
-// comandoCopilotoRevisar implementa 'copiloto revisar <arquivo.ptst>'.
 func comandoCopilotoRevisar() *cobra.Command {
-	return &cobra.Command{
-		Use:   "revisar <arquivo.ptst>",
-		Short: "Análise estática: detecta funções longas, muitos parâmetros, aninhamento, vars não usadas e TODO/FIXME",
-		Long:  "Lê um arquivo Harpia (.ptst/.pt/.hrp) e emite uma lista de achados em PT-BR no formato [ARQUIVO:linha] tipo → mensagem, seguido de um sumário.",
-		Args:  cobra.ExactArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+	var formato string
+
+	cmd := &cobra.Command{
+		Use:           "revisar <arquivo.ptst>",
+		Short:         "Análise estática: detecta funções longas, muitos parâmetros, aninhamento, vars não usadas e TODO/FIXME",
+		Long:          "Lê um arquivo Harpia (.ptst/.pt/.hrp) e emite uma lista de achados em PT-BR no formato [ARQUIVO:linha] tipo → mensagem, seguido de um sumário.",
+		Args:          cobra.ExactArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			caminho := args[0]
 
 			conteudo, err := os.ReadFile(caminho)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Erro ao ler arquivo %s: %v\n", caminho, err)
-				os.Exit(1)
+				fmt.Fprintf(errOut, "Erro ao ler arquivo %s: %v\n", caminho, err)
+				return err
 			}
 
 			linhas := bytes.Split(conteudo, []byte{'\n'})
@@ -189,17 +197,42 @@ func comandoCopilotoRevisar() *cobra.Command {
 			// 3) Comentários TODO/FIXME
 			achados = append(achados, detectarTodosFixmes(linhas, caminho)...)
 
+			if formato == "json" {
+				type AchadoJSON struct {
+					Arquivo  string `json:"arquivo"`
+					Linha    int    `json:"linha"`
+					Tipo     string `json:"tipo"`
+					Mensagem string `json:"mensagem"`
+				}
+				var lista []AchadoJSON
+				for _, a := range achados {
+					lista = append(lista, AchadoJSON{
+						Arquivo:  caminho,
+						Linha:    a.Linha,
+						Tipo:     a.Tipo,
+						Mensagem: a.Mensagem,
+					})
+				}
+				bytesRes, _ := json.MarshalIndent(lista, "", "  ")
+				fmt.Fprintln(out, string(bytesRes))
+				return nil
+			}
+
 			// Saída dos achados + sumário
 			for _, a := range achados {
-				fmt.Printf("[%s:%d] %s → %s\n", caminho, a.Linha, a.Tipo, a.Mensagem)
+				fmt.Fprintf(out, "[%s:%d] %s → %s\n", caminho, a.Linha, a.Tipo, a.Mensagem)
 			}
 			if len(achados) == 0 {
-				fmt.Printf("[%s] nenhum problema encontrado.\n", caminho)
-				return
+				fmt.Fprintf(out, "[%s] nenhum problema encontrado.\n", caminho)
+				return nil
 			}
-			fmt.Printf("\nSumário: %d achado(s) em %s.\n", len(achados), caminho)
+			fmt.Fprintf(out, "\nSumário: %d achado(s) em %s.\n", len(achados), caminho)
+			return nil
 		},
 	}
+
+	cmd.Flags().StringVar(&formato, "formato", "texto", "Formato de saída: 'texto' ou 'json'")
+	return cmd
 }
 
 // comandoCopilotoRefatorar implementa 'copiloto refatorar <arquivo.ptst>'.

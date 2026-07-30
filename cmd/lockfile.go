@@ -10,21 +10,25 @@ import (
 	"strings"
 )
 
-// PacoteLockInfo contem as informacoes de versao, URL e checksum SHA256 do pacote travado.
+// PacoteLockInfo contém as informações detalhadas de versão registrada, URL remota
+// de download e o hash de verificação de integridade SHA-256 do pacote travado.
 type PacoteLockInfo struct {
 	Versao string `json:"versao"`
 	URL    string `json:"url"`
 	SHA256 string `json:"sha256"`
 }
 
-// Lockfile representa a estrutura do arquivo de lock de pacotes (pacote.lock / pacote.lock.json).
+// Lockfile representa a estrutura em memória de um arquivo de lock de dependências
+// do Harpia (harpia.lock, harpia.lock.json, pacote.lock, pacote.lock.json).
 type Lockfile struct {
 	VersaoLock string                    `json:"versao_lock"`
 	Pacotes    map[string]PacoteLockInfo `json:"pacotes"`
 }
 
-// parseLockfile realiza o parse do conteudo de um lockfile, tentando primeiro JSON
-// e fallback para o formato chave-valor HRP (ex: versao_lock = "1.0", [pacote], etc).
+// parseLockfile realiza a desserialização do conteúdo de um arquivo de lockfile.
+// Tenta primeiramente efetuar o unmarshal do padrão padrão JSON. Caso o conteúdo não
+// seja JSON válido, executa fallback para a análise linha-a-linha declarativa em
+// formato chave-valor HRP (ex: versao_lock = "1.0", [nome-do-pacote], etc).
 func parseLockfile(conteudo []byte) (*Lockfile, error) {
 	var lock Lockfile
 	if err := json.Unmarshal(conteudo, &lock); err == nil && (lock.VersaoLock != "" || lock.Pacotes != nil) {
@@ -37,6 +41,9 @@ func parseLockfile(conteudo []byte) (*Lockfile, error) {
 	return parseLockfileHRP(conteudo)
 }
 
+// parseLockfileHRP realiza o parse do formato declarativo chave-valor do Harpia (.lock/.hrp).
+// O analisador processa comentários (`#` ou `//`), seções delimitadas por colchetes `[pacote]`
+// e atribuições no formato `chave = valor`.
 func parseLockfileHRP(conteudo []byte) (*Lockfile, error) {
 	lock := &Lockfile{
 		Pacotes: make(map[string]PacoteLockInfo),

@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -29,26 +31,30 @@ func comandoStressar() *cobra.Command {
 	var requisicoes int
 
 	stressar := &cobra.Command{
-		Use:   "stressar",
-		Short: "Executa testes de estresse concorrentes em um script Harpia",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "stressar",
+		Short:         "Executa testes de estresse concorrentes em um script Harpia",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			if len(args) > 0 {
 				arquivo = args[0]
 			}
 
 			if arquivo == "" {
-				fmt.Fprintln(os.Stderr, "erro: arquivo de entrada não especificado")
-				os.Exit(1)
+				fmt.Fprintln(errOut, "erro: arquivo de entrada não especificado")
+				return fmt.Errorf("arquivo de entrada não especificado")
 			}
 
-			fmt.Printf("🔥 Iniciando teste de estresse em '%s'...\n", arquivo)
-			fmt.Printf("Concorrência: %d | Total de Execuções: %d\n\n", concorrencia, requisicoes)
+			fmt.Fprintf(out, "🔥 Iniciando teste de estresse em '%s'...\n", arquivo)
+			fmt.Fprintf(out, "Concorrência: %d | Total de Execuções: %d\n\n", concorrencia, requisicoes)
 
-			// Leitura prévia para carregar o código na memória antes do benchmark
 			conteudo, err := os.ReadFile(arquivo)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "erro ao ler arquivo: %v\n", err)
-				os.Exit(1)
+				fmt.Fprintf(errOut, "erro ao ler arquivo: %v\n", err)
+				return err
 			}
 			codigoStr := string(conteudo)
 
@@ -61,6 +67,13 @@ func comandoStressar() *cobra.Command {
 			inicioGeral := time.Now()
 
 			for i := 0; i < requisicoes; i++ {
+				select {
+				case <-cmd.Context().Done():
+					fmt.Fprintln(errOut, "⚠️ Teste de estresse cancelado.")
+					return cmd.Context().Err()
+				default:
+				}
+
 				wg.Add(1)
 				sem <- struct{}{}
 
@@ -82,7 +95,7 @@ func comandoStressar() *cobra.Command {
 					if err == nil {
 						sucessos++
 					} else {
-						fmt.Printf("[Falha #%d]: %v\n", idx, err)
+						fmt.Fprintf(errOut, "[Falha #%d]: %v\n", idx, err)
 					}
 					temposMu.Unlock()
 				}(i)
@@ -91,7 +104,6 @@ func comandoStressar() *cobra.Command {
 			wg.Wait()
 			duracaoGeral := time.Since(inicioGeral)
 
-			// Estatísticas
 			var totalTempo time.Duration
 			var minTempo = time.Hour
 			var maxTempo time.Duration
@@ -108,14 +120,15 @@ func comandoStressar() *cobra.Command {
 
 			mediaTempo := totalTempo / time.Duration(requisicoes)
 
-			fmt.Println("\n📊 RELATÓRIO DO TESTE DE ESTRESSE")
-			fmt.Println("=========================================================")
-			fmt.Printf("Tempo Total Geral:   %v\n", duracaoGeral)
-			fmt.Printf("Sucessos:            %d/%d (%.2f%%)\n", sucessos, requisicoes, float64(sucessos)/float64(requisicoes)*100)
-			fmt.Printf("Tempo Mínimo:        %v\n", minTempo)
-			fmt.Printf("Tempo Máximo:        %v\n", maxTempo)
-			fmt.Printf("Tempo Médio:         %v\n", mediaTempo)
-			fmt.Println("=========================================================")
+			fmt.Fprintln(out, "\n📊 RELATÓRIO DO TESTE DE ESTRESSE")
+			fmt.Fprintln(out, "=========================================================")
+			fmt.Fprintf(out, "Tempo Total Geral:   %v\n", duracaoGeral)
+			fmt.Fprintf(out, "Sucessos:            %d/%d (%.2f%%)\n", sucessos, requisicoes, float64(sucessos)/float64(requisicoes)*100)
+			fmt.Fprintf(out, "Tempo Mínimo:        %v\n", minTempo)
+			fmt.Fprintf(out, "Tempo Máximo:        %v\n", maxTempo)
+			fmt.Fprintf(out, "Tempo Médio:         %v\n", mediaTempo)
+			fmt.Fprintln(out, "=========================================================")
+			return nil
 		},
 	}
 

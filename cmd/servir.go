@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -23,9 +25,14 @@ func comandoServir() *cobra.Command {
 	var saidaTemp string
 
 	servir := &cobra.Command{
-		Use:   "servir",
-		Short: "Inicia o Dev Server de desenvolvimento integrado com compilação sob demanda",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "servir",
+		Short:         "Inicia o Dev Server de desenvolvimento integrado com compilação sob demanda",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			if len(args) > 0 {
 				entrada = args[0]
 			}
@@ -34,12 +41,20 @@ func comandoServir() *cobra.Command {
 			if diretorio != "" {
 				pAbs, err := filepath.Abs(diretorio)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "erro ao resolver diretório '%s': %v\n", diretorio, err)
-					os.Exit(1)
+					fmt.Fprintf(errOut, "erro ao resolver diretório '%s': %v\n", diretorio, err)
+					return err
 				}
 				if _, err := os.Stat(pAbs); os.IsNotExist(err) {
-					fmt.Fprintf(os.Stderr, "erro: diretório '%s' não existe.\n", diretorio)
-					os.Exit(1)
+					fmt.Fprintf(errOut, "erro: diretório '%s' não existe.\n", diretorio)
+					return fmt.Errorf("diretório '%s' não existe", diretorio)
+				}
+
+				if _, errApp := os.Stat(filepath.Join(pAbs, "app.js")); os.IsNotExist(errApp) {
+					if _, errDistApp := os.Stat(filepath.Join(pAbs, "dist", "app.js")); errDistApp == nil {
+						pAbs = filepath.Join(pAbs, "dist")
+					} else if _, errDistIdx := os.Stat(filepath.Join(pAbs, "dist", "index.html")); errDistIdx == nil {
+						pAbs = filepath.Join(pAbs, "dist")
+					}
 				}
 
 				fs := http.FileServer(http.Dir(pAbs))
@@ -55,26 +70,45 @@ func comandoServir() *cobra.Command {
 						w.WriteHeader(http.StatusOK)
 						return
 					}
+
+					p := filepath.Join(pAbs, r.URL.Path)
+					info, err := os.Stat(p)
+					if os.IsNotExist(err) || (err == nil && info.IsDir() && r.URL.Path != "/") {
+						idxFile := filepath.Join(p, "index.html")
+						if _, errIdx := os.Stat(idxFile); os.IsNotExist(errIdx) {
+							if filepath.Ext(r.URL.Path) != "" {
+								http.NotFound(w, r)
+								return
+							}
+							http.ServeFile(w, r, filepath.Join(pAbs, "index.html"))
+							return
+						}
+					}
+
 					fs.ServeHTTP(w, r)
 				})
 				http.Handle("/", corsHandler)
 
 				url := fmt.Sprintf("http://localhost:%d", porta)
-				fmt.Printf("\n🚀 Servidor Estático Harpia rodando em %s (diretório: %s)\n", url, pAbs)
-				fmt.Println("   Pressione Ctrl+C para encerrar.")
+				fmt.Fprintf(out, "\n🚀 Servidor Estático Harpia rodando em %s (diretório: %s)\n", url, pAbs)
+				fmt.Fprintln(out, "   Pressione Ctrl+C para encerrar.")
 
 				server := &http.Server{
 					Addr: fmt.Sprintf(":%d", porta),
 				}
-				if err := server.ListenAndServe(); err != nil {
-					fmt.Fprintf(os.Stderr, "❌ Erro ao iniciar o servidor na porta %d: %v\n", porta, err)
-					os.Exit(1)
+
+				go func() {
+					<-cmd.Context().Done()
+					_ = server.Close()
+				}()
+
+				if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					fmt.Fprintf(errOut, "❌ Erro no servidor: %v\n", err)
+					return err
 				}
-				return
+				return nil
 			}
 
-			// ponytail: autodetecta o arquivo de entrada se nenhum for especificado!
-			// Procura main.hrp, index.hrp, app.hrp no diretório atual ou na pasta web/
 			if entrada == "" {
 				candidatos := []string{
 					"main.hrp", "index.hrp", "app.hrp",
@@ -92,8 +126,8 @@ func comandoServir() *cobra.Command {
 			}
 
 			if entrada == "" {
-				fmt.Fprintln(os.Stderr, "erro: nenhum arquivo de entrada especificado e nenhum arquivo padrão (main.hrp, index.hrp) encontrado.")
-				os.Exit(1)
+				fmt.Fprintln(errOut, "erro: nenhum arquivo de entrada especificado e nenhum arquivo padrão (main.hrp, index.hrp) encontrado.")
+				return fmt.Errorf("nenhum arquivo de entrada encontrado")
 			}
 
 			saidaTemp = filepath.Join(os.TempDir(), "Harpia_servir_dist")
@@ -102,8 +136,6 @@ func comandoServir() *cobra.Command {
 			var erroBuildAtual string
 			var mutexErro sync.RWMutex
 
-			// Função de build instantâneo com pré-checagem semântica
-			// ponytail: compilarParaWeb é função pura (sem os.Exit), segura para chamar num servidor.
 			fazerBuild := func() error {
 				err := compilarParaWeb(OpcsCompilarWeb{
 					Entrada:     entrada,
@@ -113,7 +145,7 @@ func comandoServir() *cobra.Command {
 				mutexErro.Lock()
 				if err != nil {
 					erroBuildAtual = err.Error()
-					fmt.Fprintf(os.Stderr, "❌ Erro no build: %v\n", err)
+					fmt.Fprintf(errOut, "❌ Erro no build: %v\n", err)
 				} else {
 					erroBuildAtual = ""
 				}
@@ -121,7 +153,6 @@ func comandoServir() *cobra.Command {
 				return err
 			}
 
-			// Helper de spinner animado no terminal
 			executarComSpinner := func(mensagem string, acao func() error) error {
 				frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 				parar := make(chan bool)
@@ -147,27 +178,23 @@ func comandoServir() *cobra.Command {
 				return err
 			}
 
-			// Build inicial instantâneo
 			tInicio := time.Now()
 			errBuild := executarComSpinner("Compilando projeto de desenvolvimento", fazerBuild)
 			if errBuild != nil {
-				fmt.Fprintf(os.Stderr, "❌ Erro de compilação/sintaxe: %v\n", errBuild)
+				fmt.Fprintf(errOut, "❌ Erro de compilação/sintaxe: %v\n", errBuild)
 			} else {
-				fmt.Printf("⚡ Build inicial concluído em %v (%s)\n", time.Since(tInicio).Round(time.Millisecond), entrada)
+				fmt.Fprintf(out, "⚡ Build inicial concluído em %v (%s)\n", time.Since(tInicio).Round(time.Millisecond), entrada)
 			}
 
-			// Pré-checagem semântica assíncrona para não atrasar o subimento do servidor
 			go func() {
 				if errosChecagem := ExecutarChecagemSilenciosa(entrada); errosChecagem > 0 {
-					fmt.Fprintf(os.Stderr, "⚠️ %d aviso(s) detectado(s) na checagem estática.\n", errosChecagem)
+					fmt.Fprintf(errOut, "⚠️ %d aviso(s) detectado(s) na checagem estática.\n", errosChecagem)
 				}
 			}()
 
-			// Gerenciamento síncrono de clientes do Server-Sent Events (SSE)
 			var clientes []chan bool
 			var mutex sync.Mutex
 
-			// Watcher de arquivos leve com polling recorrente
 			go func() {
 				diretorioParaVer, _ := os.Getwd()
 				if entryDir := filepath.Dir(entrada); entryDir != "" && entryDir != "." {
@@ -176,9 +203,13 @@ func comandoServir() *cobra.Command {
 				ultimoCheck := time.Now()
 
 				for {
-					time.Sleep(500 * time.Millisecond)
-					mudou := false
+					select {
+					case <-cmd.Context().Done():
+						return
+					case <-time.After(500 * time.Millisecond):
+					}
 
+					mudou := false
 					_ = filepath.Walk(diretorioParaVer, func(path string, info os.FileInfo, err error) error {
 						if err != nil {
 							return nil
@@ -199,7 +230,7 @@ func comandoServir() *cobra.Command {
 						tRebuild := time.Now()
 						errRebuild := executarComSpinner("Recompilando alterações", fazerBuild)
 						if errRebuild == nil {
-							fmt.Printf("⚡ Recompilado com sucesso em %v. Recarregando navegador...\n", time.Since(tRebuild).Round(time.Millisecond))
+							fmt.Fprintf(out, "⚡ Recompilado com sucesso em %v. Recarregando navegador...\n", time.Since(tRebuild).Round(time.Millisecond))
 							mutex.Lock()
 							for _, ch := range clientes {
 								select {
@@ -209,13 +240,12 @@ func comandoServir() *cobra.Command {
 							}
 							mutex.Unlock()
 						} else {
-							fmt.Fprintf(os.Stderr, "❌ Erro no build: %v\n", errRebuild)
+							fmt.Fprintf(errOut, "❌ Erro no build: %v\n", errRebuild)
 						}
 					}
 				}
 			}()
 
-			// Rota especial do SSE de Hot-Reload
 			http.HandleFunc("/hot-reload", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "text/event-stream")
 				w.Header().Set("Cache-Control", "no-cache")
@@ -262,7 +292,6 @@ func comandoServir() *cobra.Command {
 				}
 			})
 
-			// Handler HTTP integrado para servir arquivos e injetar hot-reload dinâmico
 			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
@@ -278,7 +307,6 @@ func comandoServir() *cobra.Command {
 				}
 
 				caminho := r.URL.Path
-
 				if caminho == "/" {
 					caminho = "/index.html"
 				}
@@ -290,16 +318,33 @@ func comandoServir() *cobra.Command {
 					return
 				}
 
-				if _, err := os.Stat(p); os.IsNotExist(err) {
-					http.NotFound(w, r)
-					return
+				infoP, errStat := os.Stat(p)
+				eDiretorioSemIndex := false
+				if errStat == nil && infoP.IsDir() && caminho != "/index.html" {
+					if _, errIdx := os.Stat(filepath.Join(p, "index.html")); os.IsNotExist(errIdx) {
+						eDiretorioSemIndex = true
+					}
+				}
+
+				if os.IsNotExist(errStat) || eDiretorioSemIndex {
+					if caminho == "/favicon.ico" || strings.Contains(caminho, "favicon") {
+						w.WriteHeader(http.StatusNoContent)
+						return
+					}
+					base := filepath.Base(caminho)
+					if !strings.Contains(base, ".") || eDiretorioSemIndex {
+						caminho = "/index.html"
+						p = filepath.Join(saidaTemp, "index.html")
+					} else {
+						http.NotFound(w, r)
+						return
+					}
 				}
 
 				w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 				w.Header().Set("Pragma", "no-cache")
 				w.Header().Set("Expires", "0")
 
-				// Injeta o script cliente de SSE de forma transparente em tempo de transmissão
 				if caminho == "/index.html" {
 					w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
@@ -374,20 +419,25 @@ func comandoServir() *cobra.Command {
 			})
 
 			url := fmt.Sprintf("http://localhost:%d", porta)
-			fmt.Printf("\n🚀 Harpia Dev Server rodando em %s\n", url)
-			fmt.Println("✨ Hot-Reload ativo — edições em .hrp, .html ou .css atualizan o navegador instantaneamente.")
-			fmt.Println("   Pressione Ctrl+C para encerrar.")
-			fmt.Println()
+			fmt.Fprintf(out, "\n🚀 Harpia Dev Server rodando em %s\n", url)
+			fmt.Fprintln(out, "✨ Hot-Reload ativo — edições em .hrp, .html ou .css atualizam o navegador instantaneamente.")
+			fmt.Fprintln(out, "   Pressione Ctrl+C para encerrar.")
+			fmt.Fprintln(out)
 
 			server := &http.Server{
 				Addr: fmt.Sprintf(":%d", porta),
 			}
 
-			if err := server.ListenAndServe(); err != nil {
-				fmt.Fprintf(os.Stderr, "❌ Erro ao iniciar o servidor na porta %d: %v\n", porta, err)
-				os.Exit(1)
-			}
+			go func() {
+				<-cmd.Context().Done()
+				_ = server.Close()
+			}()
 
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				fmt.Fprintf(errOut, "❌ Erro ao iniciar o servidor na porta %d: %v\n", porta, err)
+				return err
+			}
+			return nil
 		},
 	}
 

@@ -17,12 +17,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// calcularSHA256 calcula o hash SHA-256 dos dados e retorna a string hexadecimal de 64 caracteres.
+// calcularSHA256 calcula o hash de integridade SHA-256 dos bytes fornecidos
+// e retorna a string hexadecimal resultante de 64 caracteres em minúsculas.
 func calcularSHA256(dados []byte) string {
 	hash := sha256.Sum256(dados)
 	return fmt.Sprintf("%x", hash)
 }
 
+// obterCaminhoELockfile busca por arquivos de lockfile existentes no diretório atual
+// seguindo a ordem de preferência: harpia.lock, harpia.lock.json, pacote.lock, pacote.lock.json.
+// Se nenhum arquivo for encontrado, retorna o caminho padrão "harpia.lock" e uma nova estrutura Lockfile zerada.
 func obterCaminhoELockfile() (string, *Lockfile) {
 	caminhos := []string{"harpia.lock", "harpia.lock.json", "pacote.lock", "pacote.lock.json"}
 	for _, caminho := range caminhos {

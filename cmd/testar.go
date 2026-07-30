@@ -1,7 +1,11 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -13,19 +17,44 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type ResultadoTesteJSON struct {
+	Nome   string `json:"nome"`
+	Status string `json:"status"`
+	Erro   string `json:"erro,omitempty"`
+}
+
+type SuiteTestesJSON struct {
+	Arquivo string               `json:"arquivo"`
+	Testes  []ResultadoTesteJSON `json:"testes"`
+}
+
+type RelatorioTestesJSON struct {
+	Total    int               `json:"total"`
+	Passaram int               `json:"passaram"`
+	Falharam int               `json:"falharam"`
+	Suites   []SuiteTestesJSON `json:"suites"`
+}
+
 // comandoTestar cria e retorna o comando Cobra 'testar' (`harpia testar`).
 // Este comando descobre recursivamente arquivos com blocos de testes 'testar "nome" { ... }',
 // executa-os em escopos isolados capturando as asserções e gera relatórios de cobertura em HTML.
 func comandoTestar() *cobra.Command {
 	var htmlReport bool
+	var formato string
+
 	testar := &cobra.Command{
-		Use:   "testar [caminho]",
-		Short: "Executa os blocos de teste 'testar' nativos no arquivo ou diretório",
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "testar [caminho]",
+		Short:         "Executa os blocos de teste 'testar' nativos no arquivo ou diretório",
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			cur, err := os.Getwd()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "erro ao obter o diretório atual:", err)
-				os.Exit(1)
+				fmt.Fprintln(errOut, "erro ao obter o diretório atual:", err)
+				return err
 			}
 
 			caminho := "."
@@ -35,8 +64,8 @@ func comandoTestar() *cobra.Command {
 
 			caminhosAbs, err := encontrarArquivosTeste(caminho)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "erro ao listar arquivos de teste:", err)
-				os.Exit(1)
+				fmt.Fprintln(errOut, "erro ao listar arquivos de teste:", err)
+				return err
 			}
 
 			totalTestes := 0
@@ -44,6 +73,7 @@ func comandoTestar() *cobra.Command {
 
 			coberturaLinhas := make(map[string]map[int]bool)
 			arquivosCodigos := make(map[string]string)
+			var reportJSON RelatorioTestesJSON
 
 			for _, arq := range caminhosAbs {
 				ctx := hrp.NewContexto(hrp.OpcsContexto{CaminhosPadrao: []string{cur}})
@@ -51,7 +81,16 @@ func comandoTestar() *cobra.Command {
 				// Carrega o arquivo e parseia em AST
 				_, ast, err := ctx.TransformarEmAst(arq, false, cur)
 				if err != nil {
-					fmt.Printf("Erro de sintaxe no arquivo %s: %v\n", arq, err)
+					if formato == "json" {
+						reportJSON.Suites = append(reportJSON.Suites, SuiteTestesJSON{
+							Arquivo: arq,
+							Testes: []ResultadoTesteJSON{
+								{Nome: "sintaxe", Status: "falhou", Erro: err.Error()},
+							},
+						})
+					} else {
+						fmt.Fprintf(out, "Erro de sintaxe no arquivo %s: %v\n", arq, err)
+					}
 					continue
 				}
 
@@ -82,39 +121,58 @@ func comandoTestar() *cobra.Command {
 				})
 
 				if err != nil {
-					fmt.Printf("Erro ao inicializar definições de %s: %v\n", arq, err)
+					if formato == "json" {
+						reportJSON.Suites = append(reportJSON.Suites, SuiteTestesJSON{
+							Arquivo: arq,
+							Testes: []ResultadoTesteJSON{
+								{Nome: "inicializacao", Status: "falhou", Erro: err.Error()},
+							},
+						})
+					} else {
+						fmt.Fprintf(out, "Erro ao inicializar definições de %s: %v\n", arq, err)
+					}
 					ctx.Terminar()
 					continue
 				}
 
-				fmt.Printf("Rodando testes em %s:\n", filepath.Base(arq))
+				if formato != "json" {
+					fmt.Fprintf(out, "Rodando testes em %s:\n", filepath.Base(arq))
+				}
+
+				var suiteJSON SuiteTestesJSON
+				suiteJSON.Arquivo = arq
 
 				for _, tNode := range testes {
 					totalTestes++
 					// Cria um escopo isolado que herda as variáveis e funções globais do módulo
 					escopo := modulo.Escopo.NewEscopo()
 
-					interpret := &hrp.Interpretador{
-						Ast:      tNode.Corpo,
-						Contexto: ctx,
-						Escopo:   escopo,
-					}
-
-					if prog, ok := ast.(*parser.Programa); ok {
-						interpret.Arquivo = prog.Arquivo
-						interpret.Codigo = prog.Codigo
-						interpret.Posicoes = prog.Posicoes
-					}
-
-					_, err := interpret.Inicializa()
+					_, err := ctx.AvaliarAst(tNode.Corpo, escopo)
 					if err != nil {
 						testesFalhos++
-						fmt.Printf("  ❌ [FALHOU] %s\n", tNode.Nome)
-						fmt.Fprintln(os.Stderr, err) // Exibe o erro de traceback sem interromper abruptamente a suite
+						if formato == "json" {
+							suiteJSON.Testes = append(suiteJSON.Testes, ResultadoTesteJSON{
+								Nome:   tNode.Nome,
+								Status: "falhou",
+								Erro:   err.Error(),
+							})
+						} else {
+							fmt.Fprintf(out, "  ❌ [FALHOU] %s\n", tNode.Nome)
+							fmt.Fprintln(errOut, err)
+						}
 					} else {
-						fmt.Printf("  ✅ [PASSOU] %s\n", tNode.Nome)
+						if formato == "json" {
+							suiteJSON.Testes = append(suiteJSON.Testes, ResultadoTesteJSON{
+								Nome:   tNode.Nome,
+								Status: "passou",
+							})
+						} else {
+							fmt.Fprintf(out, "  ✅ [PASSOU] %s\n", tNode.Nome)
+						}
 					}
 				}
+
+				reportJSON.Suites = append(reportJSON.Suites, suiteJSON)
 
 				// ponytail: acumula cobertura de linhas visitadas
 				for f, lMap := range ctx.ObterLinhasExecutadas() {
@@ -131,26 +189,41 @@ func comandoTestar() *cobra.Command {
 				ctx.Terminar()
 			}
 
-			fmt.Printf("\n--- Relatório de Testes ---\n")
-			fmt.Printf("Total de testes executados: %d\n", totalTestes)
-			fmt.Printf("Passaram: %d\n", totalTestes-testesFalhos)
-			fmt.Printf("Falharam: %d\n", testesFalhos)
+			reportJSON.Total = totalTestes
+			reportJSON.Falharam = testesFalhos
+			reportJSON.Passaram = totalTestes - testesFalhos
+
+			if formato == "json" {
+				bytes, _ := json.MarshalIndent(reportJSON, "", "  ")
+				fmt.Fprintln(out, string(bytes))
+				if testesFalhos > 0 {
+					return fmt.Errorf("%d teste(s) falharam", testesFalhos)
+				}
+				return nil
+			}
+
+			fmt.Fprintf(out, "\n--- Relatório de Testes ---\n")
+			fmt.Fprintf(out, "Total de testes executados: %d\n", totalTestes)
+			fmt.Fprintf(out, "Passaram: %d\n", totalTestes-testesFalhos)
+			fmt.Fprintf(out, "Falharam: %d\n", testesFalhos)
 
 			if htmlReport && len(arquivosCodigos) > 0 {
-				gerarRelatorioCoberturaHTML(coberturaLinhas, arquivosCodigos)
+				gerarRelatorioCoberturaHTML(coberturaLinhas, arquivosCodigos, out, errOut)
 			}
 
 			if testesFalhos > 0 {
-				os.Exit(1)
+				return fmt.Errorf("%d teste(s) falharam", testesFalhos)
 			}
+			return nil
 		},
 	}
 
 	testar.Flags().BoolVar(&htmlReport, "html", false, "Gera relatório visual de cobertura em cobertura.html")
+	testar.Flags().StringVar(&formato, "formato", "texto", "Formato de saída: 'texto' ou 'json'")
 	return testar
 }
 
-func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[string]string) {
+func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[string]string, out, errOut io.Writer) {
 	var sb strings.Builder
 	sb.WriteString(`<!DOCTYPE html>
 <html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
@@ -253,9 +326,9 @@ func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[
 
 	err := os.WriteFile("cobertura.html", []byte(sb.String()), 0644)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Erro ao gravar relatório cobertura.html: %v\n", err)
+		fmt.Fprintf(errOut, "Erro ao gravar relatório cobertura.html: %v\n", err)
 	} else {
-		fmt.Println("\n✅ Relatório estético de cobertura gerado com sucesso em: ./cobertura.html")
+		fmt.Fprintln(out, "\n✅ Relatório estético de cobertura gerado com sucesso em: ./cobertura.html")
 	}
 }
 
