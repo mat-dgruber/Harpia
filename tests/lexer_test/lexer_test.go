@@ -223,3 +223,29 @@ const y = 20;
 		t.Errorf("Esperado: TokenFimDeArquivo, Obtido: %v", ultimoToken.Tipo)
 	}
 }
+
+func TestNumerosAvancados(t *testing.T) {
+	input := "0x1F 0b1010 0o755 1_000_000 0x1F_2A 0b1010_1100 0o755_644 3.14_15"
+	lex := lexer.NewLexer(input)
+
+	esperados := []struct {
+		tipo  lexer.TokenType
+		valor string
+	}{
+		{lexer.TokenInteiro, "0x1F"},
+		{lexer.TokenInteiro, "0b1010"},
+		{lexer.TokenInteiro, "0o755"},
+		{lexer.TokenInteiro, "1_000_000"},
+		{lexer.TokenInteiro, "0x1F_2A"},
+		{lexer.TokenInteiro, "0b1010_1100"},
+		{lexer.TokenInteiro, "0o755_644"},
+		{lexer.TokenDecimal, "3.14_15"},
+	}
+
+	for i, esp := range esperados {
+		tok := lex.PróximoToken()
+		if tok.Tipo != esp.tipo || tok.Valor != esp.valor {
+			t.Errorf("[%d] Esperado (%v, %q), obtido (%v, %q)", i, esp.tipo, esp.valor, tok.Tipo, tok.Valor)
+		}
+	}
+}

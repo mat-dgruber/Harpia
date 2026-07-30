@@ -193,14 +193,59 @@ func (l *Lexer) lerIdentificador() *Token {
 	return newToken(tipo, valor, inicio, fim)
 }
 
-// lerNumero consome sequencialmente dígitos e o caractere separador decimal '.' para fatiar literais numéricos.
+// isHexDigit verifica se a runa é um dígito hexadecimal válido (0-9, a-f, A-F).
+func isHexDigit(r rune) bool {
+	return (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
+}
+
+// isBinDigit verifica se a runa é um dígito binário válido (0 ou 1).
+func isBinDigit(r rune) bool {
+	return r == '0' || r == '1'
+}
+
+// isOctDigit verifica se a runa é um dígito octal válido (0-7).
+func isOctDigit(r rune) bool {
+	return r >= '0' && r <= '7'
+}
+
+// lerNumero consome sequencialmente dígitos, prefixos de base (0x, 0b, 0o),
+// separadores de dígitos '_' e o caractere separador decimal '.' para fatiar literais numéricos.
 func (l *Lexer) lerNumero() *Token {
 	inicio := l.posicaoAtual()
+
+	if l.ch == '0' {
+		p := l.peek()
+		if p == 'x' || p == 'X' {
+			l.avancar() // consome '0'
+			l.avancar() // consome 'x'/'X'
+			for isHexDigit(l.ch) || l.ch == '_' {
+				l.avancar()
+			}
+			fim := l.posicaoAtual()
+			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+		} else if p == 'b' || p == 'B' {
+			l.avancar() // consome '0'
+			l.avancar() // consome 'b'/'B'
+			for isBinDigit(l.ch) || l.ch == '_' {
+				l.avancar()
+			}
+			fim := l.posicaoAtual()
+			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+		} else if p == 'o' || p == 'O' {
+			l.avancar() // consome '0'
+			l.avancar() // consome 'o'/'O'
+			for isOctDigit(l.ch) || l.ch == '_' {
+				l.avancar()
+			}
+			fim := l.posicaoAtual()
+			return newToken(TokenInteiro, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+		}
+	}
 
 	for {
 		l.avancar()
 
-		if !(unicode.IsDigit(l.ch) || l.ch == '.') {
+		if !(unicode.IsDigit(l.ch) || l.ch == '.' || l.ch == '_') {
 			break
 		}
 	}
