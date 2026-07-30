@@ -18,7 +18,7 @@ func BenchmarkLexer1k(b *testing.B) {
 	for b.Loop() {
 		lex := lexer.NewLexer(src)
 		for {
-			tk := lex.ProximoToken()
+			tk := lex.PróximoToken()
 			if tk.Tipo == lexer.TokenFimDeArquivo {
 				break
 			}
@@ -32,7 +32,7 @@ func BenchmarkLexer10k(b *testing.B) {
 	for b.Loop() {
 		lex := lexer.NewLexer(src)
 		for {
-			tk := lex.ProximoToken()
+			tk := lex.PróximoToken()
 			if tk.Tipo == lexer.TokenFimDeArquivo {
 				break
 			}
