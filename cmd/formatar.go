@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -9,15 +11,61 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func GerarUnifiedDiff(caminho, orig, form string, ui *UI) string {
+	linhasOrig := strings.Split(orig, "\n")
+	linhasForm := strings.Split(form, "\n")
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("--- a/%s\n", caminho))
+	sb.WriteString(fmt.Sprintf("+++ b/%s\n", caminho))
+
+	max := len(linhasOrig)
+	if len(linhasForm) > max {
+		max = len(linhasForm)
+	}
+
+	for i := 0; i < max; i++ {
+		lO := ""
+		lF := ""
+		if i < len(linhasOrig) {
+			lO = linhasOrig[i]
+		}
+		if i < len(linhasForm) {
+			lF = linhasForm[i]
+		}
+
+		if lO != lF {
+			if i < len(linhasOrig) {
+				sb.WriteString(ui.Vermelho("- " + lO + "\n"))
+			}
+			if i < len(linhasForm) {
+				sb.WriteString(ui.Verde("+ " + lF + "\n"))
+			}
+		} else {
+			sb.WriteString("  " + lO + "\n")
+		}
+	}
+	return sb.String()
+}
+
 // comandoFormatar inicializa o comando 'harpia formatar'
 func comandoFormatar() *cobra.Command {
 	var escrever bool
 	var verificar bool
+	var diff bool
+
+	ui := &UI{}
+
 	cmdFormatar := &cobra.Command{
-		Use:   "formatar [arquivo.hrp | diretorio]",
-		Short: "Formata a indentação e o estilo visual de arquivos Harpia",
-		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
+		Use:           "formatar [arquivo.hrp | diretorio]",
+		Short:         "Formata a indentação e o estilo visual de arquivos Harpia",
+		Args:          cobra.MinimumNArgs(1),
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			out := cmd.OutOrStdout()
+			errOut := cmd.ErrOrStderr()
+
 			var arquivos []string
 			for _, arg := range args {
 				if arg == "./..." || arg == "..." {
@@ -25,11 +73,11 @@ func comandoFormatar() *cobra.Command {
 				}
 				info, err := os.Stat(arg)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Erro ao acessar caminho '%s': %v\n", arg, err)
-					os.Exit(1)
+					fmt.Fprintf(errOut, "Erro ao acessar caminho '%s': %v\n", arg, err)
+					return err
 				}
 				if info.IsDir() {
-					filepath.Walk(arg, func(path string, f os.FileInfo, err error) error {
+					_ = filepath.Walk(arg, func(path string, f os.FileInfo, err error) error {
 						if err == nil && !f.IsDir() && (strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".pt")) {
 							arquivos = append(arquivos, path)
 						}
@@ -44,42 +92,46 @@ func comandoFormatar() *cobra.Command {
 			for _, caminho := range arquivos {
 				conteudo, err := os.ReadFile(caminho)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "Erro ao ler arquivo %s: %v\n", caminho, err)
+					fmt.Fprintf(errOut, "Erro ao ler arquivo %s: %v\n", caminho, err)
 					continue
 				}
 
-				formatado := FormatarCodigoHarpia(string(conteudo))
+				origStr := string(conteudo)
+				formatado := FormatarCodigoHarpia(origStr)
 
-				if verificar {
-					if string(conteudo) != formatado {
-						fmt.Fprintf(os.Stderr, "HRP-FMT-001: %s não está formatado.\n", caminho)
-						desformatados++
+				if origStr != formatado {
+					desformatados++
+					if diff {
+						fmt.Fprint(out, GerarUnifiedDiff(caminho, origStr, formatado, ui))
+					} else if verificar {
+						fmt.Fprintf(errOut, "HRP-FMT-001: %s precisa de formatação.\n", caminho)
 					}
-					continue
 				}
 
-				if escrever {
-					if string(conteudo) != formatado {
-						err = os.WriteFile(caminho, []byte(formatado), 0644)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "Erro ao salvar arquivo %s: %v\n", caminho, err)
-						} else {
-							fmt.Printf("Formatado: %s\n", caminho)
-						}
+				if escrever && origStr != formatado {
+					err = os.WriteFile(caminho, []byte(formatado), 0644)
+					if err != nil {
+						fmt.Fprintf(errOut, "Erro ao salvar arquivo %s: %v\n", caminho, err)
+					} else {
+						fmt.Fprintf(out, "Formatado: %s\n", caminho)
 					}
-				} else {
-					fmt.Print(formatado)
+				} else if !verificar && !diff && !escrever {
+					fmt.Fprint(out, formatado)
 				}
 			}
 
 			if verificar && desformatados > 0 {
-				fmt.Fprintf(os.Stderr, "\n%d arquivo(s) precisam de formatação. Execute 'harpia formatar -w [caminho]'.\n", desformatados)
-				os.Exit(1)
+				fmt.Fprintf(errOut, "\n%d arquivo(s) precisam de formatação. Execute 'harpia formatar -w [caminho]'.\n", desformatados)
+				return fmt.Errorf("%d arquivo(s) desformatados", desformatados)
 			}
+
+			return nil
 		},
 	}
+
 	cmdFormatar.Flags().BoolVarP(&escrever, "escrever", "w", false, "Salva as alterações de volta nos arquivos originais")
-	cmdFormatar.Flags().BoolVar(&verificar, "verificar", false, "Sai com código 1 se algum arquivo não estiver formatado (para CI)")
+	cmdFormatar.Flags().BoolVar(&verificar, "verificar", false, "Sai com erro se algum arquivo não estiver formatado (para CI)")
+	cmdFormatar.Flags().BoolVar(&diff, "diff", false, "Exibe as diferenças (diff) entre o arquivo atual e o formatado")
 	return cmdFormatar
 }
 

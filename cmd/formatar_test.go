@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -32,5 +34,16 @@ funcao MeuApp() {
 
 	if formatadoLimp != esperado {
 		t.Errorf("Formatação incorreta.\nEsperado:\n%s\n\nObtido:\n%s", esperado, formatadoLimp)
+	}
+}
+
+func TestGerarUnifiedDiff(t *testing.T) {
+	ui := &UI{}
+	orig := "se x {\n  imprimir(1)\n}"
+	form := "se x {\n    imprimir(1)\n}\n"
+
+	diff := GerarUnifiedDiff("teste.hrp", orig, form, ui)
+	if !strings.Contains(diff, "--- a/teste.hrp") || !strings.Contains(diff, "+++ b/teste.hrp") {
+		t.Errorf("diff ausente de cabecalho esperado: %s", diff)
 	}
 }
