@@ -206,3 +206,23 @@ func TestParseInterface(t *testing.T) {
 	}
 }
 
+func TestNoPosicaoCoordenadas(t *testing.T) {
+	p := parser.NewParserFromString("var x = 42", "teste.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro inesperado: %v", err)
+	}
+	if len(ast.Declaracoes) == 0 {
+		t.Fatalf("AST sem instruções")
+	}
+	decl := ast.Declaracoes[0]
+	inicio, fim := decl.Pos()
+	if inicio.Linha != 1 || inicio.Coluna != 1 {
+		t.Errorf("Posição inicial incorreta: %+v", inicio)
+	}
+	if fim.Indice <= inicio.Indice {
+		t.Errorf("Posição final deve ser maior que inicial: %d vs %d", fim.Indice, inicio.Indice)
+	}
+}
+
+

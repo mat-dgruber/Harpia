@@ -105,6 +105,9 @@ func (p *Parser) consome(token string) error {
 func (p *Parser) registrar(node BaseNode, tok *lexer.Token) BaseNode {
 	if node != nil && tok != nil {
 		p.posicoes[node] = tok
+		if posNode, ok := node.(interface{ DefinirPos(i, f lexer.PosicaoToken) }); ok {
+			posNode.DefinirPos(tok.Inicio, tok.Fim)
+		}
 	}
 	return node
 }
@@ -117,12 +120,19 @@ func (p *Parser) Parse() (*Programa, error) {
 		return nil, err
 	}
 
-	return &Programa{
+	prog := &Programa{
 		Declaracoes: declaracoes,
 		Codigo:      p.codigo,
 		Arquivo:     p.arquivo,
 		Posicoes:    p.posicoes,
-	}, nil
+	}
+	if len(declaracoes) > 0 {
+		ini, _ := declaracoes[0].Pos()
+		_, fim := declaracoes[len(declaracoes)-1].Pos()
+		prog.Inicio = ini
+		prog.Fim = fim
+	}
+	return prog, nil
 }
 
 // parseDeclaracoes varre loops sequenciais de instruções e as acumula até que feche chaves '}' ou atinja EOF.
@@ -230,7 +240,7 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 				return nil, err
 			}
 		}
-		return &AsseguraNode{condicao, mensagem}, nil
+		return &AsseguraNode{Condicao: condicao, Mensagem: mensagem}, nil
 	case lexer.TokenPara:
 		return p.parseBlocoPara()
 	case lexer.TokenArroba:
@@ -271,7 +281,7 @@ func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 		return nil, p.errof("era esperado um texto após a palavra chave 'de'")
 	}
 
-	decl := &ImporteDe{Caminho: &TextoLiteral{p.token.Valor}}
+	decl := &ImporteDe{Caminho: &TextoLiteral{Valor: p.token.Valor}}
 	p.avancar()
 
 	if err := p.consome("importe"); err != nil {
@@ -955,7 +965,7 @@ func (p *Parser) parseExpressaoInterno() (BaseNode, error) {
 			return nil, err
 		}
 
-		return &NovaNode{obj}, nil
+		return &NovaNode{Objeto: obj}, nil
 	}
 
 	if p.token.Tipo == lexer.TokenAguarde {
@@ -1058,7 +1068,7 @@ func (p *Parser) parseEsqLst(próximo func() (BaseNode, error), proxOp func() (s
 		if err != nil {
 			return nil, err
 		}
-		esq = &OpBinaria{esq, op, dir}
+		esq = &OpBinaria{Esq: esq, Operador: op, Dir: dir}
 	}
 }
 
@@ -1096,7 +1106,7 @@ func (p *Parser) parseInversao() (BaseNode, error) {
 			return nil, err
 		}
 
-		return &OpUnaria{"nao", operacao}, nil
+		return &OpUnaria{Operador: "nao", Expressao: operacao}, nil
 	}
 
 	return p.parseComparacao()
@@ -1218,7 +1228,7 @@ func (p *Parser) parseFator() (BaseNode, error) {
 			return nil, err
 		}
 
-		return &OpUnaria{token.Valor, expressao}, nil
+		return &OpUnaria{Operador: token.Valor, Expressao: expressao}, nil
 	}
 
 	return p.parsePotencia()
@@ -1240,7 +1250,7 @@ func (p *Parser) parsePotencia() (BaseNode, error) {
 			return nil, err
 		}
 
-		return &OpBinaria{esquerda, "**", direita}, nil
+		return &OpBinaria{Esq: esquerda, Operador: "**", Dir: direita}, nil
 	}
 
 	return esquerda, nil
@@ -1269,7 +1279,7 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 			if ehOpcional {
 				atom = &AcessoMembroOpcional{Objeto: atom, Membro: membro}
 			} else {
-				atom = &AcessoMembro{atom, membro}
+				atom = &AcessoMembro{Dono: atom, Membro: membro}
 			}
 		} else if p.token.Tipo == lexer.TokenAbreParenteses {
 			chamada := &ChamadaFuncao{Identificador: atom}
@@ -1337,7 +1347,7 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 				return nil, err
 			}
 
-			atom = &Indexacao{atom, arg}
+			atom = &Indexacao{Objeto: atom, Argumento: arg}
 		} else {
 			break
 		}
@@ -1354,7 +1364,7 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		return p.parseJSX()
 	case lexer.TokenVerdadeiro, lexer.TokenFalso, lexer.TokenNulo:
 		p.avancar()
-		return &Identificador{token.Valor}, nil
+		return &Identificador{Nome: token.Valor}, nil
 	case lexer.TokenTexto:
 		val := token.Valor
 		p.avancar()
@@ -1395,7 +1405,7 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				exprNode, err := subParser.parseExpressao()
 				if err != nil {
 					// Fallback: se o conteúdo entre chaves não for uma expressão válida, trata como texto literal
-					return &TextoLiteral{token.Valor}, nil
+					return &TextoLiteral{Valor: token.Valor}, nil
 				}
 
 				templateNode.Partes = append(templateNode.Partes, &TemplateExpr{Expressao: exprNode})
@@ -1403,17 +1413,17 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 			}
 			return templateNode, nil
 		}
-		return &TextoLiteral{token.Valor}, nil
+		return &TextoLiteral{Valor: token.Valor}, nil
 	case lexer.TokenDecimal:
 		p.avancar()
-		return &DecimalLiteral{token.Valor}, nil
+		return &DecimalLiteral{Valor: token.Valor}, nil
 	case lexer.TokenInteiro:
 		p.avancar()
-		return &InteiroLiteral{token.Valor}, nil
+		return &InteiroLiteral{Valor: token.Valor}, nil
 	case lexer.TokenIdentificador, lexer.TokenSelf:
 		if !IsKeyword(token.Valor) || token.Tipo == lexer.TokenSelf {
 			p.avancar()
-			return p.registrar(&Identificador{token.Valor}, token), nil
+			return p.registrar(&Identificador{Nome: token.Valor}, token), nil
 		}
 	case lexer.TokenAbreParenteses:
 		// Parentetização de escopo matemático ou definição de Tuplas literais imutáveis.
@@ -1693,14 +1703,14 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 					}
 					valorAttr = expr
 				} else if p.token.Tipo == lexer.TokenTexto {
-					valorAttr = &TextoLiteral{p.token.Valor}
+					valorAttr = &TextoLiteral{Valor: p.token.Valor}
 					p.avancar()
 				} else {
 					return nil, p.errof("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
 				}
 			} else {
 				// Atributo booleano implícito (ex: <input desabilitado />)
-				valorAttr = &Identificador{"Verdadeiro"}
+				valorAttr = &Identificador{Nome: "Verdadeiro"}
 			}
 			node.Atributos = append(node.Atributos, &AtributoJSX{Nome: nomeAttr, Valor: valorAttr})
 		} else {
