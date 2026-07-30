@@ -1,21 +1,20 @@
-# Pacote `compartilhado` (Utilitários do Harpia)
+# Pacote `compartilhado` (Utilitários Industriais do Harpia)
 
-O pacote `compartilhado` reúne funções utilitárias e rotinas auxiliares fundamentais para a correta manipulação de strings, tokens, identificadores e conversões numéricas em múltiplos subsistemas do compilador e máquina virtual do **Harpia** (como lexer, parser, compilador e interpretador).
+O pacote `compartilhado` reúne funções utilitárias e rotinas auxiliares fundamentais para a correta manipulação de strings, navegabilidade Unicode, validações de identificadores, cache thread-safe e conversões numéricas em múltiplos subsistemas do compilador, runtime e servidores web da linguagem **Harpia**.
 
-O foco central deste pacote é fornecer **alta eficiência** no processamento e tratamento seguro de caracteres Unicode (UTF-8), mitigando gargalos comuns na análise de strings em Go.
+O foco central deste pacote é fornecer **alta eficiência e zero contenção de CPU** no processamento e tratamento seguro de caracteres Unicode (UTF-8), com fast-paths para ASCII e cache LRU sharded de alta concorrência.
 
 ---
 
 ## 📖 Índice
 
 1. [O Desafio de Strings UTF-8 em Go](#-o-desafio-de-strings-utf-8-em-go)
-2. [Análise e Manipulação de Strings](#-análise-e-manipulação-de-strings)
-   - [Tratamento de Índices e Cache](#tratamento-de-índices-e-cache)
-   - [Predicados de Validação de Caracteres](#predicados-de-validação-de-caracteres)
-3. [Utilitários de Conversão Numérica](#-utilitários-de-conversão-numérica)
-4. [Predicado Alfanumérico Composto](#-predicado-alfanumérico-composto)
-5. [Arquitetura e Fluxo no Compilador](#-arquitetura-e-fluxo-no-compilador)
-6. [Exemplos Práticos de Integração](#-exemplos-práticos-de-integração)
+2. [Fast-Path ASCII e Sharded LRU Cache](#-fast-path-ascii-e-sharded-lru-cache)
+3. [Análise e Navegação Unicode](#-análise-e-navegação-unicode)
+4. [Validadores de Identificadores e Alfanuméricos](#-validadores-de-identificadores-e-alfanuméricos)
+5. [Utilitários de Conversão e Bases Numéricas](#-utilitários-de-conversão-e-bases-numéricas)
+6. [Arquitetura e Fluxo no Compilador](#-arquitetura-e-fluxo-no-compilador)
+7. [Exemplos Práticos de Integração](#-exemplos-práticos-de-integração)
 
 ---
 
@@ -25,118 +24,109 @@ Na linguagem Go, as variáveis do tipo `string` são armazenadas internamente co
 
 Embora caracteres básicos da tabela ASCII ocupem apenas 1 byte, caracteres acentuados, letras de alfabetos não-latinos e símbolos complexos (como emojis) podem ocupar de **2 a 4 bytes**.
 
-Isso gera dois problemas principais durante a construção de um Lexer:
+Isso gera três desafios principais em sistemas fullstack e no Lexer:
 1. **Quebra de Caractere**: Tentar acessar uma string em uma posição de byte arbitrária (ex: `str[i]`) pode cortar um caractere multi-byte ao meio, gerando bytes inválidos ou caracteres corrompidos.
-2. **Incompatibilidade de Índice**: O caractere visual de índice conceitual `5` pode estar localizado, na verdade, no offset de byte `8` se houver caracteres acentuados antes dele.
-3. **Incompatibilidade de Desempenho O(N)**: Para descobrir onde o caractere `N` começa sem um cache, o programa é forçado a percorrer a string inteira a partir do início decodificando runas. Em arquivos de código extensos, isso causaria séria degradação de performance.
+2. **Incompatibilidade de Índice**: O caractere visual de índice conceitual `5` pode estar localizado no offset de byte `8` se houver caracteres acentuados antes dele.
+3. **Contenção e Desempenho O(N)**: Para descobrir onde o caractere `N` começa sem um cache eficiente, o programa é forçado a percorrer a string inteira decodificando runas.
 
-O pacote `compartilhado` resolve esses gargalos implementando uma **estrutura de mapeamento por indexação e cache de tempo constante O(1)**.
+O pacote `compartilhado` resolve esses gargalos combinando **Fast-Path ASCII O(1)** e um **Cache Sharded LRU Thread-Safe de 256 Shards**.
 
 ---
 
-## 🔤 Análise e Manipulação de Strings
+## ⚡ Fast-Path ASCII e Sharded LRU Cache
 
-### Tratamento de Índices e Cache
+### Fast-Path ASCII
+- **`EhASCII(s string) bool`**: Inspeciona se a string é composta estritamente por bytes ASCII (`b < 0x80`).
+- Quando uma string é ASCII pura, funções como `IndiceCaraterParaByte` retornam a posição diretamente em **O(1)**, ignorando decodificação UTF-8 ou consultas ao cache.
+
+### Sharded LRU Cache (`ShardedCache`)
+- **Arquitetura**: O cache global é particionado em 256 shards independentes com travamento individual via `sync.Mutex`.
+- **Mapeamento**: O shard de cada chave é determinado inline via algoritmo FNV-1a hash (`hash % 256`), garantindo distribuição uniforme.
+- **Evicção LRU**: Cada shard possui limite de entradas (com lista duplamente encadeada). Ao atingir a capacidade, remove somente a entrada menos recentemente utilizada do shard, sem travar o cache global.
+- **API Exportada**:
+  - `NovoShardedCache(numShards int, capPorShard int) *ShardedCache`
+  - `ObterDoCache(key string) ([]int, bool)`
+  - `ArmazenarNoCache(key string, val []int)`
+  - `LimparCache()`
+
+---
+
+## 🔤 Análise e Navegação Unicode
 
 As funções a seguir gerenciam a tradução transparente entre índices conceituais de caracteres Unicode (runas) e as posições físicas em bytes.
 
 #### 1. `IndiceBytePorCarater(str string) []int`
-Gera e pré-calcula a tabela de correspondências onde cada posição do slice de retorno aponta para o offset inicial do byte daquela runa.
-- **Entrada**: `str string`
-- **Retorno**: `[]int` (tabela de offsets de bytes)
-- **Detalhe do Limite**: O slice resultante possui tamanho `RuneCount + 1`, onde a última posição contém o valor exato de `len(str)`. Isso serve para facilitar operações de slice inclusivas (ex: `str[inicio:fim]`) em que o limite superior aponta para o caractere final do arquivo (EOF).
+Gera e pré-calcula a tabela de correspondências de offsets de bytes. Para strings de até 4096 bytes, consulta e atualiza automaticamente o `ShardedCache` global.
 
 #### 2. `IndiceCaraterParaByte(str string, indice int, cache []int) int`
-Resolve a posição de byte para o índice de caractere informado.
-- **Entrada**: `str string`, `indice int` (índice conceitual), `cache []int` (opcional)
-- **Mecânica**: Se `cache` não for nulo (`nil`), resolve em **O(1)** consultando diretamente o índice na tabela. Caso contrário, invoca o método alternativo sequencial sem cache (fallback **O(N)**).
+Resolve a posição de byte para o índice de caractere informado. Utiliza Fast-Path ASCII quando aplicável, consulta o cache fornecido ou recorre a `IndiceCaraterParaByteSemCache`.
 
 #### 3. `IndiceCaraterParaByteSemCache(str string, indice int) int`
-Faz a busca linear decodificando runas uma a uma de forma incremental utilizando a biblioteca nativa `unicode/utf8`.
-- **Entrada**: `str string`, `indice int`
-- **Retorno**: `int` (offset de bytes correspondente)
+Realiza busca linear com proteção contra limites out-of-bounds e prevenção de loops infinitos quando `indice >= len(str)`.
 
 #### 4. `ObtemCaraterPorIndice(str string, indice int, cache []int) string`
-Retorna uma string contendo exatamente um único caractere Unicode válido na posição informada.
-- **Entrada**: `str string`, `indice int`, `cache []int`
-- **Funcionamento**: Obtém com segurança o offset de byte `inicio` e o offset do caractere seguinte `fim`. Em seguida, extrai a fatia exata `str[inicio:fim]`.
+Retorna a string contendo exatamente um único caractere Unicode válido na posição informada.
 
 ---
 
-### Predicados de Validação de Caracteres
+## 🛡️ Validadores de Identificadores e Alfanuméricos
 
-Usados pelo Lexer do Harpia para análise léxica em tempo de varredura.
+#### 1. `ContemApenasAlfaNum(str string) bool`
+Inspeciona individualmente cada runa da string, garantindo que seja uma letra Unicode (`unicode.IsLetter`) ou dígito Unicode (`unicode.IsDigit`). Retorna `true` para cadeias mistas como `"usuario123"`.
 
-#### 5. `ContemApenasLetras(str string) bool`
-Inspeciona cada runa da string e verifica se ela é classificada como uma letra válida segundo a tabela Unicode.
-- **Entrada**: `str string`
-- **Retorno**: `bool` (retorna `false` se a string for vazia ou se contiver espaços, símbolos, números ou pontuações).
+#### 2. `EIdentificadorValido(str string) bool`
+Valida se a string é um identificador legal na linguagem Harpia (não-vazia, iniciando com letra Unicode ou `_`, seguida por letras, dígitos ou `_`).
 
-#### 6. `ContemApenasDigitos(str string) bool`
-Verifica se todas as runas são classificadas como dígitos decimais Unicode.
-- **Entrada**: `str string`
-- **Retorno**: `bool` (retorna `false` se a string for vazia ou se contiver letras, espaços ou pontuações).
+#### 3. `ContemApenasLetras(str string) bool`
+Garante que todas as runas sejam letras Unicode.
 
----
-
-## 🔢 Utilitários de Conversão Numérica
-
-O arquivo `numeros.go` centraliza a conversão de literais numéricos reconhecidos pelo analisador sintático para os formatos nativos interpretados pela VM do Harpia.
-
-#### 1. `StringParaInt(s string) (int64, error)`
-Faz o parsing de um literal numérico inteiro em formato de string para um inteiro com sinal de 64 bits (`int64`).
-- **Base utilizada**: Base 10 (decimal).
-- **Tratamento**: Retorna um erro caso contenha pontos decimais, letras ou caracteres especiais de formatação inválidos.
-- **Por que int64?** O Harpia adota precisão de 64 bits para seus tipos numéricos internos para evitar estouro de limite (overflow) e garantir compatibilidade cruzada estável entre diferentes plataformas (como compilador Go rodando em x86 ou ARM).
-
-#### 2. `StringParaDec(s string) (float64, error)`
-Converte strings literais contendo ponto flutuante para a representação decimal nativa do Go de dupla precisão (`float64`).
-- **Padrão interpretado**: Padrão IEEE 754 de dupla precisão, aceitando notações científicas normatizadas (ex: `1.23e-4`).
-- **Retorno**: `(float64, error)`
+#### 4. `ContemApenasDigitos(str string) bool`
+Garante que todas as runas sejam dígitos decimais Unicode.
 
 ---
 
-## 🔀 Predicado Alfanumérico Composto
+## 🔢 Utilitários de Conversão e Bases Numéricas
 
-#### `ContemApenasAlfaNum(str string) bool`
-Função de utilidade definida em `compartilhado.go` para verificar se uma cadeia textual é estritamente composta por elementos alfanuméricos (combinação de letras e dígitos).
+O arquivo `numeros.go` fornece parsing robusto e suporte a bases numéricas com precisão de 64 bits.
 
-- **Estrutura lógica**:
-  ```go
-  func ContemApenasAlfaNum(str string) bool {
-      return ContemApenasDigitos(str) || ContemApenasLetras(str)
-  }
-  ```
-- **Por que funciona assim?** Em vez de reescrever um loop customizado, ela delega e unifica as regras para os validadores dedicados, reduzindo o risco de discrepâncias nas verificações de símbolos complexos do Lexer.
+#### 1. `StringParaIntBase(s string) (int64, error)`
+Converte strings numéricas identificando automaticamente o prefixo de base:
+- Hexadecimal: `0x` ou `0X` (base 16)
+- Binário: `0b` ou `0B` (base 2)
+- Octal: `0o` ou `0O` (base 8)
+- Decimal: sem prefixo (base 10)
+
+#### 2. `StringParaInt(s string) (int64, error)`
+Parsing de inteiros decimais em 64 bits (`int64`).
+
+#### 3. `StringParaDec(s string) (float64, error)`
+Parsing de números decimais/ponto flutuante IEEE 754 de dupla precisão (`float64`).
+
+#### 4. `IntParaString(v int64) string` e `DecParaString(v float64) string`
+Utilitários de formatação textual rápida.
 
 ---
 
 ## 🏗️ Arquitetura e Fluxo no Compilador
 
-Durante o processo de compilação de um script Harpia, o pacote `compartilhado` é consumido principalmente no início da pipeline:
-
 ```
-[Código Fonte .hrp] ➔ [Lexer] 
+[Código Fonte .hrp] ➔ [Lexer / Parser] 
                         │
-                        ├─► Usa IndiceBytePorCarater() para mapear o arquivo
+                        ├─► Usa EhASCII() / IndiceBytePorCarater() + ShardedCache
                         │
-                        ├─► Usa ContemApenasLetras() / ContemApenasDigitos()
-                        │   para identificar identificadores e palavras-chave
+                        ├─► Usa EIdentificadorValido() / ContemApenasAlfaNum()
                         │
                         ▼
-                 [Tokens Gerados] ➔ [Parser / Compilador]
+                 [Tokens Gerados] ➔ [VM / Runtime]
                                             │
-                                            ├─► Usa StringParaInt() / StringParaDec()
-                                            │   para converter os literais numéricos
+                                            ├─► Usa StringParaIntBase() / StringParaDec()
                                             ▼
-                                     [AST / Bytecode]
+                                     [Execução Fullstack]
 ```
 
 ---
 
 ## 🛠️ Exemplos Práticos de Integração
-
-Abaixo estão alguns snippets de exemplo demonstrando como importar e aplicar de forma limpa as funções do pacote `compartilhado` em Go:
 
 ```go
 package main
@@ -147,25 +137,22 @@ import (
 )
 
 func main() {
-	// Exemplo de manipulação de string Unicode complexa
-	texto := "Harpia é incrível! 🚀"
-	
-	// 1. Pré-calculando o cache de índices
+	// 1. Fast-Path ASCII
+	fmt.Println(compartilhado.EhASCII("Harpia 123")) // true
+
+	// 2. Validação de identificadores válidos
+	fmt.Println(compartilhado.EIdentificadorValido("_contador")) // true
+	fmt.Println(compartilhado.EIdentificadorValido("123var"))    // false
+
+	// 3. Conversão de bases numéricas (hex, bin, oct)
+	hexVal, _ := compartilhado.StringParaIntBase("0x1A")
+	binVal, _ := compartilhado.StringParaIntBase("0b1010")
+	fmt.Printf("Hex 0x1A = %d, Bin 0b1010 = %d\n", hexVal, binVal) // 26, 10
+
+	// 4. Mapeamento Unicode com cache Sharded
+	texto := "Harpia 🚀"
 	cache := compartilhado.IndiceBytePorCarater(texto)
-	
-	// 2. Acesso seguro O(1) sem corromper runas multibyte
-	// O emoji de foguete '🚀' ocupa 4 bytes em UTF-8
-	caracterRocket := compartilhado.ObtemCaraterPorIndice(texto, 24, cache)
-	fmt.Printf("Caractere no índice 24: %s\n", caracterRocket) // Saída: 🚀
-	
-	// 3. Validação léxica de identificadores e palavras reservadas
-	fmt.Println(compartilhado.ContemApenasLetras("Funcao")) // Saída: true
-	fmt.Println(compartilhado.ContemApenasLetras("se_entao")) // Saída: false (contém underline)
-	
-	// 4. Conversão numérica de literais da AST
-	inteiro, err := compartilhado.StringParaInt("42195")
-	if err == nil {
-		fmt.Printf("Inteiro convertido com sucesso: %d\n", inteiro)
-	}
+	emoji := compartilhado.ObtemCaraterPorIndice(texto, 7, cache)
+	fmt.Printf("Caractere no índice 7: %s\n", emoji) // 🚀
 }
 ```
