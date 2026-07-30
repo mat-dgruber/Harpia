@@ -221,7 +221,10 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 		return p.parseTenteCapture()
 	case lexer.TokenExportar:
 		return p.parseExportar()
+	case lexer.TokenEscolha:
+		return p.parseEscolha()
 	case lexer.TokenSe:
+
 		return p.parseExpressaoSe()
 	case lexer.TokenEnquanto:
 		return p.parseEnquanto()
@@ -818,10 +821,8 @@ func (p *Parser) parseVariavel() (BaseNode, error) {
 	return decl, nil
 }
 
-func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
-	decl := &DeclDesestruturacao{
-		Constante: constante,
-	}
+func (p *Parser) parsePadraoDesestruturacao() (*DeclDesestruturacao, error) {
+	decl := &DeclDesestruturacao{}
 	decl.Inicio = p.token.Inicio
 
 	fechamento := "]"
@@ -855,16 +856,16 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 			continue
 		}
 
-		if p.token.Tipo != lexer.TokenIdentificador {
-			return nil, p.errof("era esperado um identificador de variável na desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
+		if p.token.Tipo != lexer.TokenIdentificador && p.token.Tipo != lexer.TokenTexto && p.token.Tipo != lexer.TokenInteiro {
+			return nil, p.errof("era esperado um identificador ou chave na desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
 		}
 
 		nome := p.token.Valor
 		p.avancar()
 
 		var valorPadrao BaseNode
-		if p.token.Tipo == lexer.TokenIgual {
-			p.avancar() // consome '='
+		if p.token.Tipo == lexer.TokenIgual || p.token.Tipo == lexer.TokenDoisPontos {
+			p.avancar() // consome '=' ou ':'
 			var err error
 			valorPadrao, err = p.parseExpressao()
 			if err != nil {
@@ -886,6 +887,16 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 		return nil, err
 	}
 
+	return decl, nil
+}
+
+func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
+	decl, err := p.parsePadraoDesestruturacao()
+	if err != nil {
+		return nil, err
+	}
+	decl.Constante = constante
+
 	if err := p.consome("="); err != nil {
 		return nil, err
 	}
@@ -906,6 +917,7 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 
 	return decl, nil
 }
+
 
 func (p *Parser) parseEnum() (BaseNode, error) {
 	p.avancar() // consome 'enum'
@@ -942,6 +954,79 @@ func (p *Parser) parseEnum() (BaseNode, error) {
 
 	return &DeclEnum{Nome: nomeEnum, Valores: valores}, nil
 }
+
+func (p *Parser) parseEscolha() (BaseNode, error) {
+	p.avancar() // consome 'escolha'
+
+	expr, err := p.parseExpressao()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.consome("{"); err != nil {
+		return nil, err
+	}
+
+	var casos []CasoEscolha
+	for p.token.Tipo != lexer.TokenFechaChaves && p.token.Tipo != lexer.TokenFimDeArquivo {
+		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
+			p.avancar()
+			continue
+		}
+
+		if p.token.Tipo != lexer.TokenCaso {
+			return nil, p.errof("esperava 'caso' ou '}', mas encontrou '%s'", p.token.Valor)
+		}
+		p.avancar() // consome 'caso'
+
+		var padrao BaseNode
+		if p.token.Tipo == lexer.TokenAbreColchetes || p.token.Tipo == lexer.TokenAbreChaves {
+			padrao, err = p.parsePadraoDesestruturacao()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			padrao, err = p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		var guarda BaseNode
+		if p.token.Tipo == lexer.TokenQuando {
+			p.avancar() // consome 'quando'
+			guarda, err = p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		corpo, err := p.parseBloco()
+		if err != nil {
+			return nil, err
+		}
+
+		casoNode := CasoEscolha{
+			Padrao: padrao,
+			Guarda: guarda,
+			Corpo:  corpo,
+		}
+		p.registrar(&casoNode, p.token)
+		casos = append(casos, casoNode)
+	}
+
+	if err := p.consome("}"); err != nil {
+		return nil, err
+	}
+
+	decl := &DeclEscolha{
+		Expressao: expr,
+		Casos:     casos,
+	}
+	p.registrar(decl, p.token)
+	return decl, nil
+}
+
 
 func (p *Parser) parseInterface() (BaseNode, error) {
 	p.avancar() // consome 'interface'

@@ -119,6 +119,12 @@ var tokensIdentificadores = map[string]TokenType{
 	"finalmente": TokenFinalmente,
 	"exportar":   TokenExportar,
 
+	// Pattern matching
+	"escolha": TokenEscolha,
+	"caso":    TokenCaso,
+	"quando":  TokenQuando,
+
+
 	"em": TokenEm,
 
 	"assincrono": TokenAssincrono,

@@ -370,7 +370,10 @@ func (*OpCoalescenciaNula) isExpr()     {}
 func (*AcessoMembroOpcional) isExpr()   {}
 func (*ChamadaOpcional) isExpr()        {}
 func (*IndexacaoOpcional) isExpr()      {}
+func (*CasoEscolha) isExpr()            {}
+func (*DeclEscolha) isExpr()            {}
 func (*DeclEnum) isExpr()               {}
+
 
 func (*DeclInterface) isExpr()          {}
 
@@ -423,6 +426,22 @@ type IndexacaoOpcional struct {
 	Objeto    BaseNode
 	Argumento BaseNode
 }
+
+// CasoEscolha representa uma ramificação individual em uma instrução 'escolha'.
+type CasoEscolha struct {
+	NoBase
+	Padrao BaseNode // Literal, Identificador, DeclDesestruturacao ou wildcard "_"
+	Guarda BaseNode // Expressão condicional opcional ("quando <expr>")
+	Corpo  BaseNode // Bloco de instruções
+}
+
+// DeclEscolha representa a instrução de pattern matching 'escolha <expr> { caso ... }'.
+type DeclEscolha struct {
+	NoBase
+	Expressao BaseNode
+	Casos     []CasoEscolha
+}
+
 
 
 // AtributoJSX representa um atributo em uma tag JSX (ex: classe="p-4" ou aoClicar={clique})

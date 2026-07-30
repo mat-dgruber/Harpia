@@ -337,4 +337,33 @@ func TestEncadeamentoOpcionalCompleto(t *testing.T) {
 	}
 }
 
+func TestPatternMatchingEscolha(t *testing.T) {
+	codigo := `
+		escolha resposta {
+			caso [a, b, ...resto] quando a > 0 {
+				imprimir(a)
+			}
+			caso { status: 200 } {
+				imprimir("ok")
+			}
+			caso _ {
+				imprimir("padrao")
+			}
+		}
+	`
+	p := parser.NewParserFromString(codigo, "teste_pm.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro sintático em escolha: %v", err)
+	}
+	if len(ast.Declaracoes) != 1 {
+		t.Fatalf("Esperava 1 declaração, obteve %d", len(ast.Declaracoes))
+	}
+	esc, ok := ast.Declaracoes[0].(*parser.DeclEscolha)
+	if !ok || len(esc.Casos) != 3 {
+		t.Errorf("Falha no parse de DeclEscolha: %+v", ast.Declaracoes[0])
+	}
+}
+
+
 

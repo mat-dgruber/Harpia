@@ -93,6 +93,11 @@ const (
 	TokenConst // const (declaração de constante imutável).
 	TokenFunc  // func (declaração de função/método).
 
+	TokenEscolha // escolha (match/switch).
+	TokenCaso    // caso (case).
+	TokenQuando  // quando (guard condition).
+
+
 	// ============================================================================
 	// OPERADORES ARITMÉTICOS, RELACIONAIS E DELIMITADORES
 	// ============================================================================
