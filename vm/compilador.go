@@ -325,7 +325,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		// Emite o opcode de await
 		c.emitir(OP_AWAIT)
 
-	case *parser.DeclVarDestructuring:
+	case *parser.DeclVarDestructuring, *parser.DeclDesestruturacao:
 		return fmt.Errorf("desestruturação var [a, b] = ... ainda não é suportada na VM de Bytecode (use transpilação ou interpretador)")
 
 	case *parser.OpCoalescenciaNula, *parser.AcessoMembroOpcional:
@@ -333,6 +333,21 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 
 	case *parser.DeclEnum, *parser.DeclInterface:
 		return fmt.Errorf("enumerações e interfaces ainda não são suportadas na VM de Bytecode (use transpilação ou interpretador)")
+
+	case *parser.OpUnaria:
+		if err := c.visite(n.Expressao); err != nil {
+			return err
+		}
+		switch n.Operador {
+		case "-":
+			c.emitir(OP_NEG)
+		case "+":
+			// ponytail: operador unário positivo é um no-op
+		case "nao":
+			c.emitir(OP_NOT)
+		default:
+			return fmt.Errorf("operador unário '%s' não suportado na VM de bytecode", n.Operador)
+		}
 
 	default:
 		return fmt.Errorf("compilação do nó tipo %T ainda não implementada na VM de bytecode", n)

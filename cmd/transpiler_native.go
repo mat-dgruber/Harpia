@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -59,6 +61,34 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 			sb.WriteString("\t\t}\n")
 			sb.WriteString("\t}\n")
 			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", nome, varName))
+		}
+		return sb.String(), "hrp.Nulo"
+
+	case *parser.DeclDesestruturacao:
+		var sb strings.Builder
+		initCode, initVar := t.Transpile(n.Valor)
+		sb.WriteString(initCode)
+
+		tempVar := t.newVar()
+		sb.WriteString(fmt.Sprintf("\t%s := %s\n", tempVar, initVar))
+		for idx, elem := range n.Campos {
+			varName := fmt.Sprintf("var_%s", elem.Nome)
+			sb.WriteString(fmt.Sprintf("\tvar %s hrp.Objeto = hrp.Nulo\n", varName))
+			if n.TipoEstrut == "lista" {
+				sb.WriteString(fmt.Sprintf("\tif idxable, ok := %s.(hrp.I__obtem_item__); ok {\n", tempVar))
+				sb.WriteString(fmt.Sprintf("\t\tidxVal, _ := hrp.NewInteiro(%d)\n", idx))
+				sb.WriteString("\t\tif val, err := idxable.M__obtem_item__(idxVal); err == nil {\n")
+				sb.WriteString(fmt.Sprintf("\t\t\t%s = val\n", varName))
+				sb.WriteString("\t\t}\n")
+				sb.WriteString("\t}\n")
+			} else {
+				sb.WriteString(fmt.Sprintf("\tif dict, ok := %s.(*hrp.Dicionario); ok {\n", tempVar))
+				sb.WriteString(fmt.Sprintf("\t\tif val, ok := dict.Valores[\"%s\"]; ok {\n", elem.Nome))
+				sb.WriteString(fmt.Sprintf("\t\t\t%s = val\n", varName))
+				sb.WriteString("\t\t}\n")
+				sb.WriteString("\t}\n")
+			}
+			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", elem.Nome, varName))
 		}
 		return sb.String(), "hrp.Nulo"
 

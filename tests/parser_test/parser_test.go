@@ -99,13 +99,13 @@ func TestParseDestructuring(t *testing.T) {
 		t.Fatalf("Esperava 1 declaração, mas recebi %d", len(prog.Declaracoes))
 	}
 
-	decl, ok := prog.Declaracoes[0].(*parser.DeclVarDestructuring)
+	decl, ok := prog.Declaracoes[0].(*parser.DeclDesestruturacao)
 	if !ok {
-		t.Fatalf("Esperava nó *parser.DeclVarDestructuring, mas recebi %T", prog.Declaracoes[0])
+		t.Fatalf("Esperava nó *parser.DeclDesestruturacao, mas recebi %T", prog.Declaracoes[0])
 	}
 
-	if len(decl.Nomes) != 2 || decl.Nomes[0] != "a" || decl.Nomes[1] != "b" {
-		t.Errorf("Nomes de desestruturação inesperados: %v", decl.Nomes)
+	if len(decl.Campos) != 2 || decl.Campos[0].Nome != "a" || decl.Campos[1].Nome != "b" {
+		t.Errorf("Campos de desestruturação inesperados: %v", decl.Campos)
 	}
 }
 
@@ -271,6 +271,29 @@ func TestRecuperacaoErrosSintaticos(t *testing.T) {
 	erros := p.Erros()
 	if len(erros) < 2 {
 		t.Errorf("Esperava pelo menos 2 erros acumulados, obteve %d", len(erros))
+	}
+}
+
+func TestDesestruturacao(t *testing.T) {
+	codigo := `
+		var [a, b, ...resto] = [1, 2, 3, 4]
+		const { nome, idade } = usuario
+	`
+	p := parser.NewParserFromString(codigo, "teste_desest.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro sintático em desestruturação: %v", err)
+	}
+	if len(ast.Declaracoes) != 2 {
+		t.Fatalf("Esperava 2 instruções, obteve %d", len(ast.Declaracoes))
+	}
+	decl1, ok := ast.Declaracoes[0].(*parser.DeclDesestruturacao)
+	if !ok || decl1.TipoEstrut != "lista" || decl1.Resto != "resto" {
+		t.Errorf("Falha na desestruturação de lista: %+v", ast.Declaracoes[0])
+	}
+	decl2, ok := ast.Declaracoes[1].(*parser.DeclDesestruturacao)
+	if !ok || decl2.TipoEstrut != "mapa" || !decl2.Constante {
+		t.Errorf("Falha na desestruturação de mapa: %+v", ast.Declaracoes[1])
 	}
 }
 

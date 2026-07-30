@@ -51,6 +51,22 @@ type DeclVarDestructuring struct {
 	Inicializador BaseNode // O valor/sinal à direita
 }
 
+// ElementoDesestruturacao representa uma propriedade ou item extraído na desestruturação.
+type ElementoDesestruturacao struct {
+	Nome        string
+	ValorPadrao BaseNode
+}
+
+// DeclDesestruturacao representa desestruturação de listas ou mapas (ex: var [a, b, ...resto] = lista, const { x, y } = mapa).
+type DeclDesestruturacao struct {
+	NoBase
+	Constante  bool
+	TipoEstrut string // "lista" ou "mapa"
+	Campos     []ElementoDesestruturacao
+	Resto      string
+	Valor      BaseNode
+}
+
 // Reatribuicao representa comandos de sobrescrita de variáveis comuns ou reatribuições compostas (ex: x += 1).
 type Reatribuicao struct {
 	NoBase
@@ -349,6 +365,7 @@ func (*TemplateLiteral) isExpr()        {}
 func (*TemplateExpr) isExpr()           {}
 func (*AguardeNode) isExpr()            {}
 func (*DeclVarDestructuring) isExpr()   {}
+func (*DeclDesestruturacao) isExpr()    {}
 func (*OpCoalescenciaNula) isExpr()     {}
 func (*AcessoMembroOpcional) isExpr()   {}
 func (*DeclEnum) isExpr()               {}

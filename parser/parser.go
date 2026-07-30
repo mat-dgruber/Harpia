@@ -786,8 +786,8 @@ func (p *Parser) parseVariavel() (BaseNode, error) {
 	constante := p.token.Valor == "const"
 	p.avancar()
 
-	if p.token.Tipo == lexer.TokenAbreColchetes {
-		return p.parseVarDestructuring(constante)
+	if p.token.Tipo == lexer.TokenAbreColchetes || p.token.Tipo == lexer.TokenAbreChaves {
+		return p.parseDesestruturacao(constante)
 	}
 
 	decl := &DeclVar{Constante: constante}
@@ -830,29 +830,85 @@ func (p *Parser) parseVariavel() (BaseNode, error) {
 	return decl, nil
 }
 
-func (p *Parser) parseVarDestructuring(constante bool) (BaseNode, error) {
-	p.avancar() // consome '['
-	var nomes []string
-	for p.token.Tipo != lexer.TokenFechaColchetes {
-		if p.token.Tipo != lexer.TokenIdentificador {
-			return nil, p.errof("era esperado um identificador de variável dentro dos colchetes de desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
+func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
+	decl := &DeclDesestruturacao{
+		Constante: constante,
+	}
+	decl.Inicio = p.token.Inicio
+
+	fechamento := "]"
+	if p.token.Tipo == lexer.TokenAbreColchetes {
+		decl.TipoEstrut = "lista"
+		p.avancar() // consome '['
+	} else if p.token.Tipo == lexer.TokenAbreChaves {
+		decl.TipoEstrut = "mapa"
+		fechamento = "}"
+		p.avancar() // consome '{'
+	} else {
+		return nil, p.errof("era esperado '[' ou '{' para desestruturação")
+	}
+
+	for p.token.Valor != fechamento && p.token.Tipo != lexer.TokenFimDeArquivo {
+		if p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			continue
 		}
-		nomes = append(nomes, p.token.Valor)
+
+		if p.token.Tipo == lexer.TokenTresPontos {
+			p.avancar() // consome '...'
+			if p.token.Tipo != lexer.TokenIdentificador {
+				return nil, p.errof("era esperado um identificador de variável para o resto da desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
+			}
+			decl.Resto = p.token.Valor
+			p.avancar()
+			if p.token.Tipo == lexer.TokenVirgula {
+				p.avancar()
+			}
+			continue
+		}
+
+		if p.token.Tipo != lexer.TokenIdentificador {
+			return nil, p.errof("era esperado um identificador de variável na desestruturação, mas no lugar foi encontrado '%s'", p.token.Valor)
+		}
+
+		nome := p.token.Valor
 		p.avancar()
+
+		var valorPadrao BaseNode
+		if p.token.Tipo == lexer.TokenIgual {
+			p.avancar() // consome '='
+			var err error
+			valorPadrao, err = p.parseExpressao()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		decl.Campos = append(decl.Campos, ElementoDesestruturacao{
+			Nome:        nome,
+			ValorPadrao: valorPadrao,
+		})
+
 		if p.token.Tipo == lexer.TokenVirgula {
 			p.avancar()
 		}
 	}
-	p.avancar() // consome ']'
+
+	if err := p.consome(fechamento); err != nil {
+		return nil, err
+	}
 
 	if err := p.consome("="); err != nil {
 		return nil, err
 	}
 
-	inicializador, err := p.parseExpressao()
+	valor, err := p.parseExpressao()
 	if err != nil {
 		return nil, err
 	}
+	decl.Valor = valor
+	_, posFim := valor.Pos()
+	decl.Fim = posFim
 
 	if p.token.Tipo == lexer.TokenPontoEVirgula {
 		p.avancar()
@@ -860,7 +916,7 @@ func (p *Parser) parseVarDestructuring(constante bool) (BaseNode, error) {
 		p.avancar()
 	}
 
-	return &DeclVarDestructuring{Constante: constante, Nomes: nomes, Inicializador: inicializador}, nil
+	return decl, nil
 }
 
 func (p *Parser) parseEnum() (BaseNode, error) {

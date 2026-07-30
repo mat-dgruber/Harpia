@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -35,6 +37,12 @@ var globalsLinter = map[string]bool{
 	"Verdadeiro": true,
 	"Falso":      true,
 	"Nulo":       true,
+	"verdadeiro": true,
+	"falso":      true,
+	"nulo":       true,
+	"true":       true,
+	"false":      true,
+	"null":       true,
 
 	// Classes/tipos globais
 	"Texto":   true,
@@ -64,7 +72,9 @@ var globalsLinter = map[string]bool{
 	"fetch":            true,
 	"JSON":             true,
 	"window":           true,
+	"janela":           true,
 	"document":         true,
+	"documento":        true,
 	"console":          true,
 	"localStorage":     true,
 	"Promise":          true,
@@ -233,6 +243,13 @@ func (l *Linter) Checar(node parser.BaseNode) {
 			l.Escopo.Usadas[nome] = true
 		}
 
+		// Pre-hoisting de funções no escopo do programa
+		for _, decl := range n.Declaracoes {
+			if fn, ok := decl.(*parser.DeclFuncao); ok && fn.Nome != "" {
+				l.Escopo.Variaveis[fn.Nome] = true
+			}
+		}
+
 		for _, decl := range n.Declaracoes {
 			l.Checar(decl)
 		}
@@ -252,6 +269,17 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		}
 		l.Escopo.Declaracoes[n.Nome] = n
 		l.Checar(n.Inicializador)
+
+		if chamada, ok := n.Inicializador.(*parser.ChamadaFuncao); ok {
+			if id, ok := chamada.Identificador.(*parser.Identificador); ok {
+				if id.Nome == "sinal" || id.Nome == "sinalDebounce" {
+					if len(n.Nome) > 0 {
+						nomeSetter := "definir" + strings.ToUpper(n.Nome[:1]) + n.Nome[1:]
+						l.Escopo.Variaveis[nomeSetter] = true
+					}
+				}
+			}
+		}
 
 		// 2. Detectar vazamento de credenciais
 		nomeLower := strings.ToLower(n.Nome)
@@ -273,12 +301,13 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.DeclFuncao:
 		if n.Nome != "" {
-			if l.Escopo.DeclaradaLocal(n.Nome) {
+			if l.Escopo.Declaracoes[n.Nome] != nil {
 				l.registrarErro(fmt.Sprintf("Função '%s' conflita com declaração existente", n.Nome), "HRP-0002", 1, n)
-			} else if l.Escopo.Declarada(n.Nome) {
+			} else if l.Escopo.Declarada(n.Nome) && !l.Escopo.Variaveis[n.Nome] {
 				l.registrarErro(fmt.Sprintf("O identificador da função '%s' está sombreando uma variável externa", n.Nome), "HRP-0002", 2, n)
 			}
 			l.Escopo.Variaveis[n.Nome] = true
+			l.Escopo.Declaracoes[n.Nome] = n
 
 			// ponytail: Verificação estática de parâmetros JSX
 			primeiraLetra := string(n.Nome[0])
@@ -309,6 +338,12 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.Bloco:
 		l.pushEscopo()
+		// Pre-hoisting de funções no escopo do bloco
+		for _, decl := range n.Declaracoes {
+			if fn, ok := decl.(*parser.DeclFuncao); ok && fn.Nome != "" {
+				l.Escopo.Variaveis[fn.Nome] = true
+			}
+		}
 		for _, decl := range n.Declaracoes {
 			l.Checar(decl)
 		}
@@ -362,6 +397,11 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.OpUnaria:
 		l.Checar(n.Expressao)
+
+	case *parser.OpTernaria:
+		l.Checar(n.Condicao)
+		l.Checar(n.Entao)
+		l.Checar(n.Senao)
 
 	case *parser.ImporteDe:
 		for _, nome := range n.Nomes {
@@ -480,6 +520,31 @@ func (l *Linter) Checar(node parser.BaseNode) {
 		}
 		l.Checar(n.Inicializador)
 
+	case *parser.DeclDesestruturacao:
+		for _, elem := range n.Campos {
+			if l.Escopo.DeclaradaLocal(elem.Nome) {
+				l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", elem.Nome), "HRP-0002", 1, n)
+			}
+			if n.Constante {
+				l.Escopo.Consts[elem.Nome] = true
+			} else {
+				l.Escopo.Variaveis[elem.Nome] = true
+			}
+			l.Escopo.Declaracoes[elem.Nome] = n
+		}
+		if n.Resto != "" {
+			if l.Escopo.DeclaradaLocal(n.Resto) {
+				l.registrarErro(fmt.Sprintf("Variável '%s' já declarada neste escopo", n.Resto), "HRP-0002", 1, n)
+			}
+			if n.Constante {
+				l.Escopo.Consts[n.Resto] = true
+			} else {
+				l.Escopo.Variaveis[n.Resto] = true
+			}
+			l.Escopo.Declaracoes[n.Resto] = n
+		}
+		l.Checar(n.Valor)
+
 	case *parser.AsseguraNode:
 		l.Checar(n.Condicao)
 		if n.Mensagem != nil {
@@ -522,6 +587,17 @@ func (l *Linter) Checar(node parser.BaseNode) {
 
 	case *parser.DeclExportar:
 		l.Checar(n.Expressao)
+		// Símbolos exportados são consumidos por outros módulos
+		switch expr := n.Expressao.(type) {
+		case *parser.DeclVar:
+			l.Escopo.MarcarComoUsada(expr.Nome)
+		case *parser.DeclFuncao:
+			l.Escopo.MarcarComoUsada(expr.Nome)
+		case *parser.DeclVarDestructuring:
+			for _, nome := range expr.Nomes {
+				l.Escopo.MarcarComoUsada(nome)
+			}
+		}
 
 	case *parser.DeclClasse:
 		if l.Escopo.DeclaradaLocal(n.Nome) {

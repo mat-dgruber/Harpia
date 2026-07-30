@@ -1,3 +1,5 @@
+//go:build !js && !wasm
+
 package cmd
 
 import (
@@ -41,6 +43,15 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		if n.Inicializador != nil {
 			initVal = t.Transpile(n.Inicializador)
 		}
+
+		if chamada, ok := n.Inicializador.(*parser.ChamadaFuncao); ok {
+			fnName := t.Transpile(chamada.Identificador)
+			if strings.HasPrefix(fnName, "sinal") {
+				nomeSetter := "definir" + strings.ToUpper(n.Nome[:1]) + n.Nome[1:]
+				return fmt.Sprintf("%s [%s, %s] = %s;", keyword, n.Nome, nomeSetter, initVal)
+			}
+		}
+
 		return fmt.Sprintf("%s %s = %s;", keyword, n.Nome, initVal)
 
 	case *parser.DeclVarDestructuring:
@@ -53,6 +64,31 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			initVal = t.Transpile(n.Inicializador)
 		}
 		return fmt.Sprintf("%s [%s] = %s;", keyword, strings.Join(n.Nomes, ", "), initVal)
+
+	case *parser.DeclDesestruturacao:
+		keyword := "let"
+		if n.Constante {
+			keyword = "const"
+		}
+		initVal := "undefined"
+		if n.Valor != nil {
+			initVal = t.Transpile(n.Valor)
+		}
+		var elems []string
+		for _, c := range n.Campos {
+			if c.ValorPadrao != nil {
+				elems = append(elems, fmt.Sprintf("%s = %s", c.Nome, t.Transpile(c.ValorPadrao)))
+			} else {
+				elems = append(elems, c.Nome)
+			}
+		}
+		if n.Resto != "" {
+			elems = append(elems, "..."+n.Resto)
+		}
+		if n.TipoEstrut == "mapa" {
+			return fmt.Sprintf("%s { %s } = %s;", keyword, strings.Join(elems, ", "), initVal)
+		}
+		return fmt.Sprintf("%s [%s] = %s;", keyword, strings.Join(elems, ", "), initVal)
 
 	case *parser.OpCoalescenciaNula:
 		return fmt.Sprintf("(%s ?? %s)", t.Transpile(n.Esq), t.Transpile(n.Dir))
@@ -80,12 +116,16 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 
 	case *parser.Identificador:
 		switch n.Nome {
-		case "Verdadeiro":
+		case "Verdadeiro", "verdadeiro":
 			return "true"
-		case "Falso":
+		case "Falso", "falso":
 			return "false"
-		case "Nulo":
+		case "Nulo", "nulo":
 			return "null"
+		case "janela":
+			return "window"
+		case "documento":
+			return "document"
 		}
 		return n.Nome
 
@@ -93,7 +133,13 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 	case *parser.TextoLiteral:
 		if len(n.Valor) >= 2 {
 			valorLimpo := n.Valor[1 : len(n.Valor)-1]
-			return fmt.Sprintf(`"%s"`, strings.ReplaceAll(valorLimpo, `"`, `\"`))
+			// ponytail: escapa quebras de linha físicas para evitar SyntaxError no JS gerado
+			valorLimpo = strings.ReplaceAll(valorLimpo, "\r\n", "\\n")
+			valorLimpo = strings.ReplaceAll(valorLimpo, "\n", "\\n")
+			valorLimpo = strings.ReplaceAll(valorLimpo, "\r", "\\r")
+			valorLimpo = strings.ReplaceAll(valorLimpo, `\"`, `"`)
+			valorLimpo = strings.ReplaceAll(valorLimpo, `"`, `\"`)
+			return fmt.Sprintf(`"%s"`, valorLimpo)
 		}
 		return `""`
 
@@ -190,6 +236,9 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			asyncPrefix = "async "
 		}
 		body := t.Transpile(n.Corpo)
+		if n.Nome == "" {
+			return fmt.Sprintf("%s%s(%s) => %s", jsdoc.String(), asyncPrefix, strings.Join(params, ", "), body)
+		}
 		return fmt.Sprintf("%s%sfunction %s(%s) %s", jsdoc.String(), asyncPrefix, n.Nome, strings.Join(params, ", "), body)
 
 	case *parser.Bloco:
@@ -241,6 +290,22 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 	case *parser.AcessoMembro:
 		dono := t.Transpile(n.Dono)
 		membro := t.Transpile(n.Membro)
+		switch membro {
+		case "preventirPadrao":
+			membro = "preventDefault"
+		case "metaTecla":
+			membro = "metaKey"
+		case "controlTecla":
+			membro = "ctrlKey"
+		case "tecla":
+			membro = "key"
+		case "comecaCom":
+			membro = "startsWith"
+		case "terminaCom":
+			membro = "endsWith"
+		case "contem":
+			membro = "includes"
+		}
 		return fmt.Sprintf("%s.%s", dono, membro)
 
 	case *parser.Indexacao:
@@ -455,7 +520,10 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		if len(n.Tag) > 0 && n.Tag[0] >= 'A' && n.Tag[0] <= 'Z' {
 			tagArg = n.Tag
 		}
-		return fmt.Sprintf("h(%s, %s, %s)", tagArg, attrsObj, strings.Join(children, ", "))
+		if len(children) > 0 {
+			return fmt.Sprintf("h(%s, %s, %s)", tagArg, attrsObj, strings.Join(children, ", "))
+		}
+		return fmt.Sprintf("h(%s, %s)", tagArg, attrsObj)
 
 	case *parser.NoSeJSX:
 		cond := t.Transpile(n.Condicao)
@@ -502,6 +570,9 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			}
 			var sb strings.Builder
 			for _, nome := range n.Nomes {
+				if strings.Contains(nome, ":") {
+					continue
+				}
 				sb.WriteString(fmt.Sprintf("const %s = \"%s\";\n", nome, nome))
 			}
 			return sb.String()
@@ -512,26 +583,57 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			jsPath = strings.TrimSuffix(jsPath, ".hrp") + ".js"
 		}
 		if !strings.HasPrefix(jsPath, ".") && !strings.HasPrefix(jsPath, "/") && !strings.Contains(jsPath, "://") {
-			if jsPath == "web" {
-				jsPath = "./runtime-web.js"
-				if t.DiretorioProjeto != "" && t.DiretorioBase != "" {
-					rel, err := filepath.Rel(t.DiretorioBase, t.DiretorioProjeto)
-					if err == nil && rel != "." {
-						jsPath = filepath.ToSlash(filepath.Join(rel, "runtime-web.js"))
-						if !strings.HasPrefix(jsPath, ".") {
-							jsPath = "./" + jsPath
-						}
-					}
+			// ponytail: Qualquer import relativo sem prefixo ./, ../ ou / (ex: stdlib "arquivos", "seguranca", "web", etc.)
+			// deve ser redirecionado para o runtime-web.js para evitar que o navegador rejeite bare module specifiers.
+			jsPath = "./runtime-web.js"
+			if t.DiretorioProjeto != "" && t.DiretorioBase != "" {
+				rel, err := filepath.Rel(t.DiretorioProjeto, t.DiretorioBase)
+				if err == nil && rel != "." {
+					relPath := filepath.ToSlash(rel)
+					relPath = strings.TrimPrefix(relPath, "web/")
+					depth := strings.Count(relPath, "/") + 1
+					jsPath = "./" + strings.Repeat("../", depth) + "runtime-web.js"
 				}
 			}
 		}
+
+		if strings.HasSuffix(jsPath, "runtime-web.js") {
+			var nonHeaderNames []string
+			headerSymbols := map[string]bool{
+				"h": true, "sinal": true, "sinalDebounce": true, "sinalPersistente": true,
+				"efeito": true, "derivado": true, "armazem": true, "montar": true,
+				"navegar": true, "roteador": true, "usarFormulario": true, "usarConsulta": true,
+				"usarTema": true, "usarArrastar": true, "usarNotificacao": true, "NotificacaoToast": true,
+				"Portal": true, "BarraDeProgresso": true, "Link": true, "Aguardar": true,
+				"Escolha": true, "Caso": true, "Padrao": true, "recurso": true,
+				"requisitar": true, "sanitizarHtml": true, "sanitizarSqlArgumento": true,
+			}
+			for _, nome := range n.Nomes {
+				if !headerSymbols[nome] {
+					nonHeaderNames = append(nonHeaderNames, nome)
+				}
+			}
+			if len(nonHeaderNames) == 0 {
+				return ""
+			}
+			return fmt.Sprintf("import { %s } from \"%s\";", strings.Join(nonHeaderNames, ", "), jsPath)
+		}
+
 		return fmt.Sprintf("import { %s } from \"%s\";", strings.Join(n.Nomes, ", "), jsPath)
 
 	case *parser.DeclEstilo:
+		// Blocos @media são passados como CSS raw (sem prefixo .)
+		if strings.HasPrefix(n.Nome, "@") {
+			t.Styles = append(t.Styles, n.Regras)
+			return ""
+		}
 		// Enviar pelo pipeline CSS enxuto: mapa canônico PT→CSS,
 		// strip de aspas e suporte a nesting.
 		cssBlock := processaBlocoEstilo(n.Nome, n.Regras)
 		t.Styles = append(t.Styles, cssBlock)
+		if strings.Contains(n.Nome, ":") {
+			return ""
+		}
 		return fmt.Sprintf("const %s = \"%s\";", n.Nome, n.Nome)
 	}
 
@@ -540,5 +642,5 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 }
 
 func entries(key, val string) string {
-	return fmt.Sprintf("%s: %s", key, val)
+	return fmt.Sprintf("%q: %s", key, val)
 }
