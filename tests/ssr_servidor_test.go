@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
+	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
 func TestSSRServidorCompleto(t *testing.T) {

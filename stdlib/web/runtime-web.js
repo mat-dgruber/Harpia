@@ -374,7 +374,10 @@ export function h(tag, props, ...filhos) {
  * Componente Fragmento para agrupar múltiplos nós sem criar elemento contêiner extra no DOM.
  */
 export function Fragmento(props) {
-  return (props && props.children) || null;
+  if (!props) return null;
+  const c = props.children;
+  if (c === undefined || c === null || c === false) return null;
+  return Array.isArray(c) ? c : [c];
 }
 export const Fragment = Fragmento;
 
@@ -394,6 +397,27 @@ const TAGS_SVG = new Set([
   "defs",
   "clipPath",
   "clippath",
+  "linearGradient",
+  "lineargradient",
+  "radialGradient",
+  "radialgradient",
+  "stop",
+  "symbol",
+  "marker",
+  "mask",
+  "pattern",
+  "tspan",
+  "filter",
+  "feDropShadow",
+  "fedropshadow",
+  "feGaussianBlur",
+  "fegaussianblur",
+  "foreignObject",
+  "foreignobject",
+  "style",
+  "animate",
+  "animateTransform",
+  "animatetransform",
 ]);
 
 function eTagSVG(tag) {
@@ -661,6 +685,19 @@ function mapearAtributo(nome) {
   return mapeamento[nome] || nome;
 }
 
+function contarNosFisicos(vno) {
+  if (!vno) return 0;
+  if (Array.isArray(vno)) {
+    let sum = 0;
+    for (const item of vno) sum += contarNosFisicos(item);
+    return sum;
+  }
+  if (typeof vno === "object" && typeof vno.tag === "function" && vno._componenteInstancia) {
+    return contarNosFisicos(vno._componenteInstancia);
+  }
+  return 1;
+}
+
 function obterNoFisico(vno, pai) {
   if (!vno) return null;
   if (Array.isArray(vno)) {
@@ -718,6 +755,12 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
   }
 
   if (novoVNo === null || novoVNo === undefined || novoVNo === false) {
+    if (Array.isArray(velhoVNo)) {
+      for (let i = velhoVNo.length - 1; i >= 0; i--) {
+        reconciliar(pai, velhoVNo[i], null, index + i);
+      }
+      return;
+    }
     if (noFisico && (noFisico.parentNode === pai || !noFisico.parentNode) && typeof pai.removeChild === "function") {
       try { pai.removeChild(noFisico); } catch (_) {}
     }
@@ -744,7 +787,10 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
     }
     const novoRendido = novoVNo.tag(novoVNo.props);
     novoVNo._componenteInstancia = novoRendido;
-    const velhoRendido = velhoVNo._componenteInstancia || velhoVNo;
+    const velhoRendido =
+      velhoVNo && velhoVNo._componenteInstancia !== undefined
+        ? velhoVNo._componenteInstancia
+        : velhoVNo;
     reconciliar(pai, velhoRendido, novoRendido, index);
     novoVNo.el = obterNoFisico(novoRendido, pai);
     return;
@@ -753,9 +799,19 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
   if (Array.isArray(novoVNo) || Array.isArray(velhoVNo)) {
     const velhosFilhos = Array.isArray(velhoVNo) ? velhoVNo : (velhoVNo ? [velhoVNo] : []);
     const novosFilhos = Array.isArray(novoVNo) ? novoVNo : (novoVNo ? [novoVNo] : []);
-    const max = Math.max(velhosFilhos.length, novosFilhos.length);
-    for (let i = 0; i < max; i++) {
-      reconciliar(pai, velhosFilhos[i], novosFilhos[i], index + i);
+    if (velhosFilhos.length > novosFilhos.length) {
+      let subIdx = index;
+      for (let i = 0; i < novosFilhos.length; i++) {
+        subIdx += contarNosFisicos(velhosFilhos[i]);
+      }
+      for (let i = velhosFilhos.length - 1; i >= novosFilhos.length; i--) {
+        reconciliar(pai, velhosFilhos[i], null, subIdx);
+      }
+    }
+    let domOffset = index;
+    for (let i = 0; i < novosFilhos.length; i++) {
+      reconciliar(pai, velhosFilhos[i], novosFilhos[i], domOffset);
+      domOffset += contarNosFisicos(novosFilhos[i]);
     }
     return;
   }
@@ -821,9 +877,19 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
         }
       });
     } else {
-      const max = Math.max(velhosFilhos.length, novosFilhos.length);
-      for (let i = 0; i < max; i++) {
-        reconciliar(noFisico, velhosFilhos[i], novosFilhos[i], i);
+      if (velhosFilhos.length > novosFilhos.length) {
+        let subIdx = 0;
+        for (let i = 0; i < novosFilhos.length; i++) {
+          subIdx += contarNosFisicos(velhosFilhos[i]);
+        }
+        for (let i = velhosFilhos.length - 1; i >= novosFilhos.length; i--) {
+          reconciliar(noFisico, velhosFilhos[i], null, subIdx);
+        }
+      }
+      let domOffset = 0;
+      for (let i = 0; i < novosFilhos.length; i++) {
+        reconciliar(noFisico, velhosFilhos[i], novosFilhos[i], domOffset);
+        domOffset += contarNosFisicos(novosFilhos[i]);
       }
     }
   }
@@ -833,9 +899,7 @@ function mudou(no1, no2) {
   if (no1 === no2) return false;
   if (!no1 || !no2) return no1 !== no2;
   if (Array.isArray(no1) || Array.isArray(no2)) {
-    if (!Array.isArray(no1) || !Array.isArray(no2)) return true;
-    if (no1.length !== no2.length) return true;
-    return false;
+    return !Array.isArray(no1) || !Array.isArray(no2);
   }
   return (
     typeof no1 !== typeof no2 ||
@@ -1971,8 +2035,8 @@ export function usarCabecalho(opcoes) {
 
           let el = null;
           if (typeof head.querySelector === "function") {
-            if (nome) el = head.querySelector(`meta[name="${nome}"]`);
-            else if (prop) el = head.querySelector(`meta[property="${prop}"]`);
+            if (nome) el = head.querySelector('meta[name="' + nome + '"]');
+            else if (prop) el = head.querySelector('meta[property="' + prop + '"]');
           } else if (head.childNodes) {
             for (const child of head.childNodes) {
               if (child.tag === "meta" && child.props) {

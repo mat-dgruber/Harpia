@@ -174,7 +174,7 @@ async function rodarTestes() {
   await Promise.resolve();
 
   console.log("Após microtask resolvida (Loteamento consolidado):", logsEfeito[1]); // Deve exibir o valor consolidado '20'
-  console.log("Total de execuções do efeito (esperava 2 - inicial + consolidado):", logsEfeito.length);
+  console.log("Total de execuções do efeito (esperava 3 - inicial + consolidado):", logsEfeito.length);
 
   console.log("\n=== 2. TESTANDO ARMAZÉM GLOBAL ===");
   const carrinho = armazem({ total: 0, itens: [] });
