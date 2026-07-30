@@ -74,6 +74,15 @@ func Chamar(obj Objeto, args Objeto) (Objeto, error) {
 		}
 		go func() {
 			defer func() {
+				if r := recover(); r != nil {
+					var panicErr error
+					if e, ok := r.(error); ok {
+						panicErr = e
+					} else {
+						panicErr = fmt.Errorf("pânico assíncrono: %v", r)
+					}
+					prom.Rejeitar(panicErr)
+				}
 				if fn.contexto != nil {
 					fn.contexto.EncerrarTrabalho()
 				}
@@ -169,6 +178,12 @@ func ObtemAtributoS(inst Objeto, nome string) (Objeto, error) {
 		}
 
 		return obj, nil
+	}
+
+	if nome == "tamanho" {
+		if I, ok := inst.(I__tamanho__); ok {
+			return I.M__tamanho__()
+		}
 	}
 
 	return nil, NewErroF(AtributoErro, "O atributo '%s' não existe no tipo '%s'", nome, inst.Tipo().Nome)

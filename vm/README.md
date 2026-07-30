@@ -1,6 +1,6 @@
 # Pacote `vm` (Máquina Virtual & Compilador de Bytecode do Harpia)
 
-O pacote `vm` é o mecanismo de execução nativo de alta performance do interpretador **Harpia**. Ele encapsula tanto o **Compilador de Bytecode** (que traduz a Árvore de Sintaxe Abstrata - AST da linguagem em instruções planas de 1 byte) quanto a **Máquina Virtual de Pilha** (que executa esse bytecode de forma extremamente otimizada usando despacho rosqueado e cache polimórfico).
+O pacote `vm` é o motor de execução nativo único de alta performance do **Harpia**. Ele encapsula o **Compilador de Bytecode** (que traduz a Árvore de Sintaxe Abstrata — AST para bytecode de 16 bits com resolução estática de escopo) e a **Máquina Virtual de Pilha** (com loop `switch` zero-alloc e acesso $O(1)$ a variáveis locais em slots numéricos `uint16`).
 
 ---
 
@@ -9,88 +9,97 @@ O pacote `vm` é o mecanismo de execução nativo de alta performance do interpr
 1. [Visão Geral](#-visão-geral)
 2. [Dependências e Arquitetura](#-dependências-e-arquitetura)
 3. [Recursos de Performance e Otimizações](#-recursos-de-performance-e-otimizações)
-4. [Especificação do Conjunto de Instruções (Opcodes)](#-especificação-do-conjunto-de-instruções-opcodes)
+4. [Especificação do Conjunto de Instruções (Opcodes de 16 Bits)](#-especificação-do-conjunto-de-instruções-opcodes-de-16-bits)
 5. [Exemplo Completo de Uso Prático](#-exemplo-completo-de-uso-prático)
 
 ---
 
 ## 🎯 Visão Geral
 
-Para executar programas Harpia no backend sem o overhead da interpretação direta da AST, o pacote fornece uma esteira de execução de bytecode:
+Para executar programas Harpia com máxima performance sem o overhead de caminhamento em nós da AST, o pacote fornece uma esteira de compilação e execução unificada:
 
-1. **Compilador (`compilador.go`)**: Realiza uma tradução recursiva de passagem única (single-pass) dos nós de declarações, operações e fluxo de controle em opcodes compactos (1 byte) e gerencia o pool global de constantes do programa.
-2. **Máquina Virtual (`vm.go`)**: Um motor de execução de bytecode baseado em pilha de operandos que manipula objetos canônicos do Harpia (`hrp.Objeto`) sob uma estratégia rígida de contagem de referências.
+1. **Compilador (`compilador.go`)**: Realiza tradução single-pass dos nós de declarações, expressões e controle de fluxo para opcodes com operandos de 16 bits (`uint16` BigEndian). Resolve estaticamente variáveis locais para slots numéricos `uint16` em tempo de compilação via `EscopoCompilador`.
+2. **Máquina Virtual (`vm.go`)**: Motor de execução com loop `switch` zero-alloc, acesso $O(1)$ a slots de variáveis locais em `frame.Locais[]`, pooling de pilhas via `sync.Pool`, e manipulação com contagem de referências de `hrp.Objeto`. Integra-se de forma transparente ao `hrp.Contexto` por meio do registrador `hrp.DefinirExecutadorVM`.
 
 ---
 
 ## 🏢 Dependências e Arquitetura
 
-O pacote foi desenhado de forma minimalista e autônoma, dependendo apenas do ecossistema do próprio compilador e da biblioteca padrão de Go:
-
 - **Dependências Internas**:
-  - `github.com/mat-dgruber/Harpia/hrp`: Modelo de dados e sistema de tipos unificado do Harpia (Inteiro, Decimal, Texto, Lista, Mapa, etc.).
-  - `github.com/mat-dgruber/Harpia/parser`: Fornece as estruturas de nós da AST para o compilador.
-  - `github.com/mat-dgruber/Harpia/compartilhado`: Utilitários compartilhados de conversão segura de tipos de dados.
-- **Bibliotecas Go Estritamente Utilizadas**:
-  - `encoding/binary`: Codificação e decodificação rápida Big-Endian para operandos numéricos multianinhados.
-  - `sync`: Pooling de pilha de operandos por meio de `sync.Pool`.
-  - `time`: Medições de carimbos temporais de alta precisão do Profiler integrado.
+  - `github.com/mat-dgruber/Harpia/hrp`: Tipos de dados, objetos (`hrp.Objeto`), escopos e contexto global de execução.
+  - `github.com/mat-dgruber/Harpia/parser`: Estruturas de nós AST consumidas pelo compilador.
+  - `github.com/mat-dgruber/Harpia/compartilhado`: Utilitários de conversão segura.
+- **Bibliotecas Go**:
+  - `encoding/binary`: Decodificação BigEndian veloz para operandos de 16 bits (`uint16`).
+  - `sync`: Reutilização de pilhas via `sync.Pool`.
+  - `time`: Medições do Profiler integrado da VM.
 
 ---
 
 ## ⚡ Recursos de Performance e Otimizações
 
-A VM implementa vários conceitos modernos de engenharia de compiladores e máquinas virtuais de nível industrial para otimizar o throughput e a latência de execução:
+### 1. Loop `switch` Zero-Alloc Plano
+O motor de despacho em `vm.go` utiliza um loop `switch` altamente otimizado por compiladores Go modernos, eliminando alocações no heap durante o ciclo de instrução e maximizando a localidade de cache da CPU.
 
-### 1. JIT de Traço / Despacho Rosqueado (Threaded Code JIT - Fase F)
-Em vez de utilizar um tradicional loop centralizado contendo um `switch-case` (que causa frequentes falhas de predição de desvios - *branch misprediction* na CPU física), a VM do Harpia compila o bytecode plano em tempo de carregamento em uma fatia de ponteiros de funções (`[]InstrucaoThreaded`). Cada callback executa sua operação e retorna o próximo desvio diretamente, reduzindo as bolhas no pipeline do processador.
+### 2. Slots Locais $O(1)$ com Indexação `uint16`
+Variáveis locais são resolvidas em tempo de compilação pelo `EscopoCompilador` e mapeadas para slots inteiros `uint16`. O acesso em runtime é $O(1)$ via indexação direta em `frame.Locais[slot]`, dispensando pesquisas de string em tabelas hash.
 
-### 2. Monomorphic Inline Cache (MIC) para Variáveis
-A resolução dinâmica de escopos e tabelas de símbolos (escopos léxicos aninhados) é uma das operações mais caras em linguagens dinâmicas. O opcode `OP_CARREGAR_VAR` implementa um mecanismo de cache em linha monomórfico: se o escopo atual for idêntico ao escopo do último acesso, a variável é retornada diretamente da memória cache rápida, pulando a varredura linear recursiva na árvore de escopos.
+### 3. Internamento $O(1)$ de Constantes (`constMap`)
+O compilador emprega uma tabela hash interna (`constMap map[string]uint16`) para dedup de constantes numéricas, textuais e booleanas em tempo de compilação, reduzindo o tempo de compilação de $O(N)$ linear para $O(1)$ constante em scripts com múltiplos literais.
 
-### 3. Fusão de Opcodes e Super-Instruções (Fase D)
-O otimizador e compilador detecta sequências frequentes de instruções de retorno e as colapsa em uma única instrução composta (Super-Instruções). Por exemplo, a sequência que carrega uma variável ou literal e imediatamente executa o retorno é compilada diretamente nos opcodes dedicados `OP_RETORNE_VAR` e `OP_RETORNE_CONST`, reduzindo pela metade as chamadas e incrementos de ponteiro de instrução.
+### 4. Laços `para-em` (`BlocoPara`) e Controle de Fluxo (`pare` / `continue`)
+Suporte nativo à compilação de laços de repetição sobre iteráveis (`para item em colecao { ... }`), com empilhamento de frames de laço (`LoopStack`) para desvios incondicionais e remendo automático de endereços em instruções `pare` (`PareNode`) e `continue` (`ContinueNode`).
 
-### 4. Reutilização de Pilha via `sync.Pool`
-Para anular alocações repetidas de coleções dinâmicas de fatias no heap do Go (`make([]hrp.Objeto)`) em funções recursivas de alta concorrência, a VM utiliza um pool global sincronizado (`poolPilha`) que retém e reinicializa as pilhas locais dos frames, reduzindo drasticamente a carga sobre o garbage collector do runtime de Go.
+### 5. Reatribuição Composta e Escritas em Coleções / Membros
+Compilação direta de operadores compostos (`+=`, `-=`, `*=`, `/=`, `//=`, `%=`) em variáveis locais/globais e suporte completo a escritas diretas em membros de objetos (`obj.prop = val`) e elementos indexados (`lista[idx] = val`).
+
+### 6. Suporte Expandido a Operandos 16-Bit BigEndian
+Pools de constantes e endereçamento de pulos suportam até 65.535 entradas (`uint16`), permitindo compilar módulos e programas extensos sem estouro de limites de operandos.
+
+### 7. Gestão de Memória via `sync.Pool`
+Pilhas de operandos dos frames são gerenciadas via `sync.Pool` (`poolPilha`), reaproveitando slices alocados para reduzir drasticamente a pressão sobre o Garbage Collector do Go em chamadas de função frequentes e laços de repetição.
+
+### 8. Tratamento Nativo de Exceções (`tente / capture`)
+Suporte a blocos de exceção via opcodes `OP_SETUP_TRY` e `OP_POP_TRY`. Exceções em runtime ou disparadas por `OP_LANCAR` realizam unwinding automático da pilha de operandos até a profundidade registrada e desviam o apontador de instrução (`IP`) para o bloco `capture`.
 
 ---
 
-## ⚙️ Especificação do Conjunto de Instruções (Opcodes)
+## ⚙️ Especificação do Conjunto de Instruções (Opcodes de 16 Bits)
 
-| Instrução (Opcode) | Valor Hex | Operandos | Descrição da Operação Semântica |
+| Instrução (Opcode) | Hex | Operandos | Descrição Semântica |
 |:---|:---|:---|:---|
-| `OP_PUSH_CONST` | `0x01` | `[1 byte index]` | Empilha uma constante do pool local de constantes na pilha de operandos. |
-| `OP_POP` | `0x02` | Nenhum | Desempilha o elemento situado no topo da pilha. |
-| `OP_DUP` | `0x03` | Nenhum | Duplica o elemento situado no topo da pilha de operandos. |
-| `OP_ADD` | `0x04` | Nenhum | Desempilha `a` e `b`, executa `a + b` e empilha o resultado polimórfico. |
-| `OP_SUB` | `0x05` | Nenhum | Desempilha `a` e `b`, executa `a - b` e empilha o resultado polimórfico. |
-| `OP_MUL` | `0x06` | Nenhum | Desempilha `a` e `b`, executa `a * b` e empilha o resultado polimórfico. |
-| `OP_DIV` | `0x07` | Nenhum | Desempilha `a` e `b`, executa `a / b` e empilha o resultado polimórfico. |
-| `OP_DIV_INT` | `0x08` | Nenhum | Divisão de inteiros desempilhando dois números operandos (`a // b`). |
-| `OP_MOD` | `0x09` | Nenhum | Resto da divisão matemática de operandos desempilhados (`a % b`). |
-| `OP_EQ` | `0x0A` | Nenhum | Avalia igualdade polimórfica (`a == b`) e empilha `Booleano`. |
-| `OP_NEQ` | `0x0B` | Nenhum | Avalia desigualdade polimórfica (`a != b`) e empilha `Booleano`. |
-| `OP_LT` | `0x0C` | Nenhum | Avalia se `a < b` e empilha `Booleano`. |
-| `OP_LTE` | `0x0D` | Nenhum | Avalia se `a <= b` e empilha `Booleano`. |
-| `OP_GT` | `0x0E` | Nenhum | Avalia se `a > b` e empilha `Booleano`. |
-| `OP_GTE` | `0x0F` | Nenhum | Avalia se `a >= b` e empilha `Booleano`. |
-| `OP_JMP` | `0x10` | `[2 bytes offset]` | Realiza um desvio (salto) incondicional para o endereço absoluto especificado. |
-| `OP_JMP_FALSO` | `0x11` | `[2 bytes offset]` | Realiza um desvio (salto) se o topo da pilha de operandos for `Falso` ou `Nulo`. |
-| `OP_CARREGAR_VAR` | `0x12` | `[1 byte index]` | Carrega na pilha o valor associado à variável identificada pelo nome no índice. |
-| `OP_ARMAZENAR_VAR` | `0x13` | `[1 byte index]` | Vincula ou reatribui o valor do topo da pilha à variável identificada pelo nome. |
-| `OP_CHAMAR` | `0x14` | `[1 byte arity]` | Invoca um objeto chamável com N argumentos desempilhados. |
-| `OP_RETORNE` | `0x15` | Nenhum | Sái do frame de execução retornando o valor posicionado no topo da pilha. |
-| `OP_AWAIT` | `0x16` | Nenhum | Suspende e aguarda de forma não-bloqueante a resolução de uma Promessa/Canal. |
-| `OP_CRIAR_FUNCAO` | `0x17` | `[1 byte index]` | Instancia um objeto de função executável em tempo de execução no escopo. |
-| `OP_RETORNE_CONST`| `0x18` | `[1 byte index]` | Carrega constante do pool e encerra o frame retornando-a de forma atômica. |
-| `OP_RETORNE_VAR`  | `0x19` | `[1 byte index]` | Carrega variável local e encerra o frame retornando-a de forma atômica. |
+| `OP_PUSH_CONST` | `0x01` | `[2 bytes u16]` | Empilha constante do pool no topo da pilha. |
+| `OP_POP` | `0x02` | Nenhum | Desempilha e libera o elemento do topo da pilha. |
+| `OP_DUP` | `0x03` | Nenhum | Duplica o elemento do topo da pilha. |
+| `OP_ADD` / `OP_SUB` / `OP_MUL` / `OP_DIV` | `0x04..0x07` | Nenhum | Operações aritméticas binárias polimórficas. |
+| `OP_DIV_INT` / `OP_MOD` | `0x08..0x09` | Nenhum | Divisão inteira (`//`) e resto de divisão (`%`). |
+| `OP_EQ` / `OP_NEQ` / `OP_LT` / `OP_LTE` / `OP_GT` / `OP_GTE` | `0x0A..0x0F` | Nenhum | Operadores relacionais e de comparação. |
+| `OP_JMP` | `0x10` | `[2 bytes u16]` | Salto incondicional para o endereço absoluto no bytecode. |
+| `OP_JMP_FALSO` | `0x11` | `[2 bytes u16]` | Salto condicional se topo for `Falso` ou `Nulo`. |
+| `OP_CARREGAR_LOCAL` | `0x12` | `[2 bytes u16]` | Carrega valor do slot local $O(1)$ na pilha. |
+| `OP_ARMAZENAR_LOCAL` | `0x13` | `[2 bytes u16]` | Armazena topo da pilha no slot local $O(1)$. |
+| `OP_CARREGAR_GLOBAL` | `0x14` | `[2 bytes u16]` | Carrega variável global por nome no pool de constantes. |
+| `OP_ARMAZENAR_GLOBAL` | `0x15` | `[2 bytes u16]` | Armazena valor em variável global pelo nome. |
+| `OP_CHAMAR` | `0x16` | `[1 byte arity]` | Invoca função ou chamável com N argumentos. |
+| `OP_RETORNE` | `0x17` | Nenhum | Retorna o valor do topo da pilha do frame atual. |
+| `OP_AWAIT` | `0x18` | Nenhum | Aguarda resolução de promessa assíncrona. |
+| `OP_CRIAR_FUNCAO` | `0x19` | `[2 bytes u16]` | Instancia objeto de função do pool de constantes. |
+| `OP_RETORNE_CONST` | `0x1A` | `[2 bytes u16]` | Retorna constante diretamente do pool de constantes. |
+| `OP_RETORNE_LOCAL` | `0x1B` | `[2 bytes u16]` | Retorna valor do slot local $O(1)$ diretamente. |
+| `OP_NEG` / `OP_NOT` | `0x1C..0x1D` | Nenhum | Operadores unários (negação aritmética e lógica). |
+| `OP_CRIAR_LISTA` | `0x1E` | `[2 bytes u16]` | Cria lista com N elementos desempilhados. |
+| `OP_CRIAR_MAPA` | `0x1F` | `[2 bytes u16]` | Cria mapa com N pares chave-valor. |
+| `OP_OBTER_INDICE` / `OP_DEFINIR_INDICE` | `0x20..0x21` | Nenhum | Leitura e escrita de elemento por índice (`a[i]`). |
+| `OP_OBTER_ATRIBUTO` / `OP_DEFINIR_ATRIBUTO` | `0x22..0x23` | `[2 bytes u16]` | Acesso e atribuição de membro (`obj.attr`). |
+| `OP_COALESCE` | `0x24` | `[2 bytes u16]` | Operador de coalescência nula (`??`). |
+| `OP_ACESSAR_OPCIONAL` | `0x25` | `[2 bytes u16]` | Acesso a membro opcional (`obj?.attr`). |
+| `OP_SETUP_TRY` | `0x26` | `[2 bytes u16]` | Configura handler de exceção com IP do bloco catch. |
+| `OP_POP_TRY` | `0x27` | Nenhum | Remove handler de exceção do topo da pilha de try. |
+| `OP_LANCAR` | `0x28` | Nenhum | Lança exceção com erro desempilhado do topo. |
 
 ---
 
 ## 🛠️ Exemplo Completo de Uso Prático
-
-O exemplo a seguir demonstra o pipeline completo de inicialização, compilação, estruturação de frame de execução e despacho de bytecode na máquina virtual de alta performance do Harpia utilizando a linguagem Go:
 
 ```go
 package main
@@ -105,41 +114,33 @@ import (
 )
 
 func main() {
-	// 1. Código fonte em Harpia (Sintaxe em Português)
-	codigoFonte := `
+	codigoFuente := `
 	var a = 10
 	var b = 20
 	retorne a * b + 5
 	`
 
-	// 2. Parseamento do código fonte para Árvore de Sintaxe Abstrata (AST)
-	ast, err := parser.NewParserFromString(codigoFonte, "exemplo.hrp").Parse()
+	ast, err := parser.NewParserFromString(codigoFuente, "exemplo.hrp").Parse()
 	if err != nil {
-		log.Fatalf("Erro de parser: %v", err)
+		log.Fatalf("Erro no parser: %v", err)
 	}
 
-	// 3. Inicialização do compilador e tradução para Bytecode
-	compilador := vm.NewCompilador()
+	contexto := hrp.NewContexto(hrp.OpcsContexto{})
+	compilador := vm.NewCompilador(contexto)
 	programa, err := compilador.Compilar(ast)
 	if err != nil {
-		log.Fatalf("Erro de compilação: %v", err)
+		log.Fatalf("Erro na compilação do bytecode: %v", err)
 	}
 
-	// 4. Criação do contexto global e escopo do interpretador Harpia
-	contexto := hrp.NewContexto(hrp.OpcsContexto{})
 	escopoRaiz := hrp.NewEscopo(nil)
-
-	// 5. Inicialização da VM e do Frame inicial de ativação da pilha
 	maquinaVirtual := vm.NewVM(contexto)
-	frameInicial := vm.NewFrame(programa.Bytecode, programa.Constantes, escopoRaiz, nil)
+	frameInicial := vm.NewFrame(programa.Bytecode, programa.Constantes, escopoRaiz, nil, programa.NomesLocais)
 
-	// 6. Execução veloz do bytecode compilado
 	resultado, err := maquinaVirtual.Executar(frameInicial)
 	if err != nil {
 		log.Fatalf("Erro em runtime na VM: %v", err)
 	}
 
-	// 7. Impressão do objeto de resultado obtido
-	fmt.Printf("✓ Resultado retornado pela VM: %v (Tipo: %T)\n", resultado, resultado)
+	fmt.Printf("✓ Resultado retornado pela VM: %v\n", resultado)
 }
 ```

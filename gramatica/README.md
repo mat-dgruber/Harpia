@@ -2,8 +2,8 @@
 
 O diretório `gramatica` abriga os arquivos formais de especificação de sintaxe e léxico da linguagem **Harpia**. As regras são descritas no formato padrão da ferramenta geradora de compiladores **ANTLR4** (`.g4`), dividindo-se em:
 
-1. **`HarpiaLexer.g4`**: Define a especificação léxica formal (tokens, literais, operadores, delimitadores, bitwise, identificadores e ignoráveis).
-2. **`HarpiaParser.g4`**: Define as regras sintáticas e a gramática de precedência gramatical (AST - Árvore de Sintaxe Abstrata), modelando desde a declaração raiz até as expressões aninhadas.
+1. **`HarpiaLexer.g4`**: Define a especificação léxica formal (tokens, literais, palavras-chave reservadas, operadores, delimitadores, bitwise, identificadores Unicode e ignoráveis).
+2. **`HarpiaParser.g4`**: Define as regras sintáticas e a gramática de precedência de expressões (AST - Árvore de Sintaxe Abstrata), modelando desde a declaração raiz até estruturas complexas de POO, Pattern Matching, Async/Await e Estilos.
 
 ---
 
@@ -13,11 +13,13 @@ O diretório `gramatica` abriga os arquivos formais de especificação de sintax
 2. [Especificação Léxica Detalhada (`HarpiaLexer.g4`)](#-especificação-léxica-detalhada-harpialexerg4)
    - [Constantes e Literais Primitivos](#constantes-e-literais-primitivos)
    - [Palavras-Chave Reservadas](#palavras-chave-reservadas)
-   - [Operadores de Reatribuição e Matemáticos](#operadores-de-reatribuição-e-matemáticos)
-   - [Delimitadores de Sintaxe e Bitwise](#delimitadores-de-sintaxe-e-bitwise)
+   - [Operadores de Reatribuição, Matemáticos e Especiais](#operadores-de-reatribuição-matemáticos-e-especiais)
+   - [Delimitadores e Identificadores Unicode](#delimitadores-e-identificadores-unicode)
 3. [Especificação Sintática Detalhada (`HarpiaParser.g4`)](#-especificação-sintática-detalhada-harpiaparserg4)
-   - [Ponto de Entrada e Declarações](#ponto-de-entrada-e-declarações)
-   - [Controle de Fluxo, Funções e Imports](#controle-de-fluxo-funções-e-imports)
+   - [Ponto de Entrada e Flexibilidade de Ponto e Vírgula](#ponto-de-entrada-e-flexibilidade-de-ponto-e-vírgula)
+   - [Controle de Fluxo, Exceções e Pattern Matching](#controle-de-fluxo-exceções-e-pattern-matching)
+   - [Orientação a Objetos, Enums e Interfaces](#orientação-a-objetos-enums-e-interfaces)
+   - [Estilos e Testes Nativos](#estilos-e-testes-nativos)
    - [Precedência de Operadores (Hierarquia de AST)](#precedência-de-operadores-hierarquia-de-ast)
 4. [Dicas para Visualização e Desenvolvimento](#-dicas-para-visualização-e-desenvolvimento)
 
@@ -39,75 +41,85 @@ Portanto, os arquivos contidos nesta pasta servem como a **especificação técn
 O analisador léxico (`HarpiaLexer.g4`) quebra o código fonte em pequenas unidades lógicas atômicas chamadas **Tokens**.
 
 ### Constantes e Literais Primitivos:
-- `FALSO`: Representa o literal booleano `Falso`. No runtime do Go, é resolvido como um objeto de escopo singleton e imutável.
-- `VERDADEIRO`: Representa o literal booleano `Verdadeiro`. No runtime do Go, é resolvido como um objeto de escopo singleton e imutável.
-- `NULO`: Representa o valor nulo `Nulo`, denotando a ausência de valor ou tipo estrutural.
+- `FALSO`: Literal booleano `Falso`.
+- `VERDADEIRO`: Literal booleano `Verdadeiro`.
+- `NULO`: Constante nula `Nulo` (ausência explícita de valor).
+- `LITERAL_INTEIRO`: Representações inteiras em decimal (`123`), hex (`0x1A`), binário (`0b101`) ou octal (`0o77`).
+- `LITERAL_DECIMAL`: Números de ponto flutuante (`123.45`).
+- `TEXTO`: Literais textuais entre aspas duplas (`"texto"`), aspas simples (`'texto'`) ou crase (`` `template ${var}` ``).
 
 ### Palavras-Chave Reservadas:
-- **Declaração**: `var` (variáveis mutáveis), `const` (constantes imutáveis), `func` (definição de funções).
-- **Controle de Fluxo**: `se` (condicional), `senao` (ramificação alternativa), `para` (laço de repetição), `em` (conector para iteração em coleções).
-- **Sub-Instruções**: `retorne` (retorno de funções), `pare` (break), `continue` (continue), `assegura` (asserção de teste/garantia lúdica).
-- **Modularidade**: `importe` (diretiva de importação), `de` (from - qualificador de pacotes).
-- **Orientação a Objetos**: `nova` (instanciação de classes).
+- **Declaração**: `var` (mutáveis), `const` (imutáveis), `func` (funções).
+- **Controle de Fluxo**: `se`, `senao`, `enquanto`, `para`, `em`.
+- **Sub-Instruções**: `retorne`, `pare`, `continue`, `assegura`.
+- **Tratamento de Erros**: `tente`, `capture`, `finalmente`.
+- **Pattern Matching**: `escolha`, `caso`, `quando`.
+- **Modularidade**: `importe`, `de`, `exportar`.
+- **POO & Tipagem**: `nova`, `classe`, `estende`, `self`, `estatico`, `enum`, `interface`.
+- **Concorrência**: `assincrono`, `aguarde`.
+- **Framework & Estilo**: `estilo`, `testar`.
 
-### Operadores de Reatribuição e Matemáticos:
-- `OPERADOR_REATRIBUICAO`: Reúne operadores compostos como `=`, `+=`, `-=`, `*=`, `@=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`, `**=`, `//=`.
-- Operadores Básicos: `MAIS` (`+`), `MENOS` (`-`), `ASTERISCO` (`*`), `POTENCIA` (`**`), `DIVISAO` (`/`), `DIVISAO_INTEIRA` (`//`), `MODULO` (`%`).
-- Operadores Relacionais: `MENOR_QUE` (`<`), `MENOR_OU_IGUAL` (`<=`), `MAIOR_QUE` (`>`), `MAIOR_OU_IGUAL` (`>=`), `IGUAL_IGUAL` (`==`), `DIFERENTE` (`!=`).
+### Operadores de Reatribuição, Matemáticos e Especiais:
+- **Reatribuição Agregada**: `=`, `+=`, `-=`, `*=`, `/=`, `//=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=`, `**=`, `??=`, `||=`, `&&=`.
+- **Operadores Aritméticos**: `+`, `-`, `*`, `**`, `/`, `//`, `%`.
+- **Operadores Relacionais**: `<`, `<=`, `>`, `>=`, `==`, `!=`, `em`.
+- **Operadores Lógicos e Nulidade**: `ou`, `e`, `nao`, `??` (coalescência nula), `?.` (chaining opcional), `?` (ternário).
+- **Operadores Bitwise**: `|`, `^`, `&`, `~`, `<<`, `>>`.
+- **Operadores Especiais**: `|>` (pipe), `...` (spread/rest), `@` (decorador), `->` (seta/lambda).
 
-### Delimitadores de Sintaxe e Bitwise:
-- Delimitadores: `ABRE_PARENTESES` (`(`), `FECHA_PARENTESES` (`)`), `PONTO_E_VIRGULA` (`;`), `VIRGULA` (`,`), `ABRE_CHAVES` (`{`), `FECHA_CHAVES` (`}`), `DOIS_PONTOS` (`:`), `PONTO` (`.`), `ABRE_COLCHETES` (`[`), `FECHA_COLCHETES` (`]`).
-- Operadores de Bits (Bitwise): `OU_BIT_A_BIT` (`|`), `EX_OU_BIT_A_BIT` (`^`), `E_BIT_A_BIT` (`&`), `NAO_BIT_A_BIT` (`~`), `DESLOC_ESQUERDA` (`<<`), `DESLOC_DIREITA` (`>>`).
-- Identificadores (`ID`): Permite letras ou sublinhas (`_`) na primeira posição, seguidos por letras ou dígitos decimais.
-- Literais de Texto (`TEXTO`): Strings entre aspas duplas, com suporte completo a barras de escape.
-- Espaços em Branco (`WS`): Espaços, tabulações e quebras descartados via diretiva `-> skip`.
+### Delimitadores e Identificadores Unicode:
+- Delimitadores: `(`, `)`, `;`, `,`, `{`, `}`, `:`, `.`, `[`, `]`.
+- Identificadores (`ID`): Suporte a letras ASCII e caracteres acentuados Unicode em português (`\u00C0..\u024F`), como `seção`, `módulos`, `área`.
 
 ---
 
 ## 🌳 Especificação Sintática Detalhada (`HarpiaParser.g4`)
 
-A gramática do interpretador (`HarpiaParser.g4`) recebe os tokens produzidos pelo Lexer e constrói a Árvore de Sintaxe Abstrata (AST), validando o pareamento de delimitadores e a precedência operacional.
+### Ponto de Entrada e Flexibilidade de Ponto e Vírgula:
+- `programa`: Regra raiz do compilador terminada por `EOF`.
+- `fim_instrucao`: Suporta tanto `;` quanto quebras de linha (`\n`), tornando o ponto e vírgula 100% opcional.
 
-### Ponto de Entrada e Declarações:
-- `programa`: A regra de parsing raiz, que aceita uma sequência opcional de declarações terminada pelo token especial `EOF`.
-- `declaracao`: Bifurca-se em `declaracao_composta` (estruturas complexas com blocos de escopo delimitados por chaves) ou `declaracao_simples` (instruções unilinha ou terminadas em ponto e vírgula).
-- `atribuicao`: Unifica `atribuicao_variavel` (`var x = 10;` ou com indicação de tipo `var x: Inteiro;`) e `atribuicao_constante` (`const PI = 3.14;`).
+### Controle de Fluxo, Exceções e Pattern Matching:
+- `declaracao_se`: Condicionais `se / senao se / senao`.
+- `declaracao_enquanto`: Laço condicional `enquanto (condicao) bloco`.
+- `declaracao_para`: Laço iterativo `para item em colecao bloco`.
+- `declaracao_tente`: Blocos de tratamento de exceção `tente ... capture (erro) ... finalmente ...`.
+- `declaracao_escolha`: Pattern matching `escolha (expressao) { caso val quando cond: ... senao: ... }`.
 
-### Controle de Fluxo, Funções e Imports:
-- `declaracao_importacao`: Mapeia importações simples (`importe "matematica";`) ou parciais/desestruturadas (`de "matematica" importe PI, raiz;`).
-- `declaracao_funcao`: Define funções com parâmetros tipados opcionalmente (`func somar(a, b: Inteiro) { ... }`).
-- `declaracao_se` / `declaracao_senao_se` / `declaracao_senao`: Modela o comportamento condicional de ramificação.
-- `declaracao_para`: Modela laços iterativos de repetição de coleções (ex: `para item em lista`).
-- `bloco`: Representa um escopo fechado por chaves `{}` que abriga uma sequência de declarações.
+### Orientação a Objetos, Enums e Interfaces:
+- `declaracao_classe`: Definição de classes com herança (`classe Filha estende Pai`).
+- `declaracao_enum`: Enumerações tipadas (`enum Cor { Vermelho, Verde, Azul }`).
+- `declaracao_interface`: Contratos de interface para verificação estática.
+
+### Estilos e Testes Nativos:
+- `declaracao_estilo`: Blocos de estilização nativa (`estilo Botao { cor: "azul"; }`).
+- `declaracao_teste`: Blocos de testes unitários integrados (`testar "soma de valores" { ... }`).
 
 ### Precedência de Operadores (Hierarquia de AST):
-A gramática organiza expressões aninhadas do operador de menor prioridade (resolvido por último) até o de maior prioridade (resolvido primeiro):
 
-| Nível de Precedência | Categoria | Regra ANTLR4 | Operadores | Descrição Sintática |
+| Nível | Categoria | Regra ANTLR4 | Operadores | Descrição Sintática |
 | :---: | :--- | :--- | :--- | :--- |
-| **11** | Disjunção Lógica | `disjuncao` | `ou` | Operador OU lógico. |
-| **10** | Conjunção Lógica | `conjuncao` | `e` | Operador E lógico. |
-| **9** | Negação Lógica | `inversao` | `nao` | Operador unário de negação lógica. |
-| **8** | Comparação Relacional | `comparacao` | `==`, `!=`, `<`, `<=`, `>`, `>=`, `em` | Comparações de igualdade, magnitude e presença (`em`). |
-| **7** | OU Bit a Bit | `ou_bitabit` | `\|` | Operador binário bitwise OR. |
-| **6** | XOR Bit a Bit | `exou_bitabit`| `^` | Operador binário bitwise XOR (Ou Exclusivo). |
-| **5** | E Bit a Bit | `e_bitabit` | `&` | Operador binário bitwise AND. |
-| **4** | Deslocamento de Bits | `deslocamento`| `<<`, `>>` | Deslocamento de bits binário para esquerda/direita. |
-| **3** | Aritmética Aditiva | `arit_basica` | `+`, `-` | Soma, subtração ou concatenação de strings. |
-| **2** | Aritmética Multiplicativa| `termo` | `*`, `/`, `//`, `%` | Multiplicação, divisão real, divisão inteira e resto. |
-| **1** | Sinais Unários | `fator` | `+`, `-`, `~` | Identidade unária, sinal negativo e inversão binária. |
-| **0** | Exponenciação | `potencia` | `**` | Exponenciação aritmética (base elevado a expoente). |
+| **13** | Ternário | `ternario` | `? :` | Operador condicional ternário. |
+| **12** | Pipe | `pipe` | `\|>` | Encadeamento de funções. |
+| **11** | Coalescência Nula | `coalescencia` | `??` | Fallback para valores nulos. |
+| **10** | Disjunção Lógica | `disjuncao` | `ou` | Operador OU lógico. |
+| **9** | Conjunção Lógica | `conjuncao` | `e` | Operador E lógico. |
+| **8** | Negação Lógica | `inversao` | `nao` | Operador unário de negação. |
+| **7** | Comparação Relacional | `comparacao` | `==`, `!=`, `<`, `<=`, `>`, `>=`, `em` | Comparações relacionais e pertencimento. |
+| **6** | OU Bit a Bit | `ou_bitabit` | `\|` | Bitwise OR. |
+| **5** | XOR Bit a Bit | `exou_bitabit` | `^` | Bitwise XOR. |
+| **4** | E Bit a Bit | `e_bitabit` | `&` | Bitwise AND. |
+| **3** | Deslocamento | `deslocamento` | `<<`, `>>` | Deslocamento de bits. |
+| **2** | Aritmética Aditiva | `arit_basica` | `+`, `-` | Adição/Subtração/Concatenação. |
+| **1** | Multiplicativa | `termo` | `*`, `/`, `//`, `%` | Multiplicação, divisão real/inteira e resto. |
+| **0** | Unário / Concorrência | `fator`, `aguarde_expr` | `+`, `-`, `~`, `aguarde` | Sinais unários e await assíncrono. |
+| **Expon.** | Exponenciação | `potencia` | `**` | Exponenciação (base elevado a expoente). |
 
 ---
 
 ## 🛠️ Dicas para Visualização e Desenvolvimento
 
-Para programadores que desejam analisar o grafo de sintaxe visualmente ou editar as regras da gramática no editor **VS Code**, é altamente recomendada a instalação da extensão oficial:
+Para programadores que desejam analisar o grafo de sintaxe visualmente no editor **VS Code**, utilize a extensão oficial:
 
 - **Nome**: ANTLR4 grammar syntax support and VM
 - **ID**: `mike-lischke.vscode-antlr4`
-- **Link**: [Extension Marketplace](https://marketplace.visualstudio.com/items?itemName=mike-lischke.vscode-antlr4)
-
-### Recursos da Extensão:
-- Realce de sintaxe colorido para arquivos `.g4`.
-- Geração e exibição gráfica dinâmica de grafos sintáticos (Parse Tree) para depurar e validar novas regras gramaticais da linguagem de forma visual e em tempo de projeto.

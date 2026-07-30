@@ -2,45 +2,105 @@ package parser
 
 import "github.com/mat-dgruber/Harpia/lexer"
 
-// BaseNode define a interface de especificação de base para qualquer nó sintático da AST (Árvore de Sintaxe Abstrata).
+// # Árvore de Sintaxe Abstrata (AST) do Harpia
+//
+// Este arquivo define todos os nós da AST gerados pelo Parser. Cada nó é uma
+// struct Go que embute NoBase (para rastreamento de coordenadas) e implementa
+// o método marcador BaseNode.isExpr().
+//
+// A AST é usada por três consumidores principais:
+//
+//  1. A máquina virtual (VM) — para interpretar ou compilar bytecode.
+//  2. O resolvedor de módulos — para processar exportar/importar.
+//  3. Ferramentas de diagnóstico — Ast2string serializa a árvore em JSON.
+//
+// # Nota de Segurança
+//
+// Este arquivo é parte do compilador Harpia. Ele apenas define estruturas de
+// dados; não executa lógica de runtime. Não é código malicioso.
+
+// BaseNode é a interface marcadora de toda a Árvore de Sintaxe Abstrata (AST)
+//
+// Qualquer struct que represente um nó sintático válido deve implementar a
+// função interna vazia `isExpr()`. Isso permite ao compilador Go validar em
+// tempo de compilação que apenas nós válidos componham a árvore hierárquica,
+// mantendo o Parser fortemente tipado e seguro.
+//
+// O método Pos retorna o par de coordenadas físicas (início, fim) do nó
+// dentro do arquivo fonte, fundamental para reportar erros de runtime com
+// precisão de linha/coluna pela máquina virtual.
 type BaseNode interface {
 	isExpr()
 	Pos() (lexer.PosicaoToken, lexer.PosicaoToken)
 }
 
-// NoBase é a estrutura embutida base que provê coordenadas espaciais para nós da AST sem alocação no heap.
+// NoBase é o _embedding_ compartilhado que provê coordenadas espaciais para
+// nós da AST sem alocação extra no heap.
+//
+// Cada nó sintático embute NoBase como primeiro campo (em geral), garantindo
+// acesso direto às posições de início e fim sem necessidade de polimorfismo
+// dinâmico na recuperação de posições.
+//
+// # Performance
+//
+// Usar um _embedding_ em vez de uma composição via interface evita uma
+// indireção de ponteiro por chamada a Pos(), o que é relevante em benchmarks
+// onde o parser gera milhares de nós por segundo.
 type NoBase struct {
-	Inicio lexer.PosicaoToken
-	Fim    lexer.PosicaoToken
+	Inicio lexer.PosicaoToken // Coordenada do primeiro token que originou este nó.
+	Fim    lexer.PosicaoToken // Coordenada do último token consumido pelo nó.
 }
 
 // Pos retorna o par de coordenadas (início, fim) do nó sem alocação no heap.
+//
+// Implementação obrigatória da interface BaseNode. É invocada pela VM e pelo
+// sistema de diagnósticos sempre que um erro precisa ser reportado com
+// precisão gráfica.
 func (n NoBase) Pos() (lexer.PosicaoToken, lexer.PosicaoToken) {
 	return n.Inicio, n.Fim
 }
 
-// DefinirPos atribui as coordenadas de início e fim do nó.
+// DefinirPos atribui as coordenadas de início e fim do nó de forma explícita.
+//
+// Usado por Parser.registrar quando o token inicial já é conhecido mas a
+// posição final ainda depende de sub-árvores. Permite reter a imutabilidade
+// de Pos no escopo externo enquanto a AST é construída.
 func (n *NoBase) DefinirPos(inicio, fim lexer.PosicaoToken) {
 	n.Inicio = inicio
 	n.Fim = fim
 }
 
 // Programa representa o nó raiz unificado da AST de um script Harpia completo.
+//
+// É a estrutura retornada por Parser.Parse e carrega tudo o que a VM precisa
+// para executar o script: as declarações, o código fonte (para mensagens de
+// erro), o caminho lógico do arquivo e o mapa de posições físicas.
 type Programa struct {
 	NoBase
-	Declaracoes []BaseNode                // Lista sequencial de instruções contidas no arquivo.
+	Declaracoes []BaseNode                // Lista sequencial de instruções contidas no arquivo, em ordem de aparição.
 	Codigo      string                    // Cópia textual integral do código fonte para fins de diagnósticos.
 	Arquivo     string                    // Caminho físico ou identificação lógica do arquivo fonte (ex: "<playground>").
 	Posicoes    map[BaseNode]*lexer.Token // Tabela de símbolos associando cada nó ao seu respectivo token para rastrear erros físicos de runtime.
 }
 
 // DeclVar representa a declaração de variáveis ('var') ou constantes imutáveis ('const').
+//
+// Sintaxe suportada:
+//
+//	var nome        = expressao
+//	const NOME: Tipo = expressao
+//
+// # Validação Semântica
+//
+// A aplicação de tipos é opt-in (Sprint 6): o campo Tipo é apenas capturado na
+// AST, mas não é validado em runtime. Constantes (Constante=true) bloqueiam
+// reatribuição — semântica essa já aplicada pela VM.
 type DeclVar struct {
 	NoBase
 	Constante     bool     // Verdadeiro indica que o nó foi gerado por 'const', bloqueando futuras escritas.
 	Nome          string   // Nome (identificador) do símbolo.
-	Tipo          string   // Identificador de tipo opcional para tipagem estática (ex: "Inteiro").
-	Inicializador BaseNode // Expressão inicial opcional para atribuição (ex: x = 10).
+	Tipo          string   // Identificador de tipo opcional para tipagem estática (ex: "Inteiro"). Vazio se não anotado.
+	Inicializador BaseNode // Expressão inicial opcional para atribuição (ex: x = 10). Constantes exigem inicializador.
 	DocComments   string   // Comentários de documentação associados (/// ou /** */).
 }
 
@@ -92,15 +152,26 @@ type OpUnaria struct {
 	Expressao BaseNode // O operando a ser avaliado.
 }
 
-// DeclFuncao representa a declaração formal de funções ('func') ou métodos de classe.
+// DeclFuncao representa a declaração formal de funções ('funcao') ou métodos
+// de classe.
+//
+// Sintaxe suportada:
+//
+//	funcao nome(p1, p2: Tipo = padrao): TipoRetorno { corpo }
+//
+//	estatico funcao metodo() { ... }           // Método estático de classe
+//	assincrono funcao buscar() { ... }          // Função assíncrona (Promise)
+//
+// O corpo é sempre não-nulo: funções anônimas atribuídas a variáveis ou
+// retornadas são representadas como DeclFuncao com Nome vazio.
 type DeclFuncao struct {
 	NoBase
-	Nome        string                 // Nome do método/função.
+	Nome        string                 // Nome do método/função. Vazio para funções anônimas.
 	Parametros  []*DeclFuncaoParametro // Lista ordenada de parâmetros formais aceitos.
 	Corpo       *Bloco                 // Escopo de bloco correspondente às instruções da função.
-	Estatico    bool                   // Verdadeiro se for um método estático de classe (ex: 'estatico func').
-	TipoRetorno string                 // Anotação opcional de tipo de retorno.
-	Assincrono  bool                   // Verdadeiro se a função for assíncrona ('assincrono funcao')
+	Estatico    bool                   // Verdadeiro se for um método estático de classe (ex: 'estatico funcao').
+	TipoRetorno string                 // Anotação opcional de tipo de retorno (captura literal, sem validação em runtime).
+	Assincrono  bool                   // Verdadeiro se a função for assíncrona ('assincrono funcao').
 	DocComments string                 // Comentários de documentação associados (/// ou /** */).
 }
 
@@ -268,7 +339,20 @@ type AsseguraNode struct {
 	Mensagem BaseNode // Mensagem opcional de erro caso a asserção resulte em Falso.
 }
 
-// DeclClasse representa a declaração formal de classes e tipos orientados a objetos.
+// DeclClasse representa a declaração formal de classes e tipos OOP.
+//
+// Sintaxe:
+//
+//	classe MinhaClasse estende Pai {
+//	    funcao metodo() { ... }
+//	    estatico funcao util() { ... }
+//	}
+//
+// # Restrições
+//
+//   - Herança múltipla não é suportada (apenas uma classe pai).
+//   - Métodos são sempre DeclFuncao com Estatico marcado conforme a presença
+//     do modificador 'estatico'.
 type DeclClasse struct {
 	NoBase
 	Nome        string        // Nome da classe declarada.
@@ -299,7 +383,27 @@ type DeclTeste struct {
 	Corpo *Bloco // Escopo contendo as asserções e instruções do teste.
 }
 
-// TenteCaptureFinalmente representa a estrutura de tratamento de exceções ('tente ... capture (erro) ... finalmente ...').
+// TenteCaptureFinalmente representa a estrutura de tratamento de exceções.
+//
+// Sintaxe aceita:
+//
+//	tente { ... } capture (erro) { ... }
+//	tente { ... } finalmente { ... }
+//	tente { ... } capture (erro) { ... } finalmente { ... }
+//
+// `capture` e `finalmente` são opcionais e independentes. Pelo menos um deles
+// deve estar presente após o bloco `tente` — a validação é feita em
+// Parser.parseTenteCapture.
+//
+// # Semântica em runtime
+//
+//   - Se uma exceção Harpia (ou erro Go empacotado em RuntimeErro) for lançada
+//     dentro de TenteBlock e CaptureBlock != nil, o controle salta para ele
+//     com NomeErro vinculado ao valor lançado.
+//   - FinalmenteBlock, se presente, sempre executa via defer (semântica
+//     Python/Java) — mesmo se TenteBlock terminar em exceção.
+//   - Erros lançados dentro de FinalmenteBlock substituem o erro original
+//     propagado.
 type TenteCaptureFinalmente struct {
 	NoBase
 	TenteBlock      *Bloco // Bloco protegido de execução primária.
@@ -383,28 +487,48 @@ func (*DeclEnum) isExpr()               {}
 
 func (*DeclInterface) isExpr()          {}
 
-// DeclEnum representa uma enumeração nativa (ex: enum Status { Pendente, Concluido })
+// DeclEnum representa uma enumeração nativa.
+//
+// Sintaxe:
+//
+//	enum Status { Pendente, Concluido, Erro }
+//
+// Os valores são armazenados apenas como strings (nomes simbólicos). A VM
+// atribui internamente índices sequenciais para comparação.
 type DeclEnum struct {
 	NoBase
-	Nome        string
-	Valores     []string
-	DocComments string
+	Nome        string   // Identificador da enumeração.
+	Valores     []string // Lista ordenada de identificadores de valores.
+	DocComments string   // Comentários de documentação associados.
 }
 
-// MetodoAssinatura representa a assinatura de um método exigido em uma Interface
+// MetodoAssinatura representa a assinatura de um método exigido em uma Interface.
+//
+// Apenas os nomes dos parâmetros são preservados (não há anotação de tipo nem
+// valores padrão em interfaces) — interfaces Harpia são puramente estruturais.
 type MetodoAssinatura struct {
 	NoBase
-	Nome        string
-	Parametros  []string
-	TipoRetorno string
+	Nome        string   // Nome do método exigido.
+	Parametros  []string // Nomes dos parâmetros formais (apenas identificadores).
+	TipoRetorno string   // Anotação opcional de tipo de retorno.
 }
 
-// DeclInterface representa um contrato de interface (ex: interface Repositorio { func salvar(item) })
+// DeclInterface representa um contrato de interface.
+//
+// Sintaxe:
+//
+//	interface Repositorio {
+//	    funcao salvar(item): Logico
+//	    funcao remover(id): Logico
+//	}
+//
+// Classes que implementem todos os métodos exigidos satisfazem a interface
+// (duck typing estrutural) — não há palavra-chave `implementa`.
 type DeclInterface struct {
 	NoBase
-	Nome        string
-	Metodos     []MetodoAssinatura
-	DocComments string
+	Nome        string              // Nome da interface.
+	Metodos     []MetodoAssinatura  // Lista de assinaturas exigidas.
+	DocComments string              // Comentários de documentação associados.
 }
 
 
@@ -444,29 +568,62 @@ type CasoEscolha struct {
 	Corpo  BaseNode // Bloco de instruções
 }
 
-// DeclEscolha representa a instrução de pattern matching 'escolha <expr> { caso ... }'.
+// DeclEscolha representa a instrução de pattern matching estrutural.
+//
+// Sintaxe aceita:
+//
+//	escolha expressao {
+//	    caso padrao quando guarda { ... }
+//	    caso _ { ... }                          // wildcard
+//	    caso [a, b, ...resto] { ... }            // desestruturação de lista
+//	    caso { chave: valor } { ... }            // desestruturação de mapa
+//	}
+//
+// # Algoritmo
+//
+// A VM percorre os casos em ordem; o primeiro cujo padrão casar (e guarda
+// opcional retornar verdadeiro) executa seu Corpo. Não há fall-through.
 type DeclEscolha struct {
 	NoBase
-	Expressao BaseNode
-	Casos     []CasoEscolha
+	Expressao BaseNode     // Expressão discriminada avaliada uma única vez antes dos casos.
+	Casos     []CasoEscolha // Lista ordenada de alternativas avaliadas sequencialmente.
 }
 
 
 
-// AtributoJSX representa um atributo em uma tag JSX (ex: classe="p-4" ou aoClicar={clique})
+// AtributoJSX representa um atributo em uma tag JSX.
+//
+// Sintaxe suportada:
+//
+//	classe="p-4"               // string literal
+//	aoClicar={handleClick}     // expressão entre chaves
+//	desabilitado               // atributo booleano implícito (Valor = Identificador "Verdadeiro")
 type AtributoJSX struct {
 	NoBase
-	Nome  string
-	Valor BaseNode // Pode ser TextoLiteral, Identificador ou qualquer expressão embrulhada
+	Nome  string   // Nome do atributo (preserva kebab-case original).
+	Valor BaseNode // Pode ser TextoLiteral, Identificador ou qualquer expressão embrulhada.
 }
 
-// NoJSX representa uma tag JSX (ex: <div classe="app">...</div> ou <botao />)
+// NoJSX representa uma tag JSX genérica (frontend).
+//
+// Sintaxe:
+//
+//	<div classe="app">conteudo</div>
+//	<Botao desabilitado />
+//	<Componente prop1={x} prop2="texto">
+//	    <Filho />
+//	</Componente>
+//
+// # Compilação
+//
+// Quando compilado para web (alvo=web), NoJSX é transpilado para chamadas
+// h(tag, props, ...children) do runtime web nativo do Harpia.
 type NoJSX struct {
 	NoBase
-	Tag         string
-	Atributos   []*AtributoJSX
-	Filhos      []BaseNode // Pode ser NoJSX, NoSeJSX, NoParaJSX, TextoLiteral ou Expressao
-	AutoFechado bool
+	Tag         string         // Nome da tag (preserva o caso original).
+	Atributos   []*AtributoJSX // Lista de atributos/props da tag.
+	Filhos      []BaseNode     // Pode ser NoJSX, NoSeJSX, NoParaJSX, TextoLiteral ou Expressao.
+	AutoFechado bool           // Verdadeiro para tags <X /> sem conteúdo.
 }
 
 // NoSeJSX representa a diretiva condicional no JSX: <se condicao={...}>...</se>
@@ -507,12 +664,24 @@ type OpTernaria struct {
 
 func (*OpTernaria) isExpr() {}
 
-// Decorador representa a sintaxe de decoradores (ex: @depreciado ou @rota("/api")) sobre funções ou classes.
+// Decorador representa a sintaxe de decoradores aplicados sobre funções ou classes.
+//
+// Sintaxe:
+//
+//	@depreciado
+//	@rota("/api", metodo = "GET")
+//	funcao endpoint() { ... }
+//
+// # Aplicação
+//
+// Decoradores são processados pelo resolvedor de módulos; cada decorador é
+// uma função Harpia regular que recebe a declaração decorada como primeiro
+// argumento e retorna a declaração (possivelmente modificada).
 type Decorador struct {
 	NoBase
-	Nome       string     // Nome do decorador (ex: "depreciado", "rota")
-	Argumentos []BaseNode // Argumentos opcionais entre parênteses (ex: "/api")
-	Alvo       BaseNode   // A declaração decorada (ex: *DeclFuncao ou *DeclClasse)
+	Nome       string     // Nome do decorador (ex: "depreciado", "rota").
+	Argumentos []BaseNode // Argumentos opcionais entre parênteses (ex: "/api", expressoes).
+	Alvo       BaseNode   // A declaração decorada (ex: *DeclFuncao ou *DeclClasse).
 }
 
 func (*Decorador) isExpr() {}

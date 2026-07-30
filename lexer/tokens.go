@@ -22,6 +22,10 @@ package lexer
 // Cada TokenType carrega semântica suficiente para que o Parser faça a análise
 // sintática sem precisar inspecionar o lexema bruto (string) novamente —
 // otimização importante para compiladores reais.
+//
+// Como o tipo é apenas um int, tokens podem ser comparados via igualdade
+// simples (`if tok.Tipo == TokenIgual { ... }`) sem boxing ou reflexão,
+// mantendo a fase de parsing rápida.
 type TokenType int
 
 // Constantes que enumeram todos os tipos de tokens reconhecidos pelo lexer do
@@ -209,6 +213,10 @@ const (
 //   - Linha: usado em cabeçalhos de erro (ex: `arquivo.hrp:linha 12, coluna 5`).
 //   - Indice: usado internamente para operações O(1) sobre slices de bytes,
 //     sem precisar reescanear o arquivo fonte.
+//
+// Retornado e recebido sempre por valor (struct de 24 bytes em arquitetura
+// 64 bits) para preservar o padrão zero-alloc e evitar fugas desnecessárias
+// para a heap.
 type PosicaoToken struct {
 	Coluna int // O offset do caractere a partir do início da linha atual (base 1).
 	Linha  int // O número da linha física no arquivo fonte (base 1).
@@ -242,6 +250,10 @@ type Token struct {
 //   - fim: coordenada imediatamente após o último caractere consumido.
 //
 // Retorna um *Token pronto para ser devolvido ao Parser.
+//
+// Observação: a função é privada (newToken com n minúsculo), usada apenas
+// dentro do pacote lexer. Consumidores externos acessam tokens somente via
+// os métodos públicos do Lexer (PróximoToken, ObterTokens).
 func newToken(tipo TokenType, valor string, inicio, fim PosicaoToken) *Token {
 	return &Token{
 		tipo,

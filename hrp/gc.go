@@ -1,6 +1,9 @@
 package hrp
 
-import "sync/atomic"
+import (
+	"reflect"
+	"sync/atomic"
+)
 
 // ObjetoGC define os comportamentos esperados de um objeto que participa da gerência de contagem de referências.
 type ObjetoGC interface {
@@ -56,6 +59,17 @@ func LiberarObjeto(obj Objeto) {
 	}
 }
 
+func obterIDObjetoGC(obj ObjetoGC) uintptr {
+	if obj == nil {
+		return 0
+	}
+	val := reflect.ValueOf(obj)
+	if val.Kind() == reflect.Map || val.Kind() == reflect.Pointer || val.Kind() == reflect.UnsafePointer {
+		return val.Pointer()
+	}
+	return 0
+}
+
 // ColetarCiclos realiza a varredura "Trial Deletion" a partir do escopo fornecido,
 // identificando referências circulares isoladas e quebrando-as para liberar memória.
 func ColetarCiclos(escopo *Escopo) {
@@ -63,15 +77,16 @@ func ColetarCiclos(escopo *Escopo) {
 		return
 	}
 
-	// 1. Coleta todos os objetos GC alcançáveis a partir das variáveis do escopo
-	alcancaveis := make(map[ObjetoGC]bool)
+	// 1. Coleta todos os objetos GC alcançáveis a partir das variáveis do escopo usando ID por ponteiro (uintptr)
+	alcancaveis := make(map[uintptr]ObjetoGC)
 	var varrer func(obj Objeto)
 	varrer = func(obj Objeto) {
 		if gcObj, ok := obj.(ObjetoGC); ok && gcObj != nil {
-			if alcancaveis[gcObj] {
+			id := obterIDObjetoGC(gcObj)
+			if id == 0 || alcancaveis[id] != nil {
 				return
 			}
-			alcancaveis[gcObj] = true
+			alcancaveis[id] = gcObj
 			for _, filho := range gcObj.ObterFilhos() {
 				varrer(filho)
 			}
@@ -87,17 +102,18 @@ func ColetarCiclos(escopo *Escopo) {
 	}
 
 	// 2. Copia as referências reais para o mapa temporário
-	refsTemp := make(map[ObjetoGC]int)
-	for obj := range alcancaveis {
-		refsTemp[obj] = obj.ObterRefs()
+	refsTemp := make(map[uintptr]int)
+	for id, obj := range alcancaveis {
+		refsTemp[id] = obj.ObterRefs()
 	}
 
 	// 3. Simula decremento: reduz referências provenientes das conexões internas do grafo
-	for obj := range alcancaveis {
+	for _, obj := range alcancaveis {
 		for _, filho := range obj.ObterFilhos() {
 			if gcFilho, ok := filho.(ObjetoGC); ok && gcFilho != nil {
-				if _, existe := refsTemp[gcFilho]; existe {
-					refsTemp[gcFilho]--
+				idFilho := obterIDObjetoGC(gcFilho)
+				if _, existe := refsTemp[idFilho]; existe {
+					refsTemp[idFilho]--
 				}
 			}
 		}
@@ -106,7 +122,8 @@ func ColetarCiclos(escopo *Escopo) {
 	// 4. Se a contagem temporária chegou a 0, significa que o objeto é referenciado apenas por conexões internas do ciclo.
 	// Reunimos todos os alvos elegíveis para quebra.
 	var alvosParaQuebrar []ObjetoGC
-	for obj, tempRefs := range refsTemp {
+	for id, tempRefs := range refsTemp {
+		obj := alcancaveis[id]
 		if tempRefs == 0 && obj.ObterRefs() > 0 {
 			alvosParaQuebrar = append(alvosParaQuebrar, obj)
 		}

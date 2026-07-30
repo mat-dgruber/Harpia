@@ -31,9 +31,10 @@ func (s *Simbolo) DefinirValor(v Objeto) {
 // Isso permite que estruturas internas (como corpos de funções ou laços) acessem variáveis globais,
 // mantendo suas próprias variáveis locais isoladas de colisões externas.
 type Escopo struct {
-	Simbolos map[string]*Simbolo // Mapa unificador associando nomes textuais aos símbolos.
-	Pai      *Escopo             // Ponteiro para o escopo hierárquico imediatamente superior (pai).
-	mu       sync.RWMutex        // Mutex para proteção de leitura/escrita concorrente em mapas de símbolos.
+	Simbolos  map[string]*Simbolo // Mapa unificador associando nomes textuais aos símbolos.
+	Pai       *Escopo             // Ponteiro para o escopo hierárquico imediatamente superior (pai).
+	Capturado bool                // Flag de proteção: se verdadeiro (closure), impede a reciclagem imediata no Pool.
+	mu        sync.RWMutex        // Mutex para proteção de leitura/escrita concorrente em mapas de símbolos.
 }
 
 var poolEscopo = sync.Pool{
@@ -48,6 +49,7 @@ var poolEscopo = sync.Pool{
 func NewEscopo() *Escopo {
 	e := poolEscopo.Get().(*Escopo)
 	e.Pai = nil
+	e.Capturado = false
 	if e.Simbolos == nil {
 		e.Simbolos = make(map[string]*Simbolo)
 	} else {
@@ -56,6 +58,38 @@ func NewEscopo() *Escopo {
 		}
 	}
 	return e
+}
+
+// Capturar marca o escopo e a sua cadeia de pais como retidos por uma closure, prevenindo reciclagem precoce.
+func (e *Escopo) Capturar() {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	e.Capturado = true
+	pai := e.Pai
+	e.mu.Unlock()
+	if pai != nil {
+		pai.Capturar()
+	}
+}
+
+// Reciclar devolve o escopo ao Pool de alocações caso não esteja retido por closures.
+func (e *Escopo) Reciclar() {
+	if e == nil {
+		return
+	}
+	e.mu.Lock()
+	if e.Capturado {
+		e.mu.Unlock()
+		return
+	}
+	e.Pai = nil
+	for k := range e.Simbolos {
+		delete(e.Simbolos, k)
+	}
+	e.mu.Unlock()
+	poolEscopo.Put(e)
 }
 
 // NewEscopo instancia um novo escopo filho enlaçado ao escopo atual (Pai = e).

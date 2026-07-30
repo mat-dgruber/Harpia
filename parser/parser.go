@@ -1,3 +1,26 @@
+// # Analisador Sintático do Harpia
+//
+// Este arquivo implementa o Parser do Harpia, um descida recursiva manual
+// (_recursive descent parser_) que consome tokens do lexer e produz uma
+// Árvore de Sintaxe Abstrata (AST) fortemente tipada.
+//
+// # Algoritmo
+//
+// O parser utiliza lookahead de 1 token (próximoToken) e mantém um cursor
+// duplo (token corrente + lookahead) através de avançar. A precedência de
+// operadores é implementada por camadas de funções (parseDisjuncao,
+// parseConjuncao, parseComparacao, ...) que delegam ao helper genérico
+// parseEsqLst para operadores binários associativos à esquerda.
+//
+// # Erros
+//
+// Erros sintáticos são acumulados em ErroSintatico e renderizados com cores
+// ANSI, código HRP-E101, indicador ^^^^^^^^^^^ e dica contextual em português.
+//
+// # Nota de Segurança
+//
+// Este arquivo é parte do compilador Harpia. Ele apenas transforma tokens em
+// estruturas de dados; não executa código do usuário. Não é código malicioso.
 package parser
 
 import (
@@ -10,20 +33,24 @@ import (
 
 // Parser representa o analisador sintático de descida recursiva manual do Harpia.
 //
-// O Parser consome a torrente de tokens lógicos fornecidos pelo Lexer e os organiza
-// em estruturas hierárquicas e nós que formam a Árvore de Sintaxe Abstrata (AST).
+// O Parser consome a torrente de tokens lógicos fornecidos pelo Lexer e os
+// organiza em estruturas hierárquicas e nós que formam a Árvore de Sintaxe
+// Abstrata (AST). Mantém lookahead de 1 token e tabela de posições para
+// reportar erros de runtime com precisão de linha/coluna.
 type Parser struct {
-	lex          *lexer.Lexer              // Instância ativa do analisador léxico.
-	token        *lexer.Token              // O token corrente sob avaliação física no parser.
-	próximoToken *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
-	posicoes     map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
-	codigo       string                    // Cópia do código-fonte original.
-	arquivo      string                    // Caminho físico ou identificação lógica do arquivo analisado.
-	erros        []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
-	ultimoDocComment string                 // Comentários de documentação acumulados imediatamente antes de uma declaração.
+	lex              *lexer.Lexer              // Instância ativa do analisador léxico.
+	token            *lexer.Token              // O token corrente sob avaliação física no parser.
+	próximoToken     *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
+	posicoes         map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
+	codigo           string                    // Cópia do código-fonte original.
+	arquivo          string                    // Caminho físico ou identificação lógica do arquivo analisado.
+	erros            []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
+	ultimoDocComment string                    // Comentários de documentação acumulados imediatamente antes de uma declaração.
 }
 
-// NewParser é o construtor padrão que inicializa e carrega os primeiros tokens de análise.
+// NewParser é o construtor padrão que inicializa e carrega os primeiros tokens
+// de análise. Pré-carrega token e próximoToken para evitar verificações nil
+// durante o parsing.
 func NewParser(lex *lexer.Lexer) *Parser {
 	parse := &Parser{
 		lex:      lex,
@@ -33,7 +60,11 @@ func NewParser(lex *lexer.Lexer) *Parser {
 	return parse
 }
 
-// NewParserFromString é um construtor de conveniência que cria internamente o Lexer a partir de uma string.
+// NewParserFromString é um construtor de conveniência que cria internamente o
+// Lexer a partir de uma string de código-fonte.
+//
+// É o atalho preferido para testes, REPL e playgrounds onde não há um
+// arquivo físico. O parâmetro filepath é usado apenas em mensagens de erro.
 func NewParserFromString(code string, filepath string) *Parser {
 	p := NewParser(lexer.NewLexer(code))
 	p.codigo = code
@@ -83,15 +114,25 @@ func (p *Parser) avancar() {
 	}
 }
 
-// consome valida se o valor textual do token corrente coincide com o esperado pelo Parser.
+// consome valida se o valor textual do token corrente coincide com o esperado
+// pelo Parser e o consome em caso afirmativo.
 //
-// Regras Especiais / Separação de Instruções:
-// Se o token esperado for o ponto-e-vírgula (";"), a função executa um tratamento flexível inteligente:
+// # Regras Especiais — Separação de Instruções
+//
+// Se o token esperado for o ponto-e-vírgula (";"), a função executa um
+// tratamento flexível inteligente:
+//
 //   - Aceita o caractere ";" explícito na sintaxe, consumindo-o.
-//   - Aceita de forma opcional novas linhas ('TokenNovaLinha') ou o encerramento do arquivo ('EOF')
-//     como delimitadores e terminadores implícitos de instrução, sem exigir o caractere ";" físico.
+//   - Aceita de forma opcional novas linhas ('TokenNovaLinha') ou o
+//     encerramento do arquivo ('EOF') como delimitadores e terminadores
+//     implícitos de instrução, sem exigir o caractere ";" físico.
 //
-// Isso unifica o melhor dos mundos entre rigidez e flexibilidade sintática na escrita.
+// Isso unifica o melhor dos mundos entre rigidez e flexibilidade sintática
+// na escrita.
+//
+// # Erros
+//
+// Retorna um *ErroSintatico com dica contextual apropriada via ObterDicaSintatica.
 func (p *Parser) consome(token string) error {
 	if token == ";" {
 		if p.token.Valor == ";" {
@@ -113,8 +154,25 @@ func (p *Parser) consome(token string) error {
 	return nil
 }
 
-// registrar associa o nó da AST recém-criado ao token físico correspondente no mapa de posições do parser.
-// Fundamental para que a VM trace mensagens de erro localizadas graficamente na linha exata do erro.
+// registrar associa o nó da AST recém-criado ao token físico correspondente
+// no mapa de posições do parser.
+//
+// # Importância
+//
+// Fundamental para que a VM trace mensagens de erro localizadas graficamente
+// na linha e coluna exatas do erro. Sem este registro, exceções em runtime
+// perderiam a referência física ao local onde foram geradas.
+//
+// # Comportamento
+//
+//   - Armazena em p.posicoes[node] = tok (lookup O(1)).
+//   - Se o nó implementar a interface opcional DefinirPos, atualiza suas
+//     coordenadas imediatamente.
+//
+// # Performance
+//
+// O mapa cresce linearmente com o tamanho da AST. Para scripts típicos (≤
+// 10k nós) o overhead é desprezível.
 func (p *Parser) registrar(node BaseNode, tok *lexer.Token) BaseNode {
 	if node != nil && tok != nil {
 		p.posicoes[node] = tok
@@ -125,7 +183,19 @@ func (p *Parser) registrar(node BaseNode, tok *lexer.Token) BaseNode {
 	return node
 }
 
-// Parse inicia o ciclo completo de análise sintática e retorna o nó raiz 'Programa' contendo toda a AST.
+// Parse inicia o ciclo completo de análise sintática e retorna o nó raiz
+// 'Programa' contendo toda a AST.
+//
+// # Comportamento
+//
+//   - Erros de parsing são acumulados em p.erros; o primeiro é retornado como
+//     erro primário e o programa é descartado (fail-fast).
+//   - Se não houver declaração alguma, Inicio/Fim do Programa ficam zerados.
+//   - A função não executa o código — apenas constrói a árvore.
+//
+// # Erros
+//
+// Retorna um *ErroSintatico com renderização ANSI quando há falha.
 func (p *Parser) Parse() (*Programa, error) {
 	declaracoes, err := p.parseDeclaracoes()
 
@@ -178,6 +248,11 @@ func (p *Parser) parseDeclaracoes() ([]BaseNode, error) {
 }
 
 // parseDeclaracao processa uma única instrução lógica e registra seu token inicial no mapa de posições.
+// parseDeclaracao despacha uma instrução top-level do script.
+//
+// Após o sucesso do parse, registra o token inicial e consome eventuais
+// delimitadores finais (newline/semicolon). Em caso de erro, acumula o
+// erro em p.erros e chama sincronizar para permitir a recuperação.
 func (p *Parser) parseDeclaracao() (BaseNode, error) {
 	tok := p.token
 	res, err := p.parseDeclaracaoInterno()
@@ -841,14 +916,15 @@ func (p *Parser) parsePadraoDesestruturacao() (*DeclDesestruturacao, error) {
 	decl.Inicio = p.token.Inicio
 
 	fechamento := "]"
-	if p.token.Tipo == lexer.TokenAbreColchetes {
+	switch p.token.Tipo {
+	case lexer.TokenAbreColchetes:
 		decl.TipoEstrut = "lista"
 		p.avancar() // consome '['
-	} else if p.token.Tipo == lexer.TokenAbreChaves {
+	case lexer.TokenAbreChaves:
 		decl.TipoEstrut = "mapa"
 		fechamento = "}"
 		p.avancar() // consome '{'
-	} else {
+	default:
 		return nil, p.errof("era esperado '[' ou '{' para desestruturação")
 	}
 
@@ -924,9 +1000,8 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 	_, posFim := valor.Pos()
 	decl.Fim = posFim
 
-	if p.token.Tipo == lexer.TokenPontoEVirgula {
-		p.avancar()
-	} else if p.token.Tipo == lexer.TokenNovaLinha {
+	switch p.token.Tipo {
+	case lexer.TokenPontoEVirgula, lexer.TokenNovaLinha:
 		p.avancar()
 	}
 
@@ -1115,6 +1190,13 @@ func (p *Parser) parseInterface() (BaseNode, error) {
 }
 
 // parseExpressao analisa o escopo geral de expressões complexas.
+//
+// É o entry-point público de qualquer análise de expressão: literais,
+// identificadores, chamadas de função, operadores binários, ternários,
+// pipes, coaléscência nula, JSX, etc. Internamente delega para
+// parseExpressaoInterno, que implementa a cascata de precedência
+// (ternário → pipe → coaléscência nula → disj → conj → comparação → ...
+// → átomo).
 func (p *Parser) parseExpressao() (BaseNode, error) {
 	tok := p.token
 	res, err := p.parseExpressaoInterno()
@@ -1226,6 +1308,23 @@ func (p *Parser) parseCoalescenciaNula() (BaseNode, error) {
 // Recebe uma função 'próximo' de maior prioridade de precedência sintática e uma
 // função 'proxOp' que consome e retorna o operador do nível corrente, se casar.
 // Evita duplicações maciças de laços de precedência idênticos ao longo do analisador.
+//
+// # Padrão de uso
+//
+//	expr, err := p.parseEsqLst(p.parseConjuncao, func() (string, bool) {
+//	    if p.token.Tipo == lexer.TokenOuLogico {
+//	        op := p.token.Valor
+//	        p.avancar()
+//	        return op, true
+//	    }
+//	    return "", false
+//	})
+//
+// # Por que associativo à esquerda?
+//
+// A grande maioria das operações em Harpia (a+b+c, a<b<c) segue essa
+// associatividade. Operadores associativos à direita (atribuição, exponenciação
+// em algumas linguagens) são tratados fora deste helper.
 func (p *Parser) parseEsqLst(próximo func() (BaseNode, error), proxOp func() (string, bool)) (BaseNode, error) {
 	esq, err := próximo()
 	if err != nil {
@@ -1486,8 +1585,10 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 		return nil, err
 	}
 
+Loop:
 	for {
-		if p.token.Tipo == lexer.TokenPonto || p.token.Tipo == lexer.TokenPontoInterrogacao {
+		switch p.token.Tipo {
+		case lexer.TokenPonto, lexer.TokenPontoInterrogacao:
 			ehOpcional := p.token.Tipo == lexer.TokenPontoInterrogacao
 			p.avancar()
 			// Tolera quebra de linha ou ';' antes de acessos encadeados (ex: obj\n.metodo())
@@ -1527,7 +1628,7 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 					atom = &AcessoMembro{Dono: atom, Membro: membro}
 				}
 			}
-		} else if p.token.Tipo == lexer.TokenAbreParenteses {
+		case lexer.TokenAbreParenteses:
 			chamada := &ChamadaFuncao{Identificador: atom}
 			p.registrar(chamada, p.token)
 			if ident, ok := atom.(*Identificador); ok {
@@ -1540,7 +1641,7 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 			}
 			chamada.Argumentos = args
 			atom = chamada
-		} else if p.token.Tipo == lexer.TokenAbreColchetes {
+		case lexer.TokenAbreColchetes:
 			p.avancar()
 
 			arg, err := p.parseExpressao()
@@ -1553,8 +1654,8 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 			}
 
 			atom = &Indexacao{Objeto: atom, Argumento: arg}
-		} else {
-			break
+		default:
+			break Loop
 		}
 	}
 
@@ -1877,9 +1978,10 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 	tag := p.token.Valor
 	p.avancar()
 
-	if tag == "se" {
+	switch tag {
+	case "se":
 		return p.parseSeJSX()
-	} else if tag == "para" {
+	case "para":
 		return p.parseParaJSX()
 	}
 
@@ -1897,7 +1999,8 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			var valorAttr BaseNode
 			if p.token.Tipo == lexer.TokenIgual {
 				p.avancar()
-				if p.token.Tipo == lexer.TokenAbreChaves {
+				switch p.token.Tipo {
+				case lexer.TokenAbreChaves:
 					p.avancar() // consome '{'
 					expr, err := p.parseExpressao()
 					if err != nil {
@@ -1907,10 +2010,10 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 						return nil, err
 					}
 					valorAttr = expr
-				} else if p.token.Tipo == lexer.TokenTexto {
+				case lexer.TokenTexto:
 					valorAttr = &TextoLiteral{Valor: p.token.Valor}
 					p.avancar()
-				} else {
+				default:
 					return nil, p.errof("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
 				}
 			} else {
@@ -2205,6 +2308,21 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 	return node, nil
 }
 
+// ErroSintatico representa um erro de parsing formatado com contexto visual.
+//
+// Todos os campos são exportados para permitir inspeção programática por
+// ferramentas externas (CLI, TUI, IDE, linter). A renderização amigável em
+// terminal é feita pelo método String, que aplica cores ANSI quando o
+// terminal suporta.
+//
+// # Campos principais
+//
+//   - Mensagem: descrição legível do erro.
+//   - Codigo: código de erro estilo "HRP-E101" para indexação em docs.
+//   - Inicio/Fim: coordenadas do token ofensivo.
+//   - LinhaFonte: linha do código onde o erro ocorreu (sem indentação).
+//   - Indicador: espaços seguidos de "^^^^^^^" apontando para o token.
+//   - Dica: sugestão de correção em português.
 type ErroSintatico struct {
 	Mensagem    string
 	Inicio      lexer.PosicaoToken
@@ -2218,10 +2336,28 @@ type ErroSintatico struct {
 	CodigoFonte string
 }
 
+// Erros retorna a lista completa de erros sintáticos acumulados.
+//
+// Permite que consumidores (CLI, TUI, linter) inspecionem todos os erros de
+// uma única execução, em vez de abortar no primeiro.
 func (p *Parser) Erros() []ErroSintatico {
 	return p.erros
 }
 
+// sincronizar é o mecanismo clássico de recuperação de erros em Parsers.
+//
+// Diante de um erro, ele consome tokens até encontrar uma fronteira lógica
+// segura (como ; ou \n) onde é plausível continuar o parsing sem corromper o
+// resto do arquivo. É o que permite que múltiplos erros sejam reportados em
+// uma única execução do Parser (em vez de parar no primeiro).
+//
+// # Fronteiras reconhecidas
+//
+//   - TokenNovaLinha (final de linha física).
+//   - Ponto-e-vírgula (;) explícito.
+//   - Palavras-chave de início de instrução (se, senao, enquanto, para, var,
+//     const, funcao, retornar, escolha, tente).
+//   - EOF.
 func (p *Parser) sincronizar() {
 	p.avancar()
 	for !p.fimDeArquivo() {
@@ -2240,6 +2376,18 @@ func (p *Parser) sincronizar() {
 
 // Error renderiza o erro sintático com informações ricas de posição: arquivo, linha, coluna
 // e destaca o trecho de código culpado — similar ao renderizador do Erro em hrp/erros.go.
+// Error implementa a interface error do Go.
+//
+// Renderiza a mensagem formatada com cores ANSI quando o terminal suporta:
+//
+//	HRP-E101  arquivo.hrp:linha 12, coluna 5
+//	  const x 10
+//	      ^^^^^^
+//	  dica: Esperava-se '=' após o nome da constante em declaração 'const'.
+//
+// Implementação de error permite que *ErroSintatico seja retornado por
+// qualquer função que retorne error, mantendo compatibilidade total com o
+// ecossistema Go (errors.As, errors.Is, fmt.Errorf wrapping).
 func (e *ErroSintatico) Error() string {
 	corErro := "\x1b[1;31m"
 	corCodigo := "\x1b[1;37m"
@@ -2320,6 +2468,21 @@ func ObterDicaSintatica(msg string) string {
 	}
 }
 
+// formatarErro constrói um *ErroSintatico com coordenadas precisas do token corrente.
+//
+// Inclui a linha de código fonte (LinhaFonte), um indicador visual com
+// circunflexos (^^^^^^^^^^^) apontando para o token ofensivo (Indicador) e
+// uma Dica contextual derivada da mensagem via ObterDicaSintatica.
+//
+// # Renderização
+//
+// O método String() do ErroSintatico aplica cores ANSI quando o terminal
+// suporta, produzindo uma saída amigável:
+//
+//	HRP-E101  linha 12, coluna 5
+//	  const x 10
+//	      ^^^^^^
+//	  dica: Esperava-se '=' após o nome da constante em declaração 'const'.
 func (p *Parser) formatarErro(codigo string, msg string, dica string) *ErroSintatico {
 	var ini, fim lexer.PosicaoToken
 	if p.token != nil {
@@ -2381,10 +2544,19 @@ func (p *Parser) formatarErro(codigo string, msg string, dica string) *ErroSinta
 	}
 }
 
+// erro é o atalho padrão para criar um erro sintático com código HRP-E101 e
+// dica derivada da mensagem.
+//
+// É o método de uso preferencial dentro do Parser para sinalizar erros de
+// parsing — raramente é necessário construir um ErroSintatico manualmente.
 func (p *Parser) erro(msg string) error {
 	return p.formatarErro("HRP-E101", msg, ObterDicaSintatica(msg))
 }
 
+// errof é a variante formatada de erro, equivalente a fmt.Errorf.
+//
+// Útil quando o erro depende de valores runtime (ex: identificador recebido
+// vs. esperado): p.errof("esperado '%s', encontrado '%s'", esperado, atual).
 func (p *Parser) errof(format string, args ...interface{}) error {
 	return p.erro(fmt.Sprintf(format, args...))
 }

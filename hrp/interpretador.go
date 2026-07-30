@@ -39,7 +39,11 @@ func (i *Interpretador) entrarNoEscopo(escopo *Escopo) {
 
 // sairDoEscopo restaura as referências operacionais de volta ao escopo hierárquico superior (Pai).
 func (i *Interpretador) sairDoEscopo() {
-	i.Escopo = i.Escopo.Pai
+	if i.Escopo != nil {
+		saindo := i.Escopo
+		i.Escopo = i.Escopo.Pai
+		saindo.Reciclar()
+	}
 }
 
 // Inicializa consome a raiz da AST do script (um Programa ou Bloco), iniciando a varredura linear do Visitor.
@@ -188,6 +192,8 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		return i.visiteAguardeNode(node)
 	case *parser.DeclVarDestructuring:
 		return i.visiteDeclVarDestructuring(node)
+	case *parser.DeclDesestruturacao:
+		return i.visiteDeclDesestruturacao(node)
 	case *parser.OpCoalescenciaNula:
 		return i.visiteOpCoalescenciaNula(node)
 	case *parser.AcessoMembroOpcional:
@@ -276,8 +282,72 @@ func (i *Interpretador) visiteDeclVarDestructuring(node *parser.DeclVarDestructu
 	return Nulo, nil
 }
 
+func (i *Interpretador) visiteDeclDesestruturacao(node *parser.DeclDesestruturacao) (Objeto, error) {
+	val, err := i.visite(node.Valor)
+	if err != nil {
+		return nil, err
+	}
+
+	for idx, campo := range node.Campos {
+		nome := campo.Nome
+		if nome == "" || nome == "_" {
+			continue
+		}
+
+		var item Objeto = Nulo
+		if val != Nulo {
+			if node.TipoEstrut == "mapa" {
+				if mapObj, ok := val.(Mapa); ok {
+					if v, existe := mapObj[nome]; existe {
+						item = v
+					}
+				} else if idxable, ok := val.(I__obtem_item__); ok {
+					txtKey, _ := NewTexto(nome)
+					if itemVal, err := idxable.M__obtem_item__(txtKey); err == nil {
+						item = itemVal
+					}
+				}
+			} else {
+				if listObj, ok := val.(*Lista); ok {
+					if idx < len(listObj.Itens) {
+						item = listObj.Itens[idx]
+					}
+				} else if tupObj, ok := val.(Tupla); ok {
+					if idx < len(tupObj) {
+						item = tupObj[idx]
+					}
+				} else if idxable, ok := val.(I__obtem_item__); ok {
+					inteiroIdx, err := NewInteiro(idx)
+					if err == nil {
+						if itemVal, err := idxable.M__obtem_item__(inteiroIdx); err == nil {
+							item = itemVal
+						}
+					}
+				}
+			}
+		}
+
+		if item == Nulo && campo.ValorPadrao != nil {
+			padraoVal, err := i.visite(campo.ValorPadrao)
+			if err == nil {
+				item = padraoVal
+			}
+		}
+
+		simb := &Simbolo{Nome: nome, Valor: item, Constante: node.Constante}
+		if err := i.Escopo.DefinirSimbolo(simb); err != nil {
+			return nil, err
+		}
+	}
+
+	return Nulo, nil
+}
+
 // visiteDeclFuncao instancia um novo objeto Funcao ligando o corpo e os escopos e o registra na tabela local.
 func (i *Interpretador) visiteDeclFuncao(node *parser.DeclFuncao) (Objeto, error) {
+	if i.Escopo != nil {
+		i.Escopo.Capturar()
+	}
 	funcao := NewFuncao(node.Nome, node.Corpo, i.Contexto, i.Escopo)
 
 	nomes := make([]string, len(node.Parametros))

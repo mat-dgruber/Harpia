@@ -21,14 +21,12 @@ options {
 // PONTO DE ENTRADA GRAMATICAL (RAIZ DO COMPILADOR)
 // ============================================================================
 
-// programa representa a árvore raiz de qualquer arquivo ou script Harpia válido.
-// Finaliza obrigatoriamente com o sinal de Fim de Arquivo (EOF).
 programa: declaracoes? EOF;
 
-// declaracoes agrupa sequencialmente uma ou mais instruções do desenvolvedor.
-declaracoes: declaracao+;
+declaracoes: (declaracao fim_instrucao?)+;
 
-// declaracao bifurca as ramificações em estruturas compostas (com bloco) ou simples.
+fim_instrucao: PONTO_E_VIRGULA | NOVA_LINHA;
+
 declaracao: declaracao_composta | declaracao_simples;
 
 // ============================================================================
@@ -36,67 +34,93 @@ declaracao: declaracao_composta | declaracao_simples;
 // ============================================================================
 
 declaracao_simples:
-	atribuicao                                                   // Declaração de variável (var) ou constante (const).
-	| expressao OPERADOR_REATRIBUICAO expressao                  // Reatribuições aritméticas acumuladas (ex: x += 5).
-	| expressao                                                  // Avaliação de expressões isoladas (ex: chamadas de método).
-	| declaracao_retorne                                         // Instrução de saída e devolução de valor em funções.
-	| declaracao_importacao                                      // Diretiva de importação de bibliotecas ou módulos nativos.
-	| ASSEGURA expressao (VIRGULA expressao)?                    // Asserção lógica com mensagem opcional de traceback.
-	| PARE                                                       // Parada de loops (break).
-	| CONTINUE;                                                  // Avanço para a próxima iteração do loop (continue).
+	atribuicao
+	| expressao OPERADOR_REATRIBUICAO expressao
+	| expressao
+	| declaracao_retorne
+	| declaracao_importacao
+	| declaracao_exportar
+	| ASSEGURA expressao (VIRGULA expressao)?
+	| PARE
+	| CONTINUE;
 
 // ============================================================================
 // DECLARAÇÕES COMPOSTAS (BLOCOS E FLUXOS COMPLEXOS)
 // ============================================================================
 
 declaracao_composta:
-	declaracao_funcao                                            // Definição estruturada de funções (func).
-	| declaracao_se                                              // Decisões condicionais (se/senao).
-	| declaracao_para;                                           // Laços de repetição iterativos (para-em).
-
-// atribuicao unifica a inicialização de variáveis e constantes imutáveis do usuário.
-atribuicao: atribuicao_constante | atribuicao_variavel;
-
-// atribuicao_variavel aceita: 'var x;', 'var x = 10;' ou 'var x: Tipo;'
-atribuicao_variavel:
-	VAR ID (IGUAL expressao | DOIS_PONTOS ID)? PONTO_E_VIRGULA;
-
-// atribuicao_constante exige atribuição e inicialização imediata: 'const PI = 3.14;'
-atribuicao_constante: CONST ID IGUAL expressao PONTO_E_VIRGULA;
+	declaracao_funcao
+	| declaracao_se
+	| declaracao_enquanto
+	| declaracao_para
+	| declaracao_tente
+	| declaracao_escolha
+	| declaracao_classe
+	| declaracao_enum
+	| declaracao_interface
+	| declaracao_estilo
+	| declaracao_teste;
 
 // ============================================================================
-// IMPORTAÇÃO DE MÓDULOS E DEPENDÊNCIAS
+// ATRIBUIÇÃO, VARIÁVEIS E DESESTRUTURAÇÃO
+// ============================================================================
+
+atribuicao:
+	atribuicao_constante
+	| atribuicao_variavel
+	| atribuicao_desestruturacao;
+
+atribuicao_variavel: VAR ID (DOIS_PONTOS ID)? (IGUAL expressao)?;
+
+atribuicao_constante: CONST ID (DOIS_PONTOS ID)? IGUAL expressao;
+
+atribuicao_desestruturacao:
+	(VAR | CONST) (padrao_lista | padrao_mapa) IGUAL expressao;
+
+padrao_lista:
+	ABRE_COLCHETES ID (VIRGULA ID)* FECHA_COLCHETES;
+
+padrao_mapa: ABRE_CHAVES ID (VIRGULA ID)* FECHA_CHAVES;
+
+// ============================================================================
+// IMPORTAÇÃO E EXPORTAÇÃO DE MÓDULOS
 // ============================================================================
 
 declaracao_importacao:
 	declaracao_importacao_simples
 	| declaracao_importacao_de;
 
-// Importação simples direta: 'importe "matematica";' ou 'importe "sistema", "web";'
-declaracao_importacao_simples:
-	IMPORTE TEXTO (VIRGULA TEXTO)* PONTO_E_VIRGULA;
+declaracao_importacao_simples: IMPORTE TEXTO (VIRGULA TEXTO)*;
 
-// Importações qualificadas e parciais: 'de "matematica" importe PI, raiz;' ou 'de "web" importe *;'
 declaracao_importacao_de:
-	DE TEXTO IMPORTE (ASTERISCO | ID (VIRGULA ID)*) PONTO_E_VIRGULA;
+	DE TEXTO IMPORTE (ASTERISCO | ID (VIRGULA ID)*);
+
+declaracao_exportar:
+	EXPORTAR (
+		atribuicao
+		| declaracao_funcao
+		| declaracao_classe
+		| declaracao_enum
+		| declaracao_interface
+	);
 
 // ============================================================================
 // CONTROLE DE FUNÇÕES E RETORNO
 // ============================================================================
 
-declaracao_retorne: RETORNE expressao? PONTO_E_VIRGULA;
+declaracao_retorne: RETORNE expressao?;
 
-// Definição de funções nomeadas: 'func somar(a, b: Inteiro) { retorne a + b; }'
 declaracao_funcao:
-	FUNC ID ABRE_PARENTESES parametros? FECHA_PARENTESES bloco;
+	ASSINCRONO? FUNC ID ABRE_PARENTESES parametros? FECHA_PARENTESES (
+		DOIS_PONTOS ID
+	)? bloco;
 
 parametros: parametro (VIRGULA parametro)*;
 
-// parametro aceita anotações estáticas opcionais de tipo (ex: 'nome: Texto').
-parametro: ID (':' ID)?;
+parametro: TRES_PONTOS? ID (DOIS_PONTOS ID)? (IGUAL expressao)?;
 
 // ============================================================================
-// ESTRUTURAS DE DECISÃO CONDICIONAL (SE / SENAO SE / SENAO)
+// ESTRUTURAS DE DECISÃO CONDICIONAL (SE / SENAO / ENQUANTO / PARA)
 // ============================================================================
 
 declaracao_se:
@@ -111,37 +135,97 @@ declaracao_senao_se:
 		| SENAO bloco
 	)?;
 
-declaracao_senao: SENAO bloco;
+declaracao_enquanto:
+	ENQUANTO ABRE_PARENTESES expressao FECHA_PARENTESES bloco;
+
+declaracao_para: PARA ID EM expressao bloco;
 
 // ============================================================================
-// LAÇOS DE REPETIÇÃO COOPERATIVOS (PARA-EM)
+// TRATAMENTO DE EXCEÇÕES (TENTE / CAPTURE / FINALMENTE)
 // ============================================================================
 
-// para iterador em colecao: 'para item em sequencia(10)'
-declaracao_para: PARA ID EM primario;
+declaracao_tente:
+	TENTE bloco (
+		CAPTURE ABRE_PARENTESES ID FECHA_PARENTESES bloco
+	)? (FINALMENTE bloco)?;
 
-// bloco delimita escopos de código e instruções aninhadas encapsulados em chaves '{}'.
+// ============================================================================
+// PATTERN MATCHING / SWITCH (ESCOLHA / CASO / QUANDO)
+// ============================================================================
+
+declaracao_escolha:
+	ESCOLHA ABRE_PARENTESES expressao FECHA_PARENTESES ABRE_CHAVES caso_item* FECHA_CHAVES;
+
+caso_item:
+	CASO expressao (QUANDO expressao)? DOIS_PONTOS (
+		bloco
+		| declaracoes
+	)
+	| SENAO DOIS_PONTOS (bloco | declaracoes);
+
+// ============================================================================
+// PROGRAMAÇÃO ORIENTADA A OBJETOS (CLASSE / ENUM / INTERFACE)
+// ============================================================================
+
+declaracao_classe:
+	CLASSE ID (ESTENDE ID)? ABRE_CHAVES membro_classe* FECHA_CHAVES;
+
+membro_classe: ESTATICO? (declaracao_funcao | atribuicao);
+
+declaracao_enum:
+	ENUM ID ABRE_CHAVES (
+		ID (IGUAL expressao)? (VIRGULA | fim_instrucao)?
+	)* FECHA_CHAVES;
+
+declaracao_interface:
+	INTERFACE ID ABRE_CHAVES membro_interface* FECHA_CHAVES;
+
+membro_interface:
+	ID ABRE_PARENTESES parametros? FECHA_PARENTESES (
+		DOIS_PONTOS ID
+	)? fim_instrucao?;
+
+// ============================================================================
+// ESTILOS E TESTES NATIVOS
+// ============================================================================
+
+declaracao_estilo: ESTILO ID ABRE_CHAVES regra_estilo* FECHA_CHAVES;
+
+regra_estilo:
+	ID DOIS_PONTOS expressao fim_instrucao?
+	| ID ABRE_CHAVES regra_estilo* FECHA_CHAVES;
+
+declaracao_teste: TESTAR TEXTO bloco;
+
 bloco: ABRE_CHAVES declaracoes? FECHA_CHAVES;
 
 // ============================================================================
 // EXPRESSÕES E PRECEDÊNCIA DE OPERADORES (ÁRVORE SINTÁTICA / AST)
 // ============================================================================
 
-// expressao é a raiz para construção de operadores e expressões em Harpia.
 expressao:
-	NOVA primario ABRE_PARENTESES argumentos? FECHA_PARENTESES   // Instanciação de objetos (nova MinhaClasse()).
-	| disjuncao;                                                 // Avaliação de expressões lógicas e relacionais.
+	NOVA primario ABRE_PARENTESES argumentos? FECHA_PARENTESES
+	| ternario;
 
-// Precedência [Nível 11]: Operador Lógico 'ou' (Disjunção).
+// Precedência [Nível 13]: Operador Ternário Condicional ('? :')
+ternario: pipe (INTERROGACAO expressao DOIS_PONTOS expressao)?;
+
+// Precedência [Nível 12]: Operador Pipe ('|>')
+pipe: coalescencia (PIPE coalescencia)*;
+
+// Precedência [Nível 11]: Coalescência Nula ('??')
+coalescencia: disjuncao (COALESCENCIA_NULA disjuncao)*;
+
+// Precedência [Nível 10]: Disjunção Lógica ('ou')
 disjuncao: conjuncao (OU conjuncao)*;
 
-// Precedência [Nível 10]: Operador Lógico 'e' (Conjunção).
+// Precedência [Nível 9]: Conjunção Lógica ('e')
 conjuncao: inversao (E inversao)*;
 
-// Precedência [Nível 9]: Operador Unário de Negação Lógica 'nao'.
+// Precedência [Nível 8]: Negação Lógica ('nao')
 inversao: NAO inversao | comparacao;
 
-// Precedência [Nível 8]: Comparadores lógicos relacionais e associação de inclusão em coleções ('em').
+// Precedência [Nível 7]: Comparações Relacionais e Inclusão ('==', '!=', '<', '<=', '>', '>=', 'em')
 comparacao:
 	ou_bitabit (
 		(
@@ -155,32 +239,34 @@ comparacao:
 		) ou_bitabit
 	)?;
 
-// Precedência [Nível 7]: Operador Ou Bitwise (Bitwise OR '|').
+// Precedência [Nível 6]: Bitwise OR ('|')
 ou_bitabit: exou_bitabit (OU_BIT_A_BIT exou_bitabit)*;
 
-// Precedência [Nível 6]: Operador XOR Bitwise (Bitwise Exclusive OR '^').
+// Precedência [Nível 5]: Bitwise XOR ('^')
 exou_bitabit: e_bitabit (EX_OU_BIT_A_BIT e_bitabit)*;
 
-// Precedência [Nível 5]: Operador E Bitwise (Bitwise AND '&').
+// Precedência [Nível 4]: Bitwise AND ('&')
 e_bitabit: deslocamento (E_BIT_A_BIT deslocamento)*;
 
-// Precedência [Nível 4]: Operadores de Deslocamento de Bits ('<<', '>>').
+// Precedência [Nível 3]: Deslocamento de Bits ('<<', '>>')
 deslocamento:
 	arit_basica ((DESLOC_ESQUERDA | DESLOC_DIREITA) arit_basica)?;
 
-// Precedência [Nível 3]: Soma e Subtração básica ou concatenação de cadeias de caracteres ('+', '-').
+// Precedência [Nível 2]: Soma e Subtração ('+', '-')
 arit_basica: termo ((MAIS | MENOS) termo)*;
 
-// Precedência [Nível 2]: Operadores de Multiplicação, Divisão, Divisão Inteira e Resto ('*', '/', '//', '%').
+// Precedência [Nível 1]: Multiplicação, Divisão, Piso e Resto ('*', '/', '//', '%')
 termo:
 	fator (
 		(ASTERISCO | DIVISAO | DIVISAO_INTEIRA | MODULO) fator
 	)*;
 
-// Precedência [Nível 1]: Sinais e Operadores Unários matemáticos e Bitwise ('+', '-', '~').
-fator: (MAIS | MENOS | NAO_BIT_A_BIT)* potencia;
+// Precedência [Nível 0 Unário]: Sinais e Operadores Unários ('+', '-', '~')
+fator: (MAIS | MENOS | NAO_BIT_A_BIT)* aguarde_expr;
 
-// Precedência [Nível 0]: Operador de Exponenciação de Alta Prioridade ('**').
+aguarde_expr: AGUARDE potencia | potencia;
+
+// Precedência [Nível Exponenciação]: Exponenciação ('**')
 potencia: primario (POTENCIA fator)?;
 
 // ============================================================================
@@ -188,34 +274,44 @@ potencia: primario (POTENCIA fator)?;
 // ============================================================================
 
 primario:
-	primario PONTO primario                                      // Acessos a métodos e atributos (ex: console.log).
-	| primario ABRE_PARENTESES argumentos? FECHA_PARENTESES      // Chamadas estruturadas de métodos e funções (ex: calcular()).
-	| primario ABRE_COLCHETES expressao FECHA_COLCHETES          // Fatiamento e indexação de coleções ou textos (ex: lista[0]).
+	primario PONTO ID
+	| primario PONTO_INTERROGACAO ID
+	| primario ABRE_PARENTESES argumentos? FECHA_PARENTESES
+	| primario ABRE_COLCHETES expressao FECHA_COLCHETES
 	| atomo;
 
 argumentos: argumento (VIRGULA argumento)*;
 
-argumento: expressao;
+argumento: TRES_PONTOS? expressao;
 
-// atomo agrupa os nós folha literais e de coleções primitivas da árvore sintática.
 atomo:
-	ID                                                           // Identificadores de variáveis, namespaces ou classes.
-	| 'Verdadeiro'                                               // Literal booleano positivo.
-	| 'Falso'                                                    // Literal booleano negativo.
-	| 'Nulo'                                                     // Constante de nulidade e ausência de valor.
-	| TEXTO+                                                     // Strings literais adjacentes (com suporte a fusão implícita).
-	| DIGITOS                                                    // Valores numéricos decimais literais.
-	| tupla                                                      // Coleção imutável de itens.
-	| grupo                                                      // Parentetização matemática para agrupamento de prioridade.
-	| lista                                                      // Listas mutáveis ordenadas de elementos.
-	| mapa;                                                      // Estruturas de mapas associativos chave-valor (dicionários).
+	ID
+	| VERDADEIRO
+	| FALSO
+	| NULO
+	| SELF
+	| TEXTO
+	| LITERAL_INTEIRO
+	| LITERAL_DECIMAL
+	| funcao_anonima
+	| tupla
+	| grupo
+	| lista
+	| mapa;
+
+funcao_anonima:
+	ASSINCRONO? FUNC ABRE_PARENTESES parametros? FECHA_PARENTESES (
+		DOIS_PONTOS ID
+	)? (bloco | (SETA expressao));
 
 // ============================================================================
 // COLEÇÕES E AGRUPAMENTOS
 // ============================================================================
 
 tupla:
-	ABRE_PARENTESES expressao VIRGULA (expressao VIRGULA?)* FECHA_PARENTESES;
+	ABRE_PARENTESES expressao VIRGULA (
+		expressao VIRGULA?
+	)* FECHA_PARENTESES;
 
 grupo: ABRE_PARENTESES expressao FECHA_PARENTESES;
 

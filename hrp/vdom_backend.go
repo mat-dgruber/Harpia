@@ -28,13 +28,61 @@ func (e *ElementoJSX) M__texto__() (Objeto, error) {
 	return Texto(e.RenderizarHTML()), nil
 }
 
-// RenderizarHTML converte a árvore de nós JSX em uma string HTML estática limpa.
+// tagsVoidHTML5 define as tags HTML5 auto-fechadas que não possuem conteúdo interno nem tag de fechamento.
+var tagsVoidHTML5 = map[string]bool{
+	"area": true, "base": true, "br": true, "col": true, "embed": true,
+	"hr": true, "img": true, "input": true, "link": true, "meta": true,
+	"param": true, "source": true, "track": true, "wbr": true,
+}
+
+func escaparAtributoHTML(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, `"`, "&quot;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+func escaparConteudoHTML(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	return s
+}
+
+// RenderizarHTML converte a árvore de nós JSX em uma string HTML estática limpa e segura contra XSS.
 // Trata o mapeamento de classes em português ("classe" -> "class"), filtra eventos e callbacks
-// de runtime do frontend, trata aspas em atributos e concatena de forma recursiva todos os filhos.
+// de runtime do frontend, sanitiza atributos/conteúdo e respeita a especificação de tags Void do HTML5.
 func (e *ElementoJSX) RenderizarHTML() string {
+	tagLower := strings.ToLower(strings.TrimSpace(e.Tag))
+	if tagLower == "fragmento" || tagLower == "fragment" {
+		var sb strings.Builder
+		for _, filho := range e.Filhos {
+			if filho == nil || filho == Nulo {
+				continue
+			}
+			if el, ok := filho.(*ElementoJSX); ok {
+				sb.WriteString(el.RenderizarHTML())
+			} else if txt, ok := filho.(Texto); ok {
+				sb.WriteString(escaparConteudoHTML(string(txt)))
+			} else {
+				if s, err := NewTexto(filho); err == nil {
+					sb.WriteString(escaparConteudoHTML(string(s.(Texto))))
+				} else {
+					sb.WriteString(escaparConteudoHTML(fmt.Sprintf("%v", filho)))
+				}
+			}
+		}
+		return sb.String()
+	}
+
 	var sb strings.Builder
+	if tagLower == "" {
+		tagLower = "div"
+	}
+
 	sb.WriteString("<")
-	sb.WriteString(e.Tag)
+	sb.WriteString(tagLower)
 
 	// Trata atributos
 	for k, v := range e.Atributos {
@@ -57,10 +105,15 @@ func (e *ElementoJSX) RenderizarHTML() string {
 				valText = fmt.Sprintf("%v", v)
 			}
 		}
-		sb.WriteString(fmt.Sprintf(` %s="%s"`, attrName, strings.ReplaceAll(valText, `"`, `\"`)))
+		sb.WriteString(fmt.Sprintf(` %s="%s"`, attrName, escaparAtributoHTML(valText)))
 	}
 
 	sb.WriteString(">")
+
+	// Se for tag Void (auto-fechada), encerra sem filhos e sem tag de fechamento
+	if tagsVoidHTML5[tagLower] {
+		return sb.String()
+	}
 
 	// Filhos
 	for _, filho := range e.Filhos {
@@ -70,19 +123,19 @@ func (e *ElementoJSX) RenderizarHTML() string {
 		if el, ok := filho.(*ElementoJSX); ok {
 			sb.WriteString(el.RenderizarHTML())
 		} else if txt, ok := filho.(Texto); ok {
-			sb.WriteString(string(txt))
+			sb.WriteString(escaparConteudoHTML(string(txt)))
 		} else {
 			if s, err := NewTexto(filho); err == nil {
-				sb.WriteString(string(s.(Texto)))
+				sb.WriteString(escaparConteudoHTML(string(s.(Texto))))
 			} else {
-				sb.WriteString(fmt.Sprintf("%v", filho))
+				sb.WriteString(escaparConteudoHTML(fmt.Sprintf("%v", filho)))
 			}
 		}
 	}
 
-	// Não fecha tags auto-fechadas comuns do HTML5 (opcional, mas seguro fechar todas para VDOM)
 	sb.WriteString("</")
-	sb.WriteString(e.Tag)
+	sb.WriteString(tagLower)
 	sb.WriteString(">")
 	return sb.String()
 }
+

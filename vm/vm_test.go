@@ -4,8 +4,43 @@ import (
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/hrp"
+	"github.com/mat-dgruber/Harpia/parser"
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
+
+func TestCompiladorV2(t *testing.T) {
+	codigo := `
+		var x = 10;
+		var y = 20;
+		var z = x + y;
+		z;
+	`
+	p := parser.NewParserFromString(codigo, "test.hrp")
+	ast, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Erro ao analisar AST: %v", err)
+	}
+
+	comp := NewCompilador()
+	prog, err := comp.Compilar(ast)
+	if err != nil {
+		t.Fatalf("Erro ao compilar AST: %v", err)
+	}
+
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	virtualMachine := NewVM(ctx)
+	frame := NewFrame(prog.Bytecode, prog.Constantes, hrp.NewEscopo(), nil)
+	res, err := virtualMachine.Executar(frame)
+	if err != nil {
+		t.Fatalf("Erro ao executar VM: %v", err)
+	}
+
+	if res != hrp.Inteiro(30) {
+		t.Errorf("Esperava 30, obteve: %v", res)
+	}
+}
 
 func TestVMSwitchLoop(t *testing.T) {
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
@@ -157,7 +192,7 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 				t.Fatalf("Erro ao compilar AST: %v", err)
 			}
 
-			comp := NewCompilador()
+			comp := NewCompilador(ctx)
 			prog, err := comp.Compilar(ast)
 			if err != nil {
 				t.Fatalf("Erro na compilação do bytecode: %v", err)
@@ -188,6 +223,135 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 				t.Errorf("Esperava %v, obteve %v (tipo esperado: %s, tipo obtido: %s)", tc.esperado, resultado, tc.esperado.Tipo().Nome, resultado.Tipo().Nome)
 			}
 		})
+	}
+}
+
+func TestVMRecursosAvancados(t *testing.T) {
+	testes := []struct {
+		nome     string
+		codigo   string
+		esperado hrp.Objeto
+	}{
+		{
+			nome:     "Lista literal e índice",
+			codigo:   "var lista = [10, 20, 30]; lista[1];",
+			esperado: hrp.Inteiro(20),
+		},
+		{
+			nome:     "Mapa literal e índice",
+			codigo:   `var mapa = {"chave": 100}; mapa["chave"];`,
+			esperado: hrp.Inteiro(100),
+		},
+		{
+			nome:     "Coalescência nula com Nulo",
+			codigo:   "var a = Nulo; a ?? 50;",
+			esperado: hrp.Inteiro(50),
+		},
+		{
+			nome:     "Coalescência nula com valor",
+			codigo:   "var a = 10; a ?? 50;",
+			esperado: hrp.Inteiro(10),
+		},
+		{
+			nome:     "Acesso opcional em Nulo",
+			codigo:   "var obj = Nulo; obj?.nome;",
+			esperado: hrp.Nulo,
+		},
+		{
+			nome:     "Reatribuição composta",
+			codigo:   "var x = 10; x += 5; x *= 2; x;",
+			esperado: hrp.Inteiro(30),
+		},
+		{
+			nome:     "Reatribuição em índice de lista",
+			codigo:   "var lista = [10, 20, 30]; lista[1] = 99; lista[1];",
+			esperado: hrp.Inteiro(99),
+		},
+		{
+			nome:     "Laço para-em e soma",
+			codigo:   "var soma = 0; para x em [10, 20, 30] { soma += x; } soma;",
+			esperado: hrp.Inteiro(60),
+		},
+		{
+			nome:     "Instrução pare em laço enquanto",
+			codigo:   "var x = 0; enquanto x < 10 { x += 1; se x == 5 { pare; } } x;",
+			esperado: hrp.Inteiro(5),
+		},
+	}
+
+	for _, tc := range testes {
+		t.Run(tc.nome, func(t *testing.T) {
+			ctx := hrp.NewContexto(hrp.OpcsContexto{})
+			defer ctx.Terminar()
+
+			ast, err := ctx.StringParaAst(tc.codigo, "<teste_avancado>")
+			if err != nil {
+				t.Fatalf("Erro ao compilar AST: %v", err)
+			}
+
+			comp := NewCompilador(ctx)
+			prog, err := comp.Compilar(ast)
+			if err != nil {
+				t.Fatalf("Erro na compilação do bytecode: %v", err)
+			}
+
+			virtualMachine := NewVM(ctx)
+			frame := NewFrame(prog.Bytecode, prog.Constantes, hrp.NewEscopo(), nil)
+			resultado, errExec := virtualMachine.Executar(frame)
+
+			if errExec != nil {
+				t.Fatalf("Erro de execução na VM: %v", errExec)
+			}
+
+			igual, errCmp := hrp.Igual(resultado, tc.esperado)
+			if errCmp != nil {
+				t.Fatalf("Erro ao comparar resultado: %v", errCmp)
+			}
+
+			if igual != hrp.Verdadeiro {
+				t.Errorf("Esperava %v, obteve %v", tc.esperado, resultado)
+			}
+		})
+	}
+}
+
+func TestVMExcecoes(t *testing.T) {
+	codigo := `
+	var resultado = 0;
+	tente {
+		resultado = 10;
+		10 / 0;
+		resultado = 20;
+	} capture (erro) {
+		resultado = 30;
+	}
+	resultado;
+	`
+
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste_excecao>")
+	if err != nil {
+		t.Fatalf("Erro ao compilar AST: %v", err)
+	}
+
+	comp := NewCompilador(ctx)
+	prog, err := comp.Compilar(ast)
+	if err != nil {
+		t.Fatalf("Erro na compilação do bytecode: %v", err)
+	}
+
+	virtualMachine := NewVM(ctx)
+	frame := NewFrame(prog.Bytecode, prog.Constantes, hrp.NewEscopo(), nil)
+	resultado, errExec := virtualMachine.Executar(frame)
+
+	if errExec != nil {
+		t.Fatalf("Erro de execução na VM: %v", errExec)
+	}
+
+	if resultado != hrp.Inteiro(30) {
+		t.Errorf("Esperava resultado 30 após captura de exceção, obtive: %v", resultado)
 	}
 }
 
@@ -304,7 +468,7 @@ func TestVMConcorrenciaEDeclFuncao(t *testing.T) {
 		t.Fatalf("Erro ao compilar AST: %v", err)
 	}
 
-	comp := NewCompilador()
+	comp := NewCompilador(ctx)
 	prog, err := comp.Compilar(ast)
 	if err != nil {
 		t.Fatalf("Erro ao compilar bytecode: %v", err)

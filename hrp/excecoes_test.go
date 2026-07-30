@@ -54,7 +54,7 @@ func TestExcecoesPropagacaoSemCapture(t *testing.T) {
 	codigoValido := `
 	var rodouFinalmente = Falso
 	tente {
-		assegura(1 == 2, "Erro propagado")
+		assegura 1 == 2, "Erro propagado"
 	} finalmente {
 		rodouFinalmente = Verdadeiro
 	}
@@ -78,7 +78,7 @@ func TestExcecoesPropagacaoSemCapture(t *testing.T) {
 
 	modulo, _ := ctx.ObterModulo("__entrada__")
 	rodouFinalmente, _ := modulo.Escopo.ObterValor("rodouFinalmente")
-	if rodouFinalmente != Verdadeiro {
+	if rodouFoi := rodouFinalmente.(Booleano); rodouFoi != Verdadeiro {
 		t.Errorf("Esperava que o bloco 'finalmente' rodasse mesmo com o erro propagado")
 	}
 }
@@ -195,5 +195,51 @@ func TestExcecoesInspecionarMetadados(t *testing.T) {
 	}
 	if arquivo == Texto("") {
 		t.Errorf("Esperava arquivo preenchido, obteve string vazia")
+	}
+}
+
+// TestExcecoesCapturarPanicsGo valida o suporte a captura de panics Go nativos
+// dentro de blocos tente/capture, convertendo-os em objetos de Erro Harpia legíveis.
+func TestExcecoesCapturarPanicsGo(t *testing.T) {
+	codigo := `
+	var capturou = Falso
+	var msg = ""
+
+	tente {
+		dar_panic()
+	} capture (erro) {
+		capturou = Verdadeiro
+		msg = Texto(erro.mensagem)
+	}
+	`
+
+	ctx := NewContexto(OpcsContexto{})
+	defer ctx.Terminar()
+
+	// Registra função nativa Go que dispara pânico nos embutidos globais
+	funPanic := NewMetodoOuPanic("dar_panic", func(_ Objeto, _ Tupla) (Objeto, error) {
+		panic("Erro de pânico nativo do Go!")
+	}, "Simula pânico interno.")
+
+	ctx.Modulos.Embutidos.Escopo.DefinirSimbolo(NewVarSimbolo("dar_panic", funPanic))
+
+	if _, err := ExecutarString(ctx, codigo); err != nil {
+		t.Fatalf("Erro ao executar string de teste: %v", err)
+	}
+
+	mod, err := ctx.ObterModulo("__entrada__")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	capturouVal, _ := mod.Escopo.ObterValor("capturou")
+	if capturouVal != Verdadeiro {
+		t.Errorf("Esperava que 'capturou' fosse Verdadeiro, obteve: %v", capturouVal)
+	}
+
+	msgVal, _ := mod.Escopo.ObterValor("msg")
+	esperado := "Erro de pânico nativo do Go!"
+	if string(msgVal.(Texto)) != esperado {
+		t.Errorf("Esperava mensagem '%s', obteve: '%v'", esperado, msgVal)
 	}
 }

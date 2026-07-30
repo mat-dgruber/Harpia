@@ -1,266 +1,276 @@
 # Pacote `parser` (Analisador Sintático do Harpia)
 
-O pacote `parser` implementa o **Analisador Sintático** (Parser) do **Harpia**. Utilizando o consagrado algoritmo de **Parser de Descida Recursiva Manual** (_Manual Recursive Descent Parser_), ele traduz a torrente de tokens lineares produzida pelo Lexer e constrói a **Árvore de Sintaxe Abstrata** (AST) hierárquica e tipada do script.
-
-Diferente de geradores automáticos, a escrita manual deste parser garante máxima velocidade de compilação, flexibilidade sintática na omissão opcional de delimitadores e mapeamentos detalhados de tokens físicos para tracebacks de erros ricos inteiramente em Português.
+> Documentação externa do pacote `parser` — companion do `CLAUDE.md` raiz.
 
 ---
 
-## 📖 Índice
+## 1. Visão Geral
 
-1. [A Base Sintática: `BaseNode` e Polimorfismo](#-a-base-sintática-basenode-e-polimorfismo)
-2. [Principais Nós da Árvore Sintática (AST)](#-principais-nós-da-árvore-sintática-ast)
-3. [Mecânica de Análise e Precedência de Operadores](#-mecânica-de-análise-e-precedência-de-operadores)
-   - [O Padrão Elegante `parseEsqLst`](#o-padrão-elegante-parseesqlst)
-   - [Delimitação Flexível de Instruções](#delimitação-flexível-de-instruções)
-4. [Associação e Rastreamento de Erros (Traceback)](#-associação-e-rastreamento-de-erros-traceback)
-5. [Exemplo de Visualização de AST](#-exemplo-de-visualização-de-ast)
+O pacote `parser` implementa o **Analisador Sintático** (_Parser_) do Harpia. Utilizando o algoritmo clássico de **Descida Recursiva Manual** (_Manual Recursive Descent Parser_), ele consome a torrente linear de tokens produzida pelo pacote `lexer` e a transforma em uma **Árvore de Sintaxe Abstrata** (AST) hierárquica, fortemente tipada e pronta para a máquina virtual (VM).
 
----
+Diferente de geradores automáticos (yacc/bison/antlr), a escrita manual deste parser garante:
 
-## 🔌 A Base Sintática: `BaseNode` e Polimorfismo
-
-O arquivo `ast_nodes.go` unifica toda a modelagem da AST usando os recursos nativos de polimorfismo estrutural do Go:
-
-- **A Interface `BaseNode`**:
-  ```go
-  type BaseNode interface { isExpr() }
-  ```
-  Qualquer struct que represente um nó sintático (ex: `DeclVar`, `OpBinaria`, `TextoLiteral`) implementa a assinatura vazia de marcação `isExpr()`. Isso permite ao compilador Go validar em tempo de compilação que apenas nós sintáticos válidos componham a árvore hierárquica, mantendo o Parser extremamente seguro e fortemente tipado.
+- **Velocidade de compilação**: zero indireções via tabelas geradas; cada nó é uma `struct` Go concreta.
+- **Flexibilidade sintática**: omissão opcional de delimitadores (`;` é opcional quando houver quebra de linha ou EOF).
+- **Diagnósticos ricos em Português**: mensagens de erro com código (`HRP-E101`), linha exata, indicador visual (`^^^^^^^`) e dica contextual.
 
 ---
 
-## 🌳 Principais Nós da Árvore Sintática (AST)
+## 2. Arquivos do Pacote
 
-Os nós da AST representam as estruturas semânticas da linguagem. Eles são divididos por categorias:
-
-### 1. Estruturas Raiz e Blocos:
-
-- **`Programa`**: O nó raiz de toda a AST, encapsulando a lista de instruções, o arquivo de origem e as posições de depuração.
-- **`Bloco`**: Uma lista de instruções pertencentes a um escopo físico (delimitado por chaves `{}`).
-
-### 2. Declarações, Decoradores e Atribuições:
-
-- **`DeclVar`**: Representa declarações de variáveis mutáveis (`var x`) ou constantes imutáveis (`const y`), suportando anotações estáticas de tipo (ex: `var x: Inteiro`). O tipo é armazenado no campo `Tipo string` (vazio se nenhuma anotação for informada).
-- **`Decorador`**: Representa anotações de decoradores (`@depreciado`, `@rota("/api")`) aplicados sobre declarações de funções ou classes, armazenando `Nome`, `Argumentos` e a instrução decorada `Alvo`.
-- **`Reatribuicao`**: Modificações de variáveis ou reatribuições com acumuladores aritméticos (ex: `x += 1`, `y //= 2`).
-
-### 3. Operações lógicas, de bit e matemáticas:
-
-- **`OpBinaria`**: Cálculos aritméticos ou lógicos envolvendo dois operandos (esquerda e direita).
-- **`OpUnaria`**: Inversões lógicas (`nao x`), bitwise (`~x`) ou aritméticas (`-x`).
-- **`OpPipe`**: Encadeamentos expressivos utilizando o operador pipe (`|>`).
-- **`NoSpread`**: Operador spread/rest (`...args`) utilizado no espalhamento de parâmetros de função, listas e entradas de mapas.
-
-### 4. Coleções Literais Primitivas:
-
-- **`ListaLiteral`**: Vetores ordenados mutáveis (ex: `[1, 2]`).
-- **`TuplaLiteral`**: Vetores ordenados imutáveis (ex: `(1, 2)`).
-- **`MapaLiteral` / `MapaPar`**: Estruturas de chaves e valores (dicionários), aceitando chaves estáticas ou expressões dinâmicas (ex: `{[expressao]: valor}`).
-
-### 5. Sintaxe Moderna e Recursos Avançados do Parser:
-
-- **Encadeamento Opcional Completo**: Suporte a chamadas e acessos seguros nulos `?.()`, `?.[idx]` e `?.prop` (`ChamadaOpcional`, `IndexacaoOpcional`, `AcessoMembroOpcional`).
-- **Pattern Matching Estrutural (`escolha`)**: Análise de laços de correspondência de padrões via `escolha expressao { caso padrao quando guarda { ... } }` (`DeclEscolha` e `CasoEscolha`), aceitando literais, wildcards (`_`) e desestruturação de listas/mapas.
-- **Preservação de DocComments**: Captura automática de comentários triplos (`///`) e de bloco (`/** */`) associando-os diretamente ao campo `DocComments string` das declarações (`DeclVar`, `DeclFuncao`, `DeclClasse`, `DeclEnum`, `DeclInterface`).
-- **Diagnósticos Ricos de IDE**: Estrutura `ErroSintatico` contendo linha do código fonte, indicador visual com acentos circunflexos (`^^^^`), código de erro único (ex: `HRP-E101`) e dica contextual explicativa em português.
-- **Suíte de Benchmarks**: Benchmarks de throughput e alocação de memória (`BenchmarkLexer` e `BenchmarkParser`) em `tests/parser_test/parser_bench_test.go`.
-- **Arrow Functions (`=>`)**: Suporte a sintaxe de funções anônimas concisas com um ou múltiplos parâmetros, com ou sem parênteses, e com corpo de expressão única ou bloco (`x => x + 1`, `(a, b) => { retorne a + b }`). É sintetizado como um nó `DeclFuncao` anônimo.
-- **Desambiguação de `||` e `|>`**: O token `||` é tratado como disjunção lógica (`OpBinaria` com operador `ou`), enquanto `|>` canaliza expressões (`OpPipe`).
-- **Literais em Strings JSX**: Strings contendo o caractere `<` (ex: `"se n <= 1"`) são parseadas integralmente como `TextoLiteral` sem disparar falsos positivos do parser JSX.
-- **Ternário em Atributos JSX (`style={...}`)**: Aceita expressões ternárias `OpTernaria` aninhadas em atributos de componentes JSX mesmo com quebras de linha.
-- **Concatenação Multilinha em `<style>` JSX**: Blocos de estilo embutidos em JSX aceitam concatenações binárias de strings com quebras de linha (`".card { ... }" + "\n.hover { ... }"`).
-- **Imports Curtos de Módulos**: Instruções `ImporteDe` aceitam caminhos curtos sem prefixo relativo para bibliotecas virtuais da stdlib (`de "sinais" importe ...`).
-- **Operador Spread/Rest (`NoSpread`)**: O token `...` gera nós `NoSpread` permitindo aceitar parâmetros variádicos em funções (`funcao soma(...numeros)`), espalhar listas (`[1, ...outros]`) e fundir mapas (`{ ...padrao, chave: "valor" }`).
-- **Decoradores (`Decorador`)**: Anotações marcadas com `@` geram nós `Decorador` que encapsulam o nome, argumentos opcionais e a declaração alvo (`@depreciado`, `@rota("/api")`).
+| Arquivo          | Responsabilidade                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `ast_nodes.go`   | Definições de tipos da AST (BaseNode, NoBase, Programa, DeclVar, DeclFuncao, OpBinaria, JSX, …). |
+| `helpers.go`     | Utilitários: `palavrasChave`, `IsKeyword`, `Ast2string` (serialização JSON para diagnóstico).   |
+| `parser.go`      | Implementação do parser: struct `Parser`, métodos `Parse`, `consome`, `registrar`, `sincronizar`, todos os métodos `parse*`, e a struct `ErroSintatico`. |
 
 ---
 
-## ⚙️ Mecânica de Análise e Precedência de Operadores
+## 3. Dependências
 
-O parser do Harpia analisa os tokens em descida recursiva, onde a ordem em que as funções chamam umas às outras dita a precedência matemática e lógica.
+### Internas
 
-```
-       [Expressão]
-            │
-            ▼
-         [Pipe]
-            │
-            ▼
-       [Disjunção]  ➔ (ou)
-            │
-            ▼
-       [Conjunção]  ➔ (e)
-            │
-            ▼
-       [Inversão]   ➔ (nao)
-            │
-            ▼
-       [Comparação] ➔ (==, !=, <, <=, >, >=, em, instancia de)
-            │
-            ▼
-      [Bitwise OR]  ➔ (|)
-            │
-            ▼
-     [Bitwise XOR]  ➔ (^)
-            │
-            ▼
-     [Bitwise AND]  ➔ (&)
-            │
-            ▼
-     [Deslocamento] ➔ (<<, >>)
-            │
-            ▼
-    [Aritmética +/-]➔ (+, -)
-            │
-            ▼
-   [Multiplicativa] ➔ (*, /, //, %)
-            │
-            ▼
-    [Unários Fator] ➔ (+, -, ~)
-            │
-            ▼
-       [Potência]   ➔ (**)
-            │
-            ▼
-       [Primário]   ➔ (Acesso com ponto ., chamadas ( ), indexações [ ])
-            │
-            ▼
-        [Átomo]     ➔ (Identificadores, literais básicos, listas, mapas)
-```
+- `github.com/mat-dgruber/Harpia/lexer` — fornece `Lexer`, `Token`, `PosicaoToken`, tipos de token e lookahead.
 
-### O Padrão Elegante `parseEsqLst`
+### Externas (stdlib Go)
 
-Para reduzir centenas de linhas redundantes e loops repetitivos de precedência de operadores binários associativos à esquerda, o arquivo `parser.go` introduz um método genérico excepcional baseado em closures:
+- `encoding/json` — usado por `Ast2string` para serialização identada.
+- `fmt`, `strings`, `regexp` — formatação de erros e dicas contextuais.
+
+> **Sem dependências de terceiros**. O pacote é deliberadamente mantido enxuto.
+
+---
+
+## 4. Arquitetura e Fluxo
+
+### 4.1. Estrutura da AST (`ast_nodes.go`)
+
+Todos os nós implementam a interface marcadora:
 
 ```go
-func (p *Parser) parseEsqLst(
-    próximo func() (BaseNode, error),
-    proxOp func() (string, bool),
-) (BaseNode, error) {
-    esq, err := próximo()
-    if err != nil { return nil, err }
-    for {
-        op, ok := proxOp()
-        if !ok { return esq, nil }
-        dir, err := próximo()
-        if err != nil { return nil, err }
-        esq = &OpBinaria{esq, op, dir}
+type BaseNode interface {
+    isExpr()
+    Pos() (lexer.PosicaoToken, lexer.PosicaoToken)
+}
+```
+
+A interface vazia `isExpr()` permite que o compilador Go valide em tempo de compilação que apenas nós sintáticos válidos componham a árvore. A função `Pos` retorna coordenadas de início/fim para reportar erros de runtime com precisão.
+
+Os nós mais relevantes são:
+
+| Categoria           | Nós                                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------------ |
+| Estruturais         | `Programa`, `Bloco`, `BlocoPara`, `CasoEscolha`                                             |
+| Declarações         | `DeclVar`, `DeclFuncao`, `DeclFuncaoParametro`, `DeclClasse`, `DeclEnum`, `DeclInterface`, `DeclExportar`, `DeclImportar`, `DeclTeste`, `DeclEstilo`, `Decorador` |
+| Controle de fluxo   | `ExpressaoSe`, `Enquanto`, `RetorneNode`, `TenteCaptureFinalmente`, `DeclEscolha`           |
+| Expressões          | `OpBinaria`, `OpUnaria`, `Chamada`, `Atribuicao`, `AcessoPropriedade`, `Identificador`       |
+| Literais            | `NumLiteral`, `TextoLiteral`, `LogicoLiteral`, `ListaLiteral`, `MapaLiteral`, `NoJSX`, `NoSeJSX`, `NoParaJSX` |
+| Helpers             | `NoBase` (coordenadas), `ExprVetor` (vetor primitivo), `AtributoJSX`, `MetodoAssinatura`   |
+
+### 4.2. O Parser (`parser.go`)
+
+O `Parser` mantém:
+
+- `token`, `próximoToken` — cursor duplo (lookahead de 1 token).
+- `posicoes` — mapa `BaseNode → *lexer.Token` para tracebacks em runtime.
+- `erros` — slice acumulador de erros sintáticos.
+- `ultimoDocComment` — buffer temporário de comentários `///` ou `/** */` capturados entre tokens.
+
+**Fluxo principal:**
+
+```
+NewParserFromString(code, file)
+        │
+        ▼
+   Parse() ──► parseDeclaracoes()
+                  │
+                  ▼
+              parseDeclaracao() ──► parseDeclaracaoInterno()
+                                          │
+                                          ├─► parseImporteDe
+                                          ├─► parseBlocoPara
+                                          ├─► parseExpressaoSe
+                                          ├─► parseEnquanto
+                                          ├─► parseRetorne
+                                          ├─► parseFuncao
+                                          ├─► parseClasse
+                                          ├─► parseTeste
+                                          ├─► parseTenteCapture
+                                          ├─► parseExportar
+                                          ├─► parseEnum
+                                          ├─► parseEscolha
+                                          ├─► parseInterface
+                                          ├─► parseVariavel
+                                          └─► parseExpressao
+```
+
+### 4.3. Precedência de Operadores
+
+A precedência é implementada em camadas recursivas, do menos para o mais precedence:
+
+```
+parseExpressaoInterno
+    └─► parseTernario
+            └─► parsePipe
+                    └─► parseCoalescenciaNula
+                            └─► parseDisjuncao       (ou lógico)
+                                    └─► parseConjuncao (e lógico)
+                                            └─► parseInversao
+                                                    └─► parseComparacao
+                                                            └─► parseBitABitOu
+                                                                    └─► parseBitABitExOu
+                                                                            └─► parseBitABitE
+                                                                                    └─► parseDeslocamento
+                                                                                            └─► parseAritBasica
+                                                                                                    └─► parseTermo
+                                                                                                            └─► parseFator
+                                                                                                                    └─► parsePotencia
+                                                                                                                            └─► parsePrimario
+                                                                                                                                    └─► parseAtomo
+```
+
+O helper genérico **`parseEsqLst`** (a "joia arquitetural" do parser) elimina duplicação de laços left-associative:
+
+```go
+expr, _ := p.parseEsqLst(p.parseConjuncao, func() (string, bool) {
+    if p.token.Tipo == lexer.TokenOuLogico {
+        op := p.token.Valor
+        p.avancar()
+        return op, true
     }
-}
+    return "", false
+})
 ```
 
-Cada nível de precedência (como soma, multiplicação e operações bitwise) simplesmente invoca `parseEsqLst` passando como parâmetros:
+### 4.4. Recuperação de Erros
 
-1. O método correspondente ao nível de precedência superior subsequente.
-2. Uma closure rápida que valida e consome o operador do nível atual.
+`sincronizar()` é o coração da recuperação. Quando um `parse*` falha, o parser consome tokens até uma fronteira segura (newline, `;`, palavra-chave de início de instrução, ou EOF), permitindo reportar **múltiplos erros** em uma única execução.
 
-### Delimitação Flexível de Instruções
+### 4.5. Renderização de Erros (`ErroSintatico`)
 
-O método `consome(";")` implementa a flexibilidade sintática do Harpia. Ele aceita o caractere `;` se estiver explícito, mas aceita de forma transparente o token `TokenNovaLinha` (\n) ou o fim do arquivo (EOF) como divisores e terminadores lógicos automáticos de comandos, permitindo uma escrita limpa e livre de ponto-e-vírgula obrigatório.
+Cada erro é capturado com:
+
+1. **Código**: `HRP-E101` (sintaxe) ou código custom.
+2. **Mensagem**: descrição legível.
+3. **Dica**: sugestão em português obtida via `ObterDicaSintatica`.
+4. **LinhaFonte + Indicador**: linha do código + espaços + `^^^^^^^`.
+
+Saída típica:
+
+```
+HRP-E101  script.hrp:linha 12, coluna 5
+  const x 10
+      ^^^^^^
+  dica: Esperava-se '=' após o nome da constante em declaração 'const'.
+```
 
 ---
 
-## ⚠️ Nó de Tratamento de Exceções (Sprint 5)
+## 5. Exemplo de Uso
 
-A partir do Sprint 5, o parser constrói o nó composto `TenteCaptureFinalmente` para suportar `tente { ... } capture (erro) { ... } finalmente { ... }`:
-
-```go
-type TenteCaptureFinalmente struct {
-    TenteBlock      *Bloco
-    CaptureBlock    *Bloco  // opcional
-    FinalmenteBlock *Bloco  // opcional
-    NomeErro        string // identificador exposto pelo capture
-}
-```
-
-`Capture`/`Finalmente` são opcionais e independentes: as três variantes sintáticas abaixo são aceitas via `parseTenteCapture`:
-
-| Forma                                                     | Captura erro? | Finally roda sempre? |
-| :-------------------------------------------------------- | :-----------: | :------------------: |
-| `tente { ... } capture (erro) { ... }`                    |      sim      |         não          |
-| `tente { ... } finalmente { ... }`                        | não, propaga  |         sim          |
-| `tente { ... } capture (erro) { ... } finalmente { ... }` |      sim      |         sim          |
-
-> ⚠️ O lexer promove os identificadores curtos `e`, `ou`, `nao`, `de`, `em` a palavras-chave (operadores lógicos). Por isso, **evite** usar esses nomes para a binding do erro em `capture (...)` — prefira nomes compostos como `erro`.
-
----
-
-## 🎯 Associação e Rastreamento de Erros (Traceback)
-
-Um dos maiores diferenciais do parser escrito à mão do Harpia é o registrador geográfico de coordenadas.
-
-### `registrar(node BaseNode, tok *lexer.Token)`
-
-Toda vez que o parser processa e inst instancia um nó sintático da AST (`parseDeclaracao()` e `parseExpressao()`), ele invoca a função `registrar()`, salvando a correspondência do nó físico com o respectivo token inicial do lexer no mapa global `Parser.posicoes`:
-
-```go
-p.posicoes[node] = tok
-```
-
-Durante a execução na Máquina Virtual, se um nó sintático causar uma exceção em tempo de execução (como uma divisão por zero ou tentativa de somar tipos incompatíveis), a VM recupera o token original a partir deste mapa. Com isso, o interpretador consegue imprimir o arquivo de origem, a linha exata e a coluna da instrução causadora do erro, sublinhando-a graficamente para o desenvolvedor.
-
----
-
-## 💻 Exemplo de Uso e Visualização de AST em Go
-
-Abaixo está um snippet demonstrando como instanciar o Parser a partir de um trecho de código em Harpia e exportar sua AST formatada em JSON:
+### 5.1. Parsing a partir de uma string
 
 ```go
 package main
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/mat-dgruber/Harpia/parser"
+    "fmt"
+    "github.com/mat-dgruber/Harpia/parser"
 )
 
 func main() {
-	codigo := `
-		var x = 10 + 20 * 3
-		se x > 50 {
-			imprimir("Valor alto!")
-		}
-	`
+    codigo := `
+        const PI: Decimal = 3.14159
+        var raio: Decimal = 5.0
 
-	// Instancia o analisador sintático a partir do código-fonte
-	p := parser.NewParserFromString(codigo, "exemplo.hrp")
+        funcao area(): Decimal {
+            retorne PI * raio * raio
+        }
 
-	// Constrói a Árvore de Sintaxe Abstrata (AST)
-	ast, err := p.Parse()
-	if err != nil {
-		log.Fatalf("Erro de compilação sintática: %v", err)
-	}
+        imprimir(area())
+    `
 
-	// Converte a AST em JSON formatado para inspeção
-	jsonAst, err := parser.Ast2string(ast)
-	if err != nil {
-		log.Fatalf("Erro ao serializar AST: %v", err)
-	}
+    p := parser.NewParserFromString(codigo, "exemplo.hrp")
+    prog, err := p.Parse()
+    if err != nil {
+        fmt.Println("Erro de parsing:", err)
+        return
+    }
 
-	fmt.Println(string(jsonAst))
+    for _, decl := range prog.Declaracoes {
+        fmt.Printf("- %T\n", decl)
+    }
 }
 ```
 
-Ao submeter a expressão `10 + 20 * 3` para análise sintática, a função de depuração `Ast2string` serializa o nó gerando a seguinte árvore hierárquica estruturada:
+### 5.2. Serialização em JSON (para inspeção)
+
+```go
+import (
+    "fmt"
+    "github.com/mat-dgruber/Harpia/parser"
+)
+
+p := parser.NewParserFromString(codigo, "exemplo.hrp")
+prog, _ := p.Parse()
+
+data, _ := parser.Ast2string(prog)
+fmt.Println(string(data))
+```
+
+Saída (parcial):
 
 ```json
 {
-  "Esq": {
-    "Valor": "10"
-  },
-  "Operador": "+",
-  "Dir": {
-    "Esq": {
-      "Valor": "20"
-    },
-    "Operador": "*",
-    "Dir": {
-      "Valor": "3"
-    }
-  }
+    "Inicio": { "Linha": 2, "Coluna": 8 },
+    "Fim":    { "Linha": 9, "Coluna": 1 },
+    "Declaracoes": [
+        {
+            "Constante": true,
+            "Nome": "PI",
+            "Tipo": "Decimal",
+            "Inicializador": {
+                "Valor": "3.14159",
+                ...
+            }
+        },
+        ...
+    ]
 }
 ```
 
-Como observado no JSON acima, o nó de multiplicação `*` foi corretamente aninhado como filho direito do nó de soma `+`. Isso prova que a ordem de precedência gramatical do Harpia foi perfeitamente executada, garantindo que `20 * 3` seja avaliado prioritariamente antes da adição de `10`.
+### 5.3. Verificando palavras-chave
+
+```go
+if parser.IsKeyword("se") {
+    fmt.Println("'se' é palavra reservada")
+}
+```
+
+---
+
+## 6. Thread-Safety
+
+O `Parser` **não é thread-safe**. Cada arquivo deve ser analisado por sua própria instância `*Parser`. A estrutura `Programa` resultante é imutável do ponto de vista lógico e pode ser compartilhada entre goroutines pela VM.
+
+---
+
+## 7. Performance
+
+- **Lookahead fixo de 1 token**: mantém complexidade linear (`O(n)`) no tamanho da entrada.
+- **Alocações reduzidas**: o embedding de `NoBase` evita indireções via interface no caminho quente.
+- **`parseEsqLst`**: elimina duplicação massiva de loops, mantendo o binário compacto.
+
+---
+
+## 8. Nota de Segurança
+
+Este pacote é parte do **compilador oficial do Harpia**. Sua única finalidade é transformar texto-fonte em uma estrutura de dados (AST). **Não é código malicioso** — é software de infraestrutura de compilação, aberto e auditável. Não há execução de código do usuário no parser; toda interpretação é feita pela VM em uma fase separada.
+
+---
+
+## 9. Roadmap
+
+- [ ] Streaming parser para arquivos muito grandes (>10MB).
+- [ ] Melhoria na recuperação de erros em JSX aninhado.
+- [ ] Relatórios de métricas de qualidade (gramática formal medida).

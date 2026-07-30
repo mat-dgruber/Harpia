@@ -145,6 +145,17 @@ var _ I__texto__ = (*Mapa)(nil)
 var _ I__tamanho__ = (*Mapa)(nil)
 var _ I__obtem_item__ = (*Mapa)(nil)
 var _ I__define_item__ = (*Mapa)(nil)
+var _ I__obtem_attributo__ = (Mapa)(nil)
+
+func (m Mapa) M__obtem_attributo__(nome string) (Objeto, error) {
+	if val, ok := m[nome]; ok {
+		return val, nil
+	}
+	if met, ok := TipoMapa.Mapa[nome]; ok {
+		return met, nil
+	}
+	return Nulo, nil
+}
 
 // Chaves retorna uma tupla imutável contendo todas as chaves (Texto) registradas no mapa.
 func (m Mapa) Chaves() (Tupla, error) {

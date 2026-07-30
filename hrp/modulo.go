@@ -197,3 +197,15 @@ func (tabela *TabelaModulos) ObterModulo(nome string) (*Modulo, error) {
 
 	return m, nil
 }
+
+// NewModuloComEscopo cria uma instância de Modulo diretamente com um escopo fornecido.
+func NewModuloComEscopo(nome string, ctx *Contexto, escopo *Escopo) *Modulo {
+	return &Modulo{
+		Impl: &ModuloImpl{
+			Info: ModuloInfo{Nome: nome},
+		},
+		Contexto:     ctx,
+		Escopo:       escopo,
+		acessoRapido: NewMapaVazio(),
+	}
+}

@@ -13,11 +13,12 @@ import (
 
 // OpcsContexto agrupa as propriedades opcionais de inicialização do contexto da VM.
 type OpcsContexto struct {
-	Args             []string // Argumentos CLI de terminal repassados ao script.
-	CaminhosPadrao   []string // Caminhos de varredura do disco para resolução de diretivas de importação.
-	Estrito          bool     // Ativa verificação estrita de tipagem dinâmica opcional.
-	BloquearArquivos bool     // Ativa o bloqueio de acesso ao sistema de arquivos (Sandbox).
-	BloquearRede     bool     // Ativa o bloqueio de conexões e operações de rede (Sandbox).
+	Args              []string // Argumentos CLI de terminal repassados ao script.
+	CaminhosPadrao    []string // Caminhos de varredura do disco para resolução de diretivas de importação.
+	DiretorioTrabalho string   // Diretório base/isolado de trabalho do contexto (evita o uso de os.Chdir global).
+	Estrito           bool     // Ativa verificação estrita de tipagem dinâmica opcional.
+	BloquearArquivos  bool     // Ativa o bloqueio de acesso ao sistema de arquivos (Sandbox).
+	BloquearRede      bool     // Ativa o bloqueio de conexões e operações de rede (Sandbox).
 }
 
 // Contexto representa o orquestrador global e supervisor de estado da VM do Harpia.
@@ -32,6 +33,7 @@ type Contexto struct {
 	once              sync.Once               // Garante encerramento seguro de ciclo único da VM.
 	ArquivoAtual      string                  // O nome do arquivo físico sob execução corrente.
 	CodigoAtual       string                  // O código fonte textual sob execução.
+	DiretorioTrabalho string                  // Diretório base isolado de trabalho deste contexto.
 	LinhaAtual        int                     // Linha física corrente sob interpretação (base 1, -1 = indefinida).
 	ColunaAtual       int                     // Coluna física corrente (base 1).
 	TokenAtual        *lexer.Token            // Ponteiro para o token do lexer sob análise operacional.
@@ -64,20 +66,28 @@ var ContextoAtivo *Contexto
 // NewContexto aloca um novo contexto orquestrador da VM, inicializando o cache de módulos
 // e pré-carregando de forma global e compulsória o módulo nativo de embutidos.
 func NewContexto(opcs OpcsContexto) *Contexto {
+	dirTrabalho := opcs.DiretorioTrabalho
+	if dirTrabalho == "" {
+		if d, err := os.Getwd(); err == nil {
+			dirTrabalho = d
+		} else {
+			dirTrabalho = "."
+		}
+	}
+
 	context := &Contexto{
-		Modulos:          NewTabelaModulos(),
-		Opcs:             opcs,
-		fechado:          false,
-		LinhaAtual:       -1,
-		LinhasExecutadas: make(map[string]map[int]bool), // ponytail: inicializa mapa de cobertura
+		Modulos:           NewTabelaModulos(),
+		Opcs:              opcs,
+		fechado:           false,
+		DiretorioTrabalho: dirTrabalho,
+		LinhaAtual:        -1,
+		LinhasExecutadas:  make(map[string]map[int]bool), // ponytail: inicializa mapa de cobertura
 	}
 
 	DefinirContextoAtivo(context)
 
-	// Carrega automaticamente .harpia.env do diretório atual ou dos caminhos padrão
-	if dir, err := os.Getwd(); err == nil {
-		carregarArquivoEnv(dir)
-	}
+	// Carrega automaticamente .harpia.env do diretório atual de trabalho do contexto
+	carregarArquivoEnv(dirTrabalho)
 	for _, dir := range opcs.CaminhosPadrao {
 		carregarArquivoEnv(dir)
 	}
@@ -88,6 +98,17 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 
 	MultiImporteModulo(context, "embutidos")
 	return context
+}
+
+// ObterDiretorioTrabalho retorna o diretório isolado de trabalho do contexto.
+func (c *Contexto) ObterDiretorioTrabalho() string {
+	if c != nil && c.DiretorioTrabalho != "" {
+		return c.DiretorioTrabalho
+	}
+	if dir, err := os.Getwd(); err == nil {
+		return dir
+	}
+	return "."
 }
 
 // carregarArquivoEnv tenta ler arquivos de ambiente (.harpia.env e .env) no diretório dado e exporta suas variáveis para o processo.
@@ -185,12 +206,32 @@ func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode
 	return ast, nil
 }
 
+var executadorVM func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)
+
+func DefinirExecutadorVM(exec func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)) {
+	executadorVM = exec
+}
+
 // AvaliarAst cria uma instância de Interpretador e processa sequencialmente as instruções da AST sob o escopo informado.
 func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, error) {
 	if err := c.AdicionarTrabalho(); err != nil {
 		return nil, err
 	}
 	defer c.EncerrarTrabalho()
+
+	if executadorVM != nil {
+		resVM, errVM := executadorVM(c, ast, escopo)
+		if errVM == nil {
+			return resVM, nil
+		}
+		if !strings.Contains(errVM.Error(), "não implementada na VM") &&
+			!strings.Contains(errVM.Error(), "não suportada na VM") &&
+			!strings.Contains(errVM.Error(), "não suportadas na VM") &&
+			!strings.Contains(errVM.Error(), "não é suportada na VM") &&
+			!strings.Contains(errVM.Error(), "não são suportadas na VM") {
+			return nil, errVM
+		}
+	}
 
 	interpret := &Interpretador{Ast: ast, Contexto: c, Escopo: escopo}
 	if prog, ok := ast.(*parser.Programa); ok {

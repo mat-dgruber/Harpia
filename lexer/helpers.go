@@ -7,6 +7,18 @@ package lexer
 // Durante a varredura manual de caracteres no Lexer, símbolos especiais como operadores e pontuações
 // são resolvidos comparando-os diretamente com as chaves deste mapa em tempo constante O(1).
 // Isso elimina a necessidade de árvores de decisão gigantescas ou complexas expressões regulares.
+//
+// Organização interna do mapa (de cima para baixo):
+//  1. Quebras de linha e operadores unários (incluindo atribuição simples).
+//  2. Operadores aritméticos, de comparação e reatribuições com atalho.
+//  3. Operadores bitwise e lógicos (com sinônimos `||`/`&&` para `ou`/`e`).
+//  4. Pontuação estrutural (parênteses, chaves, colchetes, vírgula, dois-pontos).
+//  5. Acessos e encadeamentos (`.`, `?.`, `...`, `|>`, `<|`).
+//
+// O mapa é consultado em duas etapas dentro do dispatcher de PróximoToken():
+// primeiro tenta-se a sequência de 2 caracteres (maximal munch — prefere
+// o token mais longo); em caso de miss, tenta-se a sequência de 1 caractere.
+// Esse princípio garante que `==` nunca seja confundido com `=` seguido de `=`.
 var tokensSimples = map[string]TokenType{
 	"\n": TokenNovaLinha,
 
@@ -77,6 +89,14 @@ var tokensSimples = map[string]TokenType{
 // ele realiza uma consulta rápida nesta tabela. Se o identificador coincidir com alguma palavra reservada
 // (ex: "importe", "se", "func"), ele é promovido e classificado sob o token sintático dedicado correspondente.
 // Caso contrário, permanece categorizado genericamente como 'TokenIdentificador' (uma variável comum).
+//
+// O mapa inclui também `Verdadeiro`, `Falso` e `Nulo` (com iniciais
+// maiúsculas), que apesar de serem identificadores válidos sintaticamente
+// têm semântica fixa de valor booleano/nulo no compilador.
+//
+// Importante: este mapa deve permanecer em sincronia com a lista de palavras
+// globais reconhecidas pelo linter (ver globalsLinter em cmd/checar.go) para
+// evitar diagnósticos falsos de "identificador não declarado".
 var tokensIdentificadores = map[string]TokenType{
 	"se":       TokenSe,
 	"senao":    TokenSenao,

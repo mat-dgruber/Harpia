@@ -230,15 +230,15 @@ type I__iter__ interface {
 	M__iter__() (Objeto, error)
 }
 
-// I__proximo__ define o protocolo de avanço e devolução de valor de loop (__proximo__).
-type I__proximo__ interface {
-	M__proximo__() (Objeto, error)
+// I__próximo__ define o protocolo de avanço e devolução de valor de loop (__próximo__).
+type I__próximo__ interface {
+	M__próximo__() (Objeto, error)
 }
 
 // I_iterador encapsula de forma simplificada o protocolo completo de loops da VM.
 type I_iterador interface {
 	I__iter__
-	I__proximo__
+	I__próximo__
 }
 
 // ============================================================================

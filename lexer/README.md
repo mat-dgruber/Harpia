@@ -14,6 +14,8 @@ O lexer rastreia coordenadas espaciais precisas de cada token (linha, coluna, í
 4. [Recursos Avançados da Linguagem](#-recursos-avançados-da-linguagem)
 5. [Documentação de Métodos e Funções](#-documentação-de-métodos-e-funções)
 6. [Fuzzing e Testes de Regressão](#-fuzzing-e-testes-de-regressão)
+7. [Tratamento de Quebras de Linha (CRLF)](#-tratamento-de-quebras-de-linha-crlf)
+8. [Entidades HTML Inline](#-entidades-html-inline)
 
 ---
 
@@ -122,3 +124,43 @@ cd Harpia && go test -fuzz=FuzzLexer -fuzztime=10s ./tests/lexer_test/...
 ```
 
 Garante resiliência absoluta contra sequências arbitrárias de bytes, prevenindo panics, loops infinitos e travamentos.
+
+---
+
+## 🔄 Tratamento de Quebras de Linha (CRLF)
+
+O lexer do Harpia adota uma estratégia de **normalização CRLF em-fluxo** dentro de `avancar()`, evitando que o restante do código tenha que tratar variantes de quebra de linha como caso especial.
+
+Regras consolidadas:
+
+| Entrada | Comportamento |
+|---|---|
+| `\n` (Unix/macOS moderno) | Incrementa `linha`, zera `coluna`. |
+| `\r\n` (Windows) | Lidos como **um único** caractere lógico de nova linha. `linha` é incrementada **uma única vez**. |
+| `\r` solitário (Mac clássico) | Convertido em `\n` lógico, incrementando `linha` igualmente. |
+| `\r` antes de caractere não-`\n` | Tratado como `\n` lógico, evitando "engolir" conteúdo após um carriage return solitário. |
+
+Benefícios:
+- Os contadores de linha refletem a contagem visual do usuário, independente do SO de origem.
+- Não há duplicação de buffers nem laços extras para normalização — feito em O(1) por caractere consumido.
+- Ferramentas que dependem de `TokenNovaLinha` (formatação automática, REPL, debugger) podem assumir um único modelo de quebra de linha.
+
+---
+
+## 🌐 Entidades HTML Inline
+
+Para suportar fragmentos Harpia embutidos em arquivos `.html` ou templates JSX, o lexer reconhece **entidades HTML inline** iniciadas por `&`:
+
+- `&#8595;` — Entidade numérica decimal (`&#` seguido de dígitos e `;`).
+- `&#x1F600;` — Entidade numérica hexadecimal (`&#x` seguido de dígitos hexadecimais e `;`).
+- `&nbsp;`, `&copy;`, `&` — Entidades nomeadas (lexema alfanumérico seguido de `;`).
+
+Comportamento do consumidor `lerEntidadeHTML()`:
+1. Consome o `&` inicial.
+2. Avança até encontrar `;`, espaço em branco ou fim de linha.
+3. Emite um token do tipo `TokenEntidadeHTML` englobando o intervalo consumido (incluindo o `&` e o `;` final).
+
+A **decodificação semântica** (transformar `&copy;` em `©`) é responsabilidade do parser/compilador, não do lexer — manter o lexer "burro" permite que diferentes alvos de compilação (HTML puro, JSX, Markdown) resolvam entidades de forma distinta.
+
+Tolerância a documentos malformados: o lexer não emite erro caso a entidade não termine em `;` — ele consome até o próximo espaço em branco ou fim de linha, emitindo o token com a string parcial. Isso permite que ferramentas de lint identifiquem o problema sem que o lexer falhe catastroficamente.
+

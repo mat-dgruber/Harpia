@@ -87,7 +87,7 @@ var (
 	RuntimeErro = TipoErro.NewTipo("RuntimeErro", "Erro no ambiente de execução")
 
 	// FimIteracao é o sinalizador estruturado de parada que interrompe loops iterativos 'para-em'.
-	FimIteracao = TipoErro.NewTipo("FimIteracao", "Sinaliza o fim da iteração quando `objeto.__proximo__() não retorna mais nada")
+	FimIteracao = TipoErro.NewTipo("FimIteracao", "Sinaliza o fim da iteração quando `objeto.__próximo__() não retorna mais nada")
 
 	// ErroDeAsseguracao é disparado quando uma asserção lógica da diretiva 'assegura' resulta em Falso.
 	ErroDeAsseguracao = TipoErro.NewTipo("ErroDeAsseguracao", "Erro lançado em um `assegura obj`")
@@ -224,32 +224,43 @@ func ObterCodigoErro(tipo *Tipo) string {
 	}
 }
 
-// levenshtein calcula a distância de edição de Levenshtein entre duas strings.
+// levenshtein calcula a distância de edição de Levenshtein entre duas strings (suportando Unicode/UTF-8 em O(N) espaço).
 func levenshtein(s, t string) int {
-	d := make([][]int, len(s)+1)
-	for i := range d {
-		d[i] = make([]int, len(t)+1)
-		d[i][0] = i
+	rS, rT := []rune(s), []rune(t)
+	lenS, lenT := len(rS), len(rT)
+	if lenS == 0 {
+		return lenT
 	}
-	for j := range d[0] {
-		d[0][j] = j
+	if lenT == 0 {
+		return lenS
 	}
-	for i := 1; i <= len(s); i++ {
-		for j := 1; j <= len(t); j++ {
+
+	v0 := make([]int, lenT+1)
+	v1 := make([]int, lenT+1)
+
+	for i := 0; i <= lenT; i++ {
+		v0[i] = i
+	}
+
+	for i := 0; i < lenS; i++ {
+		v1[0] = i + 1
+		for j := 0; j < lenT; j++ {
 			cost := 1
-			if s[i-1] == t[j-1] {
+			if rS[i] == rT[j] {
 				cost = 0
 			}
-			d[i][j] = d[i-1][j] + 1 // deleção
-			if d[i][j-1]+1 < d[i][j] {
-				d[i][j] = d[i][j-1] + 1 // inserção
+			min := v0[j+1] + 1 // deleção
+			if v1[j]+1 < min {
+				min = v1[j] + 1 // inserção
 			}
-			if d[i-1][j-1]+cost < d[i][j] {
-				d[i][j] = d[i-1][j-1] + cost // substituição
+			if v0[j]+cost < min {
+				min = v0[j] + cost // substituição
 			}
+			v1[j+1] = min
 		}
+		copy(v0, v1)
 	}
-	return d[len(s)][len(t)]
+	return v1[lenT]
 }
 
 // ObterSugestaoErro fornece uma camada de inteligência corretiva fantástica.

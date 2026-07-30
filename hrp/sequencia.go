@@ -1,15 +1,15 @@
 package hrp
 
-// Proximo é o wrapper de alto nível para invocar o método mágico '__proximo__' de um iterador.
+// próximo é o wrapper de alto nível para invocar o método mágico '__próximo__' de um iterador.
 //
-// Esta função encapsula a asserção de tipo e chamada de M__proximo__(), padronizando e
+// Esta função encapsula a asserção de tipo e chamada de M__próximo__(), padronizando e
 // centralizando a captura de erros de controle como FimIteracao para as estruturas de controle da VM.
-func Proximo(obj Objeto) (Objeto, error) {
-	if iter, ok := obj.(I__proximo__); ok {
-		return iter.M__proximo__()
+func próximo(obj Objeto) (Objeto, error) {
+	if iter, ok := obj.(I__próximo__); ok {
+		return iter.M__próximo__()
 	}
 
-	return nil, NewErroF(TipagemErro, "O objeto do tipo '%s' não implementa a interface do iterador (método __proximo__)", obj.Tipo().Nome)
+	return nil, NewErroF(TipagemErro, "O objeto do tipo '%s' não implementa a interface do iterador (método __próximo__)", obj.Tipo().Nome)
 }
 
 // Iter é o wrapper de alto nível para obter o iterador ativo de um objeto colecionável.

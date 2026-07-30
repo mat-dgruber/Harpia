@@ -29,7 +29,25 @@ func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto
 	}
 
 	if !(strings.HasPrefix(nome, "./") || strings.HasPrefix(nome, "/")) {
-		return nil, NewErroF(ImportacaoErro, "Importações não relativas só estão disponíveis para módulos embutidos, corrija para './%s'", nome)
+		// ponytail: tenta resolver como arquivo local curto (ex: "utilitarios" -> "./utilitarios.hrp")
+		caminhoLocal := "./" + nome
+		if !strings.HasSuffix(caminhoLocal, ".hrp") {
+			if _, errStat := os.Stat(caminhoLocal + ".hrp"); errStat == nil {
+				nome = caminhoLocal + ".hrp"
+			} else if _, errStat := os.Stat(caminhoLocal); errStat == nil {
+				nome = caminhoLocal
+			}
+		} else if _, errStat := os.Stat(caminhoLocal); errStat == nil {
+			nome = caminhoLocal
+		}
+
+		if !(strings.HasPrefix(nome, "./") || strings.HasPrefix(nome, "/")) {
+			// Módulos virtuais do frontend/web
+			if nome == "sinais" || nome == "web" || nome == "reatividade" {
+				return &Modulo{Impl: &ModuloImpl{Info: ModuloInfo{Nome: nome}}, Contexto: ctx, Escopo: NewEscopo(), acessoRapido: NewMapaVazio()}, nil
+			}
+			return nil, NewErroF(ImportacaoErro, "Importações não relativas só estão disponíveis para módulos embutidos, corrija para './%s'", nome)
+		}
 	}
 
 	curDir := ""

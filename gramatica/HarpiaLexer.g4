@@ -18,211 +18,176 @@ lexer grammar HarpiaLexer;
 // ============================================================================
 
 // FALSO representa o literal booleano negativo 'Falso'.
-// No compilador Go, é mapeado para um objeto de runtime singleton e imutável.
 FALSO: 'Falso';
 
 // VERDADEIRO representa o literal booleano positivo 'Verdadeiro'.
-// No compilador Go, é mapeado para um objeto de runtime singleton e imutável.
 VERDADEIRO: 'Verdadeiro';
 
 // NULO representa a constante nula 'Nulo' (representação de ausência de tipo).
-// No runtime do Harpia, é um singleton imutável livre de alocações no Heap.
 NULO: 'Nulo';
 
 // ============================================================================
 // PALAVRAS-CHAVE RESERVADAS E ESTRUTURAS DE CONTROLE
 // ============================================================================
 
-// SE inicia uma estrutura condicional de decisão léxica.
 SE: 'se';
-
-// SENAO define desvios alternativos para blocos condicionais de controle de fluxo.
 SENAO: 'senao';
-
-// VAR inicializa a declaração de variáveis mutáveis com ou sem amarração estática de tipo.
-VAR: 'var';
-
-// CONST inicializa a declaração de constantes imutáveis cujo valor deve ser fixado na criação.
-CONST: 'const';
-
-// IMPORTE declara o carregamento e inicialização síncrona de dependências e pacotes.
-IMPORTE: 'importe';
-
-// DE qualifica imports de escopo local ou remoto, similar a destruturação (ex: de "x" importe y).
-DE: 'de';
-
-// RETORNE sinaliza a devolução opcional de valores e encerramento de escopos de função.
-RETORNE: 'retorne';
-
-// FUNC define o delimitador de assinatura para declarações estruturadas de função.
-FUNC: 'func';
-
-// OU define o operador de disjunção lógica 'ou' com menor nível de precedência.
-OU: 'ou';
-
-// E define o operador de conjunção lógica 'e' com média prioridade.
-E: 'e';
-
-// NAO define o operador de negação lógica unária de alta prioridade.
-NAO: 'nao';
-
-// PARE interrompe imediatamente laços estruturados de repetição ('para').
-PARE: 'pare';
-
-// CONTINUE avança para a próxima iteração lógica útil do laço corrente.
-CONTINUE: 'continue';
-
-// PARA define o cabeçalho do laço de repetição iterativo (for-in).
+ENQUANTO: 'enquanto';
 PARA: 'para';
-
-// EM atua como o conector semântico indispensável para laços iterativos (ex: para x em y).
 EM: 'em';
 
-// NOVA é a instrução de instanciação de construtores de classe de objetos POO.
-NOVA: 'nova';
+VAR: 'var';
+CONST: 'const';
+FUNC: 'func';
+RETORNE: 'retorne';
+PARE: 'pare';
+CONTINUE: 'continue';
 
-// ASSEGURA declara asserções de validação para testes lógicos (similar ao 'assert').
+TENTE: 'tente';
+CAPTURE: 'capture';
+FINALMENTE: 'finalmente';
+
+ESCOLHA: 'escolha';
+CASO: 'caso';
+QUANDO: 'quando';
+
+IMPORTE: 'importe';
+DE: 'de';
+EXPORTAR: 'exportar';
+
+NOVA: 'nova';
+CLASSE: 'classe';
+ESTENDE: 'estende';
+SELF: 'self';
+ESTATICO: 'estatico';
+
+ENUM: 'enum';
+INTERFACE: 'interface';
+
+ASSINCRONO: 'assincrono';
+AGUARDE: 'aguarde';
+
+ESTILO: 'estilo';
+TESTAR: 'testar';
 ASSEGURA: 'assegura';
 
 // ============================================================================
-// TOKENS DE SINTAXE E REGRAS AUXILIARES
+// OPERADORES LÓGICOS TEXTUAIS (EM PORTUGUÊS)
 // ============================================================================
 
-// NOVA_LINHA delimita instruções físicas no código caso ponto e vírgula não seja usado.
-NOVA_LINHA: '\r'? '\n';
-
-// DIGITOS representa o conjunto básico de algarismos numéricos decimais de 0 a 9.
-DIGITOS:
-	'0'
-	| '1'
-	| '2'
-	| '3'
-	| '4'
-	| '5'
-	| '6'
-	| '7'
-	| '8'
-	| '9';
-
-// LETRAS define os caracteres alfabéticos padrão ASCII para a composição de identificadores.
-LETRAS: 'A' .. 'Z' | 'a' .. 'z';
+OU: 'ou';
+E: 'e';
+NAO: 'nao';
 
 // ============================================================================
-// OPERADORES ARITMÉTICOS, LÓGICOS, BITWISE E ATRIBUIÇÃO
+// OPERADORES ARITMÉTICOS, RELACIONAIS, BITWISE E DE ATRIBUIÇÃO
 // ============================================================================
 
-// OPERADOR_REATRIBUICAO engloba todas as formas de operadores de atribuição direta e composta.
-// Na VM Go, estas são simplificadas e otimizadas para evitar re-avaliações duplicadas de operandos.
-OPERADOR_REATRIBUICAO: IGUAL | '+=' | '-=' | '*=' | '@=' | '/=' | '%=' | '&=' | '|=' | '^=' | '<<=' | '>>=' | '**=' | '//=';
+OPERADOR_REATRIBUICAO:
+	'='
+	| '+='
+	| '-='
+	| '*='
+	| '/='
+	| '//='
+	| '%='
+	| '&='
+	| '|='
+	| '^='
+	| '<<='
+	| '>>='
+	| '**='
+	| '??='
+	| '||='
+	| '&&=';
 
-// IGUAL define o operador básico de atribuição de variáveis.
 IGUAL: '=';
-
-// MAIS define o operador aritmético de adição ou concatenação de cadeias de caracteres.
 MAIS: '+';
-
-// MENOS define o operador aritmético de subtração ou sinal unário de inversão matemática.
 MENOS: '-';
-
-// ASTERISCO define o operador de multiplicação matemática.
 ASTERISCO: '*';
-
-// POTENCIA define o operador aritmético de exponenciação de alta precedência.
 POTENCIA: '**';
-
-// DIVISAO define o operador aritmético de divisão de ponto flutuante de dupla precisão.
 DIVISAO: '/';
-
-// DIVISAO_INTEIRA define o operador de divisão inteira (descarte de fração).
 DIVISAO_INTEIRA: '//';
-
-// MODULO obtém o resto da divisão de dois inteiros de 64 bits.
 MODULO: '%';
 
-// MENOR_QUE compara se um operando é estritamente menor que o outro.
 MENOR_QUE: '<';
-
-// MENOR_OU_IGUAL compara se um operando é menor ou equivalente ao outro.
 MENOR_OU_IGUAL: '<=';
-
-// IGUAL_IGUAL compara de forma lógica a equivalência de valores de operandos.
 IGUAL_IGUAL: '==';
-
-// DIFERENTE compara se os operandos possuem valores logicamente distintos.
 DIFERENTE: '!=';
-
-// MAIOR_QUE compara se um operando é estritamente maior que o outro.
 MAIOR_QUE: '>';
-
-// MAIOR_OU_IGUAL compara se um operando é maior ou equivalente ao outro.
 MAIOR_OU_IGUAL: '>=';
+
+// Bitwise
+OU_BIT_A_BIT: '|';
+EX_OU_BIT_A_BIT: '^';
+E_BIT_A_BIT: '&';
+NAO_BIT_A_BIT: '~';
+DESLOC_ESQUERDA: '<<';
+DESLOC_DIREITA: '>>';
+
+// Operadores de Encadeamento, Pipe e Nulidade
+PIPE: '|>';
+COALESCENCIA_NULA: '??';
+PONTO_INTERROGACAO: '?.';
+INTERROGACAO: '?';
+ARROBA: '@';
+TRES_PONTOS: '...';
+SETA: '->';
 
 // ============================================================================
 // SÍMBOLOS DELIMITADORES DE SINTAXE
 // ============================================================================
 
-// ABRE_PARENTESES inicia agrupamento matemático ou passagens de assinaturas de função.
 ABRE_PARENTESES: '(';
-
-// FECHA_PARENTESES finaliza agrupamentos de prioridade e chamadas de função.
 FECHA_PARENTESES: ')';
-
-// PONTO_E_VIRGULA representa o delimitador explícito (opcional) de término de instruções.
 PONTO_E_VIRGULA: ';';
-
-// VIRGULA atua como separador em argumentos, arrays, mapas ou atribuições múltiplas.
 VIRGULA: ',';
-
-// ABRE_CHAVES inicia escopos de bloco estruturados ou definição de dicionários de mapas.
 ABRE_CHAVES: '{';
-
-// FECHA_CHAVES finaliza blocos de escopo de chaves e tabelas chave-valor.
 FECHA_CHAVES: '}';
-
-// DOIS_PONTOS separa chaves de valores em mapas ou indica tipos estáticos na declaração.
 DOIS_PONTOS: ':';
-
-// PONTO executa acessos a propriedades e métodos de namespaces ou objetos.
 PONTO: '.';
-
-// ABRE_COLCHETES inicia fatiamento de strings, definição de listas ou indexação de vetores.
 ABRE_COLCHETES: '[';
-
-// FECHA_COLCHETES finaliza coleções indexáveis e limites de fatiamento.
 FECHA_COLCHETES: ']';
 
 // ============================================================================
-// OPERADORES DE BIT (BITWISE)
+// LITERAIS NUMÉRICOS, TEXTUAIS E IDENTIFICADORES
 // ============================================================================
 
-// OU_BIT_A_BIT realiza operação OR em nível de bits (Bitwise OR).
-OU_BIT_A_BIT: '|';
+// LITERAL_INTEIRO representa inteiros decimais, hexadecimais, binários e octais.
+LITERAL_INTEIRO:
+	[0-9]+
+	| '0' [xX] [0-9a-fA-F]+
+	| '0' [bB] [01]+
+	| '0' [oO] [0-7]+;
 
-// EX_OU_BIT_A_BIT realiza operação XOR em nível de bits (Bitwise XOR).
-EX_OU_BIT_A_BIT: '^';
+// LITERAL_DECIMAL representa números de ponto flutuante.
+LITERAL_DECIMAL: [0-9]+ '.' [0-9]+;
 
-// E_BIT_A_BIT realiza operação AND em nível de bits (Bitwise AND).
-E_BIT_A_BIT: '&';
+// TEXTO representa literais textuais cercados por aspas duplas, simples ou crases (template string).
+TEXTO:
+	'"' ( ~[\\\r\n"] | ('\\' .) )* '"'
+	| '\'' ( ~[\\\r\n'] | ('\\' .) )* '\''
+	| '`' ( ~[`\\] | ('\\' .) )* '`';
 
-// NAO_BIT_A_BIT realiza operação NOT unária em nível de bits (Bitwise NOT).
-NAO_BIT_A_BIT: '~';
+// ID define identificadores de variáveis, classes e funções com suporte a Unicode (letras acentuadas PT-BR).
+ID: (LETRAS_UNICODE | '_') (LETRAS_UNICODE | DIGITOS | '_')*;
 
-// DESLOC_ESQUERDA desloca bits do operando esquerdo para esquerda (Left Shift).
-DESLOC_ESQUERDA: '<<';
+fragment LETRAS_UNICODE:
+	[a-zA-Z]
+	| [\u00C0-\u00D6]
+	| [\u00D8-\u00F6]
+	| [\u00F8-\u024F];
 
-// DESLOC_DIREITA desloca bits do operando esquerdo para direita (Right Shift).
-DESLOC_DIREITA: '>>';
+fragment DIGITOS: [0-9];
 
 // ============================================================================
-// CADEIAS DINÂMICAS E PADRÕES
+// ESPAÇOS EM BRANCO E COMENTÁRIOS
 // ============================================================================
 
-// ID define regras estruturais de composição de variáveis e classes do usuário.
-// Devem iniciar por letra ou sublinhado (_), seguido de letras ou dígitos decimais.
-ID: (LETRAS | '_') (LETRAS | DIGITOS)*;
+NOVA_LINHA: '\r'? '\n';
 
-// TEXTO representa literais textuais cercados por aspas duplas com suporte a escapes de barra.
-TEXTO: '"' ( ~[\\\r\n"] | ('\\' NOVA_LINHA | '\\' .) )* '"';
+COMENTARIO_LINHA: '//' ~[\r\n]* -> skip;
 
-// WS define a regra de descarte léxico de espaços, tabs e quebras de linha padrão.
+COMENTARIO_BLOCO: '/*' .*? '*/' -> skip;
+
 WS: [ \t\r\n]+ -> skip;

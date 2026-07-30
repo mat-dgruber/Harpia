@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // poolPilha é um pool de memória sincronizado (sync.Pool) que gerencia fatias de objetos Go reutilizáveis.
@@ -27,27 +28,33 @@ type TryHandler struct {
 
 // Frame representa um contexto isolado de execução de função ou módulo na pilha de chamadas da VM.
 type Frame struct {
-	Pai      *Frame
-	Bytecode []byte
-	IP       int          // Instrução corrente (Instruction Pointer)
-	Consts   []hrp.Objeto // Referência ao pool de constantes do programa compilado
-	Pilha    []hrp.Objeto // Pilha de operandos local
-	Locais   []hrp.Objeto // Slots de variáveis locais O(1)
-	Escopo   *hrp.Escopo  // Tabela local de símbolos e fechamento léxico / globais
-	TryStack []TryHandler // Pilha de handlers de tente/capture
+	Pai         *Frame
+	Bytecode    []byte
+	IP          int               // Instrução corrente (Instruction Pointer)
+	Consts      []hrp.Objeto      // Referência ao pool de constantes do programa compilado
+	Pilha       []hrp.Objeto      // Pilha de operandos local
+	Locais      []hrp.Objeto      // Slots de variáveis locais O(1)
+	Escopo      *hrp.Escopo       // Tabela local de símbolos e fechamento léxico / globais
+	TryStack    []TryHandler      // Pilha de handlers de tente/capture
+	NomesLocais map[uint16]string // Mapeamento estático opcional de slot u16 para nome da variável
 }
 
 // NewFrame cria um frame isolado apontando para as constantes e escopo fornecidos.
-func NewFrame(bytecode []byte, consts []hrp.Objeto, escopo *hrp.Escopo, pai *Frame) *Frame {
+func NewFrame(bytecode []byte, consts []hrp.Objeto, escopo *hrp.Escopo, pai *Frame, nomesLocais ...map[uint16]string) *Frame {
+	var nl map[uint16]string
+	if len(nomesLocais) > 0 {
+		nl = nomesLocais[0]
+	}
 	pilha := poolPilha.Get().([]hrp.Objeto)
 	return &Frame{
-		Pai:      pai,
-		Bytecode: bytecode,
-		IP:       0,
-		Consts:   consts,
-		Pilha:    pilha[:0],
-		Locais:   make([]hrp.Objeto, 0),
-		Escopo:   escopo,
+		Pai:         pai,
+		Bytecode:    bytecode,
+		IP:          0,
+		Consts:      consts,
+		Pilha:       pilha[:0],
+		Locais:      make([]hrp.Objeto, 0),
+		Escopo:      escopo,
+		NomesLocais: nl,
 	}
 }
 
@@ -100,6 +107,19 @@ func NewVM(ctx *hrp.Contexto) *VM {
 	}
 }
 
+func init() {
+	hrp.DefinirExecutadorVM(func(ctx *hrp.Contexto, ast parser.BaseNode, escopo *hrp.Escopo) (hrp.Objeto, error) {
+		comp := NewCompilador(ctx)
+		prog, err := comp.Compilar(ast)
+		if err != nil {
+			return nil, err
+		}
+		virtualMachine := NewVM(ctx)
+		frame := NewFrame(prog.Bytecode, prog.Constantes, escopo, nil, prog.NomesLocais)
+		return virtualMachine.Executar(frame)
+	})
+}
+
 func (v *VM) registrarMetrica(op Opcode, duracao time.Duration) {
 	info, ok := v.Metricas[op]
 	if !ok {
@@ -128,7 +148,7 @@ func (v *VM) ImprimirPerfil() {
 // Executar inicia o loop switch zero-alloc de despacho sobre o bytecode plano do frame.
 func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 	if frame.ObterProfundidade() > 1000 {
-		return nil, hrp.NewErroF(hrp.RuntimeErro, "Limite máximo de recursão excedido (1000 frames)")
+		return nil, hrp.NewErroF(hrp.ErroDePilha, "Limite máximo de recursão excedido (1000 frames)")
 	}
 
 	defer func() {
@@ -476,6 +496,14 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 			frame.IP += 2
 			if int(slot) < len(frame.Locais) && frame.Locais[slot] != nil {
 				frame.push(frame.Locais[slot])
+			} else if frame.Escopo != nil && frame.NomesLocais != nil {
+				if nome, ok := frame.NomesLocais[slot]; ok {
+					if val, err := frame.Escopo.ObterValor(nome); err == nil {
+						frame.push(val)
+						break
+					}
+				}
+				frame.push(hrp.Nulo)
 			} else {
 				frame.push(hrp.Nulo)
 			}
@@ -485,11 +513,16 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 			frame.IP += 2
 			val := frame.pop()
 			if int(slot) >= len(frame.Locais) {
-				novosLocais := make([]hrp.Objeto, slot+1)
+				novosLocais := make([]hrp.Objeto, slot+1, (slot+1)*2)
 				copy(novosLocais, frame.Locais)
 				frame.Locais = novosLocais
 			}
 			frame.Locais[slot] = val
+			if frame.Escopo != nil && frame.NomesLocais != nil {
+				if nome, ok := frame.NomesLocais[slot]; ok {
+					frame.Escopo.DefinirSimbolo(hrp.NewVarSimbolo(nome, val))
+				}
+			}
 			frame.push(val)
 
 		case OP_CARREGAR_GLOBAL:
@@ -500,6 +533,12 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 				val, err := frame.Escopo.ObterValor(nomeStr)
 				if err == nil {
 					frame.push(val)
+					break
+				}
+			}
+			if v.Contexto != nil && v.Contexto.Modulos != nil && v.Contexto.Modulos.Embutidos != nil {
+				if embObj, errEmb := v.Contexto.Modulos.Embutidos.M__obtem_attributo__(nomeStr); errEmb == nil {
+					frame.push(embObj)
 					break
 				}
 			}
@@ -548,6 +587,14 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 				args[i] = frame.pop()
 			}
 			fnObj := frame.pop()
+			if fn, ok := fnObj.(*hrp.Funcao); ok {
+				if fn.ObterContexto() == nil {
+					fn.DefinirContexto(v.Contexto)
+				}
+				if fn.ObterEscopo() == nil {
+					fn.DefinirEscopo(frame.Escopo)
+				}
+			}
 			res, err := hrp.Chamar(fnObj, hrp.Tupla(args))
 			for _, arg := range args {
 				hrp.LiberarObjeto(arg)
@@ -605,7 +652,13 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 				pares = append([][2]hrp.Objeto{{chave, val}}, pares...)
 			}
 			for _, par := range pares {
-				mapa[string(par[0].(hrp.Texto))] = par[1]
+				var chaveStr string
+				if txt, ok := par[0].(hrp.Texto); ok {
+					chaveStr = string(txt)
+				} else {
+					chaveStr = fmt.Sprintf("%v", par[0])
+				}
+				mapa[chaveStr] = par[1]
 			}
 			frame.push(mapa)
 

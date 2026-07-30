@@ -118,8 +118,8 @@ As comparações relacionais e de valor são governadas pelo conjunto de interfa
 A iteração inteligente de laços de repetição `para x em colecao` é provida de forma desacoplada pela interface unificada `I_iterador`:
 
 1. **`I__iter__`** ➔ `M__iter__() (Objeto, error)`: Chamado na inicialização do laço. Deve retornar uma estrutura que aja como o iterador ativo (geralmente ele mesmo ou uma nova instância de cursor).
-2. **`I__proximo__`** ➔ `M__proximo__() (Objeto, error)`: Chamado a cada ciclo do loop. Deve retornar o valor do item atual e avançar o cursor de leitura interna.
-   - **Fim da Iteração**: Assim que a coleção atinge o limite final, o método `M__proximo__` deve lançar o erro controlado estruturado especial **`FimIteracao`**. A VM intercepta essa exceção, encerra o laço `para` de forma elegante e continua a execução do script.
+2. **`I__próximo__`** ➔ `M__próximo__() (Objeto, error)`: Chamado a cada ciclo do loop. Deve retornar o valor do item atual e avançar o cursor de leitura interna.
+   - **Fim da Iteração**: Assim que a coleção atinge o limite final, o método `M__próximo__` deve lançar o erro controlado estruturado especial **`FimIteracao`**. A VM intercepta essa exceção, encerra o laço `para` de forma elegante e continua a execução do script.
 
 ---
 
@@ -190,6 +190,16 @@ Adicionado no fechamento da **Fase 2.5**. O pacote `hrp` implementa gerenciament
 - **Imunidade de Singletons**: Constantes fundamentais e tipos nativos (como `Nulo`, `Verdadeiro`, `Falso`) são inicializados com `RefsCount = -1` de forma permanente, tornando-os imunes a decrementos.
 - **Quebra Simétrica de Ciclos (`ColetarCiclos`)**: Algoritmo de varredura _Trial Deletion_ baseado em alcance léxico. Ele detecta de forma recursiva grafos isolados circulares órfãos (ex: Lista A contendo Lista B, e Lista B contendo Lista A) e quebra a ciclicidade esvaziando seus filhos, permitindo que suas referências cheguem a zero e o Garbage Collector nativo do Go os libere da memória de forma definitiva.
 
+### 5. Orquestração do Ambiente da VM (`Contexto`)
+
+O `Contexto` gerencia o estado da máquina virtual durante a interpretação da AST:
+
+- **Mecanismo de Exceções e Resiliência (`tente / capture`)**:
+  - Blocos `tente` envolvem a execução em guardas com `defer recover()`, capturando panics Go nativos da runtime e convertendo-os automaticamente em instâncias do tipo Harpia `RuntimeErro`.
+  - Isso garante que chamadas nativas de pacotes Go que lancem panics possam ser interceptadas e tratadas de forma segura com `capture (erro) { ... }`.
+- **Resolução de Módulos da Stdlib Sem Prefixo**:
+  - O carregador de módulos de `hrp/importe.go` reconhece apelidos de stdlib como `"sinais"`, `"web"`, `"reatividade"` e `"matematica"` sem necessidade do prefixo relativo (`./`), instanciando e vinculando automaticamente os escopos dos módulos embutidos virtuais.
+
 ---
 
 ## ⚙️ Mecânica Geral de Avaliação de AST
@@ -225,7 +235,7 @@ O Harpia foi concebido para ser uma linguagem altamente didática e amigável. P
 
 - **Códigos de Erros Estruturados (PSC-xxxx)**: Cada categoria de falha possui um identificador unívoco padrão (ex: `PSC-0001` para erro de nome, `PSC-0002` para erro de tipo, etc.). Isso facilita buscas de solução na documentação e fóruns.
 - **Tracebacks com Apontadores Espaciais (`^^^^`)**: Em vez de apenas exibir a linha e coluna do erro, o motor lê o arquivo-fonte, isola o trecho problemático e imprime no terminal a linha de código afetada acompanhada de marcadores de sublinhado coloridos via ANSI no terminal, destacando o local exato do token causador.
-- **Sugestor Ortográfico por Distância de Levenshtein**: Quando ocorre um erro de nome (`NomeErro`), a VM varre as variáveis, funções e tipos acessíveis no escopo léxico ativo, calcula a distância de edição de Levenshtein entre o termo desconhecido e os símbolos válidos, e sugere automaticamente a correção mais provável (ex: *"Erro de Nome: 'contdor' não foi definido. Você quis dizer: 'contador'?"*).
+- **Sugestor Ortográfico por Distância de Levenshtein**: Quando ocorre um erro de nome (`NomeErro`), a VM varre as variáveis, funções e tipos acessíveis no escopo léxico ativo, calcula a distância de edição de Levenshtein entre o termo desconhecido e os símbolos válidos, e sugere automaticamente a correção mais provável (ex: _"Erro de Nome: 'contdor' não foi definido. Você quis dizer: 'contador'?"_).
 
 ---
 

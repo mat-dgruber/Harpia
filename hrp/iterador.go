@@ -27,7 +27,7 @@ func (it *Iterador) M__iter__() (Objeto, error) {
 	return it, nil
 }
 
-// M__proximo__ avança o cursor e retorna o próximo item disponível na coleção.
+// M__próximo__ avança o cursor e retorna o próximo item disponível na coleção.
 //
 // Esta função é o coração do loop "para" e "enquanto" no Harpia. Ela analisa dinamicamente
 // o tipo do contêiner e aplica o avanço do cursor:
@@ -36,7 +36,7 @@ func (it *Iterador) M__iter__() (Objeto, error) {
 //   - Bytes: Retorna o valor de cada byte codificado como Inteiro.
 //
 // Quando a coleção é totalmente percorrida, dispara o erro especial de controle FimIteracao.
-func (it *Iterador) M__proximo__() (Objeto, error) {
+func (it *Iterador) M__próximo__() (Objeto, error) {
 	switch c := it.Conteiner.(type) {
 	case Tupla:
 		// Tupla (e Lista — pois Lista.M__iter__ já passa l.Itens como Tupla)

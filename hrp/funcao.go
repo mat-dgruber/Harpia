@@ -70,6 +70,38 @@ func contextoUltimoPrograma(c *Contexto) (*parser.Programa, bool) {
 	return prog, ok
 }
 
+// DefinirEscopo atualiza o escopo de enquadramento original de declaração (Lexical Scope) da função.
+func (f *Funcao) DefinirEscopo(e *Escopo) {
+	if f == nil {
+		return
+	}
+	f.escopo = e
+}
+
+// ObterEscopo retorna o escopo de enquadramento da função.
+func (f *Funcao) ObterEscopo() *Escopo {
+	if f == nil {
+		return nil
+	}
+	return f.escopo
+}
+
+// DefinirContexto atualiza a referência de supervisor global da VM na função.
+func (f *Funcao) DefinirContexto(ctx *Contexto) {
+	if f == nil {
+		return
+	}
+	f.contexto = ctx
+}
+
+// ObterContexto retorna o ponteiro de referência ao supervisor global da VM da função.
+func (f *Funcao) ObterContexto() *Contexto {
+	if f == nil {
+		return nil
+	}
+	return f.contexto
+}
+
 // Args retorna a relação ordenada de parâmetros formais da função.
 func (f *Funcao) Args() []string { return f.args }
 

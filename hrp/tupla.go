@@ -50,7 +50,11 @@ func (t Tupla) M__tamanho__() (Objeto, error) {
 // ObtemItem resolve o fatiamento e leitura de itens indexados. Lança erro de tipagem caso o índice não seja Inteiro.
 func (t Tupla) ObtemItem(i Objeto, nomeTipo string) (Objeto, error) {
 	if I, ok := i.(Inteiro); ok {
-		return t[I], nil
+		idx := int(I)
+		if idx < 0 || idx >= len(t) {
+			return nil, NewErroF(IndiceErro, "Índice '%d' fora dos limites do tipo '%s' (tamanho %d)", idx, nomeTipo, len(t))
+		}
+		return t[idx], nil
 	}
 
 	return nil, NewErroF(TipagemErro, "O tipo '%s' não é aceito para indexação no tipo '%s'. Use um 'Inteiro'.", i.Tipo().Nome, nomeTipo)
@@ -60,7 +64,11 @@ func (t Tupla) ObtemItem(i Objeto, nomeTipo string) (Objeto, error) {
 // Embora exposta como interface Go, o Harpia lança erros ou impede mutabilidades em scripts de usuário.
 func (t Tupla) DefineItem(chave, valor Objeto, nomeTipo string) (Objeto, error) {
 	if I, ok := chave.(Inteiro); ok {
-		t[I] = valor
+		idx := int(I)
+		if idx < 0 || idx >= len(t) {
+			return nil, NewErroF(IndiceErro, "Índice '%d' fora dos limites do tipo '%s' (tamanho %d)", idx, nomeTipo, len(t))
+		}
+		t[idx] = valor
 		return t, nil
 	}
 
