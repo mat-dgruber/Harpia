@@ -28,8 +28,8 @@ app-teste
 /harpia
 /main
 
-# Relatórios temporários e planos de sessões de IA
-202[0-9]-*.md
+# Relatórios temporários e planos de sessões de IA na raiz
+/202[0-9]-*.md
 
 # Extensão VS Code (se integrada ao monorepo)
 /vscode-harpia/node_modules/
