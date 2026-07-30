@@ -45,6 +45,7 @@ O Harpia foi concebido sob uma perspectiva dupla:
 - [x] Dev Server (`harpia servir`) e Execução (`harpia executar`) com Zero-Config, auto-detecção de arquivos principais e spinners ANSI animados
 - [x] Linter estático isolado de alocações pesadas (`cmd/checar.go`), resolvendo dependências circulares com consumo de RAM constante (< 25 MB)
 - [x] Runtime VDOM (`runtime-web.js`) com resiliência total contra nós nulos e reconciliação defensiva de elementos DOM
+- [x] Pacote utilitário `compartilhado` industrial: Cache LRU sharded de 256 shards thread-safe, Fast-Path ASCII, validadores de identificadores e parsing de bases numéricas (hex, bin, oct, dec)
 - [x] Suporte nativo aos métodos de coleção `.adicionar()`, `.anexar()` e `.adiciona()` na VM
 - [x] Suporte nativo a comparações lexicográficas ricas em objetos `Texto` (`<`, `<=`, `>`, `>=`)
 - [x] Componentes Nativos `<Link para="...">`, `<Escolha>`, `<Caso>`, `<Padrao>` e `<Aguardar>` para UI reativa

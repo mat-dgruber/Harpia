@@ -272,58 +272,75 @@ O pacote `lexer` foi escrito inteiramente à mão em Go. Ele evita o uso de expr
 
 Em Go, strings são slices de bytes UTF-8. Um único caractere Unicode (acentos ou emojis) pode ocupar entre 1 e 4 bytes. Acessos diretos por índice (ex: `str[i]`) podem quebrar runas ao meio.
 
-- **Solução do Harpia**: O arquivo `compartilhado/strings.go` implementa a função `IndiceBytePorCarater(str string) []int`. Ela varre a string decodificando runas via `utf8.DecodeRuneInString` e pré-calcula uma tabela de mapeamento. Desse modo, o Lexer consegue fazer conversões e fatiamentos de caracteres de forma segura e rápida em tempo constante $O(1)$.
-- **Cache Estático Thread-Safe Global**: Para suportar múltiplos interpretadores independentes rodando em paralelo sem colisões, o pacote `compartilhado` adota uma tabela de cache global protegida por um `sync.RWMutex`. Entradas são restritas a tamanhos menores que 4KB para evitar consumo excessivo de heap, e o cache inteiro é reciclado se ultrapassar 2048 registros, prevenindo estouros de memória.
+- **Solução do Harpia**: O arquivo `compartilhado/strings.go` implementa a função `IndiceBytePorCarater(str string) []int`. Ela varre a string decodificando runas via `utf8.DecodeRuneInString` e pré-calcula uma tabela de mapeamento. Desse modo, o Lexer e o Parser conseguem fazer conversões e fatiamentos de caracteres de forma segura e rápida em tempo constante $O(1)$.
+- **Cache LRU Sharded Concorrente (256 Shards)**: Para suportar requisições HTTP paralelas e múltiplos interpretadores rodando concorrentemente sem contenção de trava, o pacote `compartilhado` adota uma estrutura `ShardedCache` particionada em 256 shards independentes. O roteamento de cada chave é feito via hash inline FNV-1a (`hash % 256`), e cada shard possui seu próprio `sync.Mutex` e lista encadeada LRU (capacidade padrão de 64 entradas por shard, totalizando 16.384 entradas globais).
 
 ### Mapeamento Detalhado do Pacote `compartilhado`
 
-O pacote `compartilhado` abriga funções de utilidades essenciais compartilhadas entre o compilador, parser, lexer e interpretador do Harpia. Suas rotinas estão divididas em manipulação de texto Unicode e conversões numéricas.
+O pacote `compartilhado` abriga funções utilitárias de nível industrial compartilhadas entre o compilador, parser, lexer, runtime e servidor web do Harpia. Suas rotinas estão divididas em cache concorrente, navegação Unicode com Fast-Path ASCII, validação de identificadores e conversões numéricas.
 
-#### 1. Manipulação e Indexação de Strings (`strings.go` & `compartilhado.go`)
+#### 1. Cache LRU Thread-Safe (`cache_lru.go`)
+
+- **`ShardedCache` / `NovoShardedCache(numShards, capPorShard int) *ShardedCache`**:
+  - **Propósito**: Estrutura de cache LRU concorrente desacoplada e particionada. Evita contenção global de mutexes sob cargas massivas concorrentes.
+  - **Operações**: `Obter(chave string) ([]int, bool)`, `Armazenar(chave string, valor []int)`, `Limpar()`. Realiza cópias defensivas dos slices para garantir imutabilidade e proteção total contra data races.
+  - **Instância Global**: `ObterDoCache`, `ArmazenarNoCache` e `LimparCache` oferecem atalhos para a instância global padronizada.
+
+#### 2. Manipulação, Fast-Path e Indexação de Strings (`strings.go` & `compartilhado.go`)
+
+- **`EhASCII(s string) bool`**:
+  - **Propósito**: Verifica em $O(N)$ sem alocações se a string é formada exclusivamente por caracteres ASCII (`bytes < 0x80`).
+  - **Impacto**: Quando `true`, ativa o Fast-Path ASCII em `IndiceCaraterParaByte` e `ObtemCaraterPorIndice`, executando retornos em $O(1)$ sem alocações na heap ou consultas ao cache.
 
 - **`IndiceBytePorCarater(str string) []int`**:
   - **Propósito**: Pré-calcula os offsets em bytes de cada runa (caractere Unicode) na string de entrada.
   - **Parâmetros**: `str string` - Texto ou código-fonte a ser indexado.
   - **Retorno**: `[]int` - Slice onde a posição `i` indica o início em bytes do caractere `i`. A última posição contém `len(str)` para delimitar o EOF de forma inclusiva e segura.
-  - **Design**: Armazena em cache se a string for menor que 4KB. Limpa e reinicia o cache global caso exceda 2048 entradas para evitar vazamentos de memória (LRU básico).
+  - **Design**: Armazena em cache no `ShardedCache` para strings menores que 4KB.
 
 - **`LimparCacheUnicode()`**:
-  - **Propósito**: Esvazia de forma síncrona a tabela de cache estático global de strings indexadas, liberando heap.
+  - **Propósito**: Esvazia de forma síncrona a tabela de cache sharded global de strings indexadas, liberando memória.
 
 - **`IndiceCaraterParaByte(str string, indice int, cache []int) int`**:
   - **Propósito**: Resolve a posição exata em bytes correspondente ao índice conceitual do caractere informado.
   - **Parâmetros**: `str string`, `indice int` (caractere), `cache []int` (slice retornado de `IndiceBytePorCarater`).
-  - **Retorno**: `int` - Byte offset correspondente. Retorna `len(str)` se ultrapassar os limites da string.
-  - **Mecanismo**: Retorna em $O(1)$ caso o cache seja fornecido e seja válido. Caso contrário, degrada para busca linear $O(N)$ como fallback.
+  - **Mecanismo**: Retorna em $O(1)$ para strings ASCII ou quando o cache é fornecido. Caso contrário, invoca `IndiceCaraterParaByteSemCache`.
 
 - **`IndiceCaraterParaByteSemCache(str string, indice int) int`**:
-  - **Propósito**: Calcula de forma linear $O(N)$ o byte offset do caractere decodificando runas uma a uma. Utilizada como contingência (fallback) interna de resolução de limites.
+  - **Propósito**: Calcula de forma linear $O(N)$ o byte offset decodificando runas uma a uma. Possui proteção estrita contra índices out-of-bounds (`byteIndex >= len(str)` e `tamanho == 0`), prevenindo congelamento/loops infinitos de CPU.
 
 - **`ObtemCaraterPorIndice(str string, indice int, cache []int) string`**:
-  - **Propósito**: Extrai com segurança uma substring de uma única runa no índice informado.
-  - **Parâmetros**: `str string`, `indice int`, `cache []int`.
-  - **Retorno**: `string` - O caractere individual. Impede erros de fatiamento fora de limite (panic por slice bounds out of range).
+  - **Propósito**: Extrai com segurança uma substring de uma única runa no índice informado. Impede erros de fatiamento fora de limite (*slice bounds out of range*).
 
 - **`ContemApenasLetras(str string) bool`**:
-  - **Propósito**: Valida se a string é formada exclusivamente por caracteres classificados como letras pela especificação Unicode. Suporta alfabetos internacionalizados acentuados.
+  - **Propósito**: Valida se todas as runas da string são letras Unicode (`unicode.IsLetter`).
 
 - **`ContemApenasDigitos(str string) bool`**:
-  - **Propósito**: Valida se todos os caracteres da string são dígitos decimais. Utilizado no Lexer para validação de literais inteiros.
+  - **Propósito**: Valida se todas as runas da string são dígitos decimais Unicode (`unicode.IsDigit`).
 
 - **`ContemApenasAlfaNum(str string) bool`**:
-  - **Propósito**: Valida se a string de entrada contem unicamente letras ou unicamente dígitos através de composição lógica (`ContemApenasDigitos(str) || ContemApenasLetras(str)`).
+  - **Propósito**: Valida se a string de entrada é estritamente composta por letras e/ou dígitos Unicode, avaliando cada runa individualmente. Funciona corretamente com strings mistas (ex: `"usuario123"`).
 
-#### 2. Utilitários de Conversão Numérica (`numeros.go`)
+- **`EIdentificadorValido(str string) bool`**:
+  - **Propósito**: Valida se uma string representa um identificador legal na sintaxe da linguagem Harpia (inicia com letra Unicode ou `_`, seguido por letras, dígitos ou `_`).
+
+#### 3. Utilitários de Conversão e Bases Numéricas (`numeros.go`)
+
+- **`StringParaIntBase(s string) (int64, error)`**:
+  - **Propósito**: Converte strings numéricas em inteiros de 64 bits identificando automaticamente prefixos de base e sinal opcional (`+`/`-`):
+    - Hexadecimal: `0x` ou `0X` (base 16)
+    - Binário: `0b` ou `0B` (base 2)
+    - Octal: `0o` ou `0O` (base 8)
+    - Decimal: sem prefixo (base 10)
 
 - **`StringParaInt(s string) (int64, error)`**:
-  - **Propósito**: Converte uma string que representa um número inteiro em um inteiro assinado de 64 bits (`int64`).
-  - **Design**: Executa a conversão na base decimal (base 10) garantindo a máxima capacidade de precisão numérica nativa de 64 bits para evitar estouros na VM.
-  - **Retorno**: `(int64, error)`. Retorna erro do tipo `*strconv.NumError` caso o formato seja inválido ou ocorra overflow de bits.
+  - **Propósito**: Converte uma string que representa um número inteiro decimal em `int64`.
 
 - **`StringParaDec(s string) (float64, error)`**:
-  - **Propósito**: Converte uma representação em texto de número real para ponto flutuante de dupla precisão (`float64`).
-  - **Design**: Converte decimais seguindo a especificação IEEE 754, garantindo tratamento de notação científica.
-  - **Retorno**: `(float64, error)`. Utilizado na criação do tipo nativo `Decimal` da Harpia.
+  - **Propósito**: Converte representação em texto de número real para `float64` (especificação IEEE 754 de dupla precisão).
+
+- **`IntParaString(v int64) string` e `DecParaString(v float64) string`**:
+  - **Propósito**: Utilitários de formatação rápida de inteiros e decimais para strings.
 
 ### Estrutura Física de Coordenadas de Tokens
 
@@ -1711,29 +1728,20 @@ A partir da **Fase 2** (Fase de Otimização e Bytecode), o Harpia conta com uma
 A AST do programa é compilada estaticamente para bytecode compacto (`.hrpc`) de passagem única:
 
 - **Pool de Constantes**: Literais do programa (textos, números inteiros, decimais, booleanos, nulos) são internados de forma deduplicada no pool de constantes, otimizando alocações.
-- **Opcodes de 1 Byte**: Instruções compactas que controlam a pilha (`OP_PUSH_CONST`, `OP_POP`, `OP_DUP`), execução aritmética (`OP_ADD`, `OP_SUB`), controle de fluxo (`OP_JMP`, `OP_JMP_FALSO`, `OP_RETORNE`) e escopo (`OP_CARREGAR_VAR`, `OP_ARMAZENAR_VAR`).
-- **Super-Instruções & Fusão Estática (Fase D)**: Para maximizar o rendimento operacional, o compilador adota passagens de fusão de bytecodes. Ele identifica pares de instruções sequenciais comuns e os funde estaticamente em instruções atômicas compostas de alta velocidade:
-  - `OP_RETORNE_CONST`: Funde `OP_PUSH_CONST` + `OP_RETORNE`, lendo do pool e retornando de forma direta e atômica. Otimiza inclusive retornos vazios (`retorne Nulo`).
-  - `OP_RETORNE_VAR`: Funde `OP_CARREGAR_VAR` + `OP_RETORNE`, carregando o valor da variável e saindo do frame instantaneamente.
-  - _Impacto_: Reduz pela metade a quantidade de decodificações e saltos da VM para operações de retorno.
-- **Pulos e Loops Remendados**: Remendos inteligentes de endereçamento de 16 bits (`BigEndian uint16`) para gerenciar saltos de condicionais (`se/senao`) e laços (`enquanto`).
+- **Opcodes de 16 Bits com Endereçamento BigEndian**: Operandos de 16 bits (`uint16`) para o pool de constantes (`OP_PUSH_CONST`), slots locais (`OP_CARREGAR_LOCAL`, `OP_ARMAZENAR_LOCAL`), globais (`OP_CARREGAR_GLOBAL`, `OP_ARMAZENAR_GLOBAL`), permitindo até 65.535 símbolos e constantes por módulo.
+- **Resolução Estática de Escopo ($O(1)$)**: O `EscopoCompilador` resolve identificadores locais em tempo de compilação para slots numéricos `uint16`. Em runtime, o acesso a variáveis locais ocorre em tempo constante $O(1)$ via fatias indexadas diretas (`frame.Locais[slot]`).
+- **Super-Instruções & Fusão Estática**: O compilador adota passagens de fusão de bytecodes para pares de instruções comuns:
+  - `OP_RETORNE_CONST`: Funde a leitura do pool de constantes com o retorno de frame de forma atômica.
+  - `OP_RETORNE_LOCAL`: Funde a leitura do slot local $O(1)$ diretamente com o retorno de frame.
+- **Controle de Fluxo e Tratamento de Exceções Nativo**: Pulos e laços remendados com offsets `uint16` BigEndian, e suporte a `tente / capture / finalmente` via opcodes `OP_SETUP_TRY`, `OP_POP_TRY` e `OP_LANCAR` com unwinding automático de pilha.
 
-### Execução de Alta Performance via Flag `--vm`
+### Motor de Execução de Pilha Zero-Alloc com Loop Switch Plano
 
-Para rodar qualquer script na nova VM de bytecode, basta passar a flag `--vm` ao comando de execução:
+A VM do Harpia utiliza um motor de execução plano baseado em um loop `switch` zero-alloc de alta velocidade em Go:
 
-```bash
-$ harpia executar script.hrp --vm
-```
-
-### Motor JIT de Traço por Threaded Callbacks (Fase F)
-
-Para atingir o limite máximo de velocidade de execução e aniquilar o custo clássico de decodificação de instruções de interpretadores virtuais (gargalos de loops de `switch/case`), o Harpia incorpora uma inovadora tecnologia de **Direct-Threaded Code JIT**:
-
-- **Compilação Dinâmica "Just-In-Time"**: Ao carregar um frame de bytecode para execução, a VM de pilha realiza de forma transparente uma passagem de compilação threaded de passagem única, traduzindo o array plano de bytecodes em um array estável de ponteiros de funções Go (`[]InstrucaoThreaded`).
-- **Currying de Operandos e Constantes**: Os operandos e constantes são pré-capturados no encerramento (closure) de cada callback Go em tempo de JIT. Isso elimina buscas de memória e incrementos de IP em tempo de execução, resolvendo os valores diretamente de referências estáticas.
-- **Preservação de Pulos**: O array threaded de funções coincide perfeitamente em tamanho com o array plano original de bytes. Isso mantém os offsets e saltos de endereçamento de loops e desvios de condicionais 100% íntegros e compatíveis, sem necessidade de alterações estáticas na AST.
-- **Impacto de Velocidade**: O loop principal executa chamadas diretas sequenciais de ponteiros de funções no array, contornando desvios e mispredictions de branch de CPU, entregando um ganho de performance colossal.
+- **Despacho Zero-Alloc em Loop Plano**: Processa bytecodes com despacho em tabela `switch`, otimizado nativamente pelos compiladores Go modernos sem alocações de memória durante a execução do ciclo de instrução.
+- **Acesso $O(1)$ em Slots de Locais**: Variáveis locais e parâmetros são lidos e gravados diretamente na fatia `frame.Locais[]` usando o slot `uint16` resolvido estaticamente.
+- **Unificação Transparente no Runtime**: A VM é o motor primordial de execução de todo o ecossistema Harpia (`hrp`, `cmd`, REPL e playground) através do registrador `hrp.DefinirExecutadorVM`. Se uma instrução ainda não for suportada no compilador de bytecode, o runtime realiza fallback transparente para o interpretador de AST.
 
 ### Métricas de Benchmark (Interpretador vs VM)
 
