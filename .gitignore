@@ -1,49 +1,89 @@
-# Módulos e Builds
-/node_modules
-/dist
-/build
+# ==========================================
+# Harpia — Regras do .gitignore
+# ==========================================
 
-# Variáveis de Ambiente e Arquivos Secretos
-*.env
-!.env.example # Mantém o exemplo .env para referência
-
-# Logs e Dados Gerados (Go e Geral)
-npm-debug.log*
-yarn-debug.log*
-.DS_Store
-__pycache__/
-.ipynb_checkpoints/
-
-# Binários de programas e plugins
+# --- Compilados & Binários (Go & Nativos) ---
+/Harpia
+/Harpia.exe
+/harpia
+/harpia.exe
+/harpia_dev
+/harpia_dev.exe
+/main
+/main.exe
+/app-teste
+/app-teste.exe
 *.exe
 *.dll
 *.so
 *.dylib
-
-# Teste de código (go test -c)
 *.test
-app-teste
+*.prof
+*.out
+coverage.out
 
-# Binários Locais do Harpia e Playground
-/harpia
-/main
+# --- Módulos, Builds & Artefatos Web ---
+/node_modules
+/dist
+/build
+/out
+.cache/
+.parcel-cache/
+/projetos/
+projetos/
 
-# Relatórios temporários e planos de sessões de IA na raiz
+# --- Extensão VS Code ---
+vscode-harpia/node_modules/
+vscode-harpia/out/
+vscode-harpia/*.vsix
+vscode-harpia/.vscode-test/
+*.vsix
+
+# --- Bancos de Dados & Storage Local ---
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+dados.db
+
+# --- Variáveis de Ambiente & Segredos ---
+*.env
+*.env.*
+!.env.example
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# --- Sistema Operacional & Editores ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+__pycache__/
+.ipynb_checkpoints/
+*.swp
+*.swo
+*~
+.idea/
+
+# --- Ferramentas de IA & Agentes ---
+.openclaude/
+.superpowers/
+.remember/
+.claude/
+
+# --- Relatórios & Planos Temporários ---
 /202[0-9]-*.md
-
-# Extensão VS Code (se integrada ao monorepo)
-/vscode-harpia/node_modules/
-/vscode-harpia/out/
-/vscode-harpia/*.vsix
-/vscode-harpia/.vscode-test/
+cmd/runtime_web_code_temp.txt
 PLANO_MONACO_PLAYGROUND.md
 PLANO_FASE_6.md
+PLANO_PUBLICACAO.md
 metas.md
 instalar_local.sh
 2026-07-17-165536-quero-fazer-melhorias-na-extenso-melhores-forma.md
-PLANO_PUBLICACAO.md
-
-# Arquivos locais e temporários
-dados.db
-harpia_dev
-cmd/runtime_web_code_temp.txt
