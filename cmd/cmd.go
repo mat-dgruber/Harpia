@@ -116,6 +116,7 @@ func InstalarComandos(raiz *cobra.Command) {
 	add(comandoCompletar(), "ferramentas")
 	add(comandoErroCLI(), "ferramentas")
 	add(comandoVersao(), "ferramentas")
+	add(comandoPacote(), "ferramentas")
 }
 
 

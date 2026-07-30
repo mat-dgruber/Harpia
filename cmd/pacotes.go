@@ -444,3 +444,168 @@ func salvarDependenciaNoManifesto(nome, versaoOuUrl string) {
 		fmt.Printf("  ✓ Dependência '%s' salva em pacote.json\n", nome)
 	}
 }
+
+// removerDependenciaDoManifesto remove a chave do pacote especificado de pacote.json ou pacote.hrp.
+func removerDependenciaDoManifesto(nome string) {
+	if _, err := os.Stat("pacote.json"); err == nil {
+		if conteudo, err := os.ReadFile("pacote.json"); err == nil {
+			var manifest PacoteManifest
+			if err := json.Unmarshal(conteudo, &manifest); err == nil && manifest.Dependencias != nil {
+				delete(manifest.Dependencias, nome)
+				if bytes, err := json.MarshalIndent(manifest, "", "  "); err == nil {
+					os.WriteFile("pacote.json", bytes, 0644)
+				}
+			}
+		}
+	}
+	if _, err := os.Stat("pacote.hrp"); err == nil {
+		if conteudo, err := os.ReadFile("pacote.hrp"); err == nil {
+			linhas := strings.Split(string(conteudo), "\n")
+			var novasLinhas []string
+			for _, l := range linhas {
+				lTrim := strings.TrimSpace(l)
+				if strings.HasPrefix(lTrim, "var "+nome) || strings.HasPrefix(lTrim, "const "+nome) || strings.HasPrefix(lTrim, nome+" =") || strings.HasPrefix(lTrim, nome+"=") {
+					continue
+				}
+				novasLinhas = append(novasLinhas, l)
+			}
+			os.WriteFile("pacote.hrp", []byte(strings.Join(novasLinhas, "\n")), 0644)
+		}
+	}
+}
+
+// comandoPacote retorna o comando principal Cobra 'pacote' com seus subcomandos de ciclo de vida.
+func comandoPacote() *cobra.Command {
+	cmdPacote := &cobra.Command{
+		Use:     "pacote",
+		Aliases: []string{"pacotes", "pkg"},
+		Short:   "Gerencia o ciclo de vida dos pacotes e dependências do projeto",
+		Run: func(cmd *cobra.Command, args []string) {
+			_ = cmd.Help()
+		},
+	}
+
+	cmdAdicionar := &cobra.Command{
+		Use:     "adicionar <pacote> [versao-ou-url]",
+		Aliases: []string{"add"},
+		Short:   "Adiciona e instala uma nova dependência no projeto",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				cmd.Println("Erro: informe o nome do pacote para adicionar.")
+				return
+			}
+			nome := args[0]
+			versaoOuUrl := ""
+			if len(args) >= 2 {
+				versaoOuUrl = args[1]
+			}
+
+			caminhoLock, lock := obterCaminhoELockfile()
+			urlInstalar := versaoOuUrl
+			shaEsperado := ""
+			versaoRegistrada := versaoOuUrl
+
+			if versaoOuUrl == "" {
+				if lockInfo, emLock := lock.Pacotes[nome]; emLock && lockInfo.URL != "" {
+					urlInstalar = lockInfo.URL
+					shaEsperado = lockInfo.SHA256
+					versaoRegistrada = lockInfo.Versao
+				} else {
+					cmd.Printf("Buscando pacote '%s' no registro remoto...\n", nome)
+					urlPacote, err := obterUrlDoRegistro(nome, "")
+					if err != nil {
+						cmd.PrintErrf("Erro ao resolver pacote: %v\n", err)
+						return
+					}
+					urlInstalar = urlPacote
+					versaoRegistrada = urlPacote
+				}
+			} else if !strings.HasPrefix(versaoOuUrl, "http://") && !strings.HasPrefix(versaoOuUrl, "https://") {
+				cmd.Printf("Buscando pacote '%s' na versão '%s' no registro remoto...\n", nome, versaoOuUrl)
+				resolved, err := obterUrlDoRegistro(nome, versaoOuUrl)
+				if err != nil {
+					cmd.PrintErrf("Erro ao resolver pacote: %v\n", err)
+					return
+				}
+				urlInstalar = resolved
+			}
+
+			hashCalculado, err := baixarEExtrairPacote(nome, urlInstalar, shaEsperado)
+			if err != nil {
+				cmd.PrintErrf("Erro ao instalar %s: %v\n", nome, err)
+				return
+			}
+
+			salvarDependenciaNoManifesto(nome, versaoRegistrada)
+			lock.Pacotes[nome] = PacoteLockInfo{
+				Versao: versaoRegistrada,
+				URL:    urlInstalar,
+				SHA256: hashCalculado,
+			}
+			if err := salvarLockfile(caminhoLock, lock); err != nil {
+				cmd.PrintErrf("Erro ao salvar lockfile: %v\n", err)
+			}
+			cmd.Printf("✓ Pacote '%s' adicionado com sucesso.\n", nome)
+		},
+	}
+
+	cmdRemover := &cobra.Command{
+		Use:     "remover <pacote>",
+		Aliases: []string{"remove", "rm"},
+		Short:   "Remove uma dependência instalada e limpa os registros",
+		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				cmd.Println("Erro: informe o nome do pacote para remover.")
+				return
+			}
+			nome := args[0]
+
+			pastaModulo := filepath.Join("pt_modulos", nome)
+			os.RemoveAll(pastaModulo)
+
+			removerDependenciaDoManifesto(nome)
+
+			caminhoLock, lock := obterCaminhoELockfile()
+			delete(lock.Pacotes, nome)
+			salvarLockfile(caminhoLock, lock)
+
+			cmd.Printf("✓ Pacote '%s' removido com sucesso.\n", nome)
+		},
+	}
+
+	cmdListar := &cobra.Command{
+		Use:     "listar",
+		Aliases: []string{"list", "ls"},
+		Short:   "Lista todas as dependências registradas e instaladas no projeto",
+		Run: func(cmd *cobra.Command, args []string) {
+			_, lock := obterCaminhoELockfile()
+			if len(lock.Pacotes) == 0 {
+				cmd.Println("Nenhum pacote instalado.")
+				return
+			}
+
+			cmd.Printf("Pacotes instalados (%d):\n", len(lock.Pacotes))
+			for nome, info := range lock.Pacotes {
+				versao := info.Versao
+				if versao == "" {
+					versao = "desconhecida"
+				}
+				cmd.Printf("  • %s (%s)\n", nome, versao)
+			}
+		},
+	}
+
+	cmdLimpar := &cobra.Command{
+		Use:     "limpar",
+		Aliases: []string{"clean"},
+		Short:   "Remove todos os pacotes baixados na pasta local pt_modulos/",
+		Run: func(cmd *cobra.Command, args []string) {
+			os.RemoveAll("pt_modulos")
+			cmd.Println("✓ Cache e pasta pt_modulos/ limpos com sucesso.")
+		},
+	}
+
+	cmdPacote.AddCommand(cmdAdicionar, cmdRemover, cmdListar, cmdLimpar)
+	return cmdPacote
+}
+

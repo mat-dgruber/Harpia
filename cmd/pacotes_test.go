@@ -303,3 +303,96 @@ func TestInstalacaoDeterministicaComLockfile(t *testing.T) {
 		t.Errorf("Modulo instalado via lockfile nao foi encontrado em %s", caminhoArquivo)
 	}
 }
+
+func TestComandoPacoteListarVazio(t *testing.T) {
+	tempDir := t.TempDir()
+	oldWd, _ := os.Getwd()
+	os.Chdir(tempDir)
+	defer os.Chdir(oldWd)
+
+	cmd := comandoPacote()
+	buf := new(bytes.Buffer)
+	cmd.SetOut(buf)
+	cmd.SetArgs([]string{"listar"})
+
+	err := cmd.Execute()
+	if err != nil {
+		t.Fatalf("erro ao executar pacote listar: %v", err)
+	}
+	if !bytes.Contains(buf.Bytes(), []byte("Nenhum pacote instalado")) {
+		t.Errorf("saida esperada 'Nenhum pacote instalado', obtido: %s", buf.String())
+	}
+}
+
+func TestComandoPacoteCicloVida(t *testing.T) {
+	// Prepara zip em memória
+	var bufZip bytes.Buffer
+	zipWriter := zip.NewWriter(&bufZip)
+	f, _ := zipWriter.Create("lib.hrp")
+	f.Write([]byte("imprimir('lib')"))
+	zipWriter.Close()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/zip")
+		w.Write(bufZip.Bytes())
+	}))
+	defer server.Close()
+
+	tempDir := t.TempDir()
+	oldWd, _ := os.Getwd()
+	os.Chdir(tempDir)
+	defer os.Chdir(oldWd)
+
+	// 1. Testa adicionar pacote via URL
+	cmdAdd := comandoPacote()
+	outAdd := new(bytes.Buffer)
+	cmdAdd.SetOut(outAdd)
+	cmdAdd.SetArgs([]string{"adicionar", "pkg-teste", server.URL})
+	if err := cmdAdd.Execute(); err != nil {
+		t.Fatalf("erro ao adicionar pacote: %v", err)
+	}
+
+	caminhoExt := filepath.Join("pt_modulos", "pkg-teste", "lib.hrp")
+	if _, err := os.Stat(caminhoExt); os.IsNotExist(err) {
+		t.Fatalf("pacote nao extraido em %s", caminhoExt)
+	}
+
+	// 2. Testa listar
+	cmdList := comandoPacote()
+	outList := new(bytes.Buffer)
+	cmdList.SetOut(outList)
+	cmdList.SetArgs([]string{"listar"})
+	if err := cmdList.Execute(); err != nil {
+		t.Fatalf("erro ao listar pacotes: %v", err)
+	}
+	if !bytes.Contains(outList.Bytes(), []byte("pkg-teste")) {
+		t.Errorf("lista nao contem 'pkg-teste': %s", outList.String())
+	}
+
+	// 3. Testa remover
+	cmdRm := comandoPacote()
+	outRm := new(bytes.Buffer)
+	cmdRm.SetOut(outRm)
+	cmdRm.SetArgs([]string{"remover", "pkg-teste"})
+	if err := cmdRm.Execute(); err != nil {
+		t.Fatalf("erro ao remover pacote: %v", err)
+	}
+	if _, err := os.Stat(caminhoExt); !os.IsNotExist(err) {
+		t.Errorf("pasta do pacote ainda existe apos remover")
+	}
+
+	// 4. Testa limpar
+	os.MkdirAll(filepath.Join("pt_modulos", "dummy"), 0755)
+	cmdClean := comandoPacote()
+	outClean := new(bytes.Buffer)
+	cmdClean.SetOut(outClean)
+	cmdClean.SetArgs([]string{"limpar"})
+	if err := cmdClean.Execute(); err != nil {
+		t.Fatalf("erro ao limpar pacotes: %v", err)
+	}
+	if _, err := os.Stat("pt_modulos"); !os.IsNotExist(err) {
+		t.Errorf("pasta pt_modulos ainda existe apos limpar")
+	}
+}
+
+
