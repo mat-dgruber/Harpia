@@ -19,6 +19,7 @@ type Parser struct {
 	posicoes     map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
 	codigo       string                    // Cópia do código-fonte original.
 	arquivo      string                    // Caminho físico ou identificação lógica do arquivo analisado.
+	erros        []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
 }
 
 // NewParser é o construtor padrão que inicializa e carrega os primeiros tokens de análise.
@@ -119,6 +120,9 @@ func (p *Parser) Parse() (*Programa, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(p.erros) > 0 {
+		return nil, &p.erros[0]
+	}
 
 	prog := &Programa{
 		Declaracoes: declaracoes,
@@ -149,8 +153,9 @@ func (p *Parser) parseDeclaracoes() ([]BaseNode, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		declaracoes = append(declaracoes, declaracao)
+		if declaracao != nil {
+			declaracoes = append(declaracoes, declaracao)
+		}
 
 		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenPontoEVirgula {
 			p.avancar()
@@ -164,10 +169,31 @@ func (p *Parser) parseDeclaracoes() ([]BaseNode, error) {
 func (p *Parser) parseDeclaracao() (BaseNode, error) {
 	tok := p.token
 	res, err := p.parseDeclaracaoInterno()
-	if err == nil && res != nil {
+	if err != nil {
+		if errSintatico, ok := err.(*ErroSintatico); ok {
+			p.erros = append(p.erros, *errSintatico)
+		} else {
+			var ini, fim lexer.PosicaoToken
+			if tok != nil {
+				ini = tok.Inicio
+				fim = tok.Fim
+			}
+			p.erros = append(p.erros, ErroSintatico{
+				Mensagem: err.Error(),
+				Inicio:   ini,
+				Fim:      fim,
+				Token:    tok,
+				Arquivo:  p.arquivo,
+				Codigo:   p.codigo,
+			})
+		}
+		p.sincronizar()
+		return nil, nil
+	}
+	if res != nil {
 		p.registrar(res, tok)
 	}
-	return res, err
+	return res, nil
 }
 
 // parseDeclaracaoInterno atua como a central de desvio do Parser, identificando palavras-chave
@@ -2002,9 +2028,31 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 
 type ErroSintatico struct {
 	Mensagem string
+	Inicio   lexer.PosicaoToken
+	Fim      lexer.PosicaoToken
 	Token    *lexer.Token
 	Arquivo  string
 	Codigo   string
+}
+
+func (p *Parser) Erros() []ErroSintatico {
+	return p.erros
+}
+
+func (p *Parser) sincronizar() {
+	p.avancar()
+	for !p.fimDeArquivo() {
+		if p.token.Tipo == lexer.TokenPontoEVirgula || p.token.Tipo == lexer.TokenNovaLinha {
+			p.avancar()
+			return
+		}
+		switch p.token.Tipo {
+		case lexer.TokenVar, lexer.TokenConst, lexer.TokenFunc, lexer.TokenSe,
+			lexer.TokenEnquanto, lexer.TokenPara, lexer.TokenRetorne, lexer.TokenTente:
+			return
+		}
+		p.avancar()
+	}
 }
 
 // Error renderiza o erro sintático com informações ricas de posição: arquivo, linha, coluna
@@ -2068,8 +2116,15 @@ func (e *ErroSintatico) Error() string {
 }
 
 func (p *Parser) erro(msg string) error {
+	var ini, fim lexer.PosicaoToken
+	if p.token != nil {
+		ini = p.token.Inicio
+		fim = p.token.Fim
+	}
 	return &ErroSintatico{
 		Mensagem: msg,
+		Inicio:   ini,
+		Fim:      fim,
 		Token:    p.token,
 		Arquivo:  p.arquivo,
 		Codigo:   p.codigo,

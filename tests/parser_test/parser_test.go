@@ -225,4 +225,22 @@ func TestNoPosicaoCoordenadas(t *testing.T) {
 	}
 }
 
+func TestRecuperacaoErrosSintaticos(t *testing.T) {
+	codigo := `
+		var a = 1 + ;
+		var b = 2;
+		se { ;
+		var c = 3;
+	`
+	p := parser.NewParserFromString(codigo, "teste_erros.hrp")
+	_, err := p.Parse()
+	if err == nil {
+		t.Fatalf("Esperava erros de compilação")
+	}
+	erros := p.Erros()
+	if len(erros) < 2 {
+		t.Errorf("Esperava pelo menos 2 erros acumulados, obteve %d", len(erros))
+	}
+}
+
 
