@@ -127,8 +127,8 @@ func (l *Lexer) avancar() {
 
 // posicaoAtual captura as coordenadas geográficas (coluna, linha, offset absoluto de byte)
 // do caractere corrente no código, retornando um objeto *PosicaoToken alocado dinamicamente.
-func (l *Lexer) posicaoAtual() *PosicaoToken {
-	return &PosicaoToken{
+func (l *Lexer) posicaoAtual() PosicaoToken {
+	return PosicaoToken{
 		Coluna: l.coluna,
 		Linha:  l.linha,
 		Indice: l.offset,
@@ -370,92 +370,249 @@ func (l *Lexer) PróximoToken() *Token {
 	l.ignorarEspacos()
 
 	if l.fimDeArquivo() {
+		pos := l.posicaoAtual()
 		return &Token{
 			Tipo:   TokenFimDeArquivo,
 			Valor:  "",
-			Inicio: l.posicaoAtual(),
-			Fim:    l.posicaoAtual(),
+			Inicio: pos,
+			Fim:    pos,
 		}
 	}
 
 	ch := l.ch
 	inicio := l.posicaoAtual()
 
-	// ponytail: reconhece entidades HTML (&#DIGITS; ou &NAME; ex: &#8595; ou &nbsp;)
-	if ch == '&' && (l.peek() == '#' || unicode.IsLetter(l.peek())) {
-		l.lerEntidadeHTML()
-		fim := l.posicaoAtual()
-		return newToken(TokenEntidadeHTML, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
-	}
+	switch ch {
+	case '\n':
+		l.avancar()
+		return newToken(TokenNovaLinha, "\n", inicio, l.posicaoAtual())
 
-	// Trata comentários de linha única '#' ou '//' (deve rodar antes de operadores simples para evitar colisão com '/')
-	if ch == '#' || (ch == '/' && l.peek() == '/') {
-		l.ignorarComentario()
-		return l.PróximoToken()
-	}
+	case '=':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenIgualIgual, "==", inicio, l.posicaoAtual())
+		}
+		if l.peek() == '>' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenSeta, "=>", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenIgual, "=", inicio, l.posicaoAtual())
 
-	// Trata comentários de bloco '/* ... */'
-	if ch == '/' && l.peek() == '*' {
-		l.ignorarComentarioBloco()
-		return l.PróximoToken()
-	}
+	case '!':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenDiferente, "!=", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenBoolNao, "!", inicio, l.posicaoAtual())
 
-	// ponytail: trata comentários HTML '<!-- ... -->' de forma nativa para excelente DX no JSX
-	if ch == '<' && l.peek() == '!' {
-		if l.peekN(2) == '-' && l.peekN(3) == '-' {
+	case '+':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenMaisIgual, "+=", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenMais, "+", inicio, l.posicaoAtual())
+
+	case '-':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenMenosIgual, "-=", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenMenos, "-", inicio, l.posicaoAtual())
+
+	case '*':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenAsteriscoIgual, "*=", inicio, l.posicaoAtual())
+		}
+		if l.peek() == '*' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenPotencia, "**", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenAsterisco, "*", inicio, l.posicaoAtual())
+
+	case '/':
+		if l.peek() == '/' {
+			l.ignorarComentario()
+			return l.PróximoToken()
+		}
+		if l.peek() == '*' {
+			l.ignorarComentarioBloco()
+			return l.PróximoToken()
+		}
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenBarraIgual, "/=", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenDivisao, "/", inicio, l.posicaoAtual())
+
+	case '%':
+		l.avancar()
+		return newToken(TokenModulo, "%", inicio, l.posicaoAtual())
+
+	case '<':
+		if l.peek() == '!' && l.peekN(2) == '-' && l.peekN(3) == '-' {
 			l.ignorarComentarioHTML()
 			return l.PróximoToken()
 		}
-	}
-
-	// ponytail: trata operador spread '...'
-	if ch == '.' && l.peek() == '.' && l.peekN(2) == '.' {
-		l.avancar()
-		l.avancar()
-		l.avancar()
-		fim := l.posicaoAtual()
-		return newToken(TokenTresPontos, "...", inicio, fim)
-	}
-
-	// Se for um caractere operador catalogado ou operador de negação '!' ou '?'
-	strVal := string(ch)
-	if tipo, ok := tokensSimples[strVal]; ok || ch == '!' || ch == '?' {
-		for {
-			if l.fimDeArquivo() {
-				break
-			}
+		if l.peek() == '=' {
 			l.avancar()
-			// Guloso: tenta aglutinar caracteres subsequentes para formar operadores compostos (ex: '=' + '=' = '==')
-			if t, ok := tokensSimples[strVal+string(l.ch)]; ok {
-				strVal += string(l.ch)
-				tipo = t
-				continue
-			}
-
-			break
+			l.avancar()
+			return newToken(TokenMenorOuIgual, "<=", inicio, l.posicaoAtual())
 		}
+		if l.peek() == '<' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenDeslocEsquerda, "<<", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenMenorQue, "<", inicio, l.posicaoAtual())
 
-		fim := l.posicaoAtual()
-		return newToken(tipo, strVal, inicio, fim)
-	}
+	case '>':
+		if l.peek() == '=' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenMaiorOuIgual, ">=", inicio, l.posicaoAtual())
+		}
+		if l.peek() == '>' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenDeslocDireita, ">>", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenMaiorQue, ">", inicio, l.posicaoAtual())
 
-	switch ch {
+	case '(':
+		l.avancar()
+		return newToken(TokenAbreParenteses, "(", inicio, l.posicaoAtual())
+
+	case ')':
+		l.avancar()
+		return newToken(TokenFechaParenteses, ")", inicio, l.posicaoAtual())
+
+	case ';':
+		l.avancar()
+		return newToken(TokenPontoEVirgula, ";", inicio, l.posicaoAtual())
+
+	case ',':
+		l.avancar()
+		return newToken(TokenVirgula, ",", inicio, l.posicaoAtual())
+
+	case '{':
+		l.avancar()
+		return newToken(TokenAbreChaves, "{", inicio, l.posicaoAtual())
+
+	case '}':
+		l.avancar()
+		return newToken(TokenFechaChaves, "}", inicio, l.posicaoAtual())
+
+	case '[':
+		l.avancar()
+		return newToken(TokenAbreColchetes, "[", inicio, l.posicaoAtual())
+
+	case ']':
+		l.avancar()
+		return newToken(TokenFechaColchetes, "]", inicio, l.posicaoAtual())
+
+	case ':':
+		l.avancar()
+		return newToken(TokenDoisPontos, ":", inicio, l.posicaoAtual())
+
+	case '@':
+		l.avancar()
+		return newToken(TokenArroba, "@", inicio, l.posicaoAtual())
+
+	case '|':
+		if l.peek() == '|' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenBoolOu, "||", inicio, l.posicaoAtual())
+		}
+		if l.peek() == '>' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenPipe, "|>", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenBitABitOu, "|", inicio, l.posicaoAtual())
+
+	case '^':
+		l.avancar()
+		return newToken(TokenBitABitExOu, "^", inicio, l.posicaoAtual())
+
+	case '&':
+		if l.peek() == '#' || unicode.IsLetter(l.peek()) {
+			l.lerEntidadeHTML()
+			fim := l.posicaoAtual()
+			return newToken(TokenEntidadeHTML, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+		}
+		if l.peek() == '&' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenBoolE, "&&", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenBitABitE, "&", inicio, l.posicaoAtual())
+
+	case '~':
+		l.avancar()
+		return newToken(TokenBitABitNao, "~", inicio, l.posicaoAtual())
+
+	case '.':
+		if l.peek() == '.' && l.peekN(2) == '.' {
+			l.avancar()
+			l.avancar()
+			l.avancar()
+			return newToken(TokenTresPontos, "...", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenPonto, ".", inicio, l.posicaoAtual())
+
+	case '?':
+		if l.peek() == '?' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenInterrogacaoInterrogacao, "??", inicio, l.posicaoAtual())
+		}
+		if l.peek() == '.' {
+			l.avancar()
+			l.avancar()
+			return newToken(TokenPontoInterrogacao, "?.", inicio, l.posicaoAtual())
+		}
+		l.avancar()
+		return newToken(TokenInterrogacao, "?", inicio, l.posicaoAtual())
+
+	case '#':
+		l.ignorarComentario()
+		return l.PróximoToken()
+
 	case '"', '\'':
 		return l.lerTexto()
+
 	default:
-		// Se iniciar com letra ou sublinha, lê como identificador
 		if unicode.IsLetter(ch) || ch == '_' {
 			return l.lerIdentificador()
 		}
 
-		// Se iniciar com dígito, lê como literal numérico
 		if unicode.IsDigit(ch) {
 			return l.lerNumero()
 		}
 	}
 
-	// Caso não coincida com nenhuma regra, sinaliza um erro léxico e avança o cursor
-	errTok := &Token{Tipo: TokenErro, Valor: string(l.ch), Inicio: inicio, Fim: l.posicaoAtual()}
+	val := string(ch)
 	l.avancar()
-	return errTok
+	return newToken(TokenErro, val, inicio, l.posicaoAtual())
 }

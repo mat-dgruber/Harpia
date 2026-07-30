@@ -165,7 +165,7 @@ func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode
 		if errSintatico, ok := err.(*parser.ErroSintatico); ok {
 			linha := -1
 			coluna := 0
-			if errSintatico.Token != nil && errSintatico.Token.Inicio != nil {
+			if errSintatico.Token != nil && errSintatico.Token.Inicio.Linha > 0 {
 				linha = errSintatico.Token.Inicio.Linha - 1
 				coluna = errSintatico.Token.Inicio.Coluna
 			}

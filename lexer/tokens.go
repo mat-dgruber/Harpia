@@ -120,6 +120,7 @@ const (
 	TokenAbreColchetes   // [
 	TokenFechaColchetes  // ]
 	TokenDoisPontos      // :
+	TokenArroba          // @
 
 	// ============================================================================
 	// REATRIBUIÇÕES COM ACUMULADORES (OPERADORES COMPOSTOS)
@@ -151,7 +152,8 @@ const (
 	TokenDeslocEsquerda // << (deslocamento bitwise esquerda)
 	TokenDeslocDireita  // >> (deslocamento bitwise direita)
 
-	TokenPonto // . (acesso de atributo/método)
+	TokenPonto      // . (acesso de atributo/método)
+	TokenTresPontos // ... (operador spread / rest)
 
 	// ============================================================================
 	// PROGRAMAÇÃO ORIENTADA A OBJETOS (POO) E RECURSOS ESPECIAIS
@@ -182,6 +184,9 @@ const (
 
 	TokenEnum      // enum (enumeração)
 	TokenInterface // interface (contrato)
+
+	TokenSeta
+	TokenEntidadeHTML
 )
 
 // PosicaoToken armazena as coordenadas espaciais precisas de um caractere no
@@ -213,8 +218,8 @@ type Token struct {
 	Tipo  TokenType // A categoria estrutural do token.
 	Valor string    // A string de texto exata extraída do código-fonte.
 
-	Inicio *PosicaoToken // Coordenada do primeiro caractere que originou o token.
-	Fim    *PosicaoToken // Coordenada imediatamente após o último caractere do token.
+	Inicio PosicaoToken // Coordenada do primeiro caractere que originou o token.
+	Fim    PosicaoToken // Coordenada imediatamente após o último caractere do token.
 }
 
 // newToken é o construtor padrão interno para alocação estruturada de novos
@@ -228,7 +233,7 @@ type Token struct {
 //   - fim: coordenada imediatamente após o último caractere consumido.
 //
 // Retorna um *Token pronto para ser devolvido ao Parser.
-func newToken(tipo TokenType, valor string, inicio, fim *PosicaoToken) *Token {
+func newToken(tipo TokenType, valor string, inicio, fim PosicaoToken) *Token {
 	return &Token{
 		tipo,
 		valor,

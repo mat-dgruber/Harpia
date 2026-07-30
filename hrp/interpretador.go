@@ -1,7 +1,9 @@
 package hrp
 
 import (
+	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
@@ -98,7 +100,7 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		}
 		if tok != nil {
 			i.Contexto.TokenAtual = tok
-			if tok.Inicio != nil {
+			if tok.Inicio.Linha > 0 {
 				i.Contexto.LinhaAtual = tok.Inicio.Linha
 				i.Contexto.ColunaAtual = tok.Inicio.Coluna
 
@@ -168,6 +170,8 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		return i.visiteDeclClasse(node)
 	case *parser.OpPipe:
 		return i.visiteOpPipe(node)
+	case *parser.OpTernaria:
+		return i.visiteOpTernaria(node)
 	case *parser.ArgumentoNomeado:
 		return i.visiteArgumentoNomeado(node)
 	case *parser.DeclTeste:
@@ -271,7 +275,6 @@ func (i *Interpretador) visiteDeclVarDestructuring(node *parser.DeclVarDestructu
 
 	return Nulo, nil
 }
-
 
 // visiteDeclFuncao instancia um novo objeto Funcao ligando o corpo e os escopos e o registra na tabela local.
 func (i *Interpretador) visiteDeclFuncao(node *parser.DeclFuncao) (Objeto, error) {
@@ -515,7 +518,7 @@ func (i *Interpretador) visiteIdentificador(node *parser.Identificador) (Objeto,
 			if i.Posicoes != nil {
 				if tok, ok := i.Posicoes[node]; ok && tok != nil {
 					hrpErr.Token = tok
-					if tok.Inicio != nil {
+					if tok.Inicio.Linha > 0 {
 						hrpErr.Linha = tok.Inicio.Linha - 1
 						hrpErr.Coluna = tok.Inicio.Coluna
 					}
@@ -649,6 +652,23 @@ func (i *Interpretador) visiteExpressaoSe(node *parser.ExpressaoSe) (Objeto, err
 	return i.visite(node.Alternativa)
 }
 
+func (i *Interpretador) visiteOpTernaria(node *parser.OpTernaria) (Objeto, error) {
+	condicao, err := i.visite(node.Condicao)
+	if err != nil {
+		return nil, err
+	}
+
+	if condicao, err = NewBooleano(condicao); err != nil {
+		return nil, err
+	}
+
+	if condicao.(Booleano) {
+		return i.visite(node.Entao)
+	}
+
+	return i.visite(node.Senao)
+}
+
 func (i *Interpretador) visiteBloco(node *parser.Bloco) (Objeto, error) {
 	i.entrarNoEscopo(nil)
 	defer i.sairDoEscopo()
@@ -744,7 +764,7 @@ func (i *Interpretador) visiteBlocoPara(node *parser.BlocoPara) (Objeto, error) 
 	}
 
 	for {
-		if item, err = Proximo(iterador); err != nil {
+		if item, err = próximo(iterador); err != nil {
 			if objErr, ok := err.(*Erro); ok {
 				if objErr.Tipo() == FimIteracao {
 					return nil, nil
@@ -1041,22 +1061,37 @@ func (i *Interpretador) visiteTenteCapture(node *parser.TenteCaptureFinalmente) 
 		}()
 	}
 
-	// Executa o bloco tente
-	resultado, errFinal = i.visite(node.TenteBlock)
-	if errFinal == nil {
-		return resultado, nil
+	var resTente Objeto
+	var errTente error
+
+	// Executa o bloco tente com recover para capturar panics Go e convertê-los em erros
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if errGo, ok := r.(error); ok {
+					errTente = errGo
+				} else {
+					errTente = fmt.Errorf("%v", r)
+				}
+			}
+		}()
+		resTente, errTente = i.visite(node.TenteBlock)
+	}()
+
+	if errTente == nil {
+		return resTente, nil
 	}
 
 	// Sem bloco capture: propaga o erro original (finalmente ainda roda via defer)
 	if node.CaptureBlock == nil {
-		adicionaContextoSeNaoTiver(errFinal, i.Contexto)
-		return nil, errFinal
+		adicionaContextoSeNaoTiver(errTente, i.Contexto)
+		return nil, errTente
 	}
 
 	// Converte erros nativos do Go para *Erro do Harpia
-	hrpErr, ok := errFinal.(*Erro)
+	hrpErr, ok := errTente.(*Erro)
 	if !ok {
-		hrpErr = NewErro(RuntimeErro, Texto(errFinal.Error()))
+		hrpErr = NewErro(RuntimeErro, Texto(errTente.Error()))
 	}
 
 	// Garante que o erro exposto no 'capture' tenha metadados geográficos
@@ -1087,7 +1122,7 @@ func (i *Interpretador) anotarErro(node parser.BaseNode, err error) error {
 	if i.Posicoes != nil && node != nil {
 		if tok, ok := i.Posicoes[node]; ok && tok != nil {
 			hrpErr.Token = tok
-			if tok.Inicio != nil {
+			if tok.Inicio.Linha > 0 {
 				hrpErr.Linha = tok.Inicio.Linha - 1
 				hrpErr.Coluna = tok.Inicio.Coluna
 			}
@@ -1114,7 +1149,7 @@ func (i *Interpretador) criarErroNoNode(node parser.BaseNode, tipo *Tipo, format
 	if i.Posicoes != nil && node != nil {
 		if tok, ok := i.Posicoes[node]; ok && tok != nil {
 			erro.Token = tok
-			if tok.Inicio != nil {
+			if tok.Inicio.Linha > 0 {
 				erro.Linha = tok.Inicio.Linha - 1
 				erro.Coluna = tok.Inicio.Coluna
 			}
@@ -1215,6 +1250,29 @@ func (i *Interpretador) visiteNoJSX(node *parser.NoJSX) (Objeto, error) {
 		if filho != nil && filho != Nulo {
 			filhos = append(filhos, filho)
 		}
+	}
+
+	if len(node.Tag) > 0 && unicode.IsUpper(rune(node.Tag[0])) {
+		compObj, err := i.Escopo.ObterValor(node.Tag)
+		if err != nil {
+			return nil, err
+		}
+		props := make(Mapa)
+		for k, v := range attrs {
+			props[k] = v
+		}
+		if len(filhos) == 0 {
+			props["children"] = Nulo
+		} else if len(filhos) == 1 {
+			props["children"] = filhos[0]
+		} else {
+			props["children"] = Tupla(filhos)
+		}
+		res, err := Chamar(compObj, props)
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
 	}
 
 	return &ElementoJSX{

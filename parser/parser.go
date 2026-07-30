@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/lexer"
@@ -14,7 +15,7 @@ import (
 type Parser struct {
 	lex          *lexer.Lexer              // Instância ativa do analisador léxico.
 	token        *lexer.Token              // O token corrente sob avaliação física no parser.
-	proximoToken *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
+	próximoToken *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
 	posicoes     map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
 	codigo       string                    // Cópia do código-fonte original.
 	arquivo      string                    // Caminho físico ou identificação lógica do arquivo analisado.
@@ -44,18 +45,18 @@ func (p *Parser) fimDeArquivo() bool {
 }
 
 // avancar move as referências de cursores sintáticos de tokens um passo adiante.
-// Mantém as propriedades 'token' e 'proximoToken' (lookahead de tamanho 1) sempre atualizadas.
+// Mantém as propriedades 'token' e 'próximoToken' (lookahead de tamanho 1) sempre atualizadas.
 func (p *Parser) avancar() {
 	if p.token == nil {
-		p.token = p.lex.ProximoToken()
-		p.proximoToken = p.lex.ProximoToken()
+		p.token = p.lex.PróximoToken()
+		p.próximoToken = p.lex.PróximoToken()
 		return
 	}
 
-	p.token = p.proximoToken
+	p.token = p.próximoToken
 
 	if p.token.Tipo != lexer.TokenFimDeArquivo {
-		p.proximoToken = p.lex.ProximoToken()
+		p.próximoToken = p.lex.PróximoToken()
 	}
 }
 
@@ -222,6 +223,8 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 		return &AsseguraNode{condicao, mensagem}, nil
 	case lexer.TokenPara:
 		return p.parseBlocoPara()
+	case lexer.TokenArroba:
+		return p.parseAtRule()
 	default:
 		// Default desvia para expressões aritméticas e/ou possíveis reatribuições compostas (ex: x += 1)
 		expressao, err := p.parseExpressao()
@@ -297,7 +300,7 @@ func (p *Parser) parseImporteDe() (*ImporteDe, error) {
 // parseBlocoPara analisa laços iterativos: 'para (item em sequencia) { Bloco }' ou 'para item em sequencia { Bloco }'
 func (p *Parser) parseBlocoPara() (*BlocoPara, error) {
 	p.consome("para")
-	
+
 	temParenteses := p.token.Tipo == lexer.TokenAbreParenteses
 	if temParenteses {
 		p.avancar()
@@ -332,7 +335,7 @@ func (p *Parser) parseBlocoPara() (*BlocoPara, error) {
 // parseExpressaoSe analisa blocos estruturados de desvios condicionais se/senao.
 func (p *Parser) parseExpressaoSe() (*ExpressaoSe, error) {
 	p.consome("se")
-	
+
 	temParenteses := p.token.Tipo == lexer.TokenAbreParenteses
 	if temParenteses {
 		p.avancar()
@@ -344,7 +347,7 @@ func (p *Parser) parseExpressaoSe() (*ExpressaoSe, error) {
 	}
 
 	expressaoSe := &ExpressaoSe{Condicao: condicao}
-	
+
 	if temParenteses {
 		if err := p.consome(")"); err != nil {
 			return nil, err
@@ -500,7 +503,7 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 		}
 		funcao.TipoRetorno = p.token.Valor
 		p.avancar()
-	} else if p.token.Tipo == lexer.TokenMenos && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue {
+	} else if p.token.Tipo == lexer.TokenMenos && p.próximoToken != nil && p.próximoToken.Tipo == lexer.TokenMaiorQue {
 		p.avancar() // Consome '-'
 		p.avancar() // Consome '>'
 		funcao.TipoRetorno = p.token.Valor
@@ -919,7 +922,6 @@ func (p *Parser) parseInterface() (BaseNode, error) {
 	return &DeclInterface{Nome: nomeInterface, Metodos: metodos}, nil
 }
 
-
 // parseExpressao analisa o escopo geral de expressões complexas.
 func (p *Parser) parseExpressao() (BaseNode, error) {
 	tok := p.token
@@ -1029,11 +1031,11 @@ func (p *Parser) parseCoalescenciaNula() (BaseNode, error) {
 // parseEsqLst é a joia arquitetural do Parser.
 //
 // Monta operadores binários associativos à esquerda (left-associative).
-// Recebe uma função 'proximo' de maior prioridade de precedência sintática e uma
+// Recebe uma função 'próximo' de maior prioridade de precedência sintática e uma
 // função 'proxOp' que consome e retorna o operador do nível corrente, se casar.
 // Evita duplicações maciças de laços de precedência idênticos ao longo do analisador.
-func (p *Parser) parseEsqLst(proximo func() (BaseNode, error), proxOp func() (string, bool)) (BaseNode, error) {
-	esq, err := proximo()
+func (p *Parser) parseEsqLst(próximo func() (BaseNode, error), proxOp func() (string, bool)) (BaseNode, error) {
+	esq, err := próximo()
 	if err != nil {
 		return nil, err
 	}
@@ -1042,7 +1044,7 @@ func (p *Parser) parseEsqLst(proximo func() (BaseNode, error), proxOp func() (st
 		if !ok {
 			return esq, nil
 		}
-		dir, err := proximo()
+		dir, err := próximo()
 		if err != nil {
 			return nil, err
 		}
@@ -1106,7 +1108,7 @@ func (p *Parser) parseComparacao() (BaseNode, error) {
 			return op, true
 		case lexer.TokenIdentificador:
 			// Resolve o operador composto de correspondência de classes 'instancia de'
-			if p.token.Valor == "instancia" && p.proximoToken.Tipo == lexer.TokenDe {
+			if p.token.Valor == "instancia" && p.próximoToken.Tipo == lexer.TokenDe {
 				op := "instancia"
 				p.avancar() // Consome "instancia"
 				p.avancar() // Consome "de"
@@ -1280,7 +1282,7 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 				var err error
 
 				// Verifica se é uma atribuição nomeada (identificador seguido de '=')
-				if p.token.Tipo == lexer.TokenIdentificador && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenIgual {
+				if p.token.Tipo == lexer.TokenIdentificador && p.próximoToken != nil && p.próximoToken.Tipo == lexer.TokenIgual {
 					nome := p.token.Valor
 					p.avancar() // consome o identificador
 					p.avancar() // consome '='
@@ -1382,7 +1384,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				subParser := NewParserFromString(exprStr, p.arquivo)
 				exprNode, err := subParser.parseExpressao()
 				if err != nil {
-					return nil, p.errof("erro ao analisar expressão de interpolação '%s': %v", exprStr, err)
+					// Fallback: se o conteúdo entre chaves não for uma expressão válida, trata como texto literal
+					return &TextoLiteral{token.Valor}, nil
 				}
 
 				templateNode.Partes = append(templateNode.Partes, &TemplateExpr{Expressao: exprNode})
@@ -1462,7 +1465,7 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 	}
 
 	linha, coluna := 0, 0
-	if p.token.Inicio != nil {
+	if p.token.Inicio.Linha > 0 {
 		linha = p.token.Inicio.Linha
 		coluna = p.token.Inicio.Coluna
 	}
@@ -1549,6 +1552,12 @@ func (p *Parser) parseEstilo() (*DeclEstilo, error) {
 	nome := p.token.Valor
 	p.avancar()
 
+	// Consome modificadores/pseudo-elementos adicionais no seletor (ex: ::placeholder, :hover, .subclasse) até '{'
+	for p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
+		nome += p.token.Valor
+		p.avancar()
+	}
+
 	if err := p.consome("{"); err != nil {
 		return nil, err
 	}
@@ -1584,6 +1593,56 @@ func (p *Parser) parseEstilo() (*DeclEstilo, error) {
 	return &DeclEstilo{Nome: nome, Regras: strings.TrimSpace(regras.String())}, nil
 }
 
+// parseAtRule analisa regras CSS como @media, @keyframes, @import, etc.
+func (p *Parser) parseAtRule() (*DeclEstilo, error) {
+	nomeAt := p.token.Valor // "@"
+	p.avancar()
+	if p.token.Tipo == lexer.TokenIdentificador {
+		nomeAt += p.token.Valor // "@media"
+		p.avancar()
+	}
+
+	// Consome seletores e parâmetros até '{' ou fim de instrução
+	for p.token.Tipo != lexer.TokenAbreChaves && p.token.Tipo != lexer.TokenPontoEVirgula && p.token.Tipo != lexer.TokenNovaLinha && !p.fimDeArquivo() {
+		nomeAt += " " + p.token.Valor
+		p.avancar()
+	}
+
+	if p.token.Tipo == lexer.TokenAbreChaves {
+		p.avancar() // consome '{'
+		var regras strings.Builder
+		nivelChaves := 1
+		for nivelChaves > 0 && !p.fimDeArquivo() {
+			switch p.token.Valor {
+			case "{":
+				nivelChaves++
+				regras.WriteString("{")
+				p.avancar()
+			case "}":
+				nivelChaves--
+				if nivelChaves > 0 {
+					regras.WriteString("}")
+					p.avancar()
+				}
+			default:
+				regras.WriteString(p.token.Valor)
+				regras.WriteString(" ")
+				p.avancar()
+			}
+		}
+		if p.token.Valor == "}" {
+			p.avancar()
+		}
+		return &DeclEstilo{Nome: strings.TrimSpace(nomeAt), Regras: strings.TrimSpace(regras.String())}, nil
+	}
+
+	if p.token.Tipo == lexer.TokenPontoEVirgula || p.token.Tipo == lexer.TokenNovaLinha {
+		p.avancar()
+	}
+
+	return &DeclEstilo{Nome: strings.TrimSpace(nomeAt), Regras: ""}, nil
+}
+
 // parseJSX analisa um elemento JSX ou uma tag de controle (se/para)
 func (p *Parser) parseJSX() (BaseNode, error) {
 	if err := p.consome("<"); err != nil {
@@ -1602,7 +1661,10 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 	node := &NoJSX{Tag: tag}
 
 	// Analisa atributos/propriedades da tag
-	for p.token.Tipo != lexer.TokenMaiorQue && !(p.token.Valor == "/" && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue) && !p.fimDeArquivo() {
+	for p.token.Tipo != lexer.TokenMaiorQue && !(p.token.Valor == "/" && p.próximoToken != nil && (p.próximoToken.Tipo == lexer.TokenMaiorQue || p.próximoToken.Valor == ">")) && !p.fimDeArquivo() {
+		if p.token.Valor == "/" {
+			break
+		}
 		if p.token.Tipo != lexer.TokenMaiorQue && p.token.Valor != "=" {
 			nomeAttr := p.token.Valor
 			p.avancar()
@@ -1636,9 +1698,11 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 		}
 	}
 
-	if p.token.Valor == "/" && p.proximoToken != nil && p.proximoToken.Tipo == lexer.TokenMaiorQue {
+	if p.token.Valor == "/" {
 		p.avancar() // consome '/'
-		p.avancar() // consome '>'
+		if p.token.Tipo == lexer.TokenMaiorQue || p.token.Valor == ">" {
+			p.avancar() // consome '>'
+		}
 		node.AutoFechado = true
 		return node, nil
 	}
@@ -1650,7 +1714,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 	fechouTag := false
 	for !p.fimDeArquivo() {
 		// Se encontrarmos "</", é o início do fechamento da tag
-		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+		if p.token.Tipo == lexer.TokenMenorQue && p.próximoToken != nil && p.próximoToken.Valor == "/" {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != tag {
@@ -1688,16 +1752,31 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			continue
 		}
 
-		// Caso contrário, é texto literal livre
-		var textoLivre strings.Builder
+var reComentarioHTML = regexp.MustCompile(`<!--[\s\S]*?-->`)
+var reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*(?:#|//).*$`)
+
+// Caso contrário, é texto literal livre
+		inicioTexto := p.token.Inicio.Indice
 		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
-			textoLivre.WriteString(p.token.Valor)
-			textoLivre.WriteString(" ")
 			p.avancar()
 		}
-		txtTrim := strings.TrimSpace(textoLivre.String())
-		if len(txtTrim) > 0 {
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+		fimTexto := p.token.Inicio.Indice
+		rawText := p.lex.SubString(inicioTexto, fimTexto)
+		rawText = reComentarioHTML.ReplaceAllString(rawText, "")
+		rawText = reComentarioLinhaJSX.ReplaceAllString(rawText, "")
+		if len(strings.TrimSpace(rawText)) > 0 {
+			temEspacoInicio := strings.HasPrefix(rawText, " ") || strings.HasPrefix(rawText, "\t") || strings.HasPrefix(rawText, "\n")
+			temEspacoFim := strings.HasSuffix(rawText, " ") || strings.HasSuffix(rawText, "\t") || strings.HasSuffix(rawText, "\n")
+
+			campos := strings.Fields(rawText)
+			textoUnido := strings.Join(campos, " ")
+			if temEspacoInicio {
+				textoUnido = " " + textoUnido
+			}
+			if temEspacoFim {
+				textoUnido = textoUnido + " "
+			}
+			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + textoUnido + "\""})
 		}
 	}
 
@@ -1740,7 +1819,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 
 	fechouTag := false
 	for !p.fimDeArquivo() {
-		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+		if p.token.Tipo == lexer.TokenMenorQue && p.próximoToken != nil && p.próximoToken.Valor == "/" {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != "se" {
@@ -1845,7 +1924,7 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 
 	fechouTag := false
 	for !p.fimDeArquivo() {
-		if p.token.Tipo == lexer.TokenMenorQue && p.proximoToken != nil && p.proximoToken.Valor == "/" {
+		if p.token.Tipo == lexer.TokenMenorQue && p.próximoToken != nil && p.próximoToken.Valor == "/" {
 			p.avancar() // '<'
 			p.avancar() // '/'
 			if p.token.Valor != "para" {
@@ -1927,7 +2006,7 @@ func (e *ErroSintatico) Error() string {
 	sb.WriteString(fmt.Sprintf("\n%serro[PSC-0001]%s: %sSintaxeErro%s — %s\n",
 		corErro, corReset, corCodigo, corReset, e.Mensagem))
 
-	if e.Token != nil && e.Token.Inicio != nil {
+	if e.Token != nil && e.Token.Inicio.Linha > 0 {
 		linha := e.Token.Inicio.Linha
 		coluna := e.Token.Inicio.Coluna
 		linhaExibicao := linha // Linha já base 1 no lexer
@@ -1980,4 +2059,3 @@ func (p *Parser) erro(msg string) error {
 func (p *Parser) errof(format string, args ...interface{}) error {
 	return p.erro(fmt.Sprintf(format, args...))
 }
-
