@@ -64,7 +64,7 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 
 	cmdRun := exec.Command(execPath, "checar", caminhoArquivo, "--formato=json")
 	cmdRun.Dir = dir
-	output, _ := cmdRun.CombinedOutput()
+	output, _ := cmdRun.Output()
 
 	var diagnostics []LSPDiagnostic
 	if err := json.Unmarshal(output, &diagnostics); err != nil {
