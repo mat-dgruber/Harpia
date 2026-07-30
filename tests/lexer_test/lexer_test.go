@@ -317,4 +317,99 @@ func TestBugFixesEInStreamCRLF(t *testing.T) {
 	})
 }
 
+func TestRecursosAvancadosLexer(t *testing.T) {
+	t.Run("Strings Raw", func(t *testing.T) {
+		code := "`linha1\nlinha2 \\n sem escape`"
+		lex := lexer.NewLexer(code)
+		tok := lex.PróximoToken()
+		if tok.Tipo != lexer.TokenTexto {
+			t.Errorf("Esperado TokenTexto, obtido: %v", tok.Tipo)
+		}
+		esperado := "`linha1\nlinha2 \\n sem escape`"
+		if tok.Valor != esperado {
+			t.Errorf("Esperado %q, obtido %q", esperado, tok.Valor)
+		}
+
+		// String raw não terminada
+		codeNaoTerminada := "`string raw sem fechar"
+		lex2 := lexer.NewLexer(codeNaoTerminada)
+		tok2 := lex2.PróximoToken()
+		if tok2.Tipo != lexer.TokenErro {
+			t.Errorf("Esperado TokenErro, obtido: %v", tok2.Tipo)
+		}
+		if tok2.Valor != "string raw não terminada" {
+			t.Errorf("Esperado 'string raw não terminada', obtido: %q", tok2.Valor)
+		}
+	})
+
+	t.Run("Notação Científica", func(t *testing.T) {
+		input := "1e10 3.14e-5 2.5E+8 1.2e+3"
+		lex := lexer.NewLexer(input)
+		esperados := []struct {
+			tipo  lexer.TokenType
+			valor string
+		}{
+			{lexer.TokenDecimal, "1e10"},
+			{lexer.TokenDecimal, "3.14e-5"},
+			{lexer.TokenDecimal, "2.5E+8"},
+			{lexer.TokenDecimal, "1.2e+3"},
+		}
+
+		for i, esp := range esperados {
+			tok := lex.PróximoToken()
+			if tok.Tipo != esp.tipo || tok.Valor != esp.valor {
+				t.Errorf("[%d] Esperado (%v, %q), obtido (%v, %q)", i, esp.tipo, esp.valor, tok.Tipo, tok.Valor)
+			}
+		}
+	})
+
+	t.Run("Comentários de Documentação", func(t *testing.T) {
+		code := "/// Comentário doc de linha\n/** Comentário doc de bloco */"
+		lex := lexer.NewLexer(code)
+
+		tok1 := lex.PróximoToken()
+		if tok1.Tipo != lexer.TokenComentarioDoc || tok1.Valor != "/// Comentário doc de linha" {
+			t.Errorf("Esperado (TokenComentarioDoc, '/// Comentário doc de linha'), obtido (%v, %q)", tok1.Tipo, tok1.Valor)
+		}
+
+		tokNL := lex.PróximoToken()
+		if tokNL.Tipo != lexer.TokenNovaLinha {
+			t.Errorf("Esperado TokenNovaLinha, obtido %v", tokNL.Tipo)
+		}
+
+		tok2 := lex.PróximoToken()
+		if tok2.Tipo != lexer.TokenComentarioDoc || tok2.Valor != "/** Comentário doc de bloco */" {
+			t.Errorf("Esperado (TokenComentarioDoc, '/** Comentário doc de bloco */'), obtido (%v, %q)", tok2.Tipo, tok2.Valor)
+		}
+	})
+
+	t.Run("Comentários de Bloco Aninhados", func(t *testing.T) {
+		code := "var a = 1; /* externo /* interno */ externo */ var b = 2;"
+		lex := lexer.NewLexer(code)
+
+		esperados := []struct {
+			tipo  lexer.TokenType
+			valor string
+		}{
+			{lexer.TokenVar, "var"},
+			{lexer.TokenIdentificador, "a"},
+			{lexer.TokenIgual, "="},
+			{lexer.TokenInteiro, "1"},
+			{lexer.TokenPontoEVirgula, ";"},
+			{lexer.TokenVar, "var"},
+			{lexer.TokenIdentificador, "b"},
+			{lexer.TokenIgual, "="},
+			{lexer.TokenInteiro, "2"},
+			{lexer.TokenPontoEVirgula, ";"},
+		}
+
+		for i, esp := range esperados {
+			tok := lex.PróximoToken()
+			if tok.Tipo != esp.tipo || tok.Valor != esp.valor {
+				t.Errorf("[%d] Esperado (%v, %q), obtido (%v, %q)", i, esp.tipo, esp.valor, tok.Tipo, tok.Valor)
+			}
+		}
+	})
+}
+
 

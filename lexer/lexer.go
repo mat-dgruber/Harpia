@@ -154,15 +154,56 @@ func (l *Lexer) ignorarComentario() {
 func (l *Lexer) ignorarComentarioBloco() {
 	l.avancar() // consome '/'
 	l.avancar() // consome '*'
+	profundidade := 1
 
-	for !l.fimDeArquivo() {
-		if l.ch == '*' && l.peek() == '/' {
+	for !l.fimDeArquivo() && profundidade > 0 {
+		if l.ch == '/' && l.peek() == '*' {
+			profundidade++
+			l.avancar() // consome '/'
+			l.avancar() // consome '*'
+		} else if l.ch == '*' && l.peek() == '/' {
+			profundidade--
 			l.avancar() // consome '*'
 			l.avancar() // consome '/'
-			break
+		} else {
+			l.avancar()
 		}
+	}
+}
+
+// lerComentarioDocLinha consome um comentário de documentação de linha única iniciado por '///'
+func (l *Lexer) lerComentarioDocLinha() *Token {
+	inicio := l.posicaoAtual()
+	for l.ch != '\n' && !l.fimDeArquivo() {
 		l.avancar()
 	}
+	fim := l.posicaoAtual()
+	return newToken(TokenComentarioDoc, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+}
+
+// lerComentarioDocBloco consome um comentário de documentação de bloco iniciado por '/**'
+func (l *Lexer) lerComentarioDocBloco() *Token {
+	inicio := l.posicaoAtual()
+	l.avancar() // consome '/'
+	l.avancar() // consome '*'
+	profundidade := 1
+
+	for !l.fimDeArquivo() && profundidade > 0 {
+		if l.ch == '/' && l.peek() == '*' {
+			profundidade++
+			l.avancar() // consome '/'
+			l.avancar() // consome '*'
+		} else if l.ch == '*' && l.peek() == '/' {
+			profundidade--
+			l.avancar() // consome '*'
+			l.avancar() // consome '/'
+		} else {
+			l.avancar()
+		}
+	}
+
+	fim := l.posicaoAtual()
+	return newToken(TokenComentarioDoc, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
 }
 
 // SubString é um fatiador seguro que extrai uma partição do slice de bytes original
@@ -277,6 +318,16 @@ func (l *Lexer) lerNumero() *Token {
 	for {
 		l.avancar()
 
+		if l.ch == 'e' || l.ch == 'E' {
+			p := l.peek()
+			if unicode.IsDigit(p) || p == '_' {
+				l.avancar() // consome 'e'/'E'
+			} else if (p == '+' || p == '-') && (unicode.IsDigit(l.peekN(2)) || l.peekN(2) == '_') {
+				l.avancar() // consome 'e'/'E'
+				l.avancar() // consome '+' ou '-'
+			}
+		}
+
 		if !(unicode.IsDigit(l.ch) || l.ch == '.' || l.ch == '_') {
 			break
 		}
@@ -286,7 +337,7 @@ func (l *Lexer) lerNumero() *Token {
 	valor := l.SubString(inicio.Indice, fim.Indice)
 
 	tipo := TokenInteiro
-	if strings.Contains(valor, ".") {
+	if strings.Contains(valor, ".") || strings.Contains(valor, "e") || strings.Contains(valor, "E") {
 		tipo = TokenDecimal
 	}
 
@@ -331,6 +382,25 @@ func (l *Lexer) lerTexto() *Token {
 
 	fim := l.posicaoAtual()
 	return newToken(TokenTexto, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+}
+
+// lerTextoRaw consome uma cadeia literal multilinha delimitada por crases (`...`),
+// sem tratar caracteres de escape.
+func (l *Lexer) lerTextoRaw() *Token {
+	inicio := l.posicaoAtual()
+	l.avancar() // consome '`'
+
+	for !l.fimDeArquivo() {
+		if l.ch == '`' {
+			l.avancar() // consome '`'
+			fim := l.posicaoAtual()
+			return newToken(TokenTexto, l.SubString(inicio.Indice, fim.Indice), inicio, fim)
+		}
+		l.avancar()
+	}
+
+	fim := l.posicaoAtual()
+	return newToken(TokenErro, "string raw não terminada", inicio, fim)
 }
 
 // SnapshotLex captura o estado completo do cursor léxico para permitir rollback.
@@ -444,10 +514,16 @@ func (l *Lexer) PróximoToken() *Token {
 
 	case '/':
 		if l.peek() == '/' {
+			if l.peekN(2) == '/' {
+				return l.lerComentarioDocLinha()
+			}
 			l.ignorarComentario()
 			return l.PróximoToken()
 		}
 		if l.peek() == '*' {
+			if l.peekN(2) == '*' {
+				return l.lerComentarioDocBloco()
+			}
 			l.ignorarComentarioBloco()
 			return l.PróximoToken()
 		}
@@ -601,6 +677,9 @@ func (l *Lexer) PróximoToken() *Token {
 
 	case '"', '\'':
 		return l.lerTexto()
+
+	case '`':
+		return l.lerTextoRaw()
 
 	default:
 		if unicode.IsLetter(ch) || ch == '_' {

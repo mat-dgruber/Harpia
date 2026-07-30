@@ -44,19 +44,29 @@ func (p *Parser) fimDeArquivo() bool {
 	return p.token != nil && p.token.Tipo == lexer.TokenFimDeArquivo
 }
 
+func (p *Parser) proximoTokenSemComentario() *lexer.Token {
+	for {
+		tok := p.lex.PróximoToken()
+		if tok.Tipo == lexer.TokenComentarioDoc {
+			continue
+		}
+		return tok
+	}
+}
+
 // avancar move as referências de cursores sintáticos de tokens um passo adiante.
 // Mantém as propriedades 'token' e 'próximoToken' (lookahead de tamanho 1) sempre atualizadas.
 func (p *Parser) avancar() {
 	if p.token == nil {
-		p.token = p.lex.PróximoToken()
-		p.próximoToken = p.lex.PróximoToken()
+		p.token = p.proximoTokenSemComentario()
+		p.próximoToken = p.proximoTokenSemComentario()
 		return
 	}
 
 	p.token = p.próximoToken
 
 	if p.token.Tipo != lexer.TokenFimDeArquivo {
-		p.próximoToken = p.lex.PróximoToken()
+		p.próximoToken = p.proximoTokenSemComentario()
 	}
 }
 

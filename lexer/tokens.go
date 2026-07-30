@@ -187,6 +187,7 @@ const (
 
 	TokenSeta
 	TokenEntidadeHTML
+	TokenComentarioDoc
 )
 
 // PosicaoToken armazena as coordenadas espaciais precisas de um caractere no
