@@ -7,6 +7,38 @@ import (
 	_ "github.com/mat-dgruber/Harpia/stdlib"
 )
 
+func TestVMSwitchLoop(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	// Programa manual em bytecode 16-bit:
+	// 1. PUSH_CONST (100) -> const_idx 0 (u16: 0x00, 0x00)
+	// 2. ARMAZENAR_LOCAL -> slot_idx 0 (u16: 0x00, 0x00)
+	// 3. CARREGAR_LOCAL -> slot_idx 0 (u16: 0x00, 0x00)
+	// 4. RETORNE
+	bytecode := []byte{
+		OP_PUSH_CONST, 0x00, 0x00,
+		OP_ARMAZENAR_LOCAL, 0x00, 0x00,
+		OP_CARREGAR_LOCAL, 0x00, 0x00,
+		OP_RETORNE,
+	}
+
+	consts := []hrp.Objeto{hrp.Inteiro(100)}
+	frame := NewFrame(bytecode, consts, hrp.NewEscopo(), nil)
+	frame.Locais = make([]hrp.Objeto, 1)
+
+	virtualMachine := NewVM(ctx)
+	res, err := virtualMachine.Executar(frame)
+
+	if err != nil {
+		t.Fatalf("Erro ao executar VM: %v", err)
+	}
+
+	if res != hrp.Inteiro(100) {
+		t.Errorf("Esperava 100, obteve: %v", res)
+	}
+}
+
 func TestOpcodesV2(t *testing.T) {
 	opcodes := []Opcode{
 		OP_PUSH_CONST, OP_POP, OP_DUP, OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_DIV_INT, OP_MOD,
