@@ -356,13 +356,56 @@ export function h(tag, props, ...filhos) {
 }
 
 /**
+ * Componente Fragmento para agrupar múltiplos nós sem criar elemento contêiner extra no DOM.
+ */
+export function Fragmento(props) {
+  return (props && props.children) || null;
+}
+export const Fragment = Fragmento;
+
+const TAGS_SVG = new Set([
+  "svg",
+  "path",
+  "rect",
+  "circle",
+  "g",
+  "polygon",
+  "line",
+  "polyline",
+  "ellipse",
+  "use",
+  "text",
+  "image",
+  "defs",
+  "clipPath",
+  "clippath",
+]);
+
+function eTagSVG(tag) {
+  if (typeof tag !== "string") return false;
+  return TAGS_SVG.has(tag) || TAGS_SVG.has(tag.toLowerCase());
+}
+
+/**
  * Instancia fisicamente um nó VDOM no DOM real do navegador.
- * @param {Object|string|number} vno
+ * @param {Object|string|number|Array} vno
  * @returns {Node} Elemento do DOM físico
  */
 export function criarNo(vno) {
   if (vno === null || vno === undefined || vno === false) {
     return document.createTextNode("");
+  }
+
+  if (Array.isArray(vno)) {
+    const frag = document.createDocumentFragment
+      ? document.createDocumentFragment()
+      : document.createElement("fragment");
+    vno.forEach((filho) => {
+      if (filho !== null && filho !== undefined && filho !== false) {
+        frag.appendChild(criarNo(filho));
+      }
+    });
+    return frag;
   }
 
   if (typeof vno === "function") {
@@ -384,6 +427,15 @@ export function criarNo(vno) {
 
   if (!vno || typeof vno !== "object") {
     return document.createTextNode(String(vno || ""));
+  }
+
+  if (
+    typeof vno.tag === "string" &&
+    (vno.tag.toLowerCase() === "fragment" ||
+      vno.tag.toLowerCase() === "fragmento" ||
+      vno.tag === "")
+  ) {
+    return criarNo(vno.children || []);
   }
 
   if (typeof vno.tag === "function") {
@@ -410,7 +462,11 @@ export function criarNo(vno) {
     }
   }
 
-  const el = document.createElement(vno.tag || "div");
+  const el = eTagSVG(vno.tag)
+    ? (document.createElementNS
+        ? document.createElementNS("http://www.w3.org/2000/svg", vno.tag)
+        : document.createElement(vno.tag))
+    : document.createElement(vno.tag || "div");
 
   vno.el = el;
 
@@ -592,10 +648,20 @@ function mapearAtributo(nome) {
 
 function obterNoFisico(vno, pai) {
   if (!vno) return null;
+  if (Array.isArray(vno)) {
+    for (const item of vno) {
+      const el = obterNoFisico(item, pai);
+      if (el) return el;
+    }
+    return null;
+  }
   let el = vno.el;
   let curr = vno;
   while (!el && curr && typeof curr.tag === "function" && curr._componenteInstancia) {
     curr = curr._componenteInstancia;
+    if (Array.isArray(curr)) {
+      return obterNoFisico(curr, pai);
+    }
     el = curr ? curr.el : null;
   }
   if (el && pai && el.parentNode !== pai) {
@@ -665,6 +731,16 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
     const velhoRendido = velhoVNo._componenteInstancia || velhoVNo;
     reconciliar(pai, velhoRendido, novoRendido, index);
     novoVNo.el = obterNoFisico(novoRendido, pai);
+    return;
+  }
+
+  if (Array.isArray(novoVNo) || Array.isArray(velhoVNo)) {
+    const velhosFilhos = Array.isArray(velhoVNo) ? velhoVNo : (velhoVNo ? [velhoVNo] : []);
+    const novosFilhos = Array.isArray(novoVNo) ? novoVNo : (novoVNo ? [novoVNo] : []);
+    const max = Math.max(velhosFilhos.length, novosFilhos.length);
+    for (let i = 0; i < max; i++) {
+      reconciliar(pai, velhosFilhos[i], novosFilhos[i], index + i);
+    }
     return;
   }
 
@@ -740,6 +816,11 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
 function mudou(no1, no2) {
   if (no1 === no2) return false;
   if (!no1 || !no2) return no1 !== no2;
+  if (Array.isArray(no1) || Array.isArray(no2)) {
+    if (!Array.isArray(no1) || !Array.isArray(no2)) return true;
+    if (no1.length !== no2.length) return true;
+    return false;
+  }
   return (
     typeof no1 !== typeof no2 ||
     (typeof no1 === "string" && no1 !== no2) ||
@@ -1890,5 +1971,7 @@ if (typeof window !== "undefined") {
     BarraDeProgresso,
     usarNotificacao,
     NotificacaoToast,
+    Fragmento,
+    Fragment,
   });
 }

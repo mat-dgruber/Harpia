@@ -1,4 +1,4 @@
-import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce, criarRef, usarTransicao, usarAtraso, semRastreio, untrack, lote, batch, aoMontar, aoDesmontar } from './runtime-web.js';
+import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce, criarRef, usarTransicao, usarAtraso, semRastreio, untrack, lote, batch, aoMontar, aoDesmontar, Fragmento, Fragment } from './runtime-web.js';
 
 // Mock ultra-simples e corrigido do DOM para rodar os testes em ambiente Node.js / Deno sem browser
 if (typeof document === 'undefined') {
@@ -31,16 +31,30 @@ if (typeof document === 'undefined') {
           delete this.props[name];
         },
         appendChild(child) {
-          if (child) child.parentNode = this;
-          this.childNodes.push(child);
+          if (!child) return;
+          if (child.nodeType === 11) {
+            const children = [...child.childNodes];
+            child.childNodes = [];
+            children.forEach(c => this.appendChild(c));
+          } else {
+            child.parentNode = this;
+            this.childNodes.push(child);
+          }
         },
         insertBefore(newChild, refChild) {
-          if (newChild) newChild.parentNode = this;
-          const idx = this.childNodes.indexOf(refChild);
-          if (idx > -1) {
-            this.childNodes.splice(idx, 0, newChild);
+          if (!newChild) return;
+          if (newChild.nodeType === 11) {
+            const children = [...newChild.childNodes];
+            newChild.childNodes = [];
+            children.forEach(c => this.insertBefore(c, refChild));
           } else {
-            this.childNodes.push(newChild);
+            newChild.parentNode = this;
+            const idx = this.childNodes.indexOf(refChild);
+            if (idx > -1) {
+              this.childNodes.splice(idx, 0, newChild);
+            } else {
+              this.childNodes.push(newChild);
+            }
           }
         },
         removeChild(child) {
@@ -70,6 +84,60 @@ if (typeof document === 'undefined') {
         get() { return this.childNodes; }
       });
       return el;
+    },
+    createElementNS(ns, tag) {
+      const el = this.createElement(tag);
+      el.namespaceURI = ns;
+      return el;
+    },
+    createDocumentFragment() {
+      return {
+        nodeType: 11,
+        childNodes: [],
+        appendChild(child) {
+          if (!child) return;
+          if (child.nodeType === 11) {
+            const children = [...child.childNodes];
+            child.childNodes = [];
+            children.forEach(c => this.appendChild(c));
+          } else {
+            child.parentNode = this;
+            this.childNodes.push(child);
+          }
+        },
+        insertBefore(newChild, refChild) {
+          if (!newChild) return;
+          if (newChild.nodeType === 11) {
+            const children = [...newChild.childNodes];
+            newChild.childNodes = [];
+            children.forEach(c => this.insertBefore(c, refChild));
+          } else {
+            newChild.parentNode = this;
+            const idx = this.childNodes.indexOf(refChild);
+            if (idx > -1) {
+              this.childNodes.splice(idx, 0, newChild);
+            } else {
+              this.childNodes.push(newChild);
+            }
+          }
+        },
+        removeChild(child) {
+          const idx = this.childNodes.indexOf(child);
+          if (idx > -1) {
+            this.childNodes.splice(idx, 1);
+          }
+        },
+        replaceChild(newChild, oldChild) {
+          if (newChild) newChild.parentNode = this;
+          const idx = this.childNodes.indexOf(oldChild);
+          if (idx > -1) {
+            this.childNodes[idx] = newChild;
+          }
+        },
+        toString() {
+          return this.childNodes.map(c => c.toString()).join('');
+        }
+      };
     }
   };
 }
@@ -321,6 +389,81 @@ async function rodarTestes() {
 
   pararAppMontar(); // desmonta/dispara cancelamento do efeito
   console.log("aoDesmontar executou ao desmontar efeito (2 callbacks):", desmontouContador === 2 ? "OK" : "FALHA");
+
+  console.log("\n=== 9. TESTANDO ELEMENTOS SVG (createElementNS) ===");
+  const containerSVG = document.createElement("div");
+
+  function AppSVG() {
+    return h(
+      "svg",
+      { viewBox: "0 0 100 100", largura: "100", altura: "100" },
+      h("g", { id: "grupo" },
+        h("circle", { cx: "50", cy: "50", r: "40", fill: "red" }),
+        h("path", { d: "M 10 10 L 90 90", stroke: "black" }),
+        h("rect", { x: "5", y: "5", width: "20", height: "20" }),
+        h("text", { x: "10", y: "20" }, "SVG Text")
+      )
+    );
+  }
+
+  montar(AppSVG, containerSVG);
+  await Promise.resolve();
+
+  const svgEl = containerSVG.childNodes[0];
+  console.log("SVG renderizado no DOM:", svgEl !== null ? "OK" : "FALHA");
+  console.log("Namespace do elemento SVG:", svgEl.namespaceURI === "http://www.w3.org/2000/svg" ? "OK" : "FALHA");
+
+  const grupoEl = svgEl.childNodes[0];
+  console.log("Tag do grupo no SVG:", grupoEl.tag === "g" ? "OK" : "FALHA");
+  console.log("Namespace do elemento 'g':", grupoEl.namespaceURI === "http://www.w3.org/2000/svg" ? "OK" : "FALHA");
+
+  const circuloEl = grupoEl.childNodes[0];
+  console.log("Atributos do elemento 'circle':", circuloEl.props.cx === "50" && circuloEl.props.r === "40" ? "OK" : "FALHA");
+  console.log("HTML do SVG gerado:\n", containerSVG.toString());
+
+  console.log("\n=== 10. TESTANDO COMPONENTE FRAGMENTO / FRAGMENT ===");
+  const containerFrag = document.createElement("div");
+  const [textoFrag, setTextoFrag] = sinal("Texto Inicial");
+
+  function AppFragmento() {
+    return h("div", { classe: "conteudo" },
+      h("h1", {}, "Título"),
+      h(Fragmento, {},
+        h("p", { id: "p1" }, "Parágrafo 1"),
+        h("p", { id: "p2" }, textoFrag())
+      ),
+      h("footer", {}, "Rodapé")
+    );
+  }
+
+  montar(AppFragmento, containerFrag);
+  await Promise.resolve();
+
+  const divConteudo = containerFrag.childNodes[0];
+  console.log("Filhos diretos do container (sem elemento extra para o fragmento):", divConteudo.childNodes.length === 4 ? "OK" : "FALHA");
+  console.log("Filho 0 (h1):", divConteudo.childNodes[0].tag === "h1" ? "OK" : "FALHA");
+  console.log("Filho 1 (p1 do Fragmento):", divConteudo.childNodes[1].props.id === "p1" ? "OK" : "FALHA");
+  console.log("Filho 2 (p2 do Fragmento):", divConteudo.childNodes[2].props.id === "p2" ? "OK" : "FALHA");
+  console.log("Filho 3 (footer):", divConteudo.childNodes[3].tag === "footer" ? "OK" : "FALHA");
+  console.log("HTML do Fragmento:\n", containerFrag.toString());
+
+  // Testando reatividade dentro do Fragmento
+  setTextoFrag("Texto Atualizado");
+  await Promise.resolve();
+  console.log("Reatividade dentro do Fragmento:", divConteudo.childNodes[2].childNodes[0].textContent === "Texto Atualizado" ? "OK" : "FALHA");
+
+  // Testando com alias Fragment
+  const containerFragAlias = document.createElement("div");
+  function AppFragmentAlias() {
+    return h(Fragment, {},
+      h("span", {}, "Span 1"),
+      h("span", {}, "Span 2")
+    );
+  }
+
+  montar(AppFragmentAlias, containerFragAlias);
+  await Promise.resolve();
+  console.log("Fragment alias renderizado sem container extra (2 spans diretos):", containerFragAlias.childNodes.length === 2 ? "OK" : "FALHA");
 }
 
 rodarTestes().catch(console.error);
