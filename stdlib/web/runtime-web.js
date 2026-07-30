@@ -7,6 +7,16 @@
 let efeitoAtivo = null;
 let profundidadeLote = 0;
 
+// DevTools metrics tracking
+const devToolsMetrics = {
+  sinaisCriados: 0,
+  efeitosCriados: 0,
+  renderizacoesVDOM: 0,
+};
+
+const registroSinais = new Set();
+const registroEfeitos = new Set();
+
 // ponytail: fila global e flag para agrupar e lotear execuções de efeitos síncronos na mesma microtask.
 // Isso impede múltiplas reconciliações de VDOM desnecessárias e repaints repetitivos.
 const filaEfeitos = new Set();
@@ -43,6 +53,7 @@ function agendarEfeito(ef) {
  * @returns {[Function, Function]} [ler, definir]
  */
 export function sinal(valor) {
+  devToolsMetrics.sinaisCriados++;
   const assinantes = new Set();
 
   const ler = () => {
@@ -63,6 +74,7 @@ export function sinal(valor) {
   };
 
   ler.set = definir; // ponytail: expõe atualizador direto no getter para binding bidirecional
+  registroSinais.add(ler);
   return [ler, definir];
 }
 
@@ -211,6 +223,7 @@ export function aoDesmontar(fn) {
  * @returns {Function} Função de limpeza (cleanup / desmontagem)
  */
 export function efeito(funcao) {
+  devToolsMetrics.efeitosCriados++;
   const ef = {
     deps: new Set(),
     cleanup: null,
@@ -249,6 +262,7 @@ export function efeito(funcao) {
       }
     },
     desmontar() {
+      registroEfeitos.delete(ef);
       if (typeof ef.cleanup === "function") {
         try {
           ef.cleanup();
@@ -278,6 +292,7 @@ export function efeito(funcao) {
       limparDeps(ef);
     },
   };
+  registroEfeitos.add(ef);
   ef.run();
   return () => ef.desmontar();
 }
@@ -678,6 +693,7 @@ function obterNoFisico(vno, pai) {
  * @param {number} index - Posição do nó físico no pai
  */
 export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
+  devToolsMetrics.renderizacoesVDOM++;
   if (!pai) return;
 
   if (typeof velhoVNo === "function") velhoVNo = velhoVNo();
@@ -1921,6 +1937,122 @@ export function existe(caminho) {
   return false;
 }
 
+/**
+ * Hook para atualização reativa dinâmica do <title> e tags <meta> no document.head.
+ * @param {Object|Function} opcoes - Configurações do cabeçalho ({ titulo, meta })
+ */
+export function usarCabecalho(opcoes) {
+  efeito(() => {
+    if (typeof document === "undefined") return;
+
+    const opts = typeof opcoes === "function" ? opcoes() : (opcoes || {});
+    const rawTitulo = opts.titulo !== undefined ? opts.titulo : opts.title;
+    const titulo = typeof rawTitulo === "function" ? rawTitulo() : rawTitulo;
+
+    if (titulo !== undefined) {
+      document.title = String(titulo);
+    }
+
+    const rawMeta = opts.meta;
+    const metaList = typeof rawMeta === "function" ? rawMeta() : rawMeta;
+
+    if (Array.isArray(metaList)) {
+      if (!document.head && typeof document.createElement === "function") {
+        document.head = document.createElement("head");
+      }
+      const head = document.head;
+      if (head) {
+        metaList.forEach((m) => {
+          if (!m) return;
+          const nome = m.nome || m.name;
+          const prop = m.property;
+          const rawConteudo = m.conteudo !== undefined ? m.conteudo : m.content;
+          const conteudo = typeof rawConteudo === "function" ? rawConteudo() : rawConteudo;
+
+          let el = null;
+          if (typeof head.querySelector === "function") {
+            if (nome) el = head.querySelector(`meta[name="${nome}"]`);
+            else if (prop) el = head.querySelector(`meta[property="${prop}"]`);
+          } else if (head.childNodes) {
+            for (const child of head.childNodes) {
+              if (child.tag === "meta" && child.props) {
+                if (nome && (child.props.name === nome || child.props.nome === nome)) {
+                  el = child;
+                  break;
+                }
+                if (prop && child.props.property === prop) {
+                  el = child;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!el) {
+            el = document.createElement("meta");
+            if (nome) el.setAttribute("name", nome);
+            if (prop) el.setAttribute("property", prop);
+            head.appendChild(el);
+          }
+
+          if (conteudo !== undefined) {
+            el.setAttribute("content", String(conteudo));
+          }
+        });
+      }
+    }
+  });
+}
+
+/**
+ * Componente para atualização reativa dinâmica do <title> e tags <meta> no document.head.
+ */
+export function CabecalhoPagina(props) {
+  usarCabecalho(props);
+  return null;
+}
+
+/**
+ * Objeto de inspeção global e Métricas DevTools do Harpia Web.
+ */
+export const devTools = {
+  get sinaisAtivos() {
+    return registroSinais.size;
+  },
+  get totalSinais() {
+    return devToolsMetrics.sinaisCriados;
+  },
+  get totalEfeitos() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  get efeitosAtivos() {
+    return registroEfeitos.size;
+  },
+  get renderizacoesVDOM() {
+    return devToolsMetrics.renderizacoesVDOM;
+  },
+  obterSinaisAtivos() {
+    return registroSinais.size;
+  },
+  obterEfeitosRegistrados() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  obterMetricasRender() {
+    return {
+      renderizacoes: devToolsMetrics.renderizacoesVDOM,
+      sinaisAtivos: registroSinais.size,
+      totalEfeitos: devToolsMetrics.efeitosCriados,
+      efeitosAtivos: registroEfeitos.size,
+    };
+  },
+};
+
+export const __HARPIA_DEVTOOLS__ = devTools;
+
+if (typeof globalThis !== "undefined") {
+  globalThis.__HARPIA_DEVTOOLS__ = devTools;
+}
+
 // ponytail: vincula as primitivas ao escopo global do navegador para compatibilidade de transpilação
 if (typeof window !== "undefined") {
   Object.assign(window, {
@@ -1973,5 +2105,10 @@ if (typeof window !== "undefined") {
     NotificacaoToast,
     Fragmento,
     Fragment,
+
+    usarCabecalho,
+    CabecalhoPagina,
+    devTools,
+    __HARPIA_DEVTOOLS__: devTools,
   });
 }

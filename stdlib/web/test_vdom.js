@@ -1,8 +1,13 @@
-import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce, criarRef, usarTransicao, usarAtraso, semRastreio, untrack, lote, batch, aoMontar, aoDesmontar, Fragmento, Fragment } from './runtime-web.js';
+import { sinal, efeito, derivado, armazem, h, montar, sinalDebounce, criarRef, usarTransicao, usarAtraso, semRastreio, untrack, lote, batch, aoMontar, aoDesmontar, Fragmento, Fragment, usarCabecalho, CabecalhoPagina, devTools, __HARPIA_DEVTOOLS__ } from './runtime-web.js';
+
+if (typeof window === 'undefined') {
+  globalThis.window = globalThis;
+}
 
 // Mock ultra-simples e corrigido do DOM para rodar os testes em ambiente Node.js / Deno sem browser
 if (typeof document === 'undefined') {
   globalThis.document = {
+    title: '',
     createTextNode(text) {
       return {
         nodeType: 3,
@@ -140,6 +145,7 @@ if (typeof document === 'undefined') {
       };
     }
   };
+  globalThis.document.head = globalThis.document.createElement("head");
 }
 
 // ponytail: assevera a reatividade e o loteamento de microtarefas de forma assíncrona
@@ -464,6 +470,75 @@ async function rodarTestes() {
   montar(AppFragmentAlias, containerFragAlias);
   await Promise.resolve();
   console.log("Fragment alias renderizado sem container extra (2 spans diretos):", containerFragAlias.childNodes.length === 2 ? "OK" : "FALHA");
+
+  console.log("\n=== 11. TESTANDO GESTÃO DINÂMICA DO HEAD (usarCabecalho, CabecalhoPagina) E DEVTOOLS (__HARPIA_DEVTOOLS__) ===");
+
+  // 11.1 Testando usarCabecalho com título reativo e tags meta
+  const [tituloCabecalho, setTituloCabecalho] = sinal("Título Inicial");
+  const [descricaoMeta, setDescricaoMeta] = sinal("Descrição Inicial");
+
+  usarCabecalho(() => ({
+    titulo: tituloCabecalho,
+    meta: [
+      { nome: "description", conteudo: descricaoMeta },
+      { property: "og:title", conteudo: tituloCabecalho }
+    ]
+  }));
+
+  await Promise.resolve();
+
+  console.log("Título do document atualizado por usarCabecalho:", document.title === "Título Inicial" ? "OK" : "FALHA");
+
+  const metaDesc = document.head.childNodes.find(c => c.props && (c.props.name === "description" || c.props.nome === "description"));
+  console.log("Tag meta description criada com sucesso:", metaDesc && metaDesc.props.content === "Descrição Inicial" ? "OK" : "FALHA");
+
+  const metaOgTitle = document.head.childNodes.find(c => c.props && c.props.property === "og:title");
+  console.log("Tag meta property og:title criada com sucesso:", metaOgTitle && metaOgTitle.props.content === "Título Inicial" ? "OK" : "FALHA");
+
+  // Reatividade do usarCabecalho
+  setTituloCabecalho("Novo Título Dinâmico");
+  setDescricaoMeta("Nova Descrição Dinâmica");
+  await Promise.resolve();
+
+  console.log("Atualização reativa do title:", document.title === "Novo Título Dinâmico" ? "OK" : "FALHA");
+  console.log("Atualização reativa do meta description:", metaDesc.props.content === "Nova Descrição Dinâmica" ? "OK" : "FALHA");
+  console.log("Atualização reativa do meta og:title:", metaOgTitle.props.content === "Novo Título Dinâmico" ? "OK" : "FALHA");
+
+  // 11.2 Testando componente <CabecalhoPagina>
+  const containerCabecalho = document.createElement("div");
+  const [tituloComp, setTituloComp] = sinal("Título Componente");
+
+  function AppCabecalho() {
+    return h("div", {},
+      h(CabecalhoPagina, {
+        titulo: tituloComp,
+        meta: [{ nome: "keywords", conteudo: "harpia, vdom, web" }]
+      }),
+      h("p", {}, "Conteúdo da Página")
+    );
+  }
+
+  montar(AppCabecalho, containerCabecalho);
+  await Promise.resolve();
+
+  console.log("Título do document via CabecalhoPagina:", document.title === "Título Componente" ? "OK" : "FALHA");
+
+  const metaKeywords = document.head.childNodes.find(c => c.props && (c.props.name === "keywords" || c.props.nome === "keywords"));
+  console.log("Tag meta keywords via CabecalhoPagina:", metaKeywords && metaKeywords.props.content === "harpia, vdom, web" ? "OK" : "FALHA");
+
+  setTituloComp("Título Componente Atualizado");
+  await Promise.resolve();
+  console.log("Reatividade no title via CabecalhoPagina:", document.title === "Título Componente Atualizado" ? "OK" : "FALHA");
+
+  // 11.3 Testando window.__HARPIA_DEVTOOLS__
+  const dt = window.__HARPIA_DEVTOOLS__ || devTools;
+  console.log("DevTools registrado na window:", dt !== undefined ? "OK" : "FALHA");
+  console.log("DevTools contagem de sinais ativos (>0):", dt.sinaisAtivos > 0 ? "OK" : "FALHA");
+  console.log("DevTools contagem de total de efeitos (>0):", dt.totalEfeitos > 0 ? "OK" : "FALHA");
+  console.log("DevTools métricas de VDOM (>0):", dt.renderizacoesVDOM > 0 ? "OK" : "FALHA");
+
+  const metricas = dt.obterMetricasRender();
+  console.log("obterMetricasRender() retorna objeto correto:", metricas && metricas.renderizacoes > 0 ? "OK" : "FALHA");
 }
 
 rodarTestes().catch(console.error);
