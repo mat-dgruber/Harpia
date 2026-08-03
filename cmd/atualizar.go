@@ -51,10 +51,12 @@ func extrairZipNativo(zipPath, destDir string) error {
 	cleanDest := filepath.Clean(destDir)
 
 	for _, f := range r.File {
-		fpath := filepath.Join(destDir, f.Name)
-		if !strings.HasPrefix(fpath, cleanDest+string(os.PathSeparator)) && fpath != cleanDest {
+		cleanPath := filepath.Clean(filepath.Join(cleanDest, f.Name))
+		rel, err := filepath.Rel(cleanDest, cleanPath)
+		if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
 			return fmt.Errorf("caminho invalido no zip: %s", f.Name)
 		}
+		fpath := cleanPath
 
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, os.ModePerm)
@@ -111,10 +113,12 @@ func extrairTarGzNativo(tarGzPath, destDir string) error {
 			return err
 		}
 
-		fpath := filepath.Join(destDir, header.Name)
-		if !strings.HasPrefix(fpath, cleanDest+string(os.PathSeparator)) && fpath != cleanDest {
+		cleanPath := filepath.Clean(filepath.Join(cleanDest, header.Name))
+		rel, err := filepath.Rel(cleanDest, cleanPath)
+		if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
 			return fmt.Errorf("caminho invalido no tar.gz: %s", header.Name)
 		}
+		fpath := cleanPath
 
 		switch header.Typeflag {
 		case tar.TypeDir:

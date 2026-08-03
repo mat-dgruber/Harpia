@@ -77,12 +77,19 @@ func comandoServir() *cobra.Command {
 						return
 					}
 
-					p := filepath.Join(pAbs, r.URL.Path)
+					cleanReqPath := filepath.Clean("/" + r.URL.Path)
+					p := filepath.Join(pAbs, cleanReqPath)
+					rel, errRel := filepath.Rel(pAbs, p)
+					if errRel != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
+						http.NotFound(w, r)
+						return
+					}
+
 					info, err := os.Stat(p)
-					if os.IsNotExist(err) || (err == nil && info.IsDir() && r.URL.Path != "/") {
+					if os.IsNotExist(err) || (err == nil && info.IsDir() && cleanReqPath != "/") {
 						idxFile := filepath.Join(p, "index.html")
 						if _, errIdx := os.Stat(idxFile); os.IsNotExist(errIdx) {
-							if filepath.Ext(r.URL.Path) != "" {
+							if filepath.Ext(cleanReqPath) != "" {
 								http.NotFound(w, r)
 								return
 							}
@@ -316,10 +323,11 @@ func comandoServir() *cobra.Command {
 					return
 				}
 
-				caminho := r.URL.Path
-				if caminho == "/" {
-					caminho = "/index.html"
+				caminhoClean := filepath.Clean("/" + r.URL.Path)
+				if caminhoClean == "/" || caminhoClean == "." {
+					caminhoClean = "/index.html"
 				}
+				caminho := caminhoClean
 
 				p := filepath.Join(saidaTemp, caminho)
 				rel, err := filepath.Rel(saidaTemp, p)
