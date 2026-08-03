@@ -134,10 +134,10 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		if len(n.Valor) >= 2 {
 			valorLimpo := n.Valor[1 : len(n.Valor)-1]
 			// ponytail: escapa quebras de linha físicas para evitar SyntaxError no JS gerado
+			valorLimpo = strings.ReplaceAll(valorLimpo, "\\", "\\\\")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\r\n", "\\n")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\n", "\\n")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\r", "\\r")
-			valorLimpo = strings.ReplaceAll(valorLimpo, `\"`, `"`)
 			valorLimpo = strings.ReplaceAll(valorLimpo, `"`, `\"`)
 			return fmt.Sprintf(`"%s"`, valorLimpo)
 		}
@@ -256,6 +256,39 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 			return "return;"
 		}
 		return fmt.Sprintf("return %s;", t.Transpile(n.Expressao))
+
+	case *parser.PareNode:
+		return "break;"
+
+	case *parser.ContinueNode:
+		return "continue;"
+
+	case *parser.TuplaLiteral:
+		var elems []string
+		for _, elem := range n.Elementos {
+			elems = append(elems, t.Transpile(elem))
+		}
+		return fmt.Sprintf("[%s]", strings.Join(elems, ", "))
+
+	case *parser.TenteCaptureFinalmente:
+		var sb strings.Builder
+		sb.WriteString("try ")
+		if n.TenteBlock != nil {
+			sb.WriteString(t.Transpile(n.TenteBlock))
+		}
+		if n.CaptureBlock != nil {
+			varVar := n.NomeErro
+			if varVar == "" {
+				varVar = "erro"
+			}
+			sb.WriteString(fmt.Sprintf(" catch (%s) ", varVar))
+			sb.WriteString(t.Transpile(n.CaptureBlock))
+		}
+		if n.FinalmenteBlock != nil {
+			sb.WriteString(" finally ")
+			sb.WriteString(t.Transpile(n.FinalmenteBlock))
+		}
+		return sb.String()
 
 	case *parser.ChamadaFuncao:
 		fn := t.Transpile(n.Identificador)

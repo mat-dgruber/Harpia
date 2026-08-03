@@ -320,6 +320,15 @@ pre {
 // apiExecutarCodigoPlayground recebe o payload contendo o código enviado do navegador,
 // executa-o de forma segura sob um escopo isolado na VM e captura saídas e variáveis em tempo real.
 func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Método não suportado", http.StatusMethodNotAllowed)
 		return

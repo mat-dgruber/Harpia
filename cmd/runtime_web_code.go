@@ -10,6 +10,7 @@ const FallbackRuntimeWebJS = `/**
  */
 
 let efeitoAtivo = null;
+let componenteAtivo = null;
 let profundidadeLote = 0;
 
 // DevTools metrics tracking
@@ -70,12 +71,19 @@ export function sinal(valor) {
   };
 
   const definir = (novoValor) => {
-    if (valor !== novoValor) {
-      valor = novoValor;
-      // Clona para evitar recursão infinita se assinantes mutarem o sinal
-      const paraDisparar = Array.from(assinantes);
-      paraDisparar.forEach((sub) => agendarEfeito(sub));
+    if (valor === novoValor) return;
+    if (
+      Array.isArray(valor) &&
+      Array.isArray(novoValor) &&
+      valor.length === 0 &&
+      novoValor.length === 0
+    ) {
+      return;
     }
+    valor = novoValor;
+    // Clona para evitar recursão infinita se assinantes mutarem o sinal
+    const paraDisparar = Array.from(assinantes);
+    paraDisparar.forEach((sub) => agendarEfeito(sub));
   };
 
   ler.set = definir; // ponytail: expõe atualizador direto no getter para binding bidirecional
@@ -222,6 +230,28 @@ export function aoDesmontar(fn) {
   }
 }
 
+export function desmontarVNo(vno) {
+  if (!vno) return;
+  if (Array.isArray(vno)) {
+    vno.forEach(desmontarVNo);
+    return;
+  }
+  if (typeof vno === "object") {
+    if (vno._efeitos) {
+      vno._efeitos.forEach((ef) => {
+        try { ef.desmontar(); } catch (_) {}
+      });
+      vno._efeitos = [];
+    }
+    if (vno._componenteInstancia) {
+      desmontarVNo(vno._componenteInstancia);
+    }
+    if (vno.children) {
+      vno.children.forEach(desmontarVNo);
+    }
+  }
+}
+
 /**
  * Cria um efeito colateral que roda imediatamente e se reinscreve nas mudanças de sinais lidos dentro dele.
  * @param {Function} funcao
@@ -298,6 +328,9 @@ export function efeito(funcao) {
     },
   };
   registroEfeitos.add(ef);
+  if (componenteAtivo && componenteAtivo._efeitos) {
+    componenteAtivo._efeitos.push(ef);
+  }
   ef.run();
   return () => ef.desmontar();
 }
@@ -487,6 +520,9 @@ export function criarNo(vno) {
     if (vno.props._ligar && !vno.props.ligar) {
       vno.props.ligar = vno.props._ligar;
     }
+    const prevComp = componenteAtivo;
+    componenteAtivo = vno;
+    vno._efeitos = [];
     try {
       const vnodeRendido = vno.tag(vno.props);
       vno._componenteInstancia = vnodeRendido;
@@ -503,6 +539,8 @@ export function criarNo(vno) {
         "color:#EF4444; background:#1E1E2E; padding:8px; border-radius:4px; font-family:monospace; font-size:12px;";
       errEl.textContent = "<" + (vno.tag.name || "Componente") + "> Erro: " + (e.message || e);
       return errEl;
+    } finally {
+      componenteAtivo = prevComp;
     }
   }
 
@@ -619,6 +657,14 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       } else {
         const attrName = mapearAtributo(nomeLimpo);
         if (!attrName) continue;
+        if (attrName === "value" || nomeLimpo === "valor" || nomeLimpo === "value") {
+          const valStr = (valor === null || valor === undefined) ? "" : String(valor);
+          if (el.value !== valStr) {
+            el.value = valStr;
+          }
+        } else if (attrName === "checked" || nomeLimpo === "marcado") {
+          el.checked = !!valor;
+        }
         if (valor === true) {
           el.setAttribute(attrName, "");
         } else if (valor === false || valor === null || valor === undefined) {
@@ -760,6 +806,9 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
   }
 
   if (novoVNo === null || novoVNo === undefined || novoVNo === false) {
+    if (velhoVNo) {
+      desmontarVNo(velhoVNo);
+    }
     if (Array.isArray(velhoVNo)) {
       for (let i = velhoVNo.length - 1; i >= 0; i--) {
         reconciliar(pai, velhoVNo[i], null, index + i);
@@ -773,6 +822,9 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
   }
 
   if (mudou(velhoVNo, novoVNo)) {
+    if (velhoVNo) {
+      desmontarVNo(velhoVNo);
+    }
     const novoEl = criarNo(novoVNo);
     const alvoPai = (noFisico && noFisico.parentNode) || pai;
     if (alvoPai && typeof alvoPai.replaceChild === "function" && noFisico) {
@@ -790,15 +842,28 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
     if (novoVNo.props._ligar && !novoVNo.props.ligar) {
       novoVNo.props.ligar = novoVNo.props._ligar;
     }
-    const novoRendido = novoVNo.tag(novoVNo.props);
-    novoVNo._componenteInstancia = novoRendido;
-    const velhoRendido =
-      velhoVNo && velhoVNo._componenteInstancia !== undefined
-        ? velhoVNo._componenteInstancia
-        : velhoVNo;
-    reconciliar(pai, velhoRendido, novoRendido, index);
-    novoVNo.el = obterNoFisico(novoRendido, pai);
-    return;
+    if (velhoVNo && velhoVNo._efeitos) {
+      velhoVNo._efeitos.forEach((ef) => {
+        try { ef.desmontar(); } catch (_) {}
+      });
+      velhoVNo._efeitos = [];
+    }
+    const prevComp = componenteAtivo;
+    componenteAtivo = novoVNo;
+    novoVNo._efeitos = [];
+    try {
+      const novoRendido = novoVNo.tag(novoVNo.props);
+      novoVNo._componenteInstancia = novoRendido;
+      const velhoRendido =
+        velhoVNo && velhoVNo._componenteInstancia !== undefined
+          ? velhoVNo._componenteInstancia
+          : velhoVNo;
+      reconciliar(pai, velhoRendido, novoRendido, index);
+      novoVNo.el = obterNoFisico(novoRendido, pai);
+      return;
+    } finally {
+      componenteAtivo = prevComp;
+    }
   }
 
   if (Array.isArray(novoVNo) || Array.isArray(velhoVNo)) {
@@ -999,6 +1064,32 @@ export function hidratar(appComponente, elementoAlvo) {
   }
 }
 
+// Polyfills para suporte nativo a getters/métodos em Português
+if (typeof Event !== "undefined" && !("alvo" in Event.prototype)) {
+  Object.defineProperty(Event.prototype, "alvo", {
+    get() {
+      return this.target;
+    },
+  });
+}
+if (typeof HTMLElement !== "undefined" && !("valor" in HTMLElement.prototype)) {
+  Object.defineProperty(HTMLElement.prototype, "valor", {
+    get() {
+      return this.value;
+    },
+    set(v) {
+      this.value = v;
+    },
+  });
+}
+if (typeof Promise !== "undefined") {
+  if (!Promise.prototype.entao) Promise.prototype.entao = Promise.prototype.then;
+  if (!Promise.prototype.pegar) Promise.prototype.pegar = Promise.prototype.catch;
+}
+if (typeof Response !== "undefined") {
+  if (!Response.prototype.JSón) Response.prototype.JSón = Response.prototype.json;
+}
+
 function vincularNos(elFisico, vno) {
   if (!vno || !elFisico) return;
   vno.el = elFisico;
@@ -1045,6 +1136,7 @@ export function navegar(destino) {
   if (typeof window !== "undefined" && window.location.pathname !== destino) {
     window.history.pushState({}, "", destino);
     setUrlAtiva(destino);
+    window.scrollTo(0, 0);
   }
 }
 
@@ -2005,6 +2097,30 @@ export function escrever(caminho, conteudo) {
 export function existe(caminho) {
   return false;
 }
+export function conectarSqlite(caminho) {
+  return {
+    executar: () => 0,
+    consultar: () => [],
+    tabela: () => ({ selecionar: () => ({ onde: () => ({ limite: () => ({ obterMuitos: () => [], obterUm: () => null }) }) }) }),
+    transacao: (fn) => fn && fn({ executar: () => 0, consultar: () => [] }),
+    fechar: () => {}
+  };
+}
+export function conectarPostgres(dsn) {
+  return { executar: () => 0, consultar: () => [], tabela: () => ({}), transacao: () => {}, fechar: () => {} };
+}
+export function conectarMysql(dsn) {
+  return { executar: () => 0, consultar: () => [], tabela: () => ({}), transacao: () => {}, fechar: () => {} };
+}
+export function conectarMongo(url) {
+  return { colecao: () => ({ inserirUm: () => {}, buscarUm: () => null }) };
+}
+export function conectarRedis(url) {
+  return { definir: () => {}, obter: () => null, remover: () => {}, fechar: () => {} };
+}
+export function conectarQdrant(url, colecao) {
+  return { inserir: () => {}, buscar: () => [], deletar: () => {} };
+}
 
 /**
  * Hook para atualização reativa dinâmica do <title> e tags <meta> no document.head.
@@ -2181,4 +2297,4 @@ if (typeof window !== "undefined") {
     __HARPIA_DEVTOOLS__: devTools,
   });
 }
-`
+`;

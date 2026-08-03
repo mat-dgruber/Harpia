@@ -71,6 +71,12 @@ func comandoServir() *cobra.Command {
 						return
 					}
 
+					pLower := strings.ToLower(r.URL.Path)
+					if pLower == "/api/executar" || pLower == "/api/playground/executar" {
+						apiExecutarCodigoPlayground(w, r)
+						return
+					}
+
 					p := filepath.Join(pAbs, r.URL.Path)
 					info, err := os.Stat(p)
 					if os.IsNotExist(err) || (err == nil && info.IsDir() && r.URL.Path != "/") {
@@ -291,6 +297,10 @@ func comandoServir() *cobra.Command {
 					}
 				}
 			})
+
+			http.HandleFunc("/api/executar", apiExecutarCodigoPlayground)
+			http.HandleFunc("/api/playground/executar", apiExecutarCodigoPlayground)
+			http.HandleFunc("/API/playground/executar", apiExecutarCodigoPlayground)
 
 			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Access-Control-Allow-Origin", "*")

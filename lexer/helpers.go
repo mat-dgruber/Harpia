@@ -105,6 +105,7 @@ var tokensIdentificadores = map[string]TokenType{
 	"retorne":  TokenRetorne,
 	"pare":     TokenPare,
 	"continue": TokenContinue,
+	"continua": TokenContinue,
 
 	"de":      TokenDe,
 	"importe": TokenImporte,

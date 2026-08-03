@@ -163,7 +163,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 							if strings.HasPrefix(strings.TrimSpace(imp), "import ") {
 								imp = corrigirCaminhoImport(imp, path, projDir)
 							}
-							if !strings.Contains(jsOutput, imp) {
+							if !importJaExiste(jsOutput, imp) {
 								jsOutput = imp + "\n" + jsOutput
 							}
 						}
@@ -206,7 +206,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 					imp = corrigirCaminhoImport(imp, path, projDir)
 				}
 				// evita duplicatas de import no bundle
-				if !strings.Contains(jsOutput, imp) {
+				if !importJaExiste(jsOutput, imp) {
 					jsOutput = imp + "\n" + jsOutput
 				}
 			}
@@ -425,6 +425,11 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 
 	indexPath := filepath.Join(opts.Saida, "index.html")
 	customIndexPath := filepath.Join(entryDir, "index.html")
+	if _, errC := os.Stat(customIndexPath); os.IsNotExist(errC) {
+		if _, errP := os.Stat(filepath.Join(projDir, "index.html")); errP == nil {
+			customIndexPath = filepath.Join(projDir, "index.html")
+		}
+	}
 	var htmlContent string
 	if conteudoCustom, errC := os.ReadFile(customIndexPath); errC == nil {
 		htmlContent = string(conteudoCustom)
@@ -484,6 +489,10 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Harpia App</title>
     <link rel="stylesheet" href="/estilos.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; background-color: #0A0F0D; color: #F3F6F4; font-family: Outfit, sans-serif; }
+    </style>
     <!--
       Dica de DX: Caso use bare modules como '@backend/modulo', configure um Import Map
       para mapear os identificadores para os proxies Javascript gerados, por exemplo:
@@ -544,6 +553,21 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 	if err = otimizarECopiarAssets(entryDir, opts.Saida, opts.OtimizarAssets); err != nil {
 		fmt.Fprintf(os.Stderr, "aviso ao processar assets de imagens: %v\n", err)
 	}
+
+	// Gera configurações de SPA Fallback para servidores de estáticos (npx serve, Vercel, Netlify)
+	_ = os.WriteFile(filepath.Join(opts.Saida, "serve.json"), []byte(`{
+  "rewrites": [
+    { "source": "**", "destination": "/index.html" }
+  ]
+}`), 0644)
+
+	_ = os.WriteFile(filepath.Join(opts.Saida, "vercel.json"), []byte(`{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}`), 0644)
+
+	_ = os.WriteFile(filepath.Join(opts.Saida, "_redirects"), []byte(`/*    /index.html   200`), 0644)
 
 	return nil
 }
@@ -971,4 +995,35 @@ func jaDeclaradoOuImportado(jsCode, nome string) bool {
 		}
 	}
 	return false
+}
+
+func importJaExiste(jsOutput string, imp string) bool {
+	impTrim := strings.TrimSpace(imp)
+	if strings.HasPrefix(impTrim, "import ") {
+		if idxStart := strings.Index(impTrim, "{"); idxStart != -1 {
+			if idxEnd := strings.Index(impTrim, "}"); idxEnd > idxStart {
+				simbolos := strings.Split(impTrim[idxStart+1:idxEnd], ",")
+				todosJaExistem := true
+				for _, s := range simbolos {
+					sym := strings.TrimSpace(s)
+					if sym != "" && !jaDeclaradoOuImportado(jsOutput, sym) {
+						todosJaExistem = false
+						break
+					}
+				}
+				if todosJaExistem {
+					return true
+				}
+			}
+		}
+	} else if strings.HasPrefix(impTrim, "const ") {
+		parts := strings.Fields(impTrim)
+		if len(parts) >= 2 {
+			constName := parts[1]
+			if jaDeclaradoOuImportado(jsOutput, constName) {
+				return true
+			}
+		}
+	}
+	return strings.Contains(jsOutput, imp)
 }

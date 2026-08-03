@@ -38,14 +38,15 @@ import (
 // Abstrata (AST). Mantém lookahead de 1 token e tabela de posições para
 // reportar erros de runtime com precisão de linha/coluna.
 type Parser struct {
-	lex              *lexer.Lexer              // Instância ativa do analisador léxico.
-	token            *lexer.Token              // O token corrente sob avaliação física no parser.
-	próximoToken     *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
-	posicoes         map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
-	codigo           string                    // Cópia do código-fonte original.
-	arquivo          string                    // Caminho físico ou identificação lógica do arquivo analisado.
-	erros            []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
-	ultimoDocComment string                    // Comentários de documentação acumulados imediatamente antes de uma declaração.
+	lex                  *lexer.Lexer              // Instância ativa do analisador léxico.
+	token                *lexer.Token              // O token corrente sob avaliação física no parser.
+	próximoToken         *lexer.Token              // Token de visualização antecipada (lookahead) para tomadas de decisão sintática.
+	posicoes             map[BaseNode]*lexer.Token // Mapa unificador associando nós gerados aos tokens físicos (útil para tracebacks de erros).
+	codigo               string                    // Cópia do código-fonte original.
+	arquivo              string                    // Caminho físico ou identificação lógica do arquivo analisado.
+	erros                []ErroSintatico           // Lista de erros sintáticos acumulados durante a análise.
+	ultimoDocComment     string                    // Comentários de documentação acumulados imediatamente antes de uma declaração.
+	ultimoTokenFimIndice int                       // Índice no código fonte onde o último token consumido terminou.
 }
 
 // NewParser é o construtor padrão que inicializa e carrega os primeiros tokens
@@ -104,9 +105,13 @@ func (p *Parser) avancar() {
 	if p.token == nil {
 		p.token = p.proximoTokenSemComentario()
 		p.próximoToken = p.proximoTokenSemComentario()
+		if p.token != nil {
+			p.ultimoTokenFimIndice = p.token.Fim.Indice
+		}
 		return
 	}
 
+	p.ultimoTokenFimIndice = p.token.Fim.Indice
 	p.token = p.próximoToken
 
 	if p.token.Tipo != lexer.TokenFimDeArquivo {
@@ -1678,6 +1683,11 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		// Se tiver chaves de interpolação { ... } dentro da string (ex: "olá {nome}")
 		if strings.Contains(val, "{") && strings.Contains(val, "}") && len(val) >= 2 {
 			strContent := val[1 : len(val)-1]
+
+			// Se a string contiver trechos de código com importação/exportação (ex: "importar { x } de 'y'"), trata como texto literal
+			if strings.Contains(strContent, "importar ") || strings.Contains(strContent, "exportar ") {
+				return &TextoLiteral{Valor: token.Valor}, nil
+			}
 			templateNode := &TemplateLiteral{}
 
 			i := 0
@@ -1705,12 +1715,20 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				}
 				idxClose += idxOpen
 
+				// Se a chave for escapada com \, ignora interpolação e trata como texto
+				if idxOpen > 0 && strContent[idxOpen-1] == '\\' {
+					part := strContent[i : idxClose+1]
+					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
+					i = idxClose + 1
+					continue
+				}
+
 				exprStr := strContent[idxOpen+1 : idxClose]
 				// ponytail: parser recursivo isolado por template. Evita implementar gramática de strings complexa com lookahead no parser principal.
 				subParser := NewParserFromString(exprStr, p.arquivo)
 				exprNode, err := subParser.parseExpressao()
-				if err != nil {
-					// Fallback: se o conteúdo entre chaves não for uma expressão válida, trata como texto literal
+				if err != nil || subParser.token.Tipo != lexer.TokenFimDeArquivo {
+					// Fallback: se o conteúdo entre chaves não for uma expressão válida completa, trata como texto literal
 					return &TextoLiteral{Valor: token.Valor}, nil
 				}
 
@@ -2011,8 +2029,11 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 					}
 					valorAttr = expr
 				case lexer.TokenTexto:
-					valorAttr = &TextoLiteral{Valor: p.token.Valor}
-					p.avancar()
+					nodeTexto, err := p.parseAtomo()
+					if err != nil {
+						return nil, err
+					}
+					valorAttr = nodeTexto
 				default:
 					return nil, p.errof("esperava string ou expressão em '{}' para o atributo '%s', mas recebi '%s'", nomeAttr, p.token.Valor)
 				}
@@ -2084,11 +2105,14 @@ var reComentarioHTML = regexp.MustCompile(`<!--[\s\S]*?-->`)
 var reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*(?:#|//).*$`)
 
 // Caso contrário, é texto literal livre
-		inicioTexto := p.token.Inicio.Indice
+		inicioTexto := p.ultimoTokenFimIndice
 		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
 			p.avancar()
 		}
 		fimTexto := p.token.Inicio.Indice
+		if fimTexto < inicioTexto {
+			fimTexto = inicioTexto
+		}
 		rawText := p.lex.SubString(inicioTexto, fimTexto)
 		rawText = reComentarioHTML.ReplaceAllString(rawText, "")
 		rawText = reComentarioLinhaJSX.ReplaceAllString(rawText, "")

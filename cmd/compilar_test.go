@@ -467,6 +467,47 @@ func TestComandoCompilarFlagsCross(t *testing.T) {
 	}
 }
 
+func TestTranspileControlFlowStatements(t *testing.T) {
+	codigo := `
+	funcao TesteFluxo() {
+		enquanto Verdadeiro {
+			se Falso {
+				continua;
+			}
+			pare;
+		}
+		var t = (1, 2);
+		tente {
+			var x = 10;
+		} capture (erro) {
+			var err = erro;
+		} finalmente {
+			var fin = 1;
+		}
+	}
+	`
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	transpiler := &TranspilerWeb{}
+	jsOutput := transpiler.Transpile(ast)
+
+	if !strings.Contains(jsOutput, "break;") {
+		t.Errorf("Esperava 'break;' na transpilação. Recebido:\n%s", jsOutput)
+	}
+	if !strings.Contains(jsOutput, "continue;") {
+		t.Errorf("Esperava 'continue;' na transpilação. Recebido:\n%s", jsOutput)
+	}
+	if !strings.Contains(jsOutput, "try {") || !strings.Contains(jsOutput, "catch (erro)") || !strings.Contains(jsOutput, "finally {") {
+		t.Errorf("Esperava bloco try/catch/finally na transpilação. Recebido:\n%s", jsOutput)
+	}
+}
+
 func TestComandoCompilarAliasConstruir(t *testing.T) {
 	cmd := comandoCompilar()
 	temConstruir := false
