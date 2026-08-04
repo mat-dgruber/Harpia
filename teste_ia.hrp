@@ -1,0 +1,37 @@
+de "matematica" importe exp, log, sen, cos, tanh, max, min, aleatorio
+de "matriz" importe produtoEscalar, somarVetores, subtrairVetores, multiplicarEscalar, norma, criar, multiplicar
+de "ia" importe sigmoide, derivadaSigmoide, relu, softmax, similaridadeCosseno, normalizarMinMax, erroQuadraticoMedio
+
+imprimir("=== Testando Expansão do Harpia para Redes Neurais ===")
+
+// 1. Matematica
+imprimir("exp(1.0) ->", exp(1.0))
+imprimir("log(2.71828) ->", log(2.71828))
+imprimir("sen(0.0) ->", sen(0.0))
+imprimir("cos(0.0) ->", cos(0.0))
+imprimir("tanh(0.5) ->", tanh(0.5))
+imprimir("max(10, 20) ->", max(10, 20))
+imprimir("min(10, 20) ->", min(10, 20))
+imprimir("aleatorio() ->", aleatorio())
+imprimir("aleatorio(1.0, 5.0) ->", aleatorio(1.0, 5.0))
+
+// 2. Matriz e Algebra Linear
+var v1 = [1, 2, 3]
+var v2 = [4, 5, 6]
+imprimir("produtoEscalar([1,2,3], [4,5,6]) ->", produtoEscalar(v1, v2))
+imprimir("somarVetores([1,2,3], [4,5,6]) ->", somarVetores(v1, v2))
+imprimir("norma([3, 4]) ->", norma([3, 4]))
+
+var m1 = [[1, 2], [3, 4]]
+var m2 = [[2, 0], [1, 2]]
+imprimir("multiplicarMatrizes ->", multiplicar(m1, m2))
+
+// 3. IA e Ativacoes
+imprimir("sigmoide(0.0) ->", sigmoide(0.0))
+imprimir("relu(-5.0) ->", relu(-5.0))
+imprimir("relu(3.5) ->", relu(3.5))
+imprimir("softmax([1.0, 2.0, 3.0]) ->", softmax([1.0, 2.0, 3.0]))
+imprimir("similaridadeCosseno([1, 0, 1], [1, 0, 1]) ->", similaridadeCosseno([1, 0, 1], [1, 0, 1]))
+imprimir("normalizarMinMax([10, 20, 30]) ->", normalizarMinMax([10, 20, 30]))
+
+imprimir("=== Todos os testes nativos passaram com sucesso! ===")

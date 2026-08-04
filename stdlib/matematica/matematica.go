@@ -25,6 +25,14 @@ func init() {
 		_mat_absoluto,
 		_mat_piso,
 		_mat_teto,
+		_mat_exp,
+		_mat_log,
+		_mat_sen,
+		_mat_cos,
+		_mat_tanh,
+		_mat_max,
+		_mat_min,
+		_mat_aleatorio,
 	}
 
 	// Registra o módulo de matemática na tabela interna de módulos carregáveis da VM.

@@ -17,6 +17,13 @@ func init() {
 			},
 			Metodos: []*hrp.Metodo{
 				hrp.NewMetodoOuPanic("validar_resposta", met_validar_resposta, "Valida resposta JSON contra esquema"),
+				_ia_sigmoide,
+				_ia_derivadaSigmoide,
+				_ia_relu,
+				_ia_softmax,
+				_ia_similaridadeCosseno,
+				_ia_normalizarMinMax,
+				_ia_erroQuadraticoMedio,
 			},
 		},
 	)
