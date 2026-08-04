@@ -137,4 +137,3 @@ var _ I__obtem_attributo__ = (*ClasseObj)(nil)
 var _ Objeto = (*Instancia)(nil)
 var _ I__obtem_attributo__ = (*Instancia)(nil)
 var _ I__define_atributo__ = (*Instancia)(nil)
-

@@ -20,12 +20,42 @@ import (
 //     '__arquivo__' no escopo léxico ativo para extrair a pasta base ('path.Dir');
 //  5. Dispara 'ExecutarArquivo' para compilar e interpretar o arquivo físico, gerando a instância do Módulo.
 func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto, error) {
+	nomeLimpo := strings.TrimPrefix(nome, "./")
+	if nomeLimpo == "sinais" || nomeLimpo == "web" || nomeLimpo == "reatividade" {
+		nome = nomeLimpo
+	}
+
 	if strings.HasPrefix(nome, "@backend/") {
 		return CarregarModuloRPC(ctx, nome)
 	}
 
 	if impl := ObtemImplModulo(nome); impl != nil {
 		return ctx.InicializarModulo(impl)
+	}
+
+	// ponytail: módulos virtuais do frontend/web têm precedência sobre pastas locais de mesmo nome para evitar colisões
+	if nome == "sinais" || nome == "web" || nome == "reatividade" {
+		m := &Modulo{
+			Impl:         &ModuloImpl{Info: ModuloInfo{Nome: nome}},
+			Contexto:     ctx,
+			Escopo:       NewEscopo(),
+			acessoRapido: NewMapaVazio(),
+		}
+		if ctx.Modulos.Embutidos != nil {
+			if nome == "web" {
+				if val, err := ctx.Modulos.Embutidos.Escopo.ObterValor("roteador"); err == nil {
+					m.Escopo.DefinirSimbolo(NewConstSimbolo("roteador", val))
+				}
+			} else if nome == "sinais" || nome == "reatividade" {
+				itens := []string{"sinal", "sinalPersistente", "efeito", "derivado", "armazem"}
+				for _, item := range itens {
+					if val, err := ctx.Modulos.Embutidos.Escopo.ObterValor(item); err == nil {
+						m.Escopo.DefinirSimbolo(NewConstSimbolo(item, val))
+					}
+				}
+			}
+		}
+		return m, nil
 	}
 
 	if !(strings.HasPrefix(nome, "./") || strings.HasPrefix(nome, "/")) {
@@ -42,10 +72,6 @@ func MaquinarioImporteModulo(ctx *Contexto, nome string, escopo *Escopo) (Objeto
 		}
 
 		if !(strings.HasPrefix(nome, "./") || strings.HasPrefix(nome, "/")) {
-			// Módulos virtuais do frontend/web
-			if nome == "sinais" || nome == "web" || nome == "reatividade" {
-				return &Modulo{Impl: &ModuloImpl{Info: ModuloInfo{Nome: nome}}, Contexto: ctx, Escopo: NewEscopo(), acessoRapido: NewMapaVazio()}, nil
-			}
 			return nil, NewErroF(ImportacaoErro, "Importações não relativas só estão disponíveis para módulos embutidos, corrija para './%s'", nome)
 		}
 	}

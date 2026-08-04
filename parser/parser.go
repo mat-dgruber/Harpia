@@ -1013,7 +1013,6 @@ func (p *Parser) parseDesestruturacao(constante bool) (BaseNode, error) {
 	return decl, nil
 }
 
-
 func (p *Parser) parseEnum() (BaseNode, error) {
 	docComments := p.consumirDocComment()
 	p.avancar() // consome 'enum'
@@ -1122,7 +1121,6 @@ func (p *Parser) parseEscolha() (BaseNode, error) {
 	p.registrar(decl, p.token)
 	return decl, nil
 }
-
 
 func (p *Parser) parseInterface() (BaseNode, error) {
 	docComments := p.consumirDocComment()
@@ -2101,10 +2099,10 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			continue
 		}
 
-var reComentarioHTML = regexp.MustCompile(`<!--[\s\S]*?-->`)
-var reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*(?:#|//).*$`)
+		var reComentarioHTML = regexp.MustCompile(`<!--[\s\S]*?-->`)
+		var reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*(?:#|//).*$`)
 
-// Caso contrário, é texto literal livre
+		// Caso contrário, é texto literal livre
 		inicioTexto := p.ultimoTokenFimIndice
 		for p.token.Tipo != lexer.TokenMenorQue && p.token.Tipo != lexer.TokenAbreChaves && !p.fimDeArquivo() {
 			p.avancar()

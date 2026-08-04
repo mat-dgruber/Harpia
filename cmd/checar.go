@@ -45,13 +45,13 @@ var globalsLinter = map[string]bool{
 	"null":       true,
 
 	// Classes/tipos globais
-	"Texto":   true,
-	"Inteiro": true,
-	"Decimal": true,
-	"Logico":  true,
-	"Lista":   true,
-	"Tupla":   true,
-	"Mapa":    true,
+	"Texto":    true,
+	"Inteiro":  true,
+	"Decimal":  true,
+	"Logico":   true,
+	"Lista":    true,
+	"Tupla":    true,
+	"Mapa":     true,
 	"Objeto":   true,
 	"Erro":     true,
 	"Servidor": true,
@@ -61,12 +61,12 @@ var globalsLinter = map[string]bool{
 	"float":    true,
 
 	// Primitivas Reativas da Web
-	"sinal":            true,
-	"efeito":           true,
-	"derivado":         true,
-	"armazem":          true,
-	"renderizar":       true,
-	"montar":           true,
+	"sinal":      true,
+	"efeito":     true,
+	"derivado":   true,
+	"armazem":    true,
+	"renderizar": true,
+	"montar":     true,
 
 	// Globais adicionais da Web/Browser para DX profissional (Fase 5-B)
 	"fetch":            true,
@@ -97,11 +97,11 @@ func init() {
 }
 
 type EscopoLinter struct {
-	Pai        *EscopoLinter
-	Variaveis  map[string]bool
-	Consts     map[string]bool
-	Assincrono bool
-	Usadas     map[string]bool
+	Pai         *EscopoLinter
+	Variaveis   map[string]bool
+	Consts      map[string]bool
+	Assincrono  bool
+	Usadas      map[string]bool
 	Declaracoes map[string]parser.BaseNode // guarda nó da declaração para reporte
 }
 
@@ -217,7 +217,6 @@ func (l *Linter) popEscopo() {
 		l.Escopo = l.Escopo.Pai
 	}
 }
-
 
 func (l *Linter) registrarErro(msg string, code string, severity int, node parser.BaseNode) {
 	l.Erros = append(l.Erros, LinterError{Message: msg, Code: code, Severity: severity, Node: node})
@@ -458,7 +457,6 @@ func (l *Linter) Checar(node parser.BaseNode) {
 			l.Checar(filho)
 		}
 
-
 	case *parser.NoSeJSX:
 		l.Checar(n.Condicao)
 		for _, filho := range n.Filhos {
@@ -642,7 +640,6 @@ func ExecutarChecagemSilenciosa(caminho string) int {
 
 	totalErros := 0
 
-
 	for _, arq := range arquivos {
 		conteudo, errRead := os.ReadFile(arq)
 		if errRead != nil {
@@ -654,7 +651,6 @@ func ExecutarChecagemSilenciosa(caminho string) int {
 			totalErros++
 			continue
 		}
-
 
 		dirArq := filepath.Dir(arq)
 		linter := &Linter{

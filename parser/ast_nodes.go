@@ -104,7 +104,6 @@ type DeclVar struct {
 	DocComments   string   // Comentários de documentação associados (/// ou /** */).
 }
 
-
 // DeclVarDestructuring representa a desestruturação de variáveis (ex: var [a, b] = sinal(0)).
 type DeclVarDestructuring struct {
 	NoBase
@@ -174,7 +173,6 @@ type DeclFuncao struct {
 	Assincrono  bool                   // Verdadeiro se a função for assíncrona ('assincrono funcao').
 	DocComments string                 // Comentários de documentação associados (/// ou /** */).
 }
-
 
 // AguardeNode representa a expressão 'aguarde <expr>'
 type AguardeNode struct {
@@ -361,7 +359,6 @@ type DeclClasse struct {
 	DocComments string        // Comentários de documentação associados (/// ou /** */).
 }
 
-
 // OpPipe representa operações de encadeamento fluído de funções baseadas no operador pipe (ex: x |> dobrar()).
 type OpPipe struct {
 	NoBase
@@ -484,8 +481,7 @@ func (*CasoEscolha) isExpr()            {}
 func (*DeclEscolha) isExpr()            {}
 func (*DeclEnum) isExpr()               {}
 
-
-func (*DeclInterface) isExpr()          {}
+func (*DeclInterface) isExpr() {}
 
 // DeclEnum representa uma enumeração nativa.
 //
@@ -526,11 +522,10 @@ type MetodoAssinatura struct {
 // (duck typing estrutural) — não há palavra-chave `implementa`.
 type DeclInterface struct {
 	NoBase
-	Nome        string              // Nome da interface.
-	Metodos     []MetodoAssinatura  // Lista de assinaturas exigidas.
-	DocComments string              // Comentários de documentação associados.
+	Nome        string             // Nome da interface.
+	Metodos     []MetodoAssinatura // Lista de assinaturas exigidas.
+	DocComments string             // Comentários de documentação associados.
 }
-
 
 // OpCoalescenciaNula representa o operador de coalescência nula 'a ?? b'.
 type OpCoalescenciaNula struct {
@@ -585,11 +580,9 @@ type CasoEscolha struct {
 // opcional retornar verdadeiro) executa seu Corpo. Não há fall-through.
 type DeclEscolha struct {
 	NoBase
-	Expressao BaseNode     // Expressão discriminada avaliada uma única vez antes dos casos.
+	Expressao BaseNode      // Expressão discriminada avaliada uma única vez antes dos casos.
 	Casos     []CasoEscolha // Lista ordenada de alternativas avaliadas sequencialmente.
 }
-
-
 
 // AtributoJSX representa um atributo em uma tag JSX.
 //

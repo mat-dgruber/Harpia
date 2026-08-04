@@ -1,0 +1,33 @@
+de "tensor" importe criar, redimensionar, somar, multiplicar
+de "vetores" importe criarBanco
+
+imprimir("=== Testando Novos Módulos de IA Avançada na Harpia ===")
+
+// 1. Teste de Tensores N-Dimensionais
+var t1 = criar([2, 3], 1.5)
+var t2 = criar([2, 3], 2.0)
+imprimir("Tensor t1 ->", t1.texto())
+
+var tSoma = somar(t1, t2)
+imprimir("Soma de Tensores (t1 + t2) ->", tSoma.texto())
+
+var tRedim = redimensionar(t1, [3, 2])
+imprimir("Tensor Redimensionado (2x3 -> 3x2) ->", tRedim.texto())
+
+// 2. Teste de Banco Vetorial (Vector Store)
+var dbVetores = criarBanco()
+
+dbVetores.inserir("filme_matrix", [1.0, 1.0, 0.0], { "titulo": "Matrix" })
+dbVetores.inserir("filme_interstellar", [0.9, 1.0, 0.1], { "titulo": "Interstellar" })
+dbVetores.inserir("filme_romance", [0.0, 0.1, 1.0], { "titulo": "Diário de uma Paixão" })
+
+var perfilConsulta = [0.95, 0.95, 0.0]
+var maisProximos = dbVetores.buscarMaisProximos(perfilConsulta, 2)
+
+imprimir("\n--- Resultado do Banco Vetorial (Top 2 Similares) ---")
+para item em maisProximos {
+    var meta = item["metadados"]
+    imprimir("ID:", item["id"], "| Título:", meta["titulo"], "| Similarity Score:", item["score"])
+}
+
+imprimir("\n=== Testes de IA de Primeira Classe Concluídos com Sucesso! ===")

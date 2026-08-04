@@ -394,5 +394,3 @@ func TestComandoPacoteCicloVida(t *testing.T) {
 		t.Errorf("pasta pt_modulos ainda existe apos limpar")
 	}
 }
-
-

@@ -67,4 +67,3 @@ func ConverteDeGo(val any) Objeto {
 	}
 	return Nulo
 }
-

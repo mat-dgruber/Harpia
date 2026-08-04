@@ -180,6 +180,34 @@ func TestVMExecucaoExpressoesSimples(t *testing.T) {
 			`,
 			esperado: hrp.Inteiro(50),
 		},
+		{
+			nome: "Operador lógico E (curto-circuito verdadeiro)",
+			codigo: `
+			Verdadeiro e 42;
+			`,
+			esperado: hrp.Inteiro(42),
+		},
+		{
+			nome: "Operador lógico E (curto-circuito falso)",
+			codigo: `
+			Falso e 42;
+			`,
+			esperado: hrp.Falso,
+		},
+		{
+			nome: "Operador lógico OU (curto-circuito verdadeiro)",
+			codigo: `
+			Verdadeiro ou 42;
+			`,
+			esperado: hrp.Verdadeiro,
+		},
+		{
+			nome: "Operador lógico OU (curto-circuito falso)",
+			codigo: `
+			Falso ou 42;
+			`,
+			esperado: hrp.Inteiro(42),
+		},
 	}
 
 	for _, tc := range testes {

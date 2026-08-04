@@ -14,19 +14,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ponytail: comando 'servir' que atua como Dev Server ultra-leve.
-// Em vez de usar complexos watchers fsnotify e sockets de HMR que dão leaks de memória,
-// e serve os assets estáticos de forma integrada.
+// ponytail: comando 'servir' que atua como Dev Server ultra-leve com Hot-Reload automático (SSE).
 func comandoServir() *cobra.Command {
 	var porta int
-
 	var entrada string
 	var diretorio string
 	var saidaTemp string
 
 	servir := &cobra.Command{
 		Use:           "servir",
-		Short:         "Inicia o Dev Server de desenvolvimento integrado com compilação sob demanda",
+		Short:         "Inicia o Dev Server de desenvolvimento integrado com compilação sob demanda e Hot-Reload",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -37,7 +34,91 @@ func comandoServir() *cobra.Command {
 				entrada = args[0]
 			}
 
-			// Se a flag --diretorio for informada, serve a pasta estática pré-compilada!
+			var clientes []chan bool
+			var mutex sync.Mutex
+
+			notificarClientes := func() {
+				mutex.Lock()
+				for _, ch := range clientes {
+					select {
+					case ch <- true:
+					default:
+					}
+				}
+				mutex.Unlock()
+			}
+
+			scriptSSE := `
+<script>
+  (function() {
+    let sse;
+    function conectar() {
+      if (sse) try { sse.close(); } catch(e) {}
+      sse = new EventSource('/hot-reload');
+      sse.onmessage = (e) => {
+        if (e.data === 'recarregar') {
+          console.log('⚡ Hot-Reload Harpia: Recarregando página...');
+          window.location.reload();
+        }
+      };
+      sse.onerror = () => {
+        try { sse.close(); } catch(e) {}
+        setTimeout(conectar, 1500);
+      };
+    }
+    conectar();
+  })();
+</script>
+`
+
+			handlerHotReload := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+				w.Header().Set("Cache-Control", "no-cache, no-transform")
+				w.Header().Set("Connection", "keep-alive")
+				w.Header().Set("X-Accel-Buffering", "no")
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+
+				flusher, ok := w.(http.Flusher)
+				if !ok {
+					http.Error(w, "Streaming não suportado", http.StatusInternalServerError)
+					return
+				}
+
+				ch := make(chan bool, 1)
+				mutex.Lock()
+				clientes = append(clientes, ch)
+				mutex.Unlock()
+
+				defer func() {
+					mutex.Lock()
+					for i, c := range clientes {
+						if c == ch {
+							clientes = append(clientes[:i], clientes[i+1:]...)
+							break
+						}
+					}
+					mutex.Unlock()
+					close(ch)
+				}()
+
+				fmt.Fprintf(w, "data: conectado\n\n")
+				flusher.Flush()
+
+				for {
+					select {
+					case <-r.Context().Done():
+						return
+					case <-ch:
+						fmt.Fprintf(w, "data: recarregar\n\n")
+						flusher.Flush()
+					case <-time.After(10 * time.Second):
+						fmt.Fprintf(w, "data: ping\n\n")
+						flusher.Flush()
+					}
+				}
+			})
+
+			// --- MODO 1: Servir diretório estático pré-compilado (--diretorio / -d) ---
 			if diretorio != "" {
 				pAbs, err := filepath.Abs(diretorio)
 				if err != nil {
@@ -56,6 +137,47 @@ func comandoServir() *cobra.Command {
 						pAbs = filepath.Join(pAbs, "dist")
 					}
 				}
+
+				// Watcher para pasta estática
+				go func() {
+					ultimoCheck := time.Now()
+					for {
+						select {
+						case <-cmd.Context().Done():
+							return
+						case <-time.After(500 * time.Millisecond):
+						}
+
+						mudou := false
+						inicioScan := time.Now()
+						_ = filepath.Walk(pAbs, func(path string, info os.FileInfo, err error) error {
+							if err != nil {
+								return nil
+							}
+							if info.IsDir() && path != pAbs {
+								base := filepath.Base(path)
+								if base == ".git" || base == "node_modules" {
+									return filepath.SkipDir
+								}
+							}
+							if !info.IsDir() && info.ModTime().After(ultimoCheck) {
+								ext := strings.ToLower(filepath.Ext(path))
+								if ext == ".html" || ext == ".js" || ext == ".css" || ext == ".json" {
+									mudou = true
+								}
+							}
+							return nil
+						})
+
+						if mudou {
+							ultimoCheck = inicioScan
+							fmt.Fprintf(out, "⚡ Alteração detectada em %s. Recarregando navegador...\n", pAbs)
+							notificarClientes()
+						}
+					}
+				}()
+
+				http.Handle("/hot-reload", handlerHotReload)
 
 				fs := http.FileServer(http.Dir(pAbs))
 				corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +199,14 @@ func comandoServir() *cobra.Command {
 						return
 					}
 
+					w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+					w.Header().Set("Pragma", "no-cache")
+					w.Header().Set("Expires", "0")
+
 					cleanReqPath := filepath.Clean("/" + r.URL.Path)
+					if cleanReqPath == "/" || cleanReqPath == "." {
+						cleanReqPath = "/index.html"
+					}
 					p := filepath.Join(pAbs, cleanReqPath)
 					rel, errRel := filepath.Rel(pAbs, p)
 					if errRel != nil || strings.HasPrefix(rel, "..") || filepath.IsAbs(rel) {
@@ -93,7 +222,23 @@ func comandoServir() *cobra.Command {
 								http.NotFound(w, r)
 								return
 							}
-							http.ServeFile(w, r, filepath.Join(pAbs, "index.html"))
+							p = filepath.Join(pAbs, "index.html")
+						} else {
+							p = idxFile
+						}
+					}
+
+					if strings.HasSuffix(p, "index.html") {
+						w.Header().Set("Content-Type", "text/html; charset=utf-8")
+						conteudo, errRead := os.ReadFile(p)
+						if errRead == nil {
+							htmlStr := string(conteudo)
+							if strings.Contains(htmlStr, "</body>") {
+								htmlStr = strings.Replace(htmlStr, "</body>", scriptSSE+"</body>", 1)
+							} else {
+								htmlStr += scriptSSE
+							}
+							w.Write([]byte(htmlStr))
 							return
 						}
 					}
@@ -104,6 +249,7 @@ func comandoServir() *cobra.Command {
 
 				url := fmt.Sprintf("http://localhost:%d", porta)
 				fmt.Fprintf(out, "\n🚀 Servidor Estático Harpia rodando em %s (diretório: %s)\n", url, pAbs)
+				fmt.Fprintln(out, "✨ Hot-Reload ativo — alterações no diretório atualizam o navegador automaticamente.")
 				fmt.Fprintln(out, "   Pressione Ctrl+C para encerrar.")
 
 				server := &http.Server{
@@ -122,6 +268,7 @@ func comandoServir() *cobra.Command {
 				return nil
 			}
 
+			// --- MODO 2: Dev Server com compilação sob demanda a partir de .hrp ---
 			if entrada == "" {
 				candidatos := []string{
 					"main.hrp", "index.hrp", "app.hrp",
@@ -205,14 +352,9 @@ func comandoServir() *cobra.Command {
 				}
 			}()
 
-			var clientes []chan bool
-			var mutex sync.Mutex
-
+			// Watcher amplo monitorando todo o projeto (os.Getwd)
 			go func() {
 				diretorioParaVer, _ := os.Getwd()
-				if entryDir := filepath.Dir(entrada); entryDir != "" && entryDir != "." {
-					diretorioParaVer = entryDir
-				}
 				ultimoCheck := time.Now()
 
 				for {
@@ -223,87 +365,42 @@ func comandoServir() *cobra.Command {
 					}
 
 					mudou := false
+					inicioScan := time.Now()
 					_ = filepath.Walk(diretorioParaVer, func(path string, info os.FileInfo, err error) error {
 						if err != nil {
 							return nil
 						}
-						if strings.Contains(path, "Harpia_servir_dist") || strings.Contains(path, "dist") {
-							return nil
+						if info.IsDir() && path != diretorioParaVer {
+							base := filepath.Base(path)
+							if base == "Harpia_servir_dist" || base == "dist" || base == ".git" || base == "node_modules" {
+								return filepath.SkipDir
+							}
 						}
 						if !info.IsDir() && info.ModTime().After(ultimoCheck) {
-							if strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".html") || strings.HasSuffix(path, ".css") {
+							ext := strings.ToLower(filepath.Ext(path))
+							if ext == ".hrp" || ext == ".html" || ext == ".css" || ext == ".js" || ext == ".json" {
 								mudou = true
-								ultimoCheck = info.ModTime()
 							}
 						}
 						return nil
 					})
 
 					if mudou {
+						ultimoCheck = inicioScan
 						tRebuild := time.Now()
 						errRebuild := executarComSpinner("Recompilando alterações", fazerBuild)
 						if errRebuild == nil {
 							fmt.Fprintf(out, "⚡ Recompilado com sucesso em %v. Recarregando navegador...\n", time.Since(tRebuild).Round(time.Millisecond))
-							mutex.Lock()
-							for _, ch := range clientes {
-								select {
-								case ch <- true:
-								default:
-								}
-							}
-							mutex.Unlock()
+							notificarClientes()
 						} else {
 							fmt.Fprintf(errOut, "❌ Erro no build: %v\n", errRebuild)
+							notificarClientes()
 						}
 					}
 				}
 			}()
 
-			http.HandleFunc("/hot-reload", func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Content-Type", "text/event-stream")
-				w.Header().Set("Cache-Control", "no-cache")
-				w.Header().Set("Connection", "keep-alive")
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-
-				flusher, ok := w.(http.Flusher)
-				if !ok {
-					http.Error(w, "Streaming não suportado", http.StatusInternalServerError)
-					return
-				}
-
-				ch := make(chan bool, 1)
-				mutex.Lock()
-				clientes = append(clientes, ch)
-				mutex.Unlock()
-
-				defer func() {
-					mutex.Lock()
-					for i, c := range clientes {
-						if c == ch {
-							clientes = append(clientes[:i], clientes[i+1:]...)
-							break
-						}
-					}
-					mutex.Unlock()
-					close(ch)
-				}()
-
-				fmt.Fprintf(w, "data: conectado\n\n")
-				flusher.Flush()
-
-				for {
-					select {
-					case <-r.Context().Done():
-						return
-					case <-ch:
-						fmt.Fprintf(w, "data: recarregar\n\n")
-						flusher.Flush()
-					case <-time.After(10 * time.Second):
-						fmt.Fprintf(w, "data: ping\n\n")
-						flusher.Flush()
-					}
-				}
-			})
+			http.Handle("/hot-reload", handlerHotReload)
 
 			http.HandleFunc("/api/executar", apiExecutarCodigoPlayground)
 			http.HandleFunc("/api/playground/executar", apiExecutarCodigoPlayground)
@@ -359,7 +456,7 @@ func comandoServir() *cobra.Command {
 					}
 				}
 
-				w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+				w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 				w.Header().Set("Pragma", "no-cache")
 				w.Header().Set("Expires", "0")
 
@@ -409,20 +506,6 @@ func comandoServir() *cobra.Command {
 					conteudo, err := os.ReadFile(p)
 					if err == nil {
 						htmlStr := string(conteudo)
-						scriptSSE := `
-<script>
-  (function() {
-    const sse = new EventSource('/hot-reload');
-    sse.onmessage = (e) => {
-      if (e.data === 'recarregar') {
-        console.log('🔄 Hot-Reload ativado! Recarregando página...');
-        window.location.reload();
-      }
-    };
-    sse.onerror = () => console.log('Sem conexão com Dev Server de Hot-Reload.');
-  })();
-</script>
-`
 						if strings.Contains(htmlStr, "</body>") {
 							htmlStr = strings.Replace(htmlStr, "</body>", scriptSSE+"</body>", 1)
 						} else {
@@ -438,7 +521,7 @@ func comandoServir() *cobra.Command {
 
 			url := fmt.Sprintf("http://localhost:%d", porta)
 			fmt.Fprintf(out, "\n🚀 Harpia Dev Server rodando em %s\n", url)
-			fmt.Fprintln(out, "✨ Hot-Reload ativo — edições em .hrp, .html ou .css atualizam o navegador instantaneamente.")
+			fmt.Fprintln(out, "✨ Hot-Reload ativo — edições no projeto atualizam o navegador instantaneamente.")
 			fmt.Fprintln(out, "   Pressione Ctrl+C para encerrar.")
 			fmt.Fprintln(out)
 

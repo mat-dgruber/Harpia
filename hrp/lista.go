@@ -133,7 +133,6 @@ func init() {
 	TipoLista.Mapa["adicionar"] = metodoAdiciona
 	TipoLista.Mapa["anexar"] = metodoAdiciona
 
-
 	TipoLista.Mapa["extende"] = NewMetodoOuPanic("extende", func(inst Objeto, args Tupla) (Objeto, error) {
 		if err := VerificaNumeroArgumentos("extende", true, args, 1, 1); err != nil {
 			return nil, err

@@ -429,6 +429,3 @@ func TestLexerBasesENumerosSeparados(t *testing.T) {
 		t.Errorf("Falha em raw string: %+v", tokens[4])
 	}
 }
-
-
-

@@ -1338,7 +1338,11 @@ func (i *Interpretador) visiteNoJSX(node *parser.NoJSX) (Objeto, error) {
 		} else {
 			props["children"] = Tupla(filhos)
 		}
-		res, err := Chamar(compObj, props)
+		var argsChamada Objeto = props
+		if fn, ok := compObj.(*Funcao); ok && len(fn.Args()) == 0 {
+			argsChamada = nil
+		}
+		res, err := Chamar(compObj, argsChamada)
 		if err != nil {
 			return nil, err
 		}

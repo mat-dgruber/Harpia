@@ -54,9 +54,9 @@ const (
 	OP_NOT Opcode = 0x1D // Operação unária de negação lógica (nao x).
 
 	// Coleções Nativa e Indexação
-	OP_CRIAR_LISTA   Opcode = 0x1E // Cria lista com N elementos da pilha [2 bytes operand].
-	OP_CRIAR_MAPA    Opcode = 0x1F // Cria mapa com N pares (2*N elementos) da pilha [2 bytes operand].
-	OP_OBTER_INDICE  Opcode = 0x20 // Acesso por índice: alvo[indice].
+	OP_CRIAR_LISTA    Opcode = 0x1E // Cria lista com N elementos da pilha [2 bytes operand].
+	OP_CRIAR_MAPA     Opcode = 0x1F // Cria mapa com N pares (2*N elementos) da pilha [2 bytes operand].
+	OP_OBTER_INDICE   Opcode = 0x20 // Acesso por índice: alvo[indice].
 	OP_DEFINIR_INDICE Opcode = 0x21 // Atribuição por índice: alvo[indice] = valor.
 
 	// Membros e Operadores Nulo-Seguros

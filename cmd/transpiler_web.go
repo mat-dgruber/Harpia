@@ -129,16 +129,31 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return n.Nome
 
-
 	case *parser.TextoLiteral:
 		if len(n.Valor) >= 2 {
 			valorLimpo := n.Valor[1 : len(n.Valor)-1]
 			// ponytail: escapa quebras de linha físicas para evitar SyntaxError no JS gerado
-			valorLimpo = strings.ReplaceAll(valorLimpo, "\\", "\\\\")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\r\n", "\\n")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\n", "\\n")
 			valorLimpo = strings.ReplaceAll(valorLimpo, "\r", "\\r")
-			valorLimpo = strings.ReplaceAll(valorLimpo, `"`, `\"`)
+
+			// ponytail: escapa aspas duplas internas não-escapadas para evitar SyntaxError no JS gerado
+			var sb strings.Builder
+			for i := 0; i < len(valorLimpo); i++ {
+				if valorLimpo[i] == '"' {
+					numBackslashes := 0
+					for j := i - 1; j >= 0 && valorLimpo[j] == '\\'; j-- {
+						numBackslashes++
+					}
+					if numBackslashes%2 == 0 {
+						sb.WriteString("\\\"")
+						continue
+					}
+				}
+				sb.WriteByte(valorLimpo[i])
+			}
+			valorLimpo = sb.String()
+
 			return fmt.Sprintf(`"%s"`, valorLimpo)
 		}
 		return `""`
@@ -640,6 +655,7 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 				"Portal": true, "BarraDeProgresso": true, "Link": true, "Aguardar": true,
 				"Escolha": true, "Caso": true, "Padrao": true, "recurso": true,
 				"requisitar": true, "sanitizarHtml": true, "sanitizarSqlArgumento": true,
+				"Animado": true, "mola": true, "escalonar": true, "animar": true, "linhaTempo": true,
 			}
 			for _, nome := range n.Nomes {
 				if !headerSymbols[nome] {
@@ -669,7 +685,6 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return fmt.Sprintf("const %s = \"%s\";", n.Nome, n.Nome)
 	}
-
 
 	return fmt.Sprintf("/* Erro ao transpilar tipo %T */", node)
 }

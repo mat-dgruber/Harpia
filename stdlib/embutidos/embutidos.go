@@ -18,6 +18,41 @@ func registrarTipos(tipos []*hrp.Tipo, mapa hrp.Mapa) {
 	}
 }
 
+type ObjetoBrowserStub struct {
+	Nome string
+}
+
+func (b *ObjetoBrowserStub) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("BrowserStub", "Stub de ambiente do navegador para SSR")
+}
+
+func (b *ObjetoBrowserStub) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	if nome == "localStorage" || nome == "console" || nome == "document" || nome == "documento" || nome == "window" || nome == "janela" {
+		return &ObjetoBrowserStub{Nome: nome}, nil
+	}
+	return &ObjetoBrowserStubMetodo{Nome: nome}, nil
+}
+
+func (b *ObjetoBrowserStub) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
+	return &ObjetoBrowserStub{Nome: b.Nome + "()"}, nil
+}
+
+func (b *ObjetoBrowserStub) M__booleano__() (hrp.Objeto, error) {
+	return hrp.Falso, nil
+}
+
+type ObjetoBrowserStubMetodo struct {
+	Nome string
+}
+
+func (m *ObjetoBrowserStubMetodo) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("BrowserStubMetodo", "Método stub de ambiente do navegador")
+}
+
+func (m *ObjetoBrowserStubMetodo) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
+	return hrp.Nulo, nil
+}
+
 type ObjetoPromise struct{}
 
 func (p *ObjetoPromise) Tipo() *hrp.Tipo {
@@ -57,12 +92,116 @@ func (pr *ObjetoPromiseResult) M__obtem_attributo__(nome string) (hrp.Objeto, er
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no tipo 'PromiseResult'", nome)
 }
 
+type ObjetoRoteador struct {
+	caminhoAtual     hrp.Objeto
+	rotasCadastradas hrp.Mapa
+}
+
+func (r *ObjetoRoteador) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("Roteador", "Roteador SPA do Harpia")
+}
+
+func (r *ObjetoRoteador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	if nome == "definir" {
+		return hrp.NewMetodoOuPanic("definir", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("definir", false, args, 2, 2); err != nil {
+				return nil, err
+			}
+			txt, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			r.rotasCadastradas[string(txt.(hrp.Texto))] = args[1]
+			return hrp.Nulo, nil
+		}, "Cadastra uma rota no Roteador SPA (caminho, componente)"), nil
+	}
+	if nome == "navegar" {
+		return hrp.NewMetodoOuPanic("navegar", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("navegar", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			r.caminhoAtual = args[0]
+			return hrp.Nulo, nil
+		}, "Navega para uma URL no SPA sem recarregar a página"), nil
+	}
+	if nome == "obterRota" {
+		return hrp.NewMetodoOuPanic("obterRota", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			return r.caminhoAtual, nil
+		}, "Retorna a rota ativa atual"), nil
+	}
+	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no roteador", nome)
+}
+
+func (r *ObjetoRoteador) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
+	if len(args) == 0 {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "O roteador espera um mapa de rotas.")
+	}
+	return &ObjetoRoteadorApp{
+		roteador: r,
+		rotas:    args[0],
+	}, nil
+}
+
+type ObjetoRoteadorApp struct {
+	roteador *ObjetoRoteador
+	rotas    hrp.Objeto
+}
+
+func (ra *ObjetoRoteadorApp) Tipo() *hrp.Tipo {
+	return hrp.NewTipo("RoteadorApp", "Componente Roteador SPA")
+}
+
+func (ra *ObjetoRoteadorApp) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
+	caminhoStr := "/"
+	if ra.roteador.caminhoAtual != nil {
+		if txt, ok := ra.roteador.caminhoAtual.(hrp.Texto); ok {
+			caminhoStr = string(txt)
+		}
+	}
+
+	var componente hrp.Objeto
+
+	if mapa, ok := ra.rotas.(hrp.Mapa); ok {
+		if comp, existe := mapa[caminhoStr]; existe {
+			componente = comp
+		} else if comp, existe := mapa["*"]; existe {
+			componente = comp
+		} else if comp, existe := mapa["/404"]; existe {
+			componente = comp
+		}
+	} else {
+		if comp, err := hrp.ObtemItem(ra.rotas, hrp.Texto(caminhoStr)); err == nil && comp != hrp.Nulo {
+			componente = comp
+		} else if comp, err := hrp.ObtemItem(ra.rotas, hrp.Texto("*")); err == nil && comp != hrp.Nulo {
+			componente = comp
+		} else if comp, err := hrp.ObtemItem(ra.rotas, hrp.Texto("/404")); err == nil && comp != hrp.Nulo {
+			componente = comp
+		}
+	}
+
+	if componente != nil && componente != hrp.Nulo {
+		res, err := hrp.Chamar(componente, args)
+		if err != nil {
+			res, err = hrp.Chamar(componente, hrp.Tupla{})
+		}
+		return res, err
+	}
+
+	return hrp.Nulo, nil
+}
+
 func init() {
 	// constantes define o escopo de constantes primordiais e classes de tipos mapeados globalmente.
 	constantes := hrp.Mapa{
 		"Verdadeiro": hrp.Verdadeiro, // O valor booleano positivo padrão
 		"Falso":      hrp.Falso,      // O valor booleano negativo padrão
 		"Nulo":       hrp.Nulo,       // A representação padrão de ausência de valor
+		"verdadeiro": hrp.Verdadeiro,
+		"falso":      hrp.Falso,
+		"nulo":       hrp.Nulo,
+		"true":       hrp.Verdadeiro,
+		"false":      hrp.Falso,
+		"null":       hrp.Nulo,
 	}
 
 	// Registra todos os tipos primitivos básicos e classes de exceções padrão na tabela global de símbolos.
@@ -208,33 +347,24 @@ func init() {
 	}
 
 	// Adiciona objeto Roteador SPA nativo no escopo de embutidos
-	roteadorObj := hrp.NewMapaVazio()
-	rotasCadastradas := hrp.NewMapaVazio()
-	caminhoAtualSignal, _ := hrp.NewTexto("/")
-	
-	roteadorObj.M__define_item__(hrp.Texto("definir"), hrp.NewMetodoOuPanic("definir", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-		if err := hrp.VerificaNumeroArgumentos("definir", false, args, 2, 2); err != nil {
-			return nil, err
-		}
-		rotasCadastradas.M__define_item__(args[0], args[1])
-		return hrp.Nulo, nil
-	}, "Cadastra uma rota no Roteador SPA (caminho, componente)"))
-
-	roteadorObj.M__define_item__(hrp.Texto("navegar"), hrp.NewMetodoOuPanic("navegar", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-		if err := hrp.VerificaNumeroArgumentos("navegar", false, args, 1, 1); err != nil {
-			return nil, err
-		}
-		caminhoAtualSignal = args[0].(hrp.Texto)
-		return hrp.Nulo, nil
-	}, "Navega para uma URL no SPA sem recarregar a página"))
-
-	roteadorObj.M__define_item__(hrp.Texto("obterRota"), hrp.NewMetodoOuPanic("obterRota", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
-		return caminhoAtualSignal, nil
-	}, "Retorna a rota ativa atual"))
+	roteadorObj := &ObjetoRoteador{
+		caminhoAtual:     hrp.Texto("/"),
+		rotasCadastradas: hrp.NewMapaVazio(),
+	}
 
 	constantes["roteador"] = roteadorObj
 
 	constantes["Promise"] = &ObjetoPromise{}
+
+	// ponytail: stubs globais de browser para evitar erros em tempo de carregamento no SSR do backend
+	constantes["window"] = &ObjetoBrowserStub{Nome: "window"}
+	constantes["janela"] = &ObjetoBrowserStub{Nome: "janela"}
+	constantes["document"] = &ObjetoBrowserStub{Nome: "document"}
+	constantes["documento"] = &ObjetoBrowserStub{Nome: "documento"}
+	constantes["localStorage"] = &ObjetoBrowserStub{Nome: "localStorage"}
+	constantes["console"] = &ObjetoBrowserStub{Nome: "console"}
+	constantes["JSON"] = &ObjetoBrowserStub{Nome: "JSON"}
+	constantes["fetch"] = &ObjetoBrowserStub{Nome: "fetch"}
 
 	// Registra o escopo agregador de embutidos na lista central de inicializações do interpretador.
 	hrp.RegistraModuloImpl(

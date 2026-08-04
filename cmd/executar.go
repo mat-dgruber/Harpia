@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/playground"
 	"github.com/mat-dgruber/Harpia/vm"
@@ -31,6 +30,7 @@ var estrito bool
 var rodarNaVM bool
 var profilador bool
 var assistir bool
+var silencioso bool
 
 // comandoExecutar projeta, configura e constrói a especificação do subcomando `executar` (com alias de atalho `exec`).
 //
@@ -112,6 +112,9 @@ func comandoExecutar() *cobra.Command {
 				if len(args) > 0 {
 					// Helper de spinner animado
 					executarComSpinner := func(mensagem string, acao func() error) error {
+						if silencioso {
+							return acao()
+						}
 						frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 						parar := make(chan bool)
 						var errExec error
@@ -136,7 +139,6 @@ func comandoExecutar() *cobra.Command {
 						return errExec
 					}
 
-
 					tInicio := time.Now()
 					var errosChecagem int
 					_ = executarComSpinner("Analisando e compilando "+filepath.Base(args[0]), func() error {
@@ -149,7 +151,9 @@ func comandoExecutar() *cobra.Command {
 						return
 					}
 
-					fmt.Printf("🚀 Executando '%s' (compilado em %v)...\n", filepath.Base(args[0]), time.Since(tInicio).Round(time.Millisecond))
+					if !silencioso {
+						fmt.Printf("🚀 Executando '%s' (compilado em %v)...\n", filepath.Base(args[0]), time.Since(tInicio).Round(time.Millisecond))
+					}
 
 					if rodarNaVM {
 						_, ast, errAst := ctx.TransformarEmAst(args[0], false, cur)
@@ -157,8 +161,6 @@ func comandoExecutar() *cobra.Command {
 							hrp.LancarErro(errAst)
 							return
 						}
-
-
 
 						comp := vm.NewCompilador()
 						prog, errComp := comp.Compilar(ast)
@@ -212,7 +214,7 @@ func comandoExecutar() *cobra.Command {
 			// Modo Watch Mode (--assistir)
 			arquivoAlvo := args[0]
 			fmt.Printf("🔄 Modo Watch ativo: monitorando alterações em '%s'...\n", arquivoAlvo)
-			
+
 			go func() {
 				executarUmaVez()
 			}()
@@ -244,7 +246,9 @@ func comandoExecutar() *cobra.Command {
 	executar.PersistentFlags().StringVarP(&codigo, "codigo", "c", "", "Use para rodar um código inline.")
 	executar.PersistentFlags().BoolVar(&estrito, "estrito", false, "Ativa a validação estrita de tipos em tempo de execução.")
 	executar.PersistentFlags().BoolVar(&rodarNaVM, "vm", false, "Habilita a execução experimental de bytecode na Máquina Virtual de Pilha.")
-	executar.PersistentFlags().BoolVar(&profilador, "perfil", false, "Ativa o monitoramento e perfilamento de tempo das instruções da VM.")
-	executar.PersistentFlags().BoolVar(&assistir, "assistir", false, "Recarrega automaticamente o arquivo ao detectar mudanças no disco.")
+	executar.PersistentFlags().BoolVar(&profilador, "perfil", false, "Exibe o relatório de perfil de execução (profiler).")
+	executar.PersistentFlags().BoolVarP(&assistir, "assistir", "w", false, "Monitora alterações no arquivo e recompila automaticamente (modo watch).")
+	executar.PersistentFlags().BoolVarP(&silencioso, "silencioso", "s", false, "Suprime cabeçalhos e mensagens de progresso do compilador CLI.")
+
 	return executar
 }

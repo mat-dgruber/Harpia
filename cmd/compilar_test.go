@@ -97,6 +97,44 @@ func TestTranspileWeb(t *testing.T) {
 	}
 }
 
+func TestTranspileWebStringEscapes(t *testing.T) {
+	codigo := `var msg = "Linha 1\nLinha 2"`
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	transpiler := &TranspilerWeb{}
+	jsOutput := transpiler.Transpile(ast)
+
+	esperado := `let msg = "Linha 1\nLinha 2";`
+	if !strings.Contains(jsOutput, esperado) {
+		t.Errorf("Esperava '%s', mas recebeu: %s", esperado, jsOutput)
+	}
+}
+
+func TestTranspileWebInnerDoubleQuoteEscapes(t *testing.T) {
+	codigo := "var codeStr = `lance \"Nome muito curto\"`"
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	transpiler := &TranspilerWeb{}
+	jsOutput := transpiler.Transpile(ast)
+
+	esperado := `let codeStr = "lance \"Nome muito curto\"";`
+	if !strings.Contains(jsOutput, esperado) {
+		t.Errorf("Esperava '%s', mas recebeu: %s", esperado, jsOutput)
+	}
+}
+
 func TestComandoCompilarWeb(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "Harpia_build_*")
 	if err != nil {
@@ -177,7 +215,6 @@ func TestRouterAndLinkTranspilation(t *testing.T) {
 		t.Errorf("Esperava a transpilação do Link contendo:\n%s\nRecebido:\n%s", esperado, jsOutput)
 	}
 }
-
 
 // ponytail: assevera de forma robusta e automatizada que os 3 exemplos mini-SPA oficiais
 // de referência compilam sem panicar o transpiler e geram todos os assets finais.
@@ -289,7 +326,6 @@ func TestComandoCompilarComRotas(t *testing.T) {
 	if !strings.Contains(jsStr, "function Rota_Sobre(") {
 		t.Errorf("Esperava a geração da função 'Rota_Sobre'")
 	}
-
 
 	// Valida se a configuração automática do MeuApp roteador foi gerada
 	if !strings.Contains(jsStr, "'/': Rota_Index") {

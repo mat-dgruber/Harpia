@@ -15,11 +15,11 @@ import (
 
 var (
 	// Commit armazena a hash do git commit injetada dinamicamente via LDFLAGS durante a compilação.
-	Commit   string = "-"
+	Commit string = "-"
 	// Datetime armazena o carimbo de data/hora de geração do binário injetado via LDFLAGS.
 	Datetime string = "0000-00-00T00:00:00"
 	// Version armazena a tag de versão semântica do compilador injetada via LDFLAGS.
-	Version  string = "dev"
+	Version string = "dev"
 )
 
 // LongDescription descreve o manifesto filosófico da linguagem Harpia exibido na ajuda da CLI.

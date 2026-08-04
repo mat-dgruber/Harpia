@@ -84,11 +84,15 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 		htmlStr := string(htmlBytes)
 
 		// 1. Executa e renderiza o componente raiz no backend (SSR)
-		vdomObjeto, err := hrp.Chamar(componenteRaiz, hrp.Tupla{})
+		vdomObjeto, err := hrp.Chamar(componenteRaiz, hrp.Tupla{req.Caminho})
 		if err != nil {
-			res.Status = 500
-			res.Corpo = hrp.Texto(fmt.Sprintf("Erro no SSR ao executar componente raiz: %v", err))
-			return hrp.Nulo, nil
+			var err2 error
+			vdomObjeto, err2 = hrp.Chamar(componenteRaiz, hrp.Tupla{})
+			if err2 != nil {
+				res.Status = 500
+				res.Corpo = hrp.Texto(fmt.Sprintf("Erro no SSR ao executar componente raiz: %v", err2))
+				return hrp.Nulo, nil
+			}
 		}
 
 		ssrHtml := ""

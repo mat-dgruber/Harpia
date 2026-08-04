@@ -49,14 +49,14 @@ var tokensSimples = map[string]TokenType{
 	"@":  TokenArroba,
 
 	// Reatribuições (atribuições com atalhos aritméticos)
-	"+=":   TokenMaisIgual,
-	"-=":   TokenMenosIgual,
-	"*=":   TokenAsteriscoIgual,
-	"/=":   TokenBarraIgual,
-	"//=":  TokenBarraBarraIgual,
-	"??=":  TokenInterrogacaoInterrogacaoIgual,
-	"||=":  TokenBoolOuIgual,
-	"&&=":  TokenBoolEIgual,
+	"+=":  TokenMaisIgual,
+	"-=":  TokenMenosIgual,
+	"*=":  TokenAsteriscoIgual,
+	"/=":  TokenBarraIgual,
+	"//=": TokenBarraBarraIgual,
+	"??=": TokenInterrogacaoInterrogacaoIgual,
+	"||=": TokenBoolOuIgual,
+	"&&=": TokenBoolEIgual,
 
 	// Operadores Bitwise
 	"|":  TokenBitABitOu,
@@ -73,10 +73,10 @@ var tokensSimples = map[string]TokenType{
 	// Recursos de acesso e encadeamento
 	".":   TokenPonto,
 	"...": TokenTresPontos,
-	"|>": TokenPipe,
-	"??": TokenInterrogacaoInterrogacao,
-	"?.": TokenPontoInterrogacao,
-	"?":  TokenInterrogacao,
+	"|>":  TokenPipe,
+	"??":  TokenInterrogacaoInterrogacao,
+	"?.":  TokenPontoInterrogacao,
+	"?":   TokenInterrogacao,
 
 	// Arrow function (params) => expr ou (params) => { ... }
 	"=>": TokenSeta,
@@ -144,7 +144,6 @@ var tokensIdentificadores = map[string]TokenType{
 	"escolha": TokenEscolha,
 	"caso":    TokenCaso,
 	"quando":  TokenQuando,
-
 
 	"em": TokenEm,
 

@@ -50,7 +50,9 @@ func NewTexto(arg any) (Objeto, error) {
 	}
 
 	if met, _ := ObtemAtributoS(arg.(Objeto), "__texto__"); met != nil {
-		return met.(I__chame__).M__chame__(Tupla{})
+		if chame, ok := met.(I__chame__); ok {
+			return chame.M__chame__(Tupla{})
+		}
 	}
 
 	if O, ok := arg.(I__texto__); ok {
@@ -127,7 +129,6 @@ func (t Texto) M__maior_ou_igual__(outro Objeto) (Objeto, error) {
 	}
 	return NewBooleano(string(t) >= string(outro.(Texto)))
 }
-
 
 // M__adiciona__ executa a concatenação de duas strings. Lança erro de tipagem caso tente somar tipos distintos.
 func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
@@ -267,7 +268,6 @@ var _ I__tamanho__ = Texto("")
 var _ I__contem__ = Texto("")
 var _ I__iter__ = Texto("")
 
-
 func init() {
 	// Injeção de métodos de instância de Texto no mapa da classe.
 
@@ -316,6 +316,13 @@ func init() {
 		return Texto(resultado), nil
 	}, "retorna uma cópia do texto substituindo as ocorrências de um termo por outro")
 
+	TipoTexto.Mapa["contem"] = NewMetodoOuPanic("contem", func(inst Objeto, args Tupla) (Objeto, error) {
+		if err := VerificaNumeroArgumentos("contem", true, args, 1, 1); err != nil {
+			return nil, err
+		}
+		return inst.(Texto).M__contem__(args[0])
+	}, `Verifica se a substring está contida no texto`)
+
 	TipoTexto.Mapa["dividir"] = NewMetodoOuPanic("dividir", func(inst Objeto, args Tupla) (Objeto, error) {
 		if err := VerificaNumeroArgumentos("dividir", true, args, 1, 1); err != nil {
 			return nil, err
@@ -332,4 +339,38 @@ func init() {
 		}
 		return saida, nil
 	}, "divide o texto em uma tupla de substrings usando o separador fornecido")
+
+	fnComeca := NewMetodoOuPanic("comecaCom", func(inst Objeto, args Tupla) (Objeto, error) {
+		if err := VerificaNumeroArgumentos("comecaCom", true, args, 1, 1); err != nil {
+			return nil, err
+		}
+		prefixo, ok := args[0].(Texto)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "O argumento de 'comecaCom' deve ser do tipo 'Texto'")
+		}
+		if strings.HasPrefix(string(inst.(Texto)), string(prefixo)) {
+			return Verdadeiro, nil
+		}
+		return Falso, nil
+	}, "verifica se o texto começa com o prefixo informado")
+
+	TipoTexto.Mapa["comecaCom"] = fnComeca
+	TipoTexto.Mapa["comeca_com"] = fnComeca
+
+	fnTermina := NewMetodoOuPanic("terminaCom", func(inst Objeto, args Tupla) (Objeto, error) {
+		if err := VerificaNumeroArgumentos("terminaCom", true, args, 1, 1); err != nil {
+			return nil, err
+		}
+		sufixo, ok := args[0].(Texto)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "O argumento de 'terminaCom' deve ser do tipo 'Texto'")
+		}
+		if strings.HasSuffix(string(inst.(Texto)), string(sufixo)) {
+			return Verdadeiro, nil
+		}
+		return Falso, nil
+	}, "verifica se o texto termina com o sufixo informado")
+
+	TipoTexto.Mapa["terminaCom"] = fnTermina
+	TipoTexto.Mapa["termina_com"] = fnTermina
 }

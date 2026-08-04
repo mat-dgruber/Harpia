@@ -99,7 +99,6 @@ func (e *Escopo) NewEscopo() *Escopo {
 	return filho
 }
 
-
 // Len devolve o número de símbolos definidos localmente no escopo atual.
 func (e *Escopo) Len() int {
 	e.mu.RLock()

@@ -39,7 +39,6 @@ func stripComentarios(src string) string {
 	return reComentarioLinha.ReplaceAllString(src, "")
 }
 
-
 func extrairEntradas(src string) []entradaPot {
 	clean := stripComentarios(src)
 	matches := reChamadaI18n.FindAllStringSubmatchIndex(clean, -1)

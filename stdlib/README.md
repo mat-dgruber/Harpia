@@ -62,7 +62,7 @@ O subpacote `embutidos` é a base da linguagem. Diferente dos outros pacotes, se
 
 O módulo `matematica` disponibiliza constantes físicas e rotinas de aritmética avançada para complementar os operadores básicos de soma, subtração, multiplicação e divisão da linguagem.
 
-- **Importação obrigatória**: `importar matematica`
+- **Importação obrigatória**: `importar matematica` ou `de "matematica" importe ...`
 
 ### Constantes Disponíveis:
 
@@ -71,13 +71,89 @@ O módulo `matematica` disponibiliza constantes físicas e rotinas de aritmétic
 
 ### Métodos e Funções:
 
-| Função     | Assinatura                 | Descrição Técnica                                                                                                                                                                    |
-| :--------- | :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `absoluto` | `absoluto(numero)`         | Retorna o valor absoluto (magnitude real sem sinal) de um número real (`math.Abs`).                                                                                                  |
-| `piso`     | `piso(decimal)`            | Arredonda o número de ponto flutuante para baixo, retornando o menor número inteiro mais próximo (`math.Floor`).                                                                     |
-| `teto`     | `teto(decimal)`            | Arredonda o número para cima, retornando o menor inteiro maior ou igual (`math.Ceil`).                                                                                               |
-| `potencia` | `potencia(base, expoente)` | Calcula a potenciação correspondente a base elevada ao expoente informado (`math.Pow`).                                                                                              |
-| `raiz`     | `raiz(radicando, indice?)` | Retorna a raiz do radicando pelo índice. Se o índice for omitido, calcula a raiz quadrada por padrão. Implementado sob conversão de expoente fracionário ($radicando^{1.0/indice}$). |
+| Função | Assinatura | Descrição Técnica |
+| :--- | :--- | :--- |
+| `absoluto` | `absoluto(numero)` | Retorna o valor absoluto (magnitude real sem sinal) de um número real (`math.Abs`). |
+| `piso` | `piso(decimal)` | Arredonda o número de ponto flutuante para baixo (`math.Floor`). |
+| `teto` | `teto(decimal)` | Arredonda o número para cima (`math.Ceil`). |
+| `potencia` | `potencia(base, expoente)` | Calcula a potenciação da base elevada ao expoente (`math.Pow`). |
+| `raiz` | `raiz(radicando, indice?)` | Retorna a raiz do radicando pelo índice (quadrada por padrão). |
+| `exp` | `exp(x)` | Retorna $e^x$ (exponencial natural). |
+| `log` | `log(x)` | Retorna $\ln(x)$ (logaritmo natural). |
+| `sen` | `sen(x)` | Retorna o seno de $x$ em radianos. |
+| `cos` | `cos(x)` | Retorna o cosseno de $x$ em radianos. |
+| `tanh` | `tanh(x)` | Retorna a tangente hiperbólica de $x$. |
+| `max` | `max(a, b)` | Retorna o maior valor entre $a$ e $b$. |
+| `min` | `min(a, b)` | Retorna o menor valor entre $a$ e $b$. |
+| `aleatorio` | `aleatorio([min, max])` | Gera um número pseudo-aleatório entre 0 e 1, ou entre `min` e `max`. |
+
+---
+
+## 🧮 Módulo: `matriz` (Álgebra Linear de Alta Performance)
+
+O módulo `matriz` provê rotinas vetorizadas de alta performance implementadas nativamente em Go para operações em matrizes e vetores.
+
+- **Importação obrigatória**: `importar matriz` ou `de "matriz" importe ...`
+
+| Função | Assinatura | Descrição Técnica |
+| :--- | :--- | :--- |
+| `produtoEscalar` | `produtoEscalar(v1, v2)` | Retorna a soma dos produtos ponto a ponto entre dois vetores. |
+| `somarVetores` | `somarVetores(v1, v2)` | Retorna um novo vetor com a soma elemento a elemento de $v1$ e $v2$. |
+| `subtrairVetores` | `subtrairVetores(v1, v2)` | Retorna a subtração elemento a elemento entre dois vetores. |
+| `multiplicarEscalar`| `multiplicarEscalar(v, k)` | Multiplica cada elemento do vetor pelo escalar $k$. |
+| `norma` | `norma(v)` | Retorna a norma $L_2$ (magnitude espacial) do vetor. |
+| `criar` | `criar(linhas, colunas, [padrao])` | Instancia uma matriz 2D inicializada com `padrao` (0 por padrão). |
+| `multiplicar` | `multiplicar(m1, m2)` | Realiza a multiplicação de matrizes 2D ($A \times B$). |
+
+---
+
+## 🤖 Módulo: `ia` (Redes Neurais & Machine Learning)
+
+O módulo `ia` oferece abstrações nativas para inicialização, ativadores, métricas e explicabilidade de inteligência artificial.
+
+- **Importação obrigatória**: `importar ia` ou `de "ia" importe ...`
+
+| Função | Assinatura | Descrição Técnica |
+| :--- | :--- | :--- |
+| `sigmoide` | `sigmoide(x)` | Função de ativação sigmoidal $\frac{1}{1 + e^{-x}}$ (intervalo $[0, 1]$). |
+| `derivadaSigmoide` | `derivadaSigmoide(s)` | Retorna a derivada do valor sigmoidal $s(1 - s)$. |
+| `relu` | `relu(x)` | Função de ativação Rectified Linear Unit ($\max(0, x)$). |
+| `softmax` | `softmax(vetor)` | Converte um vetor contínuo em uma distribuição de probabilidade. |
+| `similaridadeCosseno`| `similaridadeCosseno(v1, v2)` | Calcula o cosseno do ângulo entre dois vetores de embedding. |
+| `normalizarMinMax` | `normalizarMinMax(vetor)` | Escala os elementos de um vetor para o intervalo $[0, 1]$. |
+| `erroQuadraticoMedio`| `erroQuadraticoMedio(yReal, yPredito)` | Calcula o erro médio quadrático (MSE). |
+
+---
+
+## 📐 Módulo: `tensor` (Tensores N-Dimensionais)
+
+O módulo `tensor` fornece o tipo nativo `Tensor` N-Dimensional para deep learning e manipulação de arrays multidimensionais estilo NumPy/PyTorch.
+
+- **Importação obrigatória**: `importar tensor` ou `de "tensor" importe ...`
+
+```harpia
+de "tensor" importe criar, redimensionar, somar, multiplicar
+
+var t1 = criar([2, 3], 1.5)
+var t2 = redimensionar(t1, [3, 2])
+var tSoma = somar(t1, t1)
+```
+
+---
+
+## 🗄️ Módulo: `vetores` (Vector Store / Banco Vetorial Nativo)
+
+O módulo `vetores` embutido provê um banco de dados vetorial em memória otimizado para busca semântica, embeddings e recomendadores.
+
+- **Importação obrigatória**: `importar vetores` ou `de "vetores" importe ...`
+
+```harpia
+de "vetores" importe criarBanco
+
+var db = criarBanco()
+db.inserir("item_1", [0.9, 0.1, 0.8], { "titulo": "Matrix" })
+var resultados = db.buscarMaisProximos([0.9, 0.1, 0.8], 5)
+```
 
 ---
 

@@ -76,14 +76,14 @@ type Lexer struct {
 //     lexer cujo primeiro PróximoToken() retorna imediatamente TokenFimDeArquivo.
 //
 // Comportamento inicial:
-//   1. Converte a string para []byte (evita realocações em chamadas sucessivas
-//      a SubString e peekN).
-//   2. Posiciona linha=1, coluna=0 e dispara um avançar() para carregar o
-//      primeiro caractere no campo ch.
-//   3. Se o primeiro caractere for '#' e o segundo (peek) for '!', trata-se
-//      de um shebang (ex: #!/usr/bin/env harpia) — o conteúdo é descartado
-//      para que scripts executáveis em Linux/macOS possam ser tokenizados
-//      sem erros léxicos.
+//  1. Converte a string para []byte (evita realocações em chamadas sucessivas
+//     a SubString e peekN).
+//  2. Posiciona linha=1, coluna=0 e dispara um avançar() para carregar o
+//     primeiro caractere no campo ch.
+//  3. Se o primeiro caractere for '#' e o segundo (peek) for '!', trata-se
+//     de um shebang (ex: #!/usr/bin/env harpia) — o conteúdo é descartado
+//     para que scripts executáveis em Linux/macOS possam ser tokenizados
+//     sem erros léxicos.
 //
 // Retorna um *Lexer pronto para alimentar o Parser via PróximoToken().
 func NewLexer(entrada string) *Lexer {

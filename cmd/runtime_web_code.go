@@ -732,8 +732,21 @@ function mapearAtributo(nome) {
     auto_completar: "autocomplete",
     leituraApenas: "readonly",
     somente_leitura: "readonly",
+    viewBox: "viewBox",
+    viewbox: "viewBox",
+    preserveAspectRatio: "preserveAspectRatio",
+    strokeWidth: "stroke-width",
+    strokeLinecap: "stroke-linecap",
+    strokeLinejoin: "stroke-linejoin",
+    strokeDasharray: "stroke-dasharray",
+    strokeDashoffset: "stroke-dashoffset",
+    fillRule: "fill-rule",
+    clipRule: "clip-rule",
+    ariaLabel: "aria-label",
+    ariaExpanded: "aria-expanded",
+    ariaHidden: "aria-hidden",
   };
-  return mapeamento[nome] || nome;
+  return mapeamento[nome] || (/[A-Z]/.test(nome) ? nome.replace(/([A-Z])/g, "-$1").toLowerCase() : nome);
 }
 
 function contarNosFisicos(vno) {
@@ -1019,7 +1032,6 @@ export function montar(appComponente, elementoAlvo) {
   efeito(() => {
     try {
       const novoVNo = obterVNo();
-      console.log("[Harpia Web] Disparando efeito de renderização global...");
       reconciliar(elementoAlvo, velhoVNo, novoVNo);
       velhoVNo = novoVNo;
     } catch (err) {
@@ -2297,4 +2309,4 @@ if (typeof window !== "undefined") {
     __HARPIA_DEVTOOLS__: devTools,
   });
 }
-`;
+`
