@@ -320,14 +320,56 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		}
 
 	case *parser.OpBinaria:
-		if err := c.visite(n.Esq); err != nil {
-			return err
-		}
-		if err := c.visite(n.Dir); err != nil {
-			return err
-		}
-		if err := c.emitirOpBinaria(n.Operador); err != nil {
-			return err
+		if n.Operador == "e" {
+			// ponytail: compilador de 'e' (AND lógico com curto-circuito)
+			if err := c.visite(n.Esq); err != nil {
+				return err
+			}
+			c.emitir(OP_DUP)
+			c.emitir(OP_JMP_FALSO, 0, 0)
+			idxPulo := len(c.Bytecode) - 2
+
+			c.emitir(OP_POP)
+			if err := c.visite(n.Dir); err != nil {
+				return err
+			}
+
+			offsetFim := uint16(len(c.Bytecode))
+			binary.BigEndian.PutUint16(c.Bytecode[idxPulo:], offsetFim)
+
+		} else if n.Operador == "ou" {
+			// ponytail: compilador de 'ou' (OR lógico com curto-circuito)
+			if err := c.visite(n.Esq); err != nil {
+				return err
+			}
+			c.emitir(OP_DUP)
+			c.emitir(OP_JMP_FALSO, 0, 0)
+			idxPuloFalso := len(c.Bytecode) - 2
+
+			c.emitir(OP_JMP, 0, 0)
+			idxPuloFim := len(c.Bytecode) - 2
+
+			offsetFalsy := uint16(len(c.Bytecode))
+			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetFalsy)
+
+			c.emitir(OP_POP)
+			if err := c.visite(n.Dir); err != nil {
+				return err
+			}
+
+			offsetFim := uint16(len(c.Bytecode))
+			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFim:], offsetFim)
+
+		} else {
+			if err := c.visite(n.Esq); err != nil {
+				return err
+			}
+			if err := c.visite(n.Dir); err != nil {
+				return err
+			}
+			if err := c.emitirOpBinaria(n.Operador); err != nil {
+				return err
+			}
 		}
 
 	case *parser.ExpressaoSe:

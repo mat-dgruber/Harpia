@@ -124,7 +124,7 @@ func (m Mapa) M__obtem_item__(obj Objeto) (Objeto, error) {
 		return valor, nil
 	}
 
-	return nil, NewErroF(ChaveErro, "O Mapa não tem um elemento com a chave '%s'", chave)
+	return Nulo, nil
 }
 
 // M__define_item__ registra ou sobrescreve uma associação chave-valor mutável no dicionário local.
@@ -207,11 +207,19 @@ func init() {
 	// Injeção de métodos estáticos do tipo Mapa no interpretador.
 
 	TipoMapa.Mapa["chaves"] = NewMetodoOuPanic("chaves", func(inst Objeto) (Objeto, error) {
-		return inst.(Mapa).Chaves()
+		m, ok := inst.(Mapa)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "esperava um Mapa para 'chaves', mas recebeu '%s'", inst.Tipo().Nome)
+		}
+		return m.Chaves()
 	}, `Retorna uma tupla contendo todos as chaves do mapa`)
 
 	TipoMapa.Mapa["valores"] = NewMetodoOuPanic("valores", func(inst Objeto) (Objeto, error) {
-		return inst.(Mapa).Valores()
+		m, ok := inst.(Mapa)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "esperava um Mapa para 'valores', mas recebeu '%s'", inst.Tipo().Nome)
+		}
+		return m.Valores()
 	}, `Retorna uma tupla contendo todos os valores do mapa`)
 
 	TipoMapa.Mapa["atualizar"] = NewMetodoOuPanic("atualizar", func(inst Objeto, args Tupla) (Objeto, error) {

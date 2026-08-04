@@ -77,6 +77,13 @@ __pycache__/
 .superpowers/
 .remember/
 .claude/
+.gemini/
+
+# --- Graphify Knowledge Graph ---
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/.chunk_*
+graphify-out/.prompt_*
 
 # --- Relatórios & Planos Temporários ---
 /202[0-9]-*.md

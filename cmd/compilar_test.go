@@ -97,6 +97,44 @@ func TestTranspileWeb(t *testing.T) {
 	}
 }
 
+func TestTranspileWebStringEscapes(t *testing.T) {
+	codigo := `var msg = "Linha 1\nLinha 2"`
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	transpiler := &TranspilerWeb{}
+	jsOutput := transpiler.Transpile(ast)
+
+	esperado := `let msg = "Linha 1\nLinha 2";`
+	if !strings.Contains(jsOutput, esperado) {
+		t.Errorf("Esperava '%s', mas recebeu: %s", esperado, jsOutput)
+	}
+}
+
+func TestTranspileWebInnerDoubleQuoteEscapes(t *testing.T) {
+	codigo := "var codeStr = `lance \"Nome muito curto\"`"
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	ast, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("Erro ao gerar AST: %v", err)
+	}
+
+	transpiler := &TranspilerWeb{}
+	jsOutput := transpiler.Transpile(ast)
+
+	esperado := `let codeStr = "lance \"Nome muito curto\"";`
+	if !strings.Contains(jsOutput, esperado) {
+		t.Errorf("Esperava '%s', mas recebeu: %s", esperado, jsOutput)
+	}
+}
+
 func TestComandoCompilarWeb(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "Harpia_build_*")
 	if err != nil {

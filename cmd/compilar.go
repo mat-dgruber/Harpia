@@ -23,7 +23,7 @@ import (
 func gerarImportHeaderWeb(relPath string) string {
 	depth := strings.Count(relPath, "/")
 	prefix := "./" + strings.Repeat("../", depth)
-	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento } from '" + prefix + "runtime-web.js';\n\n"
+	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento, Animado, mola, escalonar, animar, linhaTempo } from '" + prefix + "runtime-web.js';\n\n"
 }
 
 // OpcsCompilarWeb agrupa as opções para a função compilarParaWeb.
@@ -137,7 +137,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				return nil
 			}
 
-			if filepath.Base(path) == "rotas.hrp" {
+			if filepath.Base(path) == "rotas.hrp" || strings.HasSuffix(path, ".estilo.hrp") || strings.HasSuffix(path, ".estilos.hrp") {
 				return nil
 			}
 
@@ -229,7 +229,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				routePath = routePath[:len(routePath)-6]
 			}
 
-			cleanCompName := strings.NewReplacer("[", "", "]", "", "-", "_", " ", "_").Replace(componentName)
+			cleanCompName := strings.NewReplacer("[", "", "]", "", "-", "_", " ", "_", ".", "_").Replace(componentName)
 
 			// Se o código da rota já contiver declaração de função (ex: export function RotaX() ou function RotaX())
 			routeJsClean := strings.ReplaceAll(routeJs, "export function ", "function ")
@@ -413,6 +413,24 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 
 	// Copia o runtime-web.js a partir da stdlib
 	runtimeSrcPath := filepath.Join(cur, "stdlib", "web", "runtime-web.js")
+	if _, errS := os.Stat(runtimeSrcPath); os.IsNotExist(errS) {
+		// Tenta encontrar em projDir, em diretórios pai do monorepo ou próximo ao executável
+		candidatos := []string{
+			filepath.Join(projDir, "stdlib", "web", "runtime-web.js"),
+			filepath.Join(filepath.Dir(projDir), "Harpia", "stdlib", "web", "runtime-web.js"),
+			filepath.Join(filepath.Dir(filepath.Dir(projDir)), "Harpia", "stdlib", "web", "runtime-web.js"),
+		}
+		if exePath, errE := os.Executable(); errE == nil {
+			candidatos = append(candidatos, filepath.Join(filepath.Dir(exePath), "stdlib", "web", "runtime-web.js"))
+			candidatos = append(candidatos, filepath.Join(filepath.Dir(exePath), "..", "Harpia", "stdlib", "web", "runtime-web.js"))
+		}
+		for _, cand := range candidatos {
+			if _, errC := os.Stat(cand); errC == nil {
+				runtimeSrcPath = cand
+				break
+			}
+		}
+	}
 	runtimeDestPath := filepath.Join(opts.Saida, "runtime-web.js")
 	if err = copiarArquivo(runtimeSrcPath, runtimeDestPath); err != nil {
 		fmt.Printf("Aviso: stdlib runtime física não encontrada em %s. Gerando cópia padrão...\n", runtimeSrcPath)

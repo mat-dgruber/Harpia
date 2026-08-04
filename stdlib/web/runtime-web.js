@@ -738,8 +738,21 @@ function mapearAtributo(nome) {
     auto_completar: "autocomplete",
     leituraApenas: "readonly",
     somente_leitura: "readonly",
+    viewBox: "viewBox",
+    viewbox: "viewBox",
+    preserveAspectRatio: "preserveAspectRatio",
+    strokeWidth: "stroke-width",
+    strokeLinecap: "stroke-linecap",
+    strokeLinejoin: "stroke-linejoin",
+    strokeDasharray: "stroke-dasharray",
+    strokeDashoffset: "stroke-dashoffset",
+    fillRule: "fill-rule",
+    clipRule: "clip-rule",
+    ariaLabel: "aria-label",
+    ariaExpanded: "aria-expanded",
+    ariaHidden: "aria-hidden",
   };
-  return mapeamento[nome] || nome;
+  return mapeamento[nome] || (/[A-Z]/.test(nome) ? nome.replace(/([A-Z])/g, "-$1").toLowerCase() : nome);
 }
 
 function contarNosFisicos(vno) {
@@ -1025,7 +1038,6 @@ export function montar(appComponente, elementoAlvo) {
   efeito(() => {
     try {
       const novoVNo = obterVNo();
-      console.log("[Harpia Web] Disparando efeito de renderização global...");
       reconciliar(elementoAlvo, velhoVNo, novoVNo);
       velhoVNo = novoVNo;
     } catch (err) {
@@ -1071,6 +1083,54 @@ export function hidratar(appComponente, elementoAlvo) {
 }
 
 // Polyfills para suporte nativo a getters/métodos em Português
+if (typeof window !== "undefined") {
+  if (!window.tamanho) {
+    window.tamanho = function(valor) {
+      if (valor === null || valor === undefined) return 0;
+      if (typeof valor.length === 'number') return valor.length;
+      if (valor instanceof Map || valor instanceof Set) return valor.size;
+      if (typeof valor === 'object') return Object.keys(valor).length;
+      return 0;
+    };
+  }
+  if (!window.texto) {
+    window.texto = function(v) {
+      if (v === null || v === undefined) return "";
+      return String(v);
+    };
+  }
+  if (!window.inteiro) {
+    window.inteiro = function(v) {
+      if (v === null || v === undefined) return 0;
+      let n = parseInt(v, 10);
+      return isNaN(n) ? 0 : n;
+    };
+  }
+  if (!window.decimal) {
+    window.decimal = function(v) {
+      if (v === null || v === undefined) return 0.0;
+      let n = parseFloat(v);
+      return isNaN(n) ? 0.0 : n;
+    };
+  }
+}
+
+if (typeof String !== "undefined") {
+  if (!String.prototype.minusculas) String.prototype.minusculas = String.prototype.toLowerCase;
+  if (!String.prototype.maiusculas) String.prototype.maiusculas = String.prototype.toUpperCase;
+  if (!String.prototype.contem) String.prototype.contem = String.prototype.includes;
+  if (!String.prototype.inclui) String.prototype.inclui = String.prototype.includes;
+}
+
+if (typeof Array !== "undefined") {
+  if (!Array.prototype.adicionar) Array.prototype.adicionar = Array.prototype.push;
+  if (!Array.prototype.inclui) Array.prototype.inclui = Array.prototype.includes;
+  if (!Array.prototype.remover) Array.prototype.remover = function(item) {
+    const idx = this.indexOf(item);
+    if (idx !== -1) this.splice(idx, 1);
+  };
+}
+
 if (typeof Event !== "undefined" && !("alvo" in Event.prototype)) {
   Object.defineProperty(Event.prototype, "alvo", {
     get() {
@@ -1152,6 +1212,74 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("click", (e) => {
+    const summary = e.target.closest && e.target.closest("summary");
+    if (summary && summary.parentElement && summary.parentElement.tagName === "DETAILS") {
+      const details = summary.parentElement;
+      if (details.dataset.animando === "true") {
+        e.preventDefault();
+        return;
+      }
+
+      e.preventDefault();
+      const isOpening = !details.hasAttribute("open");
+      details.dataset.animando = "true";
+
+      let content = details.querySelector(".detalhes-conteudo");
+      if (!content) {
+        content = document.createElement("div");
+        content.className = "detalhes-conteudo";
+        content.style.overflow = "hidden";
+        content.style.transition = "max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
+
+        const nodes = Array.from(details.childNodes).filter(n => n !== summary);
+        nodes.forEach(n => content.appendChild(n));
+        details.appendChild(content);
+      }
+
+      const icon = summary.querySelector(".faq-icone, .icone-sanfona");
+
+      if (isOpening) {
+        details.setAttribute("open", "");
+        content.style.maxHeight = "0px";
+        content.style.opacity = "0";
+        content.style.transform = "translateY(-8px)";
+        if (icon) icon.style.transform = "rotate(180deg)";
+
+        const targetHeight = content.scrollHeight + "px";
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            content.style.maxHeight = targetHeight;
+            content.style.opacity = "1";
+            content.style.transform = "translateY(0px)";
+          });
+        });
+
+        setTimeout(() => {
+          content.style.maxHeight = "none";
+          delete details.dataset.animando;
+        }, 360);
+      } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        content.style.opacity = "1";
+        content.style.transform = "translateY(0px)";
+        if (icon) icon.style.transform = "rotate(0deg)";
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            content.style.maxHeight = "0px";
+            content.style.opacity = "0";
+            content.style.transform = "translateY(-8px)";
+          });
+        });
+
+        setTimeout(() => {
+          details.removeAttribute("open");
+          delete details.dataset.animando;
+        }, 360);
+      }
+      return;
+    }
+
     const a = e.target.closest && e.target.closest("a");
     if (a && a.href && a.origin === window.location.origin) {
       const target = a.getAttribute("target");
@@ -2244,6 +2372,227 @@ if (typeof globalThis !== "undefined") {
   globalThis.__HARPIA_DEVTOOLS__ = devTools;
 }
 
+/**
+ * Engine de Animações Estilo Anime.js e Física de Mola Nativas do Harpia Web
+ */
+export function mola(massa = 1, rigidez = 100, amortecimento = 10, velocidadeInicial = 0) {
+  return function (t) {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const w0 = Math.sqrt(rigidez / massa);
+    const zeta = amortecimento / (2 * Math.sqrt(rigidez * massa));
+    if (zeta < 1) {
+      const wd = w0 * Math.sqrt(1 - zeta * zeta);
+      const b = (zeta * w0 + velocidadeInicial) / wd;
+      return 1 - Math.exp(-zeta * w0 * t * 2) * (Math.cos(wd * t * 2) + b * Math.sin(wd * t * 2));
+    } else {
+      return 1 - Math.exp(-w0 * t * 2) * (1 + w0 * t * 2);
+    }
+  };
+}
+
+export function escalonar(passo = 100, opcoes = {}) {
+  const de = opcoes.de || "inicio";
+  return function (indice, total) {
+    if (de === "fim") return (total - 1 - indice) * passo;
+    if (de === "centro") {
+      const centro = (total - 1) / 2;
+      return Math.abs(centro - indice) * passo;
+    }
+    return indice * passo;
+  };
+}
+
+export function animar(alvos, opcoes) {
+  const elementos = Array.isArray(alvos)
+    ? alvos
+    : typeof alvos === "string"
+    ? Array.from(document.querySelectorAll(alvos))
+    : alvos && alvos.nodeType
+    ? [alvos]
+    : [];
+
+  if (elementos.length === 0) return Promise.resolve([]);
+
+  const duracao = opcoes.duracao || 800;
+  const atenuacaoFn =
+    typeof opcoes.atenuacao === "function"
+      ? opcoes.atenuacao
+      : opcoes.atenuacao === "mola"
+      ? mola()
+      : (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const atrasoBase = opcoes.atraso || 0;
+  const promessas = [];
+
+  elementos.forEach((el, i) => {
+    const atraso = typeof atrasoBase === "function" ? atrasoBase(i, elementos.length) : atrasoBase;
+
+    promessas.push(
+      new Promise((resolve) => {
+        const inicioTempo = performance.now() + atraso;
+
+        function renderFrame(agora) {
+          if (agora < inicioTempo) {
+            requestAnimationFrame(renderFrame);
+            return;
+          }
+
+          const decorrido = agora - inicioTempo;
+          const progressoBruto = Math.min(decorrido / duracao, 1);
+          const progresso = atenuacaoFn(progressoBruto);
+
+          if (opcoes.opacidade) {
+            const [de, para] = opcoes.opacidade;
+            el.style.opacity = de + (para - de) * progresso;
+          }
+
+          if (opcoes.transladarY) {
+            const [de, para] = opcoes.transladarY;
+            const val = de + (para - de) * progresso;
+            el.style.transform = `translateY(${val}px)`;
+          }
+
+          if (opcoes.escala) {
+            const de = typeof opcoes.escala === "number" ? 1 : opcoes.escala[0];
+            const para = typeof opcoes.escala === "number" ? opcoes.escala : opcoes.escala[1];
+            const val = de + (para - de) * progresso;
+            el.style.transform = `scale(${val})`;
+          }
+
+          if (progressoBruto < 1) {
+            requestAnimationFrame(renderFrame);
+          } else {
+            if (opcoes.aoConcluir) opcoes.aoConcluir(el);
+            resolve(el);
+          }
+        }
+
+        requestAnimationFrame(renderFrame);
+      })
+    );
+  });
+
+  return Promise.all(promessas);
+}
+
+export function linhaTempo(opcoesPadrao = {}) {
+  const passos = [];
+  const api = {
+    adicionar(alvos, opcoes, offset = "+=0") {
+      passos.push({ alvos, opcoes, offset });
+      return api;
+    },
+    async executar() {
+      for (const passo of passos) {
+        await animar(passo.alvos, { ...opcoesPadrao, ...passo.opcoes });
+      }
+    }
+  };
+  return api;
+}
+
+export function Animado(props) {
+  props = props || {};
+  let elementoDOM = null;
+
+  function iniciarAnimacao(el) {
+    if (!el || el.__animadoEntrou) return;
+    el.__animadoEntrou = true;
+    elementoDOM = el;
+
+    if (props.aoVisivel) {
+      if (typeof IntersectionObserver !== "undefined") {
+        const obs = new IntersectionObserver(
+          (entradas) => {
+            entradas.forEach((e) => {
+              if (e.isIntersecting) {
+                animar(el, {
+                  opacidade: [0, 1],
+                  transladarY: [props.distanciaY || 35, 0],
+                  duracao: props.duracao || 950,
+                  atenuacao: props.atenuacao || "mola",
+                  atraso: props.atraso || 0,
+                  aoConcluir: () => {
+                    el.style.opacity = "1";
+                    el.style.transform = "none";
+                  }
+                });
+                obs.unobserve(el);
+              }
+            });
+          },
+          { threshold: props.limiar || 0.15 }
+        );
+        obs.observe(el);
+      } else {
+        el.style.opacity = "1";
+        el.style.transform = "none";
+      }
+    } else if (props.aoEntrar) {
+      animar(el, {
+        opacidade: [0, 1],
+        transladarY: [props.distanciaY || 35, 0],
+        duracao: props.duracao || 900,
+        atenuacao: props.atenuacao || "mola",
+        atraso: props.atraso || 0,
+        aoConcluir: () => {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+        }
+      });
+    }
+  }
+
+  const estiloInicial = {
+    ...(props.estilo || {}),
+    willChange: "transform, opacity",
+  };
+
+  if (props.aoVisivel || props.aoEntrar) {
+    estiloInicial.opacity = "0";
+    estiloInicial.transform = "translateY(20px)";
+  }
+
+  return h(
+    "div",
+    {
+      ref: (el) => {
+        if (el) {
+          if (el.__animadoEntrou) {
+            el.style.opacity = "1";
+            el.style.transform = "none";
+          } else {
+            setTimeout(() => iniciarAnimacao(el), 10);
+          }
+        }
+      },
+      classe: props.classe || "",
+      estilo: estiloInicial,
+      onMouseEnter: () => {
+        if (props.emHover && elementoDOM) {
+          animar(elementoDOM, {
+            escala: props.escalaHover || 1.03,
+            duracao: 250,
+            atenuacao: "mola",
+          });
+        }
+      },
+      onMouseLeave: () => {
+        if (props.emHover && elementoDOM) {
+          animar(elementoDOM, {
+            escala: 1,
+            duracao: 200,
+          });
+        }
+      }
+    },
+    props.children
+  );
+}
+
+// ponytail: Animado e Animacao sao exportados individualmente acima
+
 // ponytail: vincula as primitivas ao escopo global do navegador para compatibilidade de transpilação
 if (typeof window !== "undefined") {
   Object.assign(window, {
@@ -2285,6 +2634,11 @@ if (typeof window !== "undefined") {
     Caso,
     Padrao,
     usarFormulario,
+    mola,
+    escalonar,
+    animar,
+    linhaTempo,
+    Animado,
     Animacao,
     ImagemWeb,
     moduloRemoto,
