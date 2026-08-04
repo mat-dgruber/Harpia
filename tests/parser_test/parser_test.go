@@ -7,7 +7,6 @@ import (
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
-
 func TestParseEstilo(t *testing.T) {
 	codigo := `
 	estilo MeuComponente {
@@ -387,7 +386,3 @@ func TestASTDocstrings(t *testing.T) {
 		t.Errorf("Falha ao capturar DocComments na AST: %+v", fn)
 	}
 }
-
-
-
-

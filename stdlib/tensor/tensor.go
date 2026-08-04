@@ -8,9 +8,9 @@ import (
 
 type TensorObj struct {
 	hrp.GCMixin
-	Formato  []int
-	Dados    []float64
-	Gradiente []float64
+	Formato    []int
+	Dados      []float64
+	Gradiente  []float64
 	RequerGrad bool
 }
 

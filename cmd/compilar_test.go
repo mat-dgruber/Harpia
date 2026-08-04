@@ -216,7 +216,6 @@ func TestRouterAndLinkTranspilation(t *testing.T) {
 	}
 }
 
-
 // ponytail: assevera de forma robusta e automatizada que os 3 exemplos mini-SPA oficiais
 // de referência compilam sem panicar o transpiler e geram todos os assets finais.
 func TestCompilacaoExemplos(t *testing.T) {
@@ -327,7 +326,6 @@ func TestComandoCompilarComRotas(t *testing.T) {
 	if !strings.Contains(jsStr, "function Rota_Sobre(") {
 		t.Errorf("Esperava a geração da função 'Rota_Sobre'")
 	}
-
 
 	// Valida se a configuração automática do MeuApp roteador foi gerada
 	if !strings.Contains(jsStr, "'/': Rota_Index") {

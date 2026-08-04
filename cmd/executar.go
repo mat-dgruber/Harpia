@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/playground"
 	"github.com/mat-dgruber/Harpia/vm"
@@ -163,8 +162,6 @@ func comandoExecutar() *cobra.Command {
 							return
 						}
 
-
-
 						comp := vm.NewCompilador()
 						prog, errComp := comp.Compilar(ast)
 						if errComp != nil {
@@ -217,7 +214,7 @@ func comandoExecutar() *cobra.Command {
 			// Modo Watch Mode (--assistir)
 			arquivoAlvo := args[0]
 			fmt.Printf("🔄 Modo Watch ativo: monitorando alterações em '%s'...\n", arquivoAlvo)
-			
+
 			go func() {
 				executarUmaVez()
 			}()

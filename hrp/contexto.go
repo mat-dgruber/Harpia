@@ -410,4 +410,3 @@ func (c *Contexto) ObterLinhasExecutadas() map[string]map[int]bool {
 	}
 	return copia
 }
-

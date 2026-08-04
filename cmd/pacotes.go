@@ -612,4 +612,3 @@ func comandoPacote() *cobra.Command {
 	cmdPacote.AddCommand(cmdAdicionar, cmdRemover, cmdListar, cmdLimpar)
 	return cmdPacote
 }
-

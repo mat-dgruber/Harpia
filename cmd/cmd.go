@@ -118,6 +118,3 @@ func InstalarComandos(raiz *cobra.Command) {
 	add(comandoVersao(), "ferramentas")
 	add(comandoPacote(), "ferramentas")
 }
-
-
-

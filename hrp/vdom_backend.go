@@ -138,4 +138,3 @@ func (e *ElementoJSX) RenderizarHTML() string {
 	sb.WriteString(">")
 	return sb.String()
 }
-

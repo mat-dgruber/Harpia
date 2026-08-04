@@ -53,7 +53,7 @@ func init() {
 		}
 		banco := inst.(*BancoVetorialObj)
 		id := string(args[0].(hrp.Texto))
-		
+
 		listaVetor, ok := args[1].(*hrp.Lista)
 		if !ok {
 			return nil, hrp.NewErroF(hrp.TipagemErro, "vetor inserido deve ser uma Lista de numeros")

@@ -66,7 +66,7 @@ func ObtemGlobalsDoLinter() map[string]bool {
 	res := make(map[string]bool)
 	gerenciador.mu.RLock()
 	defer gerenciador.mu.RUnlock()
-	
+
 	if impl, ok := gerenciador.Impls["embutidos"]; ok {
 		for k := range impl.Constantes {
 			res[k] = true

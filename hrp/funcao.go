@@ -10,20 +10,20 @@ import (
 // Ela armazena o corpo de instruções (AST Bloco), a relação ordenada de parâmetros formais esperados,
 // o supervisor (Contexto) de execução da VM, e o escopo léxico estático no qual ela foi originalmente declarada.
 type Funcao struct {
-	Nome          string                     // Nome identificador da função (disponível sob a constante '__nome__').
-	Doc           Texto                      // Bloco de documentação explicativo (disponível sob a constante '__doc__').
-	args          []string                   // Relação ordenada de nomes textuais correspondentes aos argumentos.
-	defaults      map[string]parser.BaseNode // Valores padrões para os argumentos (AST)
-	corpo         *parser.Bloco              // O bloco de nós da AST correspondente ao corpo físico da função.
-	contexto      *Contexto                  // Ponteiro de referência ao supervisor global da VM.
-	escopo        *Escopo                    // O escopo de enquadramento original de declaração (Lexical Scope).
-	declArquivo   string                     // Snapshot do arquivo onde a função foi declarada (origem do Posicoes).
-	declCodigo    string                     // Snapshot do código-fonte do arquivo de declaração.
-	declPosicoes  map[parser.BaseNode]*lexer.Token // Snapshot do mapa de posições do parser do arquivo de declaração.
-	Estatico      bool                       // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
-	tiposParams   map[string]string          // Mapeamento dos tipos estritos exigidos pelos parâmetros formais.
-	tipoRetorno   string                     // O tipo de retorno esperado de forma estrita.
-	Assincrono    bool                       // Flag que sinaliza se a função é assíncrona.
+	Nome         string                           // Nome identificador da função (disponível sob a constante '__nome__').
+	Doc          Texto                            // Bloco de documentação explicativo (disponível sob a constante '__doc__').
+	args         []string                         // Relação ordenada de nomes textuais correspondentes aos argumentos.
+	defaults     map[string]parser.BaseNode       // Valores padrões para os argumentos (AST)
+	corpo        *parser.Bloco                    // O bloco de nós da AST correspondente ao corpo físico da função.
+	contexto     *Contexto                        // Ponteiro de referência ao supervisor global da VM.
+	escopo       *Escopo                          // O escopo de enquadramento original de declaração (Lexical Scope).
+	declArquivo  string                           // Snapshot do arquivo onde a função foi declarada (origem do Posicoes).
+	declCodigo   string                           // Snapshot do código-fonte do arquivo de declaração.
+	declPosicoes map[parser.BaseNode]*lexer.Token // Snapshot do mapa de posições do parser do arquivo de declaração.
+	Estatico     bool                             // Flag opcional que sinaliza se é um método estático de classe (ex: 'estatico func').
+	tiposParams  map[string]string                // Mapeamento dos tipos estritos exigidos pelos parâmetros formais.
+	tipoRetorno  string                           // O tipo de retorno esperado de forma estrita.
+	Assincrono   bool                             // Flag que sinaliza se a função é assíncrona.
 }
 
 // TipoFuncao especifica as assinaturas e os metadados de classe do tipo Funcao na VM.

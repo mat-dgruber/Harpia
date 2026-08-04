@@ -12,11 +12,11 @@ import (
 
 var (
 	// Commit armazena a hash do git commit injetada dinamicamente via LDFLAGS.
-	Commit   string = "-"
+	Commit string = "-"
 	// Datetime armazena o carimbo de data/hora de geração do binário.
 	Datetime string = "0000-00-00T00:00:00"
 	// Version armazena a versão semântica do compilador WASM.
-	Version  string = "dev"
+	Version string = "dev"
 )
 
 // main inicializa a ponte WASM exportando funções de avaliação de código Harpia

@@ -129,7 +129,7 @@ func met_gerar_openapi(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 						propType = "number"
 					case bool:
 						propType = "boolean"
-						case []interface{}:
+					case []interface{}:
 						propType = "array"
 					case map[string]interface{}:
 						propType = "object"

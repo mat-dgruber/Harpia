@@ -129,7 +129,6 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return n.Nome
 
-
 	case *parser.TextoLiteral:
 		if len(n.Valor) >= 2 {
 			valorLimpo := n.Valor[1 : len(n.Valor)-1]
@@ -686,7 +685,6 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		}
 		return fmt.Sprintf("const %s = \"%s\";", n.Nome, n.Nome)
 	}
-
 
 	return fmt.Sprintf("/* Erro ao transpilar tipo %T */", node)
 }

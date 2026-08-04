@@ -547,4 +547,3 @@ func comandoServir() *cobra.Command {
 	servir.Flags().StringVarP(&diretorio, "diretorio", "d", "", "Diretório de arquivos estáticos para servir")
 	return servir
 }
-

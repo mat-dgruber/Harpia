@@ -1408,4 +1408,3 @@ Este guia especifica as políticas de testes unitários, integração e comporta
 ## 2. Princípios de Pureza
 - **Sem I/O nos Testes de Unidade**: Nunca faça chamadas a banco de dados ou requisições HTTP reais em testes sob a pasta ` + "`" + `testes/dominio/` + "`" + `. Use dublês de testes ou contratos purificados.
 `
-

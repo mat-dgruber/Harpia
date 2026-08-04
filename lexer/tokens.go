@@ -101,7 +101,6 @@ const (
 	TokenCaso    // caso (case).
 	TokenQuando  // quando (guard condition).
 
-
 	// ============================================================================
 	// OPERADORES ARITMÉTICOS, RELACIONAIS E DELIMITADORES
 	// ============================================================================
@@ -135,11 +134,11 @@ const (
 	// REATRIBUIÇÕES COM ACUMULADORES (OPERADORES COMPOSTOS)
 	// ============================================================================
 
-	TokenMaisIgual                      // +=
-	TokenMenosIgual                     // -=
-	TokenAsteriscoIgual                 // *=
-	TokenBarraIgual                     // /=
-	TokenBarraBarraIgual                // //=
+	TokenMaisIgual                     // +=
+	TokenMenosIgual                    // -=
+	TokenAsteriscoIgual                // *=
+	TokenBarraIgual                    // /=
+	TokenBarraBarraIgual               // //=
 	TokenInterrogacaoInterrogacaoIgual // ??=
 	TokenBoolOuIgual                   // ||=
 	TokenBoolEIgual                    // &&=
@@ -191,8 +190,8 @@ const (
 	TokenEstilo     // estilo
 
 	TokenInterrogacaoInterrogacao // ?? (coalescência nula)
-	TokenPontoInterrogacao         // ?. (encadeamento opcional)
-	TokenInterrogacao              // ? (operador condicional ternário)
+	TokenPontoInterrogacao        // ?. (encadeamento opcional)
+	TokenInterrogacao             // ? (operador condicional ternário)
 
 	TokenEnum      // enum (enumeração)
 	TokenInterface // interface (contrato)

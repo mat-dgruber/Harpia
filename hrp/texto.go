@@ -130,7 +130,6 @@ func (t Texto) M__maior_ou_igual__(outro Objeto) (Objeto, error) {
 	return NewBooleano(string(t) >= string(outro.(Texto)))
 }
 
-
 // M__adiciona__ executa a concatenação de duas strings. Lança erro de tipagem caso tente somar tipos distintos.
 func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 	if !MesmoTipo(t, outro) {
@@ -268,7 +267,6 @@ var _ I__multiplica__ = Texto("")
 var _ I__tamanho__ = Texto("")
 var _ I__contem__ = Texto("")
 var _ I__iter__ = Texto("")
-
 
 func init() {
 	// Injeção de métodos de instância de Texto no mapa da classe.
