@@ -10,6 +10,8 @@ import (
 )
 
 func TestGerarDeHtml(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{}) // o sandbox nega I/O sem contexto
+	defer ctx.Terminar()
 	tempDir := t.TempDir()
 	outPath := filepath.Join(tempDir, "teste.pdf")
 

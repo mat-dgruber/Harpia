@@ -9,6 +9,8 @@ import (
 )
 
 func TestProbesLivezAndReadyz(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{}) // o sandbox nega I/O sem contexto
+	defer ctx.Terminar()
 	obj, err := TipoServidor.Nova(nil)
 	if err != nil {
 		t.Fatalf("erro ao criar Servidor: %v", err)

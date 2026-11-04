@@ -443,6 +443,43 @@ func (c *Contexto) Fechado() bool {
 	return c.fechado
 }
 
+// Recurso identifica a capacidade sensível que uma função nativa quer usar.
+type Recurso int
+
+const (
+	RecursoArquivos  Recurso = iota // ler/escrever disco (inclui SQLite e FFI)
+	RecursoRede                     // conexões e requisições de rede
+	RecursoProcessos                // subprocessos e variáveis de ambiente (usa a flag BloquearArquivos)
+)
+
+// ContextoDe resolve o contexto dono da chamada: o do módulo receptor (o script que importou
+// a função), com fallback para o contexto ativo global.
+func ContextoDe(inst Objeto) *Contexto {
+	if m, ok := inst.(*Modulo); ok && m != nil && m.Contexto != nil {
+		return m.Contexto
+	}
+	return ObterContextoAtivo()
+}
+
+// ExigirPermissao é o guard único do sandbox. Ele resolve o contexto pelo receptor, e não só pelo
+// ativo global (que outro NewContexto concorrente pode trocar), e nega quando não há contexto
+// nenhum para consultar (fail-closed).
+func ExigirPermissao(inst Objeto, r Recurso) error {
+	return ExigirPermissaoNoContexto(ContextoDe(inst), r)
+}
+
+// ExigirPermissaoNoContexto aplica o guard a um contexto já conhecido (ex.: capturado por um
+// objeto nativo na criação). nil = negado.
+func ExigirPermissaoNoContexto(ctx *Contexto, r Recurso) error {
+	if ctx == nil {
+		return NewErroF(ErroDeSistema, "Acesso Negado: nenhum contexto de execução ativo para autorizar a operação.")
+	}
+	if r == RecursoRede {
+		return ctx.VerificarPermissaoRede()
+	}
+	return ctx.VerificarPermissaoArquivos()
+}
+
 // VerificarPermissaoArquivos valida se o contexto possui a flag de permissão para ler ou escrever arquivos.
 func (c *Contexto) VerificarPermissaoArquivos() error {
 	if c.Opcs.BloquearArquivos {

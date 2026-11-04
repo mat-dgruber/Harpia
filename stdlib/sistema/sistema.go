@@ -97,11 +97,9 @@ func init() {
 	}
 
 	// executar executa um comando do sistema operacional e retorna um Mapa com "saida" e "erro".
-	fnExecutar := hrp.NewMetodoOuPanic("executar", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-		if ctx := hrp.ObterContextoAtivo(); ctx != nil {
-			if err := ctx.VerificarPermissaoArquivos(); err != nil {
-				return nil, err
-			}
+	fnExecutar := hrp.NewMetodoOuPanic("executar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+		if err := hrp.ExigirPermissao(inst, hrp.RecursoProcessos); err != nil {
+			return nil, err
 		}
 
 		if err := hrp.VerificaNumeroArgumentos("executar", false, args, 1, 2); err != nil {
@@ -148,11 +146,9 @@ func init() {
 
 	// executarCodigoHarpia grava o código em um arquivo temporário e executa o interpretador Harpia nativo,
 	// retornando {saida, erro} com o stdout/stderr reais da execução.
-	fnExecutarCodigoHarpia := hrp.NewMetodoOuPanic("executarCodigoHarpia", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-		if ctx := hrp.ObterContextoAtivo(); ctx != nil {
-			if err := ctx.VerificarPermissaoArquivos(); err != nil {
-				return nil, err
-			}
+	fnExecutarCodigoHarpia := hrp.NewMetodoOuPanic("executarCodigoHarpia", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+		if err := hrp.ExigirPermissao(inst, hrp.RecursoProcessos); err != nil {
+			return nil, err
 		}
 
 		if err := hrp.VerificaNumeroArgumentos("executarCodigoHarpia", false, args, 1, 1); err != nil {

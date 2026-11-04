@@ -329,6 +329,10 @@ type Servidor struct {
 	mu              sync.RWMutex
 	msgsErrosUltimo error
 	metricas        map[string]int64 // metodo+espaço+rotaPattern -> contagem
+	// ctx é o contexto do script que criou o servidor; o sandbox é checado nele.
+	// ponytail: capturado do contexto ativo em Nova (não há receptor); correto enquanto a criação
+	// roda dentro do script dono, que é o caso normal.
+	ctx *hrp.Contexto
 }
 
 // TipoServidor define e registra a classe Servidor na VM.
@@ -347,6 +351,7 @@ func init() {
 			rotasMeta:   make(map[string]map[string]*RotaMeta),
 			middlewares: make([]hrp.Objeto, 0),
 			metricas:    make(map[string]int64),
+			ctx:         hrp.ObterContextoAtivo(),
 		}, nil
 	}
 }
@@ -469,11 +474,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	case "escutar":
 		// Ativa e inicia a escuta HTTP na porta TCP indicada.
 		return hrp.NewMetodoOuPanic("escutar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			ctx := hrp.ObterContextoAtivo()
-			if ctx != nil {
-				if err := ctx.VerificarPermissaoRede(); err != nil {
-					return nil, err
-				}
+			if err := hrp.ExigirPermissaoNoContexto(s.ctx, hrp.RecursoRede); err != nil {
+				return nil, err
 			}
 
 			if err := hrp.VerificaNumeroArgumentos("escutar", false, args, 1, 2); err != nil {
@@ -864,11 +866,8 @@ func matchRoute(pattern, path string) (bool, map[string]string) {
 
 // met_http_requisitar realiza uma requisição HTTP do lado do cliente.
 func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-	ctx := hrp.ObterContextoAtivo()
-	if ctx != nil {
-		if err := ctx.VerificarPermissaoRede(); err != nil {
-			return nil, err
-		}
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
 	}
 
 	if err := hrp.VerificaNumeroArgumentos("requisitar", false, args, 2, 4); err != nil {
