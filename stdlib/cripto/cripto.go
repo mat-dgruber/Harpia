@@ -10,9 +10,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"io"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/mat-dgruber/Harpia/hrp"
+	"golang.org/x/crypto/scrypt"
 )
 
 // met_cripto_sha256 implementa 'sha256(texto)' em nível de script Harpia.
@@ -94,15 +96,17 @@ func met_cripto_cifrar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	chave := sha256.Sum256([]byte(chaveStr.(hrp.Texto)))
-	block, err := aes.NewCipher(chave[:])
-	if err != nil {
-		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar cifra AES: %v", err)
+	sal := make([]byte, tamanhoSal)
+	if _, err := io.ReadFull(rand.Reader, sal); err != nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao gerar sal: %v", err)
 	}
-
-	gcm, err := cipher.NewGCM(block)
+	chave, err := derivarChaveV2(string(chaveStr.(hrp.Texto)), sal)
 	if err != nil {
-		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar GCM: %v", err)
+		return nil, err
+	}
+	gcm, err := novoGCM(chave)
+	if err != nil {
+		return nil, err
 	}
 
 	nonce := make([]byte, gcm.NonceSize())
@@ -110,8 +114,36 @@ func met_cripto_cifrar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao gerar nonce: %v", err)
 	}
 
-	cifrado := gcm.Seal(nonce, nonce, []byte(texto.(hrp.Texto)), nil)
-	return hrp.Texto(base64.StdEncoding.EncodeToString(cifrado)), nil
+	// envelope v2: "v2:" + base64(sal || nonce || texto cifrado)
+	envelope := append(append(sal, nonce...), gcm.Seal(nil, nonce, []byte(texto.(hrp.Texto)), nil)...)
+	return hrp.Texto(prefixoV2 + base64.StdEncoding.EncodeToString(envelope)), nil
+}
+
+const (
+	prefixoV2  = "v2:"
+	tamanhoSal = 16
+)
+
+// derivarChaveV2 deriva a chave AES-256 da senha com scrypt (N=2^15, r=8, p=1), lento de propósito
+// contra força bruta. O formato legado usava sha256(senha), sem sal.
+func derivarChaveV2(senha string, sal []byte) ([]byte, error) {
+	chave, err := scrypt.Key([]byte(senha), sal, 1<<15, 8, 1, 32)
+	if err != nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao derivar chave: %v", err)
+	}
+	return chave, nil
+}
+
+func novoGCM(chave []byte) (cipher.AEAD, error) {
+	block, err := aes.NewCipher(chave)
+	if err != nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar cifra AES: %v", err)
+	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar GCM: %v", err)
+	}
+	return gcm, nil
 }
 
 // met_cripto_decifrar implementa 'decifrar(textoCifrado, chave)' em nível de script Harpia.
@@ -129,20 +161,29 @@ func met_cripto_decifrar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	dados, err := base64.StdEncoding.DecodeString(string(cifradoB64.(hrp.Texto)))
+	entrada := string(cifradoB64.(hrp.Texto))
+	v2 := strings.HasPrefix(entrada, prefixoV2)
+	dados, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(entrada, prefixoV2))
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao decodificar Base64: %v", err)
 	}
 
-	chave := sha256.Sum256([]byte(chaveStr.(hrp.Texto)))
-	block, err := aes.NewCipher(chave[:])
-	if err != nil {
-		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar cifra AES: %v", err)
+	var chave []byte
+	if v2 {
+		if len(dados) < tamanhoSal {
+			return nil, hrp.NewErroF(hrp.ValorErro, "Dados cifrados inválidos (sem sal)")
+		}
+		if chave, err = derivarChaveV2(string(chaveStr.(hrp.Texto)), dados[:tamanhoSal]); err != nil {
+			return nil, err
+		}
+		dados = dados[tamanhoSal:]
+	} else {
+		legado := sha256.Sum256([]byte(chaveStr.(hrp.Texto))) // formato antigo, só para leitura
+		chave = legado[:]
 	}
-
-	gcm, err := cipher.NewGCM(block)
+	gcm, err := novoGCM(chave)
 	if err != nil {
-		return nil, hrp.NewErroF(hrp.ValorErro, "Erro ao inicializar GCM: %v", err)
+		return nil, err
 	}
 
 	nonceSize := gcm.NonceSize()
