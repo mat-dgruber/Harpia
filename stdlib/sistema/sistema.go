@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -58,31 +57,48 @@ func (b *bufferLimitado) String() string {
 	return b.buf.String()
 }
 
-func init() {
-	var mu sync.Mutex
-	envMap := hrp.Mapa{}
-	atualizarEnv := func() {
-		mu.Lock()
-		defer mu.Unlock()
-		for k := range envMap {
-			delete(envMap, k)
+// TipoObjetoSistema é o tipo do objeto `Sistema` exportado pelo módulo.
+var TipoObjetoSistema = hrp.NewTipo("Sistema", "Informações do sistema operacional e variáveis de ambiente")
+
+// objetoSistema substitui o antigo Mapa estático: `variaveisAmbiente` é montado a cada leitura,
+// exige permissão de processos (o ambiente costuma carregar segredos) e devolve uma cópia nova.
+// Isso também elimina a corrida entre o recarregamento do .env e os scripts que liam o mapa.
+type objetoSistema struct{}
+
+func (objetoSistema) Tipo() *hrp.Tipo { return TipoObjetoSistema }
+
+func (o objetoSistema) M__obtem_item__(chave hrp.Objeto) (hrp.Objeto, error) {
+	nome, ok := chave.(hrp.Texto)
+	if !ok {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "Sistema só aceita chaves do tipo Texto")
+	}
+	return o.M__obtem_attributo__(string(nome))
+}
+
+func (objetoSistema) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
+	switch nome {
+	case "ARQUITETURA":
+		return hrp.Texto(runtime.GOARCH), nil
+	case "NOME":
+		return hrp.Texto(runtime.GOOS), nil
+	case "variaveisAmbiente":
+		// ponytail: objeto global sem receptor; o contexto ativo é o do script em execução
+		if err := hrp.ExigirPermissaoNoContexto(hrp.ObterContextoAtivo(), hrp.RecursoProcessos); err != nil {
+			return nil, err
 		}
-		for _, env := range os.Environ() {
-			pair := strings.SplitN(env, "=", 2)
-			if len(pair) == 2 {
-				envMap[pair[0]] = hrp.Texto(pair[1])
+		env := hrp.Mapa{}
+		for _, par := range os.Environ() {
+			if k, v, ok := strings.Cut(par, "="); ok {
+				env[k] = hrp.Texto(v)
 			}
 		}
+		return env, nil
 	}
+	return nil, hrp.NewErroF(hrp.ChaveErro, "Sistema não possui '%s'", nome)
+}
 
-	atualizarEnv()
-	hrp.OnEnvLoaded = append(hrp.OnEnvLoaded, atualizarEnv)
-
-	sistemaObj := hrp.Mapa{
-		"ARQUITETURA":       hrp.Texto(runtime.GOARCH),
-		"NOME":              hrp.Texto(runtime.GOOS),
-		"variaveisAmbiente": envMap,
-	}
+func init() {
+	sistemaObj := objetoSistema{}
 
 	// constantes expõe metadados estáticos do runtime do Go convertidos para hrp.Texto.
 	constantes := hrp.Mapa{

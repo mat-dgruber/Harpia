@@ -7,6 +7,8 @@ import (
 )
 
 func TestEmailEnviarSimulacao(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{}) // o sandbox nega I/O sem contexto
+	defer ctx.Terminar()
 	mapa := hrp.NewMapaVazio()
 	mapa.M__define_item__(hrp.Texto("para"), hrp.Texto("teste@exemplo.com"))
 	mapa.M__define_item__(hrp.Texto("assunto"), hrp.Texto("Teste"))

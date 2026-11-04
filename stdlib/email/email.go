@@ -14,6 +14,9 @@ import (
 // Recebe um Mapa do Harpia contendo os parâmetros SMTP e o payload da mensagem (para, assunto, corpoHtml).
 // Se o servidor SMTP ou a porta não forem fornecidos, ele automaticamente ativa o modo de simulação no console.
 func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("enviar", false, args, 1, 1); err != nil {
 		return nil, err
 	}

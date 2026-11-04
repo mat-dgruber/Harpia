@@ -18,6 +18,7 @@ type Agente struct {
 	Modelo     hrp.Texto
 	Historico  *hrp.Lista
 	mu         sync.Mutex
+	ctx        *hrp.Contexto // contexto do script que criou o agente; o sandbox de rede é checado nele
 }
 
 // TipoAgente define e registra a classe Agente na VM.
@@ -71,6 +72,7 @@ func init() {
 			Provedor:   provedor,
 			Modelo:     modelo,
 			Historico:  historico,
+			ctx:        hrp.ObterContextoAtivo(),
 		}, nil
 	}
 }
@@ -78,6 +80,9 @@ func init() {
 // Perguntar interage diretamente com o LLM provido através de um canal síncrono, gerenciando e
 // persistindo o histórico de mensagens em memória sob o formato de mensagens de Chat (User/Assistant).
 func (a *Agente) Perguntar(mensagem string) (string, error) {
+	if err := hrp.ExigirPermissaoNoContexto(a.ctx, hrp.RecursoRede); err != nil {
+		return "", err
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

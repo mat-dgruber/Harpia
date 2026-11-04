@@ -287,6 +287,10 @@ func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, er
 func init() {
 	// Nova é a função construtora para instanciar Sockets a partir de scripts Harpia.
 	TipoSoquete.Nova = func(args hrp.Tupla) (hrp.Objeto, error) {
+		// sem receptor: a criação roda dentro do script dono, então o contexto ativo é o dele
+		if err := hrp.ExigirPermissaoNoContexto(hrp.ObterContextoAtivo(), hrp.RecursoRede); err != nil {
+			return nil, err
+		}
 		if argsLen := len(args); argsLen != 3 {
 			if argsLen < 2 {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "Soquete() esperava receber no mínimo 2 argumentos, mas recebeu %d", argsLen)

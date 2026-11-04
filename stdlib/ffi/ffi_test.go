@@ -1,35 +1,51 @@
 package ffi
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
-func TestFFIMockSoma(t *testing.T) {
-	libObj, err := met_ffi_abrir(nil, hrp.Tupla{hrp.Texto("libmath_mock.so")})
+// chamarFuncaoFFI abre a biblioteca, resolve `nome` e chama com `args`.
+func chamarFuncaoFFI(t *testing.T, caminho, nome string, args hrp.Tupla) error {
+	t.Helper()
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	libObj, err := met_ffi_abrir(nil, hrp.Tupla{hrp.Texto(caminho)})
 	if err != nil {
 		t.Fatalf("Erro ao abrir lib: %v", err)
 	}
-
-	lib := libObj.(*Biblioteca)
-	obtMetodo, errAtt := lib.M__obtem_attributo__("obterFuncao")
-	if errAtt != nil {
-		t.Fatalf("Erro ao obter método obterFuncao: %v", errAtt)
+	obter, err := libObj.(*Biblioteca).M__obtem_attributo__("obterFuncao")
+	if err != nil {
+		t.Fatal(err)
 	}
-
-	funcObj, errCall := hrp.Chamar(obtMetodo, hrp.Tupla{hrp.Texto("soma")})
-	if errCall != nil {
-		t.Fatalf("Erro ao chamar obterFuncao: %v", errCall)
+	fn, err := hrp.Chamar(obter, hrp.Tupla{hrp.Texto(nome)})
+	if err != nil {
+		t.Fatal(err)
 	}
+	_, err = hrp.Chamar(fn, args)
+	return err
+}
 
-	somaFunc := funcObj.(*FuncaoFFI)
-	res, errSoma := hrp.Chamar(somaFunc, hrp.Tupla{hrp.Decimal(10.5), hrp.Decimal(20.3)})
-	if errSoma != nil {
-		t.Fatalf("Erro ao chamar função ffi soma: %v", errSoma)
+func TestFFIBibliotecaAusenteDaErro(t *testing.T) {
+	err := chamarFuncaoFFI(t, "libinexistente.so", "soma", hrp.Tupla{hrp.Decimal(1), hrp.Decimal(2)})
+	if err == nil || !strings.Contains(err.Error(), "não pôde ser carregada") {
+		t.Fatalf("esperava erro de biblioteca ausente, veio %v", err)
 	}
+}
 
-	if float64(res.(hrp.Decimal)) != 30.8 {
-		t.Errorf("Resultado soma incorreto, obteve: %v", res)
+// Com a biblioteca presente, a chamada não pode fingir sucesso (antes devolvia Nulo).
+func TestFFIChamadaNativaNaoFingeSucesso(t *testing.T) {
+	lib := filepath.Join(t.TempDir(), "libfalsa.so")
+	if err := os.WriteFile(lib, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	err := chamarFuncaoFFI(t, lib, "soma", hrp.Tupla{hrp.Decimal(1), hrp.Decimal(2)})
+	if err == nil || !strings.Contains(err.Error(), "não implementada") {
+		t.Fatalf("esperava erro explícito de FFI não implementada, veio %v", err)
 	}
 }
