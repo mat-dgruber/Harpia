@@ -1,6 +1,8 @@
 package hrp
 
 import (
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 )
@@ -29,5 +31,23 @@ func TestEscopoConcorrenteRace(t *testing.T) {
 		}(i)
 	}
 
+	wg.Wait()
+}
+
+// NewContexto em paralelo (handlers HTTP, playground, testes) não pode ter corrida de dados.
+func TestNewContextoParaleloSemCorrida(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".env"), []byte("HARPIA_TESTE_PARALELO=1\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ctx := NewContexto(OpcsContexto{DiretorioTrabalho: dir})
+			ctx.Terminar()
+		}()
+	}
 	wg.Wait()
 }

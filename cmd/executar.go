@@ -5,7 +5,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -80,6 +82,8 @@ func comandoExecutar() *cobra.Command {
 			var cwdOrigem string
 			if len(args) > 0 && args[0] != "" {
 				if abs, errAbs := filepath.Abs(args[0]); errAbs == nil {
+					// caminho absoluto antes do chdir: "sub/app.hrp" relativo deixaria de existir
+					args[0] = abs
 					if dir := filepath.Dir(abs); dir != "" && dir != cur {
 						if info, errStat := os.Stat(dir); errStat == nil && info.IsDir() {
 							cwdOrigem = cur
@@ -216,37 +220,30 @@ func comandoExecutar() *cobra.Command {
 				}
 			}
 
-			if !assistir || len(args) == 0 {
+			// HARPIA_FILHO_ASSISTIR: o filho do modo watch nunca vigia de novo (evita recursão
+			// com flags combinadas como -sw).
+			if !assistir || len(args) == 0 || os.Getenv("HARPIA_FILHO_ASSISTIR") == "1" {
 				executarUmaVez()
 				return
 			}
 
 			// Modo Watch Mode (--assistir)
-			arquivoAlvo := args[0]
-			fmt.Printf("🔄 Modo Watch ativo: monitorando alterações em '%s'...\n", arquivoAlvo)
-
-			go func() {
-				executarUmaVez()
-			}()
-
-			info, errStat := os.Stat(arquivoAlvo)
-			if errStat != nil {
-				fmt.Fprintf(os.Stderr, "Erro ao acessar arquivo '%s': %v\n", arquivoAlvo, errStat)
-				return
+			// Modo Watch: cada execução é um subprocesso (como o nodemon). Ao detectar alteração,
+			// o anterior é encerrado antes de iniciar o próximo, então nunca há duas execuções
+			// juntas, e um servidor bloqueante também reinicia, sem estado global compartilhado.
+			// o processo já fez chdir para a pasta do arquivo, então args[0] relativo não vale mais
+			arquivoAlvo := filepath.Join(cur, filepath.Base(args[0]))
+			if _, errStat := os.Stat(arquivoAlvo); errStat != nil {
+				arquivoAlvo, _ = filepath.Abs(args[0])
 			}
-			ultimaModificacao := info.ModTime()
-
-			for {
-				time.Sleep(500 * time.Millisecond)
-				infoAtual, err := os.Stat(arquivoAlvo)
-				if err != nil {
-					continue
-				}
-				if infoAtual.ModTime().After(ultimaModificacao) {
-					ultimaModificacao = infoAtual.ModTime()
-					fmt.Printf("\n🔄 Alteração detectada em '%s'. Recarregando...\n", arquivoAlvo)
-					executarUmaVez()
-				}
+			fmt.Printf("🔄 Modo Watch ativo: monitorando alterações em '%s'...\n", arquivoAlvo)
+			dirInicial := cwdOrigem
+			if dirInicial == "" {
+				dirInicial = cur
+			}
+			iniciar := func() func() { return iniciarSubprocessoHarpia(argsFilhoAssistir(os.Args[1:]), dirInicial) }
+			if err := assistirArquivo(arquivoAlvo, 500*time.Millisecond, iniciar, nil); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro ao acessar arquivo '%s': %v\n", arquivoAlvo, err)
 			}
 		},
 	}
@@ -262,4 +259,73 @@ func comandoExecutar() *cobra.Command {
 	executar.PersistentFlags().BoolVar(&sandbox, "sandbox", false, "Bloqueia acesso a arquivos, processos e rede (para executar código não confiável).")
 
 	return executar
+}
+
+// assistirArquivo chama iniciar() e, a cada alteração em alvo, encerra a execução atual antes de
+// iniciar a próxima. Retorna quando fim é fechado (nil = vigia para sempre).
+func assistirArquivo(alvo string, intervalo time.Duration, iniciar func() (parar func()), fim <-chan struct{}) error {
+	info, err := os.Stat(alvo)
+	if err != nil {
+		return err
+	}
+	ultima := info.ModTime()
+	parar := iniciar()
+	defer func() { parar() }()
+
+	tic := time.NewTicker(intervalo)
+	defer tic.Stop()
+	for {
+		select {
+		case <-fim:
+			return nil
+		case <-tic.C:
+		}
+		atual, err := os.Stat(alvo)
+		if err != nil || !atual.ModTime().After(ultima) {
+			continue
+		}
+		ultima = atual.ModTime()
+		fmt.Printf("\n🔄 Alteração detectada em '%s'. Recarregando...\n", alvo)
+		parar()
+		parar = iniciar()
+	}
+}
+
+// argsFilhoAssistir remove as flags de watch dos argumentos repassados ao subprocesso.
+func argsFilhoAssistir(args []string) []string {
+	var out []string
+	for _, a := range args {
+		if a == "-w" || a == "--assistir" || strings.HasPrefix(a, "--assistir=") {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// iniciarSubprocessoHarpia roda o próprio binário com args em dir e devolve uma função que o
+// encerra e espera sair.
+func iniciarSubprocessoHarpia(args []string, dir string) func() {
+	exe, err := os.Executable()
+	if err != nil {
+		exe = os.Args[0]
+	}
+	cmd := exec.Command(exe, args...)
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "HARPIA_FILHO_ASSISTIR=1")
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
+	if err := cmd.Start(); err != nil {
+		fmt.Fprintf(os.Stderr, "Erro ao iniciar a execução: %v\n", err)
+		return func() {}
+	}
+	saiu := make(chan struct{})
+	go func() { _ = cmd.Wait(); close(saiu) }()
+	return func() {
+		select {
+		case <-saiu:
+		default:
+			_ = cmd.Process.Kill()
+			<-saiu
+		}
+	}
 }

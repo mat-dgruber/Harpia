@@ -108,7 +108,6 @@ func (c *Contexto) ObterPosicaoToken() (*lexer.Token, int, int) {
 var (
 	contextoAtivoMu sync.RWMutex
 	contextoAtivo   *Contexto
-	OnEnvLoaded     []func()
 )
 
 func ObterContextoAtivo() *Contexto {
@@ -202,9 +201,6 @@ func carregarArquivoEnv(dir string) {
 		f.Close()
 	}
 
-	for _, fn := range OnEnvLoaded {
-		fn()
-	}
 }
 
 // TransformarEmAst localiza um arquivo físico no disco, decodifica sua codificação,
