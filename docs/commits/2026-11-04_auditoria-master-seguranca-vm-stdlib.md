@@ -13,7 +13,7 @@ Data       | Autor          | Descrição
 | Metadado | Detalhe |
 | :--- | :--- |
 | **Escopo Principal** | `auditoria-master-seguranca-vm-stdlib` |
-| **Commits Gerados** | `6` |
+| **Commits Gerados** | `7` |
 | **Arquivos Modificados** | `151` |
 | **ADRs Vinculadas / Geradas** | `docs/adrs/0001-paridade-vm-concorrencia-e-blindagem-zero-trust.md` |
 
@@ -87,6 +87,12 @@ graph LR
 - **Comportamento atual:** Workflows CI/CD operam com menor privilégio e validação contínua; extensão VS Code e grafo atualizados.
 - **Decisões técnicas & ADRs:** Registra `docs/adrs/0001-paridade-vm-concorrencia-e-blindagem-zero-trust.md`.
 - **Arquivos envolvidos:** `.github/workflows/*`, `vscode-harpia/*`, `docs/adrs/*`, `graphify-out/*`.
+
+### `fix(ci): resolver bloqueio de poll no Linux e alertas CodeQL de conversao inteira e zipslip`
+- **Razão da alteração:** Eliminar loop infinito em `unix.Poll` quando `Revents` retorna `POLLHUP`/`POLLERR` sem `POLLIN` em sockets desconectados no Linux e atender às verificações estáticas de limites de 32 bits (`CWE-190`) e sanitização de caminhos (`go/zipslip`) do CodeQL.
+- **Comportamento atual:** `RecebeDados` e `AceitaConexao` tratam `POLLHUP`, `POLLERR` e `POLLNVAL` sem bloqueio infinito no Linux; conversões `int64 -> int` validam limites explícitos; extração de arquivos valida prefixo com separador e rejeita `..`.
+- **Decisões técnicas & ADRs:** Vinculado à ADR 0001.
+- **Arquivos envolvidos:** `stdlib/soquete/impl.go`, `hrp/texto.go`, `hrp/tupla.go`, `stdlib/tempo/tempo.go`, `cmd/atualizar.go`.
 
 ---
 

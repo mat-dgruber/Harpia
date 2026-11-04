@@ -6,9 +6,9 @@
     "semantic_hash": ""
   },
   "cmd/atualizar.go": {
-    "mtime": 1785756729.9668415,
-    "seen": 1793737250.151055,
-    "ast_hash": "27af98796931f873f4a7fbd12ddc3728",
+    "mtime": 1793804155.503968,
+    "seen": 1793804162.450437,
+    "ast_hash": "243969e069a8bb72c8a1341f8b469852",
     "semantic_hash": ""
   },
   "cmd/atualizar_test.go": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "hrp/texto.go": {
-    "mtime": 1793794004.6892962,
-    "seen": 1793794012.6394172,
-    "ast_hash": "d8e458d45a99f0d4eb9ff2fcd6c2b097",
+    "mtime": 1793804108.5183043,
+    "seen": 1793804117.125311,
+    "ast_hash": "fbca850660fe53c3f9b85690629ac3c2",
     "semantic_hash": ""
   },
   "hrp/tipagem_estatica.go": {
@@ -708,9 +708,9 @@
     "semantic_hash": ""
   },
   "hrp/tupla.go": {
-    "mtime": 1785756757.3153334,
-    "seen": 1793737250.151168,
-    "ast_hash": "0a3e34b41027bc0d3a9112c060da2337",
+    "mtime": 1793804148.4688807,
+    "seen": 1793804154.896706,
+    "ast_hash": "0ccc25b73e266a1ec1e755ee9666110a",
     "semantic_hash": ""
   },
   "hrp/utils.go": {
@@ -1218,9 +1218,9 @@
     "semantic_hash": ""
   },
   "stdlib/soquete/impl.go": {
-    "mtime": 1793793092.652344,
-    "seen": 1793793113.524578,
-    "ast_hash": "964b2be3a646de33b6e215dd3a609f83",
+    "mtime": 1793804099.3813462,
+    "seen": 1793804107.828795,
+    "ast_hash": "f0901025828cc2f3cbd7d2748d2b4aad",
     "semantic_hash": ""
   },
   "stdlib/soquete/impl_windows.go": {
@@ -1272,9 +1272,9 @@
     "semantic_hash": ""
   },
   "stdlib/tempo/tempo.go": {
-    "mtime": 1793794586.7651618,
-    "seen": 1793794602.113625,
-    "ast_hash": "064fa46a4c6c00f07872ea4d70cb1b5a",
+    "mtime": 1793804126.5999794,
+    "seen": 1793804137.418439,
+    "ast_hash": "2d11a732268395915034dfd4fd2dac62",
     "semantic_hash": ""
   },
   "stdlib/tempo/tempo_test.go": {
@@ -2073,6 +2073,12 @@
     "mtime": 1793802333.1142497,
     "seen": 1793802411.647338,
     "ast_hash": "9651fbd65ed618768f988c70ae3cbca2",
+    "semantic_hash": ""
+  },
+  "docs/commits/2026-11-04_auditoria-master-seguranca-vm-stdlib.md": {
+    "mtime": 1793802605.957266,
+    "seen": 1793804098.751083,
+    "ast_hash": "12f5e0b40383a724a431a14d47983f13",
     "semantic_hash": ""
   }
 }

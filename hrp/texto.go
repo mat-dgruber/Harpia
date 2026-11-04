@@ -150,10 +150,11 @@ func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	switch obj := outro.(type) {
 	case Inteiro:
 		qtd := int64(obj)
-		if qtd <= 0 {
+		if qtd <= 0 || len(t) == 0 {
 			return Texto(""), nil
 		}
-		if len(t) > 0 && int64(len(t))*qtd > (64<<20) {
+		const maxBytesTexto = 64 << 20
+		if qtd > maxBytesTexto || int64(len(t))*qtd > maxBytesTexto {
 			return nil, NewErroF(ErroDeLimite, "Texto resultante excede o limite de memória")
 		}
 		return Texto(strings.Repeat(string(t), int(qtd))), nil

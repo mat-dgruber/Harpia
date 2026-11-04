@@ -1,68 +1,68 @@
 # Graph Report - Harpia  (2026-11-04)
 
 ## Corpus Check
-- 327 files · ~505,857 words
+- 328 files · ~506,854 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 38 file(s) not represented in the graph (top: .hrp 24, (none) 8, .g4 2)
 
 ## Summary
-- 3438 nodes · 12426 edges · 193 communities (153 shown, 40 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 809 edges (avg confidence: 0.86)
+- 3407 nodes · 15048 edges · 189 communities (151 shown, 38 thin omitted)
+- Extraction: 94% EXTRACTED · 6% INFERRED · 0% AMBIGUOUS · INFERRED: 843 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `334436e7`
+- Built from commit: `9c953067`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Interpretador
-- ObtemAtributoS
 - ast_nodes.go
-- sinal
+- Compilador
+- I_aritmeticaMatematica
+- 4. Detalhamento por Commit
 - NewErroF
-- hrp.Escopo
+- Programa
 - Lexer
 - NewMetodoOuPanic
-- i18n.go
-- Compilador
-- Objeto
+- I_comparacaoRica
+- cache_lru.go
+- Tupla
 - Parser
 - Capítulo 6 — Biblioteca Padrão Completa (Stdlib)
-- depurar.go
+- 2. Arquitetura e Componentes
 - repository
 - Guia Didático — Desenvolvimento Frontend SPA com Harpia (Fase 4)
 - wasm_exec.js
 - createParserAndCompare
-- Biblioteca Padrão (`stdlib` do Harpia)
+- 📦 Novos Módulos de Backend (v1.x)
 - copiloto.go
 - pacotes.go
 - resiliencia_test.go
 - ConexaoMongo
-- NewLexer
+- parser/helpers.go
 - Inteiro
 - 🛠️ Caixa de Ferramentas (CLI)
 - testing.T
 - contributes
 - Capítulo 4 — Análise Léxica e Sintática (Lexer, Parser & AST)
-- tokens.go
+- formatar.go
 - Pacote `playground` (TUI e REPL Interativo do Harpia)
 - .NewEscopo
 - 🏗️ Novas Ferramentas de Tooling e Ecossistema (Fase 5, 5-B & 5-C)
 - Pacote `compartilhado` (Utilitários Industriais do Harpia)
 - Capítulo 2 — Guia Rápido de Sintaxe, Fundamentos e Exemplos
 - Capítulo 8 — Arquitetura da Máquina Virtual, Bytecode e Runtime (`hrp` & `vm/`)
-- createParser
-- atualizar.go
-- Galeria de Exemplos (`exemplos` do Harpia)
+- Lockfile
+- go_pkg_bytes
+- sinal
 - Pacote `hrp` (Núcleo e Runtime do Harpia)
 - 📝 Registro de Desenvolvimento — 30 de Julho de 2026
-- iniciar.go
+- github.com/spf13/cobra.Command
 - 🟢 FASE 3 — Stdlib Robusta (Backend Real)
 - 🦅 Harpia
 - limpar
 - Diretrizes de Marca: Harpia 🦅
-- Bloco
+- numeros.go
 - 4. Detalhamento por Commit
 - NewParserFromString
 - 📝 Registro de Desenvolvimento — 2026-07-20
@@ -73,15 +73,15 @@
 - test_vdom.js
 - global
 - Especificação Gramatical (`gramatica` do Harpia)
-- Lista
+- logar
 - ⚡ Recursos de Performance e Otimizações
-- I_aritmeticaMatematica
-- github.com/spf13/cobra.Command
+- Objeto
+- depurar.go
 - Pacote `cmd` (Comandos da CLI do Harpia)
 - 📝 Registro de Desenvolvimento — 2026-07-14
 - 📝 Registro de Desenvolvimento — 17 de Julho de 2026
 - 📝 Registro de Desenvolvimento — 2026-07-30
-- tuiModel
+- Estado
 - Capítulo 5 — Tipos de Dados Primitivos e Sistema de Tipos
 - GCMixin
 - Anotações e Especificações de Sintaxe do Harpia
@@ -89,19 +89,18 @@
 - 📝 Registro de Desenvolvimento — 2026-07-16
 - 3. Estrutura Detalhada das Seções
 - Disjuntor
-- lsp_test.go
-- hrp.Texto
+- ADR 0001: Paridade Semântica AST/VM, Concorrência Thread-Safe e Blindagem Zero-Trust na Stdlib
 - Pacote `parser` (Analisador Sintático do Harpia)
 - 🤖 Módulo `ia` (Biblioteca Padrão)
 - 7. Telemetria e Rastreamento (`de "telemetria"`)
-- lsp.go
+- lsp_test.go
 - 📝 Registro de Desenvolvimento — 2026-07-28
 - Exemplos Práticos de Aplicação — Guia de Marca Harpia
 - Harpia Lexer & Parser Maturity V2 — Design Specification
 - Pacote `lexer` (Analisador Léxico do Harpia)
-- cmd/doc.go
+- go_pkg_github_com_spf13_cobra
 - package.json
-- css_emitter.go
+- migrar.go
 - BaseNode
 - 🚀 FASE 6 — Compilação Nativa Otimizada e Ecossistema Corporativo
 - ✍️ Como Declarar Metadados de Rota
@@ -109,35 +108,35 @@
 - strings.go
 - linter_lsp_test.go
 - net/http.Request
-- 2. Resolução de Módulos (Stdlib Dinâmica)
-- I_comparacaoRica
-- Mapa
+- ⚡ FASE 5 — Tooling & Ecossistema
+- comandoCompilar
+- provedores.go
 - .NewTipo
 - 🇧🇷 Harpia — Roadmap Oficial
-- [Nome do Repositório]
+- README.md
 - Capítulo 7 — Desenvolvimento Frontend Reativo e SPA (Sinais, JSX, Estilos e SSR)
 - Detalhamento Técnico
 - 2. Detalhemento por Commit
 - 🚀 Subcomando: `executar` (`exec`)
-- 📦 Novos Módulos de Backend (v1.x)
+- EscopoCompilador
 - I_ObtemDoc
-- migrar.go
+- cache_lru_test.go
 - pwa.go
 - Global Constraints
 - 2. Arquitetura e Alterações Detalhadas
 - 5. Foreign Function Interface (`ffi`)
 - Especificação do Motor Único Harpia VM V2
-- Instancia
+- 2. Resolução de Módulos (Stdlib Dinâmica)
 - instalar_local.sh
 - runtime-web.js
 - Tipo
-- inicializarTuiModel
+- tuiModel
 - I_conversaoEntreTipos
-- formatar.go
+- DiagnosticRange
 - Componentes
-- hrp.Contexto
+- ModuloImpl
 - 🏗️ Sintaxe de Componentes JSX-like
-- PosicaoToken
+- I__iter__
 - Capítulo 10 — Arcabouço de Testes Nativos, Diagnósticos e Suporte a IA
 - UI
 - ElementoJSX
@@ -145,55 +144,55 @@
 - Global Constraints
 - Componentes
 - Comandos Suportados
-- met_criarJwt
-- analisarDependencias
+- Texto
+- transpiler_web.go
 - ⚡ Primitivas de Reatividade (Sinais)
 - constructor
 - Executando Códigos Através do Terminal
-- transpiler_web.go
+- compartilhado.go
 - I_aritmeticaBooleana
 - Global Constraints
-- armazem
-- versao_test.go
+- 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
+- Exemplo: Contador Reativo
 - 🇧🇷 Manual de Referência Oficial do Harpia
 - Estrutura Detalhada dos Nós Avançados da AST
 - QueryBuilder
-- I__iter__
-- .Checar
-- Contador
-- DiagnosticRange
+- Componentes
+- Funções
+- sync.RWMutex
+- init
 - Global Constraints
 - ConexaoRedis
 - PULL_REQUEST_TEMPLATE.md
 - 🎨 Estilização Unificada e Classes Utilitárias PT
-- SequenciaNumerica
+- repository
 - Biblioteca
-- NewErro
-- provedores.go
+- ObterSugestaoErro
+- scripts
 - 2. Métricas de Observabilidade (`de "metricas"`)
-- TarefaAgendada
+- Background
 - .registrarMetrica
 - Global Constraints
+- PublishDiagnosticsParams
+- DidChangeTextDocumentParams
 - I_ObtemMapa
 - ClienteVetorial
 - ColecaoMongo
-- efeito
+- ArgumentoNomeadoObj
 - 🔄 Subcomando: `atualize`
-- Mapeamento Detalhado do Pacote `compartilhado`
-- 1. Logs Estruturados (`de "logs"`)
-- 3. Validador de Esquemas de Dados (`de "esquema"`)
+- SuiteTestesJSON
+- LSPRange
+- TestRoteamentoEForca
+- init
 - TransacaoSQL
 - Foreground
-- serializeMap
-- I__define_atributo__
-- I__define_item__
-- I__divide_e_atribui__
-- I__divide_inteiro_e_atribui__
-- I__inicializa__
-- I__multiplica_e_atribui__
-- I__obtem_attributo__
+- .M__obtem__
+- Tracer
+- DidOpenTextDocumentParams
+- ExecucaoPlaygroundResponse
+- Esquema
+- .M__obtem__
 - Flags Suportadas
-- I__tamanho__
 - Módulos de Extensões Externas (.so)
 - Soquete
 - Aplicar-Estilo
@@ -204,28 +203,28 @@
 - NomeOpcode
 
 ## God Nodes (most connected - your core abstractions)
-1. `Objeto` - 357 edges
-2. `NewErroF()` - 204 edges
-3. `Tupla` - 191 edges
-4. `VerificaNumeroArgumentos()` - 123 edges
-5. `Tipo` - 120 edges
-6. `Interpretador` - 113 edges
-7. `NewContexto()` - 108 edges
-8. `Inteiro` - 90 edges
-9. `NewTexto()` - 85 edges
-10. `Parser` - 81 edges
+1. `Objeto` - 596 edges
+2. `Texto` - 284 edges
+3. `Tupla` - 279 edges
+4. `Tipo` - 237 edges
+5. `Inteiro` - 228 edges
+6. `NewErroF()` - 204 edges
+7. `Interpretador` - 192 edges
+8. `Contexto` - 189 edges
+9. `Escopo` - 157 edges
+10. `Mapa` - 156 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `6.1 Tema de Sintaxe Oficial ("Harpia Dark")` --references--> `sinal()`  [INFERRED]
   docs/BRAND_GUIDELINES.md → stdlib/web/runtime-web.js
 - `7.2 Tema de Sintaxe — "Harpia Light"` --references--> `sinal()`  [INFERRED]
   docs/BRAND_GUIDELINES.md → stdlib/web/runtime-web.js
+- `Conceitos demonstrados` --references--> `efeito()`  [INFERRED]
+  exemplos/frontend/contador/README.md → stdlib/web/runtime-web.js
+- ``fix(cli): aprimorar comandos cli, lsp, formatador, transpiler e runtime-web`` --references--> `armazem()`  [INFERRED]
+  docs/commits/2026-11-04_auditoria-master-seguranca-vm-stdlib.md → stdlib/web/runtime-web.js
 - `8. Linter Estático Exige `renderizar` e `montar` em `globalsLinter`` --references--> `montar()`  [INFERRED]
   anotacoes.md → stdlib/web/runtime-web.js
-- `13.1. Reatividade por Sinais (Fine-Grained)` --references--> `usarNotificacao()`  [INFERRED]
-  Manual.md → stdlib/web/runtime-web.js
-- `1. Visão Geral das Alterações` --references--> `NotificacaoToast()`  [INFERRED]
-  docs/commits/2026-07-28_evolucao-backlog-sprint6.md → stdlib/web/runtime-web.js
 
 ## Import Cycles
 - 3-file cycle: `hrp/importe_test.go -> stdlib/stdlib.go -> stdlib/arquivos/arquivos.go -> hrp/importe_test.go`
@@ -249,63 +248,63 @@
 - 3-file cycle: `hrp/importe_test.go -> stdlib/stdlib.go -> stdlib/pdf/pdf_test.go -> hrp/importe_test.go`
 - 3-file cycle: `hrp/importe_test.go -> stdlib/stdlib.go -> stdlib/embutidos/embutidos_test.go -> hrp/importe_test.go`
 
-## Communities (193 total, 40 thin omitted)
+## Communities (189 total, 38 thin omitted)
 
-### Community 0 - "Interpretador"
-Cohesion: 0.05
-Nodes (21): adicionaContextoSeNaoTiver(), Interpretador, AcessoMembroOpcional, AguardeNode, ArgumentoNomeado, DecimalLiteral, DeclEnum, DeclEstilo (+13 more)
+### Community 0 - "ast_nodes.go"
+Cohesion: 0.03
+Nodes (62): encontrarImportes(), PosicaoToken, Anotacao, AcessoMembro, AcessoMembroOpcional, AguardeNode, ArgumentoNomeado, AsseguraNode (+54 more)
 
-### Community 1 - "ObtemAtributoS"
-Cohesion: 0.08
-Nodes (15): InicializaModulo(), TestConversaoPelaChamadaDoConstrutor(), Chamar(), DefineAtributo(), DefineItem(), NomeAtributo(), NovaInstancia(), ObtemAtributoRecursivamente() (+7 more)
+### Community 1 - "Compilador"
+Cohesion: 0.19
+Nodes (5): Compilador, Padroes(), TiposParametros(), LoopFrame, ProgramaCompilado
 
-### Community 2 - "ast_nodes.go"
-Cohesion: 0.06
-Nodes (25): encontrarImportes(), Anotacao, AcessoMembro, ChamadaFuncao, DeclClasse, DeclEscolha, DeclFuncao, DeclInterface (+17 more)
+### Community 2 - "I_aritmeticaMatematica"
+Cohesion: 0.12
+Nodes (9): I__adiciona__, I_aritmeticaMatematica, I__divide__, I__divide_inteiro__, I__mod__, I__multiplica__, I__neg__, I__pos__ (+1 more)
 
-### Community 3 - "sinal"
-Cohesion: 0.10
-Nodes (31): Como rodar, Conceitos demonstrados, Exemplo: Formulário de Contato, 💻 Recursos Avançados Frontend Reativos (`frontend/`), 12.8. A Galeria Oficial de Exemplos e Demonstrações (Pasta `exemplos/`), 13.10. Novas Primitivas Avançadas e Sinais de Tempo, 1. `harpia` (ou `harpia executar` sem argumentos), Aguardar() (+23 more)
+### Community 3 - "4. Detalhamento por Commit"
+Cohesion: 0.15
+Nodes (12): 1. Visão Geral das Alterações, 2. Arquitetura Afetada & Decisões (ADRs), 3. Mapa de Arquivos Modificados, 4. Detalhamento por Commit, 5. Dívida Técnica & Próximos Passos, `chore(infra): atualizar extensao vscode, pipelines ci/cd, adr e grafo de conhecimento`, `fix(cli): aprimorar comandos cli, lsp, formatador, transpiler e runtime-web`, `fix(core): garantir paridade semantica, aritmetica decimal e seguranca concorrente` (+4 more)
 
 ### Community 4 - "NewErroF"
-Cohesion: 0.07
-Nodes (36): Adiciona(), AdicionaEAtribui(), Diferente(), Divide(), DivideEAtribui(), DivideInteiro(), E(), Igual() (+28 more)
+Cohesion: 0.05
+Nodes (40): Diferente(), Divide(), DivideInteiro(), E(), Igual(), MaiorOuIgual(), MaiorQue(), MenorOuIgual() (+32 more)
 
-### Community 5 - "hrp.Escopo"
-Cohesion: 0.08
-Nodes (7): NewConstSimbolo(), NewVarSimbolo(), NewFuncao(), NewModuloComEscopo(), Simbolo, Padroes(), TiposParametros()
+### Community 5 - "Programa"
+Cohesion: 0.24
+Nodes (7): entradaAstLSP, encontrarDeclNoAST(), Otimizador, Otimizar(), contextoUltimoPrograma(), NewFuncao(), Programa
 
 ### Community 6 - "Lexer"
-Cohesion: 0.22
+Cohesion: 0.19
 Nodes (10): Lexer, isBinDigit(), isDigit(), isHexDigit(), isLetterOrUnderscore(), isOctDigit(), SnapshotLex, Token (+2 more)
 
 ### Community 7 - "NewMetodoOuPanic"
-Cohesion: 0.03
-Nodes (50): ObjetoPromiseResult, Esquema, init(), ConverteDeGo(), ConverteParaGo(), NewMapaVazio(), NewMetodo(), NewMetodoOuPanic() (+42 more)
+Cohesion: 0.04
+Nodes (37): ObjetoPromiseResult, ObterContextoAtivo(), init(), NewMetodo(), NewMetodoOuPanic(), RotaMeta, Servidor, Retentativa (+29 more)
 
-### Community 8 - "i18n.go"
-Cohesion: 0.38
-Nodes (8): entradaPot, caminharPtst(), caminhoTraducoes(), comandoI18n(), escaparPo(), escreverPot(), extrairEntradas(), stripComentarios()
+### Community 8 - "I_comparacaoRica"
+Cohesion: 0.15
+Nodes (7): I_comparacaoRica, I__diferente__, I__igual__, I__maior_ou_igual__, I__maior_que__, I__menor_ou_igual__, I__menor_que__
 
-### Community 9 - "Compilador"
-Cohesion: 0.07
-Nodes (26): ArmazenarNoCache(), hashFNV1a(), LimparCache(), NovoShardedCache(), novoShardLRU(), ObterDoCache(), TestShardedCache_Concorrencia(), TestShardedCache_CopiaDefensiva() (+18 more)
+### Community 9 - "cache_lru.go"
+Cohesion: 0.21
+Nodes (10): ArmazenarNoCache(), hashFNV1a(), LimparCache(), novoShardLRU(), ObterDoCache(), TestShardedCache_FuncoesPacote(), elementoLRU, noLRU (+2 more)
 
-### Community 10 - "Objeto"
-Cohesion: 0.03
-Nodes (135): ObjetoRoteador, ObjetoRoteadorApp, DivideInteiroEAtribui(), SubtraiEAtribui(), ObterContextoAtivo(), I__adiciona_e_atribui__, I__bytes__, I_Chamar (+127 more)
+### Community 10 - "Tupla"
+Cohesion: 0.04
+Nodes (98): init(), NewDecimal(), I__inicializa__, init(), NewTexto(), Tupla, VerificaNumeroArgumentos(), met_arq_acrescentar() (+90 more)
 
 ### Community 11 - "Parser"
-Cohesion: 0.09
-Nodes (4): IsKeyword(), Parser, NewParser(), ObterDicaSintatica()
+Cohesion: 0.16
+Nodes (5): ErroSintatico, IsKeyword(), Parser, NewParser(), ObterDicaSintatica()
 
 ### Community 12 - "Capítulo 6 — Biblioteca Padrão Completa (Stdlib)"
-Cohesion: 0.09
-Nodes (23): 4. Agendador de Tarefas e Filas (`de "tarefas"`), 6. Resiliência e Estabilidade (`de "resiliencia"`), Capítulo 6 — Biblioteca Padrão Completa (Stdlib), Funções Globais do Módulo:, Funções Globais do Módulo:, Módulo: `arquivos`, Módulo: `autenticacao`, Módulo: `bd` (+15 more)
+Cohesion: 0.07
+Nodes (29): 1. Logs Estruturados (`de "logs"`), 3. Validador de Esquemas de Dados (`de "esquema"`), 4. Agendador de Tarefas e Filas (`de "tarefas"`), 6. Resiliência e Estabilidade (`de "resiliencia"`), A Classe `Esquema`, Capítulo 6 — Biblioteca Padrão Completa (Stdlib), Funções de Configuração:, Funções de Gravação de Log: (+21 more)
 
-### Community 13 - "depurar.go"
-Cohesion: 0.21
-Nodes (6): DapMessage, comandoDepurar(), lidarComDap(), TestCmdDepurarDapHandshake(), TestCmdStressar(), TestDAPFallbackSemContentLength()
+### Community 13 - "2. Arquitetura e Componentes"
+Cohesion: 0.25
+Nodes (7): 1. Visão Geral e Objetivos, 2.1 Reatividade Fina Avançada, 2.3 SSR, Hidratação e Gestão do Head (`usarCabecalho`), 2.4 Ferramentas de Desenvolvedor (DevTools), 2. Arquitetura e Componentes, 3. Pleno Alinhamento entre Frontend JS e Backend Go SSR, Especificação de Design — Evolução e Maturidade do Módulo Web do Harpia (`stdlib/web`)
 
 ### Community 14 - "repository"
 Cohesion: 0.04
@@ -316,32 +315,32 @@ Cohesion: 0.20
 Nodes (9): Guia Didático — Desenvolvimento Frontend SPA com Harpia (Fase 4), 🚀 Inicializador de Projetos (Scaffolding), Mapeamento Automático, Metadados Inteligentes para IA e SEO (AEO & GEO), 📦 Modelo Híbrido de Arquivos (`.hrp`, `.html`, `.estilo.hrp`), Navegação Dinâmica sem Recarregar (`<Link>`), 🌐 Renderização no Servidor (SSR) e Hidratação, 🛣️ Roteamento SPA por Arquivos (File-system Routing) (+1 more)
 
 ### Community 17 - "createParserAndCompare"
-Cohesion: 0.16
-Nodes (16): TestMultiplicacao(), TestExpresaoSe(), TestExpresaoSeSemCorpo(), TestChamadaFuncaoComArgumentos(), TestChamadaFuncaoSemArgumentos(), TestDeclareChameFuncaoComArgumentos(), TestDeclareFuncaoComParametrosECorpo(), TestDeclareFuncaoComParametrosSemCorpo() (+8 more)
-
-### Community 18 - "Biblioteca Padrão (`stdlib` do Harpia)"
 Cohesion: 0.11
-Nodes (18): 🏗️ Arquitetura de Registro Automático, Biblioteca Padrão (`stdlib` do Harpia), Como e Por que Funciona:, Constantes Disponíveis:, Constantes Disponíveis:, 📝 Exemplo Completo de Uso de Módulos, Métodos e Funções:, 🧩 Módulo Central: `embutidos` (+10 more)
+Nodes (26): TestMultiplicacao(), TestExpresaoSe(), TestExpresaoSeSemCorpo(), TestAssociatividadeDivisao(), TestAssociatividadePotencia(), TestAssociatividadeSubtracao(), TestImportSemNomes(), TestImportValido() (+18 more)
+
+### Community 18 - "📦 Novos Módulos de Backend (v1.x)"
+Cohesion: 0.06
+Nodes (32): 10. Módulo: `ffi`, 11. Módulo: `ia`, 12. Módulo: `resiliencia`, 13. Módulo: `telemetria`, 14. Módulo: `http` (Servidor Web & Harpia API Console), 2. Módulo: `http`, 4. Módulo: `json`, `yaml` e `xml`, 5. Módulo: `cripto` (+24 more)
 
 ### Community 19 - "copiloto.go"
-Cohesion: 0.13
-Nodes (28): achadoRevisao, casarChave(), comandoCopiloto(), comandoCopilotoRefatorar(), comandoCopilotoRevisar(), comecaComPalavraChaveFuncao(), containsString(), contarParametros() (+20 more)
+Cohesion: 0.14
+Nodes (27): achadoRevisao, casarChave(), comandoCopiloto(), comandoCopilotoRefatorar(), comandoCopilotoRevisar(), comecaComPalavraChaveFuncao(), containsString(), contarParametros() (+19 more)
 
 ### Community 20 - "pacotes.go"
-Cohesion: 0.12
-Nodes (28): Lockfile, parseLockfile(), parseLockfileHRP(), salvarLockfile(), TestParseLockfileHRP(), TestParseLockfileJSON(), TestSalvarLockfile(), PacoteLockInfo (+20 more)
+Cohesion: 0.18
+Nodes (21): salvarLockfile(), PacoteManifest, baixarEExtrairPacote(), calcularSHA256(), comandoInstalar(), comandoPacote(), obterCaminhoELockfile(), obterUrlDoRegistro() (+13 more)
 
 ### Community 21 - "resiliencia_test.go"
-Cohesion: 0.19
-Nodes (11): dummyErr, NovoDisjuntor(), TestDisjuntorAbreAposLimiteFalhas(), TestDisjuntorFechaAposSucesso(), TestDisjuntorMeioAbertoApenasUmaSondaConcorrente(), TestDisjuntorMeioAbertoFalhaReabreImediatamente(), TestDisjuntorRecuperaAposTimeout(), TestRetentativaEsgotaTentativas() (+3 more)
+Cohesion: 0.16
+Nodes (13): dummyErr, NovoDisjuntor(), NovoLimiteDeTaxa(), TestDisjuntorAbreAposLimiteFalhas(), TestDisjuntorFechaAposSucesso(), TestDisjuntorMeioAbertoApenasUmaSondaConcorrente(), TestDisjuntorMeioAbertoFalhaReabreImediatamente(), TestDisjuntorRecuperaAposTimeout() (+5 more)
 
-### Community 23 - "NewLexer"
-Cohesion: 0.27
-Nodes (11): NewLexer(), NovoLexer(), TestBugFixesEInStreamCRLF(), TestFuncaoSimples(), TestLexer(), TestLexerBasesENumerosSeparados(), TestNumerosAvancados(), TestRecursosAvancadosLexer() (+3 more)
+### Community 23 - "parser/helpers.go"
+Cohesion: 0.08
+Nodes (22): extrairOpenAPI(), TranspilerNative, NewLexer(), NovoLexer(), Ast2string(), BenchmarkLexer10k(), BenchmarkLexer1k(), benchSource() (+14 more)
 
 ### Community 24 - "Inteiro"
-Cohesion: 0.06
-Nodes (26): StringParaInt(), init(), NewDecimal(), Inteiro, init(), NewInteiro(), InstanciaDe(), TestListaPopForaDoIntervaloEInPlace() (+18 more)
+Cohesion: 0.04
+Nodes (34): Inteiro, init(), NewInteiro(), InstanciaDe(), init(), TalvezLanceErroDivisaoPorZero(), Resposta, TestQueryBuilderImutabilidade() (+26 more)
 
 ### Community 25 - "🛠️ Caixa de Ferramentas (CLI)"
 Cohesion: 0.07
@@ -349,27 +348,27 @@ Nodes (29): 10. `harpia lsp`, 11. `harpia playground`, 12. `harpia formatar`, 13
 
 ### Community 26 - "testing.T"
 Cohesion: 0.04
-Nodes (114): TestLinterJSXComponentSignature(), TestLinterShadowingErroMesmoEscopo(), TestLinterShadowingWarning(), TestRuntimeWebBlindagemECicloDeVida(), TestTranspileClasse(), TestTranspileEnquanto(), TestTranspileFuncao(), TestTranspileIndexacao() (+106 more)
+Nodes (106): TestLinterJSXComponentSignature(), TestLinterShadowingErroMesmoEscopo(), TestLinterShadowingWarning(), TestTranspileClasse(), TestTranspileEnquanto(), TestTranspileFuncao(), TestTranspileIndexacao(), TestTranspileLista() (+98 more)
 
 ### Community 27 - "contributes"
 Cohesion: 0.12
 Nodes (16): [harpia], contributes, commands, configurationDefaults, fileIconThemes, grammars, keybindings, languages (+8 more)
 
 ### Community 28 - "Capítulo 4 — Análise Léxica e Sintática (Lexer, Parser & AST)"
-Cohesion: 0.11
-Nodes (19): Capítulo 4 — Análise Léxica e Sintática (Lexer, Parser & AST), Comentários de Bloco Aninhados, Entidades HTML Inline, Especificação Léxica Formal (`HarpiaLexer.g4`), Especificação Sintática Formal (`HarpiaParser.g4`), Estrutura Física de Coordenadas de Tokens, Flexibilidade da Regra de Ponto e Vírgula (`;`), Mapeamento Geográfico de Erros e Métodos Chave do `Parser` (+11 more)
+Cohesion: 0.09
+Nodes (23): 1. Cache LRU Thread-Safe (`cache_lru.go`), 2. Manipulação, Fast-Path e Indexação de Strings (`strings.go` & `compartilhado.go`), 3. Utilitários de Conversão e Bases Numéricas (`numeros.go`), Capítulo 4 — Análise Léxica e Sintática (Lexer, Parser & AST), Comentários de Bloco Aninhados, Entidades HTML Inline, Especificação Léxica Formal (`HarpiaLexer.g4`), Especificação Sintática Formal (`HarpiaParser.g4`) (+15 more)
 
-### Community 29 - "tokens.go"
-Cohesion: 0.15
-Nodes (9): Ast2string(), BenchmarkLexer10k(), BenchmarkLexer1k(), benchSource(), FuzzLexer(), isAstEquals(), limparPosicoesVal(), BenchmarkParser() (+1 more)
+### Community 29 - "formatar.go"
+Cohesion: 0.33
+Nodes (8): comandoFormatar(), contarDelimitadoresForaDeStrings(), FormatarCodigoHarpia(), GerarUnifiedDiff(), maximo(), TestFormatarCodigoHarpia(), TestFormatarStdinEChavesEmStrings(), TestGerarUnifiedDiff()
 
 ### Community 30 - "Pacote `playground` (TUI e REPL Interativo do Harpia)"
 Cohesion: 0.08
 Nodes (25): 1. Declarações Simples e Persistência de Escopo, 1. Orquestrador do Loop REPL (`playground.go`), 2. Declarações Multilinha (Controle de Prompt `... `), 2. Máquina de Estado do Buffer (`estado.go`), 3. Máquina Virtual e Escopo Persistente (`executor.go`), 3. Tratamento de Erros Sem Interrupção, 4. Saindo do Ambiente, 💻 API de Métodos e Estruturas Internas (+17 more)
 
 ### Community 31 - ".NewEscopo"
-Cohesion: 0.12
-Nodes (30): comandoExecutar(), TestCmdExecutarComPerfil(), TestEscopoConcorrenteRace(), ExecutarArquivo(), MaquinarioImporteModulo(), MultiImporteModulo(), TestImportacoesRelativas(), TestMaquinarioImporteModulo() (+22 more)
+Cohesion: 0.18
+Nodes (23): DefinirExecutadorVM(), TestEscopoConcorrenteRace(), TestImportacoesRelativas(), TestTipagemEstaticaExecucao(), TestSSRServidorCompleto(), TestSSRBasico(), TestSSRElementosCustomizados(), NewCompilador() (+15 more)
 
 ### Community 32 - "🏗️ Novas Ferramentas de Tooling e Ecossistema (Fase 5, 5-B & 5-C)"
 Cohesion: 0.09
@@ -387,17 +386,17 @@ Nodes (22): 1.1 Interpolação de Strings (Templates e Chaves `{}`), 1. Declara�
 Cohesion: 0.10
 Nodes (21): 11.2. Primitivas de Concorrência & Event Loop Cooperativo (Sprints 9 e 10), 23.1. Compilador de Bytecode (`Compilador`), 23.2. Máquina Virtual Baseada em Pilha (`VM`), Argumentos Nomeados e Opcionais, Capítulo 8 — Arquitetura da Máquina Virtual, Bytecode e Runtime (`hrp` & `vm/`), Construtores Universais de Exceções e Erros Ricos, Contexto de Execução, Estado da VM e Controle de Sandboxing, Gerenciamento de Memória, Ciclos de Referência e GC (+13 more)
 
-### Community 36 - "createParser"
-Cohesion: 0.33
-Nodes (10): TestAssociatividadeDivisao(), TestAssociatividadePotencia(), TestAssociatividadeSubtracao(), TestImportSemNomes(), TestImportValido(), TestMapaLiteralExplicito(), TestMapaLiteralImplicito(), TestParserClasses() (+2 more)
+### Community 36 - "Lockfile"
+Cohesion: 0.31
+Nodes (7): Lockfile, parseLockfile(), parseLockfileHRP(), TestParseLockfileHRP(), TestParseLockfileJSON(), TestSalvarLockfile(), PacoteLockInfo
 
-### Community 37 - "atualizar.go"
-Cohesion: 0.19
-Nodes (11): comandoAtualizar(), extrairTarGzNativo(), extrairZipNativo(), obterUltimaVersaoURL(), createTestTarGz(), createTestZip(), TestChecarVersaoMock(), TestComandoAtualizarChecarFlag() (+3 more)
+### Community 37 - "go_pkg_bytes"
+Cohesion: 0.12
+Nodes (14): comandoAtualizar(), extrairTarGzNativo(), extrairZipNativo(), obterUltimaVersaoURL(), createTestTarGz(), createTestZip(), TestChecarVersaoMock(), TestComandoAtualizarChecarFlag() (+6 more)
 
-### Community 38 - "Galeria de Exemplos (`exemplos` do Harpia)"
-Cohesion: 0.22
-Nodes (8): 1. Exemplos de Terminal / Console:, 2. Exemplos de Frontend Web:, 🚀 Como Executar os Exemplos, Galeria de Exemplos (`exemplos` do Harpia), 🔌 Recurso Avançado: Conectividade de Redes (`soquetes`), ⚙️ Recurso Avançado: Extensões Dinâmicas Go (`modExterno`), 📋 Relação Geral de Demonstrações, 📖 Índice
+### Community 38 - "sinal"
+Cohesion: 0.07
+Nodes (31): 🏛️ Comparação Arquitetural: Para Desenvolvedores Angular, Exemplo Comparativo Prático, Tabela de Equivalências, Como rodar, Conceitos demonstrados, Exemplo: Formulário de Contato, Como rodar, Conceitos demonstrados (+23 more)
 
 ### Community 39 - "Pacote `hrp` (Núcleo e Runtime do Harpia)"
 Cohesion: 0.10
@@ -407,9 +406,9 @@ Nodes (20): 5. Orquestração do Ambiente da VM (`Contexto`), 🗑️ Coletor de
 Cohesion: 0.10
 Nodes (19): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arquitetura Afetada, 3. Mapa de Arquivos Modificados, 4. Detalhamento por Commit, 5. ✅ O Que Está Funcionando, 6. ❌ O Que Está Pendente, 7. ⚠️ Dívida Técnica Identificada (+11 more)
 
-### Community 41 - "iniciar.go"
-Cohesion: 0.29
-Nodes (13): comandoBackend(), comandoFrontend(), comandoMonolito(), comandoNovo(), criarAssetsPadrao(), escreverArquivo(), exibirSucessoCompleto(), injetarRotaEmRotasHrp() (+5 more)
+### Community 41 - "github.com/spf13/cobra.Command"
+Cohesion: 0.08
+Nodes (49): comandoAuditar(), comandoChecar(), ExecutarChecagemSilenciosa(), InstalarComandos(), comandoCompletar(), analisarDependencias(), comandoDiagramar(), detectarCamada() (+41 more)
 
 ### Community 42 - "🟢 FASE 3 — Stdlib Robusta (Backend Real)"
 Cohesion: 0.09
@@ -420,24 +419,24 @@ Cohesion: 0.25
 Nodes (8): ✨ Características Principais & Performance, 🏗️ Clean Architecture e DDD Nativo, 📚 Documentação & Guias, 🦅 Harpia, 🚀 Instalação Rápida, Linux / macOS, 📖 O que é a Harpia?, Windows (PowerShell)
 
 ### Community 44 - "limpar"
-Cohesion: 0.09
-Nodes (28): 18-B. Subcomando: `pacote` — Ciclo de Vida de Dependências, Global Constraints, Harpia CLI Fase C (Lockfile & Gerenciamento de Pacotes) Implementation Plan, Task 1: Lockfile Data Structure & Parser (`cmd/lockfile.go`), Task 2: SHA-256 Checksum Integrity & Deterministic Install (`cmd/pacotes.go`), Task 3: Package Lifecycle Subcommands (`harpia pacote`), 1. Formato e Resolução do Lockfile (`harpia.lock` / `harpia.lock.json`), 2. Verificação de Integridade por Checksum SHA-256 (+20 more)
+Cohesion: 0.10
+Nodes (27): 18-B. Subcomando: `pacote` — Ciclo de Vida de Dependências, Global Constraints, Harpia CLI Fase C (Lockfile & Gerenciamento de Pacotes) Implementation Plan, Task 1: Lockfile Data Structure & Parser (`cmd/lockfile.go`), Task 2: SHA-256 Checksum Integrity & Deterministic Install (`cmd/pacotes.go`), Task 3: Package Lifecycle Subcommands (`harpia pacote`), Objetivo, 12-B. `harpia pacote <subcomando>` (+19 more)
 
 ### Community 45 - "Diretrizes de Marca: Harpia 🦅"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (23): 1. Essência da Marca, 2.1 Paleta de Cores (Cromia), 2.2 Texturas e Elementos Gráficos, 2. Identidade Visual & Design, 3. Tipografia, 4. Tom de Voz e Escrita, 5. Diretrizes para a Comunidade & Ecossistema, 6.1 Tema de Sintaxe Oficial ("Harpia Dark") (+15 more)
 
-### Community 46 - "Bloco"
-Cohesion: 0.10
-Nodes (8): ValidarTipo(), Bloco, BlocoPara, DeclTeste, Enquanto, ExpressaoSe, OpUnaria, funcaoInternal
+### Community 46 - "numeros.go"
+Cohesion: 0.31
+Nodes (7): DecParaString(), IntParaString(), StringParaDec(), StringParaInt(), StringParaIntBase(), TestFormatacaoNumerica(), TestStringParaIntBase()
 
 ### Community 47 - "4. Detalhamento por Commit"
-Cohesion: 0.18
-Nodes (9): 4. Detalhamento por Commit, `docs: atualiza especificacoes, manuais e READMEs globais do Harpia`, `docs(cmd): documenta comandos da CLI e utilitarios do compilador`, `docs(engine): documenta compilador, vm, parser, lexer e playground`, `docs(main): adiciona comentarios inline e didaticos no app e arquivos main`, `docs(stdlib): adiciona comentarios inline em toda a biblioteca padrao (stdlib)`, `docs(vscode): adiciona JSDoc e documentacao na extensao vscode-harpia`, 25. `harpia publicar [alvo] [flags]` (+1 more)
+Cohesion: 0.17
+Nodes (10): 4. Detalhamento por Commit, `docs: atualiza especificacoes, manuais e READMEs globais do Harpia`, `docs(cmd): documenta comandos da CLI e utilitarios do compilador`, `docs(engine): documenta compilador, vm, parser, lexer e playground`, `docs(main): adiciona comentarios inline e didaticos no app e arquivos main`, `docs(stdlib): adiciona comentarios inline em toda a biblioteca padrao (stdlib)`, `docs(vscode): adiciona JSDoc e documentacao na extensao vscode-harpia`, 25. `harpia publicar [alvo] [flags]` (+2 more)
 
 ### Community 48 - "NewParserFromString"
-Cohesion: 0.08
-Nodes (36): TestCoerrenciaRuntimeWebHeader(), comandoCompilar(), compilarParaWeb(), copiarArquivo(), corrigirCaminhoImport(), GerarImportHeaderWeb(), gerarWebPSeDisponivel(), importJaExiste() (+28 more)
+Cohesion: 0.23
+Nodes (15): NewParserFromString(), TestASTDocstrings(), TestAtribucaoLogicaECoalescente(), TestDesestruturacao(), TestDiagnosticosRicos(), TestEncadeamentoOpcionalCompleto(), TestNoPosicaoCoordenadas(), TestParseCoalescenciaNula() (+7 more)
 
 ### Community 49 - "📝 Registro de Desenvolvimento — 2026-07-20"
 Cohesion: 0.11
@@ -445,11 +444,11 @@ Nodes (17): 1. Visão Geral das Alterações, 2. Arquitetura Afetada, 3. Mapa de
 
 ### Community 50 - "extension.js"
 Cohesion: 0.16
-Nodes (10): vscode-languageclient, activate(), buscarCaminhoImportado(), cp, escaparArgShell(), escaparRegex(), { LanguageClient }, obterComentariosSuperiores() (+2 more)
+Nodes (9): vscode-languageclient, activate(), buscarCaminhoImportado(), cp, escaparRegex(), { LanguageClient }, obterComentariosSuperiores(), resolverPalavraEstendida() (+1 more)
 
 ### Community 51 - "🛠️ Recursos de Produção e Otimizações de Performance (Fase 4-C)"
-Cohesion: 0.17
-Nodes (16): 13. Subcomando: `lsp` — Servidor de Linguagem Integrado, 3. Mapa de Arquivos Modificados, 1. Two-Way Data Binding (`ligar={sinal}`), 2. Modificadores de Eventos Declarativos, 3. Keyed Diffing (`chave`) no Virtual DOM, 4. Sinais Persistentes (`sinalPersistente`), 5. Sinais Assíncronos (`recurso`), 6. Injeção de Dependências (`Provedor` & `injetar`) (+8 more)
+Cohesion: 0.10
+Nodes (23): 13. Subcomando: `lsp` — Servidor de Linguagem Integrado, 3. Mapa de Arquivos Modificados, 1. Two-Way Data Binding (`ligar={sinal}`), 2. Modificadores de Eventos Declarativos, 3. Keyed Diffing (`chave`) no Virtual DOM, 4. Sinais Persistentes (`sinalPersistente`), 5. Sinais Assíncronos (`recurso`), 6. Injeção de Dependências (`Provedor` & `injetar`) (+15 more)
 
 ### Community 52 - "📝 Registro de Desenvolvimento — 2026-07-22"
 Cohesion: 0.12
@@ -461,7 +460,7 @@ Nodes (15): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arqu
 
 ### Community 54 - "test_vdom.js"
 Cohesion: 0.08
-Nodes (33): Global Constraints, Módulo Web do Harpia (`stdlib/web`) — Plano de Implementação de Maturidade Industrial, Task 1: Primitivas Reativas Avançadas (`semRastreio`, `lote`, `aoMontar`, `aoDesmontar`), Task 2: Suporte a Elementos SVG (`createElementNS`) e `<Fragmento>`, Task 3: Gestão Dinâmica do Head (`usarCabecalho`) e DevTools (`__HARPIA_DEVTOOLS__`), Task 4: Sincronização de Runtime Go (`cmd/runtime_web_code.go`), SSR Backend (`hrp/vdom_backend.go`) e Testes de Integração, 1. Visão Geral e Objetivos, 2.1 Reatividade Fina Avançada (+25 more)
+Nodes (45): Global Constraints, Módulo Web do Harpia (`stdlib/web`) — Plano de Implementação de Maturidade Industrial, Task 1: Primitivas Reativas Avançadas (`semRastreio`, `lote`, `aoMontar`, `aoDesmontar`), Task 2: Suporte a Elementos SVG (`createElementNS`) e `<Fragmento>`, Task 3: Gestão Dinâmica do Head (`usarCabecalho`) e DevTools (`__HARPIA_DEVTOOLS__`), Task 4: Sincronização de Runtime Go (`cmd/runtime_web_code.go`), SSR Backend (`hrp/vdom_backend.go`) e Testes de Integração, 2.2 Virtual DOM, SVG e Fragmentos, 4. Plano de Testes (+37 more)
 
 ### Community 55 - "global"
 Cohesion: 0.29
@@ -471,21 +470,21 @@ Nodes (7): global, branches, functions, lines, statements, jest, coverageThresho
 Cohesion: 0.12
 Nodes (15): Constantes e Literais Primitivos:, Controle de Fluxo, Exceções e Pattern Matching:, Delimitadores e Identificadores Unicode:, 🛠️ Dicas para Visualização e Desenvolvimento, Especificação Gramatical (`gramatica` do Harpia), 🔤 Especificação Léxica Detalhada (`HarpiaLexer.g4`), 🌳 Especificação Sintática Detalhada (`HarpiaParser.g4`), Estilos e Testes Nativos: (+7 more)
 
-### Community 57 - "Lista"
-Cohesion: 0.18
-Nodes (5): NewIterador(), Lista, init(), TestIteradorNativoBytes(), TestIteradorNativoTexto()
+### Community 57 - "logar"
+Cohesion: 0.25
+Nodes (9): formatarData(), logar(), met_logs_alerta(), met_logs_configurar(), met_logs_depurar(), met_logs_erro(), met_logs_info(), TestLogsConfigurarJSON() (+1 more)
 
 ### Community 58 - "⚡ Recursos de Performance e Otimizações"
 Cohesion: 0.12
 Nodes (15): 1. Loop `switch` Zero-Alloc Plano, 2. Slots Locais $O(1)$ com Indexação `uint16`, 3. Internamento $O(1)$ de Constantes (`constMap`), 4. Laços `para-em` (`BlocoPara`) e Controle de Fluxo (`pare` / `continue`), 5. Reatribuição Composta e Escritas em Coleções / Membros, 6. Suporte Expandido a Operandos 16-Bit BigEndian, 7. Gestão de Memória via `sync.Pool`, 8. Tratamento Nativo de Exceções (`tente / capture`) (+7 more)
 
-### Community 59 - "I_aritmeticaMatematica"
-Cohesion: 0.12
-Nodes (9): I__adiciona__, I_aritmeticaMatematica, I__divide__, I__divide_inteiro__, I__mod__, I__multiplica__, I__neg__, I__pos__ (+1 more)
+### Community 59 - "Objeto"
+Cohesion: 0.02
+Nodes (44): ObjetoBrowserStub, ObjetoRoteador, ObjetoRoteadorApp, SequenciaNumerica, Adiciona(), AdicionaEAtribui(), DivideEAtribui(), DivideInteiroEAtribui() (+36 more)
 
-### Community 60 - "github.com/spf13/cobra.Command"
-Cohesion: 0.14
-Nodes (26): comandoAuditar(), comandoChecar(), ExecutarChecagemSilenciosa(), InstalarComandos(), comandoCompletar(), comandoDiagramar(), comandoEmpacotar(), comandoErroCLI() (+18 more)
+### Community 60 - "depurar.go"
+Cohesion: 0.24
+Nodes (6): DapMessage, comandoDepurar(), lidarComDap(), TestCmdDepurarDapHandshake(), TestCmdStressar(), TestDAPFallbackSemContentLength()
 
 ### Community 61 - "Pacote `cmd` (Comandos da CLI do Harpia)"
 Cohesion: 0.17
@@ -503,25 +502,25 @@ Nodes (14): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arqu
 Cohesion: 0.13
 Nodes (14): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arquitetura Afetada, 3. Mapa de Arquivos Modificados, 4. Detalhamento por Commit, 5. ✅ O Que Está Funcionando, 6. ❌ O Que Está Pendente, 7. ⚠️ Dívida Técnica Identificada (+6 more)
 
-### Community 65 - "tuiModel"
-Cohesion: 0.11
-Nodes (8): tuiModel, Estado, NewEstado(), NovoExecutor(), indicador, ArquivoHistorico(), homeDirectory(), Inicializa()
+### Community 65 - "Estado"
+Cohesion: 0.22
+Nodes (7): Estado, NewEstado(), NovoExecutor(), indicador, ArquivoHistorico(), homeDirectory(), Inicializa()
 
 ### Community 66 - "Capítulo 5 — Tipos de Dados Primitivos e Sistema de Tipos"
 Cohesion: 0.13
 Nodes (15): 1. `Inteiro` (int64), 2. `Decimal` (float64), 3. `Booleano` (bool), 4. `Texto` (string), 5. `Lista` (`[]Objeto` mutável), 6. `Tupla` (`[]Objeto` imutável), 7. `Mapa` (`map[string]Objeto`), 8. `Bytes` (`[]byte` mutável) (+7 more)
 
 ### Community 67 - "GCMixin"
-Cohesion: 0.12
-Nodes (9): ColetarCiclos(), LiberarObjeto(), obterIDObjetoGC(), ReterObjeto(), GCMixin, ObjetoGC, TensorObj, BancoVetorialObj (+1 more)
+Cohesion: 0.08
+Nodes (10): ClasseObj, ColetarCiclos(), GCMixin, LiberarObjeto(), obterIDObjetoGC(), ReterObjeto(), Instancia, ObjetoGC (+2 more)
 
 ### Community 68 - "Anotações e Especificações de Sintaxe do Harpia"
 Cohesion: 0.14
 Nodes (13): 1. Variáveis e Constantes, 2. Estruturas de Controle (Sem parênteses nas condições), 3. Funções e Parâmetros Avançados, 4. Classes e Orientação a Objetos (Herança Simples), 5. Operador de Canal (Pipes `|>`), 6. Tratamento de Erros, 7. Falta de Suporte a Destructuring de Variáveis (`var [A, B] = ...`), 7. Reatividade (Sinais e Estado Global) (+5 more)
 
 ### Community 69 - "gerar.go"
-Cohesion: 0.30
-Nodes (12): TestGerarCPF(), comandoGerar(), gerarCEP(), gerarCPF(), gerarEmail(), gerarEmpresa(), gerarEndereco(), gerarNomeCompleto() (+4 more)
+Cohesion: 0.27
+Nodes (13): TestChecarArquiteturaEstritaECPF(), TestGerarCPF(), comandoGerar(), gerarCEP(), gerarCPF(), gerarEmail(), gerarEmpresa(), gerarEndereco() (+5 more)
 
 ### Community 70 - "📝 Registro de Desenvolvimento — 2026-07-16"
 Cohesion: 0.14
@@ -532,16 +531,12 @@ Cohesion: 0.14
 Nodes (13): 1. Visão Geral e Objetivos, 2. Identidade Visual & Cromia (Alinhada a BRAND_GUIDELINES.md), 3. Estrutura Detalhada das Seções, 4. Plano de Verificação, Especificação de Design — Redesign da Página Principal do Portal Harpia, Seção 1: Hero Banner (Cabeçalho de Impacto), Seção 2: Grid de Diferenciais & Inovações (8 Cards), Seção 3: Ecossistema Dev Tools (VS Code, TUI, CLI) (+5 more)
 
 ### Community 72 - "Disjuntor"
-Cohesion: 0.13
-Nodes (7): GerenciadorFila, Disjuntor, LimiteDeTaxa, NovoLimiteDeTaxa(), TestLimiteDeTaxa(), Metrica, DataHora
+Cohesion: 0.15
+Nodes (5): GerenciadorFila, Disjuntor, LimiteDeTaxa, Metrica, DataHora
 
-### Community 73 - "lsp_test.go"
-Cohesion: 0.18
-Nodes (15): comandoLsp(), iniciarServidorLSP(), lerMensagemLSP(), processarDiagnosticosLSP(), TestLerMensagemLSPLimites(), TestLSPCleanArchLinter(), TestLSPCompletion(), TestLSPDefinition() (+7 more)
-
-### Community 74 - "hrp.Texto"
-Cohesion: 0.07
-Nodes (15): boolParaBooleano(), init(), NewBooleano(), init(), NewBytes(), TestConversaoDeTipos(), TestConversaoParaBytesPorMetodoImplementado(), TestCriacaoDeInstanciaVazia() (+7 more)
+### Community 73 - "ADR 0001: Paridade Semântica AST/VM, Concorrência Thread-Safe e Blindagem Zero-Trust na Stdlib"
+Cohesion: 0.14
+Nodes (13): 1. Fundamentação Jurídica & Fontes Normativas Diretas, 2. Decisão de Arquitetura, 3. Matriz de Implementação Técnica (*IN-CODE*), 4. Matriz de Ações de Governança & Jurídicas (*OFF-CODE*), 5. Prazos Legais de Guarda e Políticas de Retenção, 6. Matriz de Conformidade e Mitigação de Riscos, 7. Consequências e Resultados, ADR 0001: Paridade Semântica AST/VM, Concorrência Thread-Safe e Blindagem Zero-Trust na Stdlib (+5 more)
 
 ### Community 75 - "Pacote `parser` (Analisador Sintático do Harpia)"
 Cohesion: 0.10
@@ -552,19 +547,19 @@ Cohesion: 0.14
 Nodes (13): 1. Ollama (Provedor Local / Padrão), 2. Google Gemini, 3. OpenAI, Atributos, 🚀 Como Importar, Construtor, Exemplo 1: Conversa Simples com Memória, Exemplo 2: Comunicação Multi-Agente (+5 more)
 
 ### Community 77 - "7. Telemetria e Rastreamento (`de "telemetria"`)"
-Cohesion: 0.29
-Nodes (7): 7. Telemetria e Rastreamento (`de "telemetria"`), A Classe `Metrica`, A Classe `Span`, A Classe `Tracer`, Funções Globais do Módulo:, 3. Módulo: `bd`, buscar()
+Cohesion: 0.40
+Nodes (5): 7. Telemetria e Rastreamento (`de "telemetria"`), A Classe `Metrica`, A Classe `Span`, A Classe `Tracer`, Funções Globais do Módulo:
 
-### Community 78 - "lsp.go"
-Cohesion: 0.19
-Nodes (19): DidChangeTextDocumentParams, DidOpenTextDocumentParams, assinaturaClasse(), assinaturaFuncao(), assinaturaVar(), buscarDocInserida(), encontrarDeclNoAST(), enviarMensagemLSP() (+11 more)
+### Community 78 - "lsp_test.go"
+Cohesion: 0.11
+Nodes (26): DiagnosticPosition, assinaturaClasse(), assinaturaFuncao(), assinaturaVar(), buscarDocInserida(), enviarMensagemLSP(), iniciarServidorLSP(), lerMensagemLSP() (+18 more)
 
 ### Community 79 - "📝 Registro de Desenvolvimento — 2026-07-28"
 Cohesion: 0.15
 Nodes (12): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arquitetura Afetada, 3. Mapa de Arquivos Modificados, 4. Detalhamento por Commit, 5. ✅ O Que Está Funcionando, 6. ❌ O Que Está Pendente, 7. ⚠️ Dívida Técnica Identificada (+4 more)
 
 ### Community 80 - "Exemplos Práticos de Aplicação — Guia de Marca Harpia"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (19): 1.1 Código Harpia com Tema "Harpia Dark", 1. Exemplos de Código e Tema de Sintaxe, 2.1 Mensagem de Boas-vindas (Comando `harpia`), 2.2 Sucesso de Compilação, 2.3 Erro de Compilação (Formatado), 2.4 Aviso de Dependência Desatualizada, 2. Exemplos de Mensagens CLI, 3.1 Página de tutorial (Markdown) (+11 more)
 
 ### Community 81 - "Harpia Lexer & Parser Maturity V2 — Design Specification"
@@ -575,21 +570,21 @@ Nodes (12): 1. Overview & Goals, 2.1 Lexer ASCII Lookup Table & Tokenization, 2.
 Cohesion: 0.15
 Nodes (12): ⚙️ Algoritmo Operacional e Máquina de Estados, 🛠️ Documentação de Métodos e Funções, 🌐 Entidades HTML Inline, 📍 Estrutura e Representação de Coordenadas (Zero-Alloc), 🧪 Fuzzing e Testes de Regressão, Pacote `lexer` (Analisador Léxico do Harpia), `PosicaoToken`, 🚀 Recursos Avançados da Linguagem (+4 more)
 
-### Community 83 - "cmd/doc.go"
-Cohesion: 0.29
-Nodes (8): TestExtraiEGerarCssUtilitarios(), comandoDoc(), extrairDocumentacao(), gerarDocHTML(), gerarDocMarkdown(), TestExtrairDocumentacao(), DocElement, extraiEGerarCssUtilitarios()
+### Community 83 - "go_pkg_github_com_spf13_cobra"
+Cohesion: 0.09
+Nodes (22): TestExtraiEGerarCssUtilitarios(), comandoDoc(), extrairDocumentacao(), gerarDocHTML(), gerarDocMarkdown(), TestExtrairDocumentacao(), DocElement, entradaPot (+14 more)
 
 ### Community 84 - "package.json"
-Cohesion: 0.08
-Nodes (24): @playwright/test, activationEvents, categories, dependencies, vscode-languageclient, description, devDependencies, @playwright/test (+16 more)
+Cohesion: 0.10
+Nodes (18): @playwright/test, activationEvents, categories, dependencies, vscode-languageclient, description, devDependencies, @playwright/test (+10 more)
 
-### Community 85 - "css_emitter.go"
-Cohesion: 0.39
-Nodes (7): camelParaKebab(), chaveCanonica(), isEspaco(), parseCorpoToken(), processaBlocoEstilo(), processaEstiloLinha(), stripAspas()
+### Community 85 - "migrar.go"
+Cohesion: 0.12
+Nodes (18): ConexaoSQL, TestCoerrenciaRuntimeWebHeader(), TestRuntimeWebBlindagemECicloDeVida(), GerarImportHeaderWeb(), camelParaKebab(), chaveCanonica(), isEspaco(), parseCorpoToken() (+10 more)
 
 ### Community 86 - "BaseNode"
 Cohesion: 0.13
-Nodes (11): entradaAstLSP, Otimizador, Otimizar(), extrairOpenAPI(), TranspilerNative, contextoUltimoPrograma(), BaseNode, DeclDesestruturacao (+3 more)
+Nodes (5): checarArquitetura(), EscopoLinter, Linter, LinterError, BaseNode
 
 ### Community 87 - "🚀 FASE 6 — Compilação Nativa Otimizada e Ecossistema Corporativo"
 Cohesion: 0.14
@@ -604,44 +599,40 @@ Cohesion: 0.18
 Nodes (10): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arquitetura Afetada, 3. Mapa de Arquivos Modificados, 5. ✅ O Que Está Funcionando, 6. ❌ O Que Está Pendente, 7. ⚠️ Dívida Técnica Identificada, 8. Padrões Importantes a Lembrar (+2 more)
 
 ### Community 90 - "strings.go"
-Cohesion: 0.21
+Cohesion: 0.19
 Nodes (9): EhASCII(), IndiceBytePorCarater(), IndiceCaraterParaByte(), IndiceCaraterParaByteSemCache(), ObtemCaraterPorIndice(), BenchmarkIndiceBytePorCarater_ASCII(), TestEhASCII(), TestIndiceCaraterParaByte_BoundsEInfiniteLoop() (+1 more)
 
 ### Community 91 - "linter_lsp_test.go"
-Cohesion: 0.13
-Nodes (25): ExecucaoPlaygroundRequest, ExecucaoPlaygroundResponse, ExplicacaoErro, RelatorioAuditoriaJSON, RelatorioTestesJSON, ResultadoTesteJSON, SuiteTestesJSON, VariavelEscopo (+17 more)
+Cohesion: 0.18
+Nodes (25): ExecucaoPlaygroundRequest, NotificationMessage, ResponseMessage, cor, Booleano, Bytes, Canal, ConfigDependencias (+17 more)
 
 ### Community 92 - "net/http.Request"
 Cohesion: 0.31
 Nodes (9): ansiParaHtml(), apiDocsPlayground(), apiEditorConfig(), apiExecutarCodigoPlayground(), serveEditorMonacoJS(), serveInterfacePlayground(), servePlaygroundCSS(), servePlaygroundJS() (+1 more)
 
-### Community 93 - "2. Resolução de Módulos (Stdlib Dinâmica)"
-Cohesion: 0.08
-Nodes (25): 1.1 — Sistema de tipos opcional, 1.2 — Classes com herança simples, 1.3 — Constantes e Módulos Unificados (Imports/Exports), 1.4 — Erros visuais em português e guia de ajuda, 1.5 — Parâmetros avançados de funções, 1.6 — Testes nativos na linguagem, 1.7 — Operador de Canal (Pipes), 1.8 — Validador Semântico Estático (Linting e Segurança) (+17 more)
-
-### Community 94 - "I_comparacaoRica"
-Cohesion: 0.15
-Nodes (7): I_comparacaoRica, I__diferente__, I__igual__, I__maior_ou_igual__, I__maior_que__, I__menor_ou_igual__, I__menor_que__
-
-### Community 95 - "Mapa"
+### Community 93 - "⚡ FASE 5 — Tooling & Ecossistema"
 Cohesion: 0.12
-Nodes (6): Mapa, init(), Requisicao, validarCampo(), ValidarResposta(), TestValidarResposta()
+Nodes (16): 1. Alvos Principais (CLI Flags), 2.1 — Conjunto de instruções (ISA), 2.2 — Compilador AST → bytecode, 2.3 — VM de pilha em Go, 2.4 — Modelo NaN-boxing, 2.5 — GC por contagem de referências, 5.1 — CLI e Scaffolding de Projetos (Comandos em PT), 5.2 — LSP (Language Server Protocol) (+8 more)
 
-### Community 96 - ".NewTipo"
-Cohesion: 0.17
-Nodes (3): ObjetoBrowserStub, ObjetoBrowserStubMetodo, ObjetoPromise
+### Community 94 - "comandoCompilar"
+Cohesion: 0.12
+Nodes (19): comandoCompilar(), compilarParaWeb(), copiarArquivo(), corrigirCaminhoImport(), gerarWebPSeDisponivel(), importJaExiste(), jaDeclaradoOuImportado(), TestComandoCompilarNativo() (+11 more)
+
+### Community 95 - "provedores.go"
+Cohesion: 0.71
+Nodes (5): Mensagem, chamarGemini(), ChamarLLM(), chamarOllama(), chamarOpenAI()
 
 ### Community 97 - "🇧🇷 Harpia — Roadmap Oficial"
 Cohesion: 0.18
 Nodes (11): 🧭 As 10 Decisões Fundamentais, ✅ Conclusão do Roadmap, Critérios de Priorização, Estimativa de Esforço Agregado, 📅 Estimativa de Tempo (solo, part-time ~10–15h/semana), 💡 Filosofia de Design, 🇧🇷 Harpia — Roadmap Oficial, 🛠️ Melhorias Identificadas no Parser e Linguagem (2026-07-28) (+3 more)
 
-### Community 98 - "[Nome do Repositório]"
-Cohesion: 0.12
-Nodes (11): Agradecimentos, Como Contribuir, Diretrizes de Contribuição, Guia de Contribuição, Padrão de Commits, Comunidade, 🤝 Contribuindo, 📚 Documentação (+3 more)
+### Community 98 - "README.md"
+Cohesion: 0.22
+Nodes (5): Agradecimentos, Como Contribuir, Diretrizes de Contribuição, Guia de Contribuição, Padrão de Commits
 
 ### Community 99 - "Capítulo 7 — Desenvolvimento Frontend Reativo e SPA (Sinais, JSX, Estilos e SSR)"
-Cohesion: 0.18
-Nodes (11): 13.11. SEO, Meta Tags, Scripts e Fontes na Web, 13.12. Responsividade Nativa (@tela) na Web, 13.13. Execução Assíncrona Dual e Padrão `Promise.resolve` (SSR ↔ Web SPA), 13.1. Reatividade por Sinais (Fine-Grained), 13.2. Componentes e Sintaxe JSX-like, 13.3. Estilização Nativa e Classes Utilitárias em PT, 13.4. Roteamento por Arquivos (File-system Routing), 13.5. SSR (Server-Side Rendering) e Hidratação (+3 more)
+Cohesion: 0.17
+Nodes (12): 13.10. Novas Primitivas Avançadas e Sinais de Tempo, 13.11. SEO, Meta Tags, Scripts e Fontes na Web, 13.12. Responsividade Nativa (@tela) na Web, 13.13. Execução Assíncrona Dual e Padrão `Promise.resolve` (SSR ↔ Web SPA), 13.2. Componentes e Sintaxe JSX-like, 13.3. Estilização Nativa e Classes Utilitárias em PT, 13.4. Roteamento por Arquivos (File-system Routing), 13.5. SSR (Server-Side Rendering) e Hidratação (+4 more)
 
 ### Community 100 - "Detalhamento Técnico"
 Cohesion: 0.20
@@ -655,13 +646,9 @@ Nodes (8): 1. `refactor(vm): aprimora tracebacks, suporte a .env, tratamento de 
 Cohesion: 0.67
 Nodes (3): Fluxo de Decisão do interpretador, Mecânica de Funcionamento, 🚀 Subcomando: `executar` (`exec`)
 
-### Community 103 - "📦 Novos Módulos de Backend (v1.x)"
-Cohesion: 0.14
-Nodes (14): 10. Módulo: `ffi`, 11. Módulo: `ia`, 12. Módulo: `resiliencia`, 13. Módulo: `telemetria`, 14. Módulo: `http` (Servidor Web & Harpia API Console), 2. Módulo: `http`, 4. Módulo: `json`, `yaml` e `xml`, 5. Módulo: `cripto` (+6 more)
-
-### Community 105 - "migrar.go"
-Cohesion: 0.33
-Nodes (7): abrirBanco(), caminhoMigracoes(), comandoMigrar(), extrairBloco(), garantirTabela(), listarMigracoes(), versaoAplicada()
+### Community 105 - "cache_lru_test.go"
+Cohesion: 0.53
+Nodes (5): NovoShardedCache(), TestShardedCache_Concorrencia(), TestShardedCache_CopiaDefensiva(), TestShardedCache_Eviccao(), TestShardedCache_GetPutClear()
 
 ### Community 106 - "pwa.go"
 Cohesion: 0.39
@@ -683,37 +670,45 @@ Nodes (4): 5. Foreign Function Interface (`ffi`), A Classe `Biblioteca`, A Class
 Cohesion: 0.20
 Nodes (9): 1. Visão Geral e Arquitetura, 2.1 Estrutura do Frame (`Frame`), 2.2 Tabela Integrada de Opcodes (`vm/opcodes.go`), 2. Estrutura de Dados e Opcodes do Harpia VM V2, 3. Análise Estática de Escopos e Compilador, 4. Integração do Motor Único (`hrp/executar.go`), 5. Plano de Validação e Testes, Especificação do Motor Único Harpia VM V2 (+1 more)
 
+### Community 111 - "2. Resolução de Módulos (Stdlib Dinâmica)"
+Cohesion: 0.22
+Nodes (9): 1.1 — Sistema de tipos opcional, 1.2 — Classes com herança simples, 1.3 — Constantes e Módulos Unificados (Imports/Exports), 1.4 — Erros visuais em português e guia de ajuda, 1.5 — Parâmetros avançados de funções, 1.6 — Testes nativos na linguagem, 1.7 — Operador de Canal (Pipes), 1.8 — Validador Semântico Estático (Linting e Segurança) (+1 more)
+
 ### Community 113 - "runtime-web.js"
 Cohesion: 0.06
-Nodes (35): 3. `harpia compilar [flags]` (Alias: `compila`), ⚡ Filosofia e Conceito: O Método Ponytail, Animado(), iniciarAnimacao(), animar(), atualizarAtributos(), BarreiraDeErro, cacheGlobalConsultas (+27 more)
+Nodes (31): 3. `harpia compilar [flags]` (Alias: `compila`), Animado(), iniciarAnimacao(), animar(), atualizarAtributos(), BarreiraDeErro, cacheGlobalConsultas, contarNosFisicos() (+23 more)
 
 ### Community 114 - "Tipo"
-Cohesion: 0.06
-Nodes (12): ConexaoSQL, Background, ArgumentoNomeadoObj, I__obtem__, InicializaFunc, NewMetodoProxy(), NovaFunc, EnfileiraMontagemDoTipo() (+4 more)
+Cohesion: 0.07
+Nodes (5): InicializaFunc, NovaFunc, EnfileiraMontagemDoTipo(), Tipo, registrarTipos()
 
-### Community 115 - "inicializarTuiModel"
-Cohesion: 0.47
-Nodes (4): inicializarTuiModel(), TestInicializarTuiModel(), TestTUIDebuggerSimulation(), TestTUIFocoInterativo()
+### Community 115 - "tuiModel"
+Cohesion: 0.17
+Nodes (5): inicializarTuiModel(), TestInicializarTuiModel(), TestTUIDebuggerSimulation(), TestTUIFocoInterativo(), tuiModel
 
 ### Community 116 - "I_conversaoEntreTipos"
 Cohesion: 0.22
 Nodes (5): I__booleano__, I_conversaoEntreTipos, I__decimal__, I__inteiro__, I__texto__
 
-### Community 117 - "formatar.go"
-Cohesion: 0.29
-Nodes (8): comandoFormatar(), contarDelimitadoresForaDeStrings(), FormatarCodigoHarpia(), GerarUnifiedDiff(), maximo(), TestFormatarCodigoHarpia(), TestFormatarStdinEChavesEmStrings(), TestGerarUnifiedDiff()
+### Community 117 - "DiagnosticRange"
+Cohesion: 0.40
+Nodes (5): DiagnosticRange, HoverResult, Location, LSPDiagnostic, MarkupContent
 
 ### Community 118 - "Componentes"
 Cohesion: 0.22
 Nodes (8): 1. Centralizador de Terminal & UI (`cmd/ui.go`), 2. Formatador de Código Baseado em AST & Tokens (`cmd/formatar.go`), 3. Exibição de Diff Unificado (`--diff`), 4. Integração com CI (`--verificar`), Componentes, Especificação de Design: Harpia CLI - Fase A (DX, Formatação AST & Stream UI), Objetivo, Testes Automatizados
 
-### Community 119 - "hrp.Contexto"
-Cohesion: 0.06
-Nodes (19): init(), carregarArquivoEnv(), DefinirContextoAtivo(), DefinirExecutadorVM(), GerenciadorModulos, Modulo, NewTabelaModulos(), ObtemGlobalsDoLinter() (+11 more)
+### Community 119 - "ModuloImpl"
+Cohesion: 0.18
+Nodes (5): GerenciadorModulos, ModuloImpl, ObtemImplModulo(), RegistraModuloImpl(), ModuloInfo
 
 ### Community 120 - "🏗️ Sintaxe de Componentes JSX-like"
 Cohesion: 0.29
 Nodes (7): ⚠️ Assinatura de Propriedades e Regra de Linter `HRP-JSX-001`, Componentes como Funções, Declaração de Tags, Propriedades e Eventos, 🏗️ Sintaxe de Componentes JSX-like, Tabela de Atributos Traduzidos (VDOM), link()
+
+### Community 121 - "I__iter__"
+Cohesion: 0.40
+Nodes (3): I__iter__, I_iterador, I__próximo__
 
 ### Community 122 - "Capítulo 10 — Arcabouço de Testes Nativos, Diagnósticos e Suporte a IA"
 Cohesion: 0.25
@@ -740,16 +735,12 @@ Cohesion: 0.25
 Nodes (7): 1. Injeção de Metadados de Build (`cmd/versao.go`), 2. Auto-atualização Atômica 100% Go Nativo (`cmd/atualizar.go`), 3. Cross-Compilação & Build AOT (`cmd/compilar.go`), Componentes, Especificação de Design: Harpia CLI - Fase B (Build, Release, Cross-compilação e Self-Updater), Objetivo, Testes Automatizados
 
 ### Community 128 - "Comandos Suportados"
-Cohesion: 0.07
-Nodes (27): 10. `harpia empacotar --entrada=[arquivo] --saida=[binario] [flags]`, 11. `harpia diagramar [diretorio] [flags]`, 12. `harpia instalar [nome-do-pacote] [versao-opcional]`, 13. `harpia stressar [arquivo] [flags]`, 14. `harpia depurar [flags]`, 15. `harpia lsp`, 16. `harpia migrar [subcomando] [flags]` (Alias: `migrations`), 17. `harpia pwa [--dir=dist] [flags]` (+19 more)
+Cohesion: 0.08
+Nodes (24): 10. `harpia empacotar --entrada=[arquivo] --saida=[binario] [flags]`, 11. `harpia diagramar [diretorio] [flags]`, 12. `harpia instalar [nome-do-pacote] [versao-opcional]`, 13. `harpia stressar [arquivo] [flags]`, 14. `harpia depurar [flags]`, 15. `harpia lsp`, 16. `harpia migrar [subcomando] [flags]` (Alias: `migrations`), 17. `harpia pwa [--dir=dist] [flags]` (+16 more)
 
-### Community 129 - "met_criarJwt"
-Cohesion: 0.32
-Nodes (8): met_criarJwt(), met_validarJwt(), TestCriarEValidarJWT(), TestJWT_ExpNoFuturoENoPassado(), TestJWT_PayloadInvalido(), TestJWT_PreservarTiposNativosPayload(), TestJWT_RejeitarAlgNone(), TestJWTExpirado()
-
-### Community 130 - "analisarDependencias"
-Cohesion: 0.33
-Nodes (7): analisarDependencias(), detectarCamada(), gerarAlertasHTML(), gerarMermaid(), TestAnalisarDependenciasViolacao(), TestDiagramarHTMLExport(), ImportRel
+### Community 129 - "Texto"
+Cohesion: 0.03
+Nodes (66): InicializaModulo(), init(), NewBytes(), TestConversaoParaBytesPorMetodoImplementado(), FuncaoComErro, ObtemAtributoRecursivamente(), ObtemAtributoS(), NewIterador() (+58 more)
 
 ### Community 131 - "⚡ Primitivas de Reatividade (Sinais)"
 Cohesion: 0.33
@@ -763,9 +754,9 @@ Nodes (5): constructor(), _makeFuncWrapper(), _resume(), write(), writeSync()
 Cohesion: 0.29
 Nodes (7): Atualizando o Interpretador, Executando arquivo local e complementando com código inline:, Executando Códigos Através do Terminal, 🛠️ Exemplo de Uso Prático, Rodando código de forma rápida inline (flag `-c`):, Rodando o Playground (TUI Interativo):, Rodando um arquivo físico `.hrp`:
 
-### Community 134 - "transpiler_web.go"
-Cohesion: 0.20
-Nodes (6): entries(), TranspilerWeb, ContemApenasAlfaNum(), EIdentificadorValido(), TestContemApenasAlfaNum(), TestEIdentificadorValido()
+### Community 134 - "compartilhado.go"
+Cohesion: 0.33
+Nodes (4): ContemApenasAlfaNum(), EIdentificadorValido(), TestContemApenasAlfaNum(), TestEIdentificadorValido()
 
 ### Community 135 - "I_aritmeticaBooleana"
 Cohesion: 0.40
@@ -775,41 +766,37 @@ Nodes (3): I_aritmeticaBooleana, I__e__, I__ou__
 Cohesion: 0.29
 Nodes (6): Execution Handoff, Global Constraints, Portal Harpia Redesign Implementation Plan, Task 1: Atualização das Coleções de Dados e Estrutura do Hero Banner em `index.hrp`, Task 2: Implementação das Seções de Diferenciais (8 Cards), Dev Tools e Quick Start, Task 3: Implementação da Tabela Comparativa, Demonstrações de Código, FAQ Expandido e CTA Final
 
-### Community 137 - "armazem"
-Cohesion: 0.10
-Nodes (18): 🏛️ Comparação Arquitetural: Para Desenvolvedores Angular, Exemplo Comparativo Prático, Tabela de Equivalências, Como rodar, Conceitos demonstrados, Exemplo: Lista de Tarefas, 13.6. Arquitetura SPA comparada ao Angular, Metas e Direcionamento do Harpia (+10 more)
+### Community 137 - "🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)"
+Cohesion: 0.29
+Nodes (7): 4.1 — Transpilação de Alta Performance para Web (Compilador & Emissor), 4.2 — Estilização Nativa e Unificada (Três Pilares), 4.3 — Roteamento SPA Baseado em Arquivos (File-system Routing), 4.4 — Metadados Semânticos Nativos (AEO & GEO), 4.5 — Componentes JSX-like, 4.6 — Virtual DOM / Reconciliação, 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
 
-### Community 138 - "versao_test.go"
-Cohesion: 0.60
-Nodes (4): comandoVersao(), TestComandoVersaoCurto(), TestComandoVersaoJSON(), TestComandoVersaoTexto()
+### Community 138 - "Exemplo: Contador Reativo"
+Cohesion: 0.50
+Nodes (3): Como rodar, Conceitos demonstrados, Exemplo: Contador Reativo
 
 ### Community 139 - "🇧🇷 Manual de Referência Oficial do Harpia"
-Cohesion: 0.20
-Nodes (10): 22.1. Confinamento Robusto de Diretórios (Anti-Path Traversal), 22.2. Prevenção de Estouro e Conversão Insegura de Inteiros (CWE-190), 22.3. Princípio de Privilégio Mínimo de Tokens de CI/CD, 22.4. Manipulações Cirúrgicas de Strings e Layouts, Capítulo 12 — Guia de Contribuição, Manutenção e Estilo de Código, Capítulo 1 — Filosofia de Design e Arquitetura do Workspace, Capítulo 9 — Segurança Corporativa, Blindagem e Programação Defensiva, Estrutura Geral do Workspace de Diretórios (+2 more)
+Cohesion: 0.15
+Nodes (13): 22.1. Confinamento Robusto de Diretórios (Anti-Path Traversal), 22.2. Prevenção de Estouro e Conversão Insegura de Inteiros (CWE-190), 22.3. Princípio de Privilégio Mínimo de Tokens de CI/CD, 22.4. Manipulações Cirúrgicas de Strings e Layouts, Capítulo 12 — Guia de Contribuição, Manutenção e Estilo de Código, Capítulo 1 — Filosofia de Design e Arquitetura do Workspace, Capítulo 3 — Interface de Linha de Comando (CLI) e Ecossistema DevOps, Capítulo 9 — Segurança Corporativa, Blindagem e Programação Defensiva (+5 more)
 
 ### Community 140 - "Estrutura Detalhada dos Nós Avançados da AST"
 Cohesion: 0.40
 Nodes (5): 1. JSX & Diretivas Dinâmicas (SPA Reativo), 2. Estilização Embutida (`DeclEstilo`), 3. Enumerações e Interfaces (Contratos de Modelagem), 4. Operadores, Decoradores e Expressões Modernas, Estrutura Detalhada dos Nós Avançados da AST
 
 ### Community 141 - "QueryBuilder"
-Cohesion: 0.19
-Nodes (8): QueryBuilder, converterArgumentosParaGo(), toGoType(), toPtObject(), validarDirecaoSQL(), validarIdentificadorSQL(), validarOperadorSQL(), validarTipoCampo()
+Cohesion: 0.32
+Nodes (4): QueryBuilder, validarDirecaoSQL(), validarIdentificadorSQL(), validarOperadorSQL()
 
-### Community 142 - "I__iter__"
-Cohesion: 0.40
-Nodes (3): I__iter__, I_iterador, I__próximo__
-
-### Community 143 - ".Checar"
-Cohesion: 0.24
-Nodes (5): checarArquitetura(), TestChecarArquiteturaEstritaECPF(), EscopoLinter, Linter, LinterError
-
-### Community 144 - "Contador"
-Cohesion: 0.40
-Nodes (3): Contador, Medidor, MetricaInfo
-
-### Community 145 - "DiagnosticRange"
+### Community 142 - "Componentes"
 Cohesion: 0.29
-Nodes (7): DiagnosticPosition, DiagnosticRange, HoverResult, Location, LSPDiagnostic, MarkupContent, PublishDiagnosticsParams
+Nodes (6): 1. Formato e Resolução do Lockfile (`harpia.lock` / `harpia.lock.json`), 2. Verificação de Integridade por Checksum SHA-256, 3. Subcomando `harpia pacote` e Subcomandos Filhos, Componentes, Especificação de Design: Harpia CLI - Fase C (Lockfile & Gerenciamento de Pacotes), Testes Automatizados
+
+### Community 143 - "Funções"
+Cohesion: 0.33
+Nodes (6): `debug(valor: T) -> T`, Funções, `imprimir(mensagem: Texto) -> Nada`, Módulo: `raiz` — Núcleo do Sistema, `Resultado<T, E>`, Tipos
+
+### Community 144 - "sync.RWMutex"
+Cohesion: 0.13
+Nodes (8): NewTabelaModulos(), TabelaModulos, Contador, Medidor, MetricaInfo, Span, BancoVetorialObj, ItemVetorial
 
 ### Community 146 - "Global Constraints"
 Cohesion: 0.33
@@ -823,13 +810,17 @@ Nodes (5): 📖 Checklist de Documentação, 🧪 Checklist de Testes, 🏗️ C
 Cohesion: 0.50
 Nodes (4): 1. Bloco de Estilo Declarativo em Português (`estilo`), 2. Classes Utilitárias Nativas ("Tailwind" em PT), Concatenação Dinâmica em Tags `<style>` JSX, 🎨 Estilização Unificada e Classes Utilitárias PT
 
-### Community 152 - "NewErro"
-Cohesion: 0.12
-Nodes (10): Erro, levenshtein(), NewErro(), ObterCodigoErro(), ObterSugestaoErro(), AsseguraNode, ContinueNode, PareNode (+2 more)
+### Community 150 - "repository"
+Cohesion: 0.67
+Nodes (3): repository, type, url
 
-### Community 153 - "provedores.go"
-Cohesion: 0.71
-Nodes (5): Mensagem, chamarGemini(), ChamarLLM(), chamarOllama(), chamarOpenAI()
+### Community 152 - "ObterSugestaoErro"
+Cohesion: 0.50
+Nodes (3): levenshtein(), ObterCodigoErro(), ObterSugestaoErro()
+
+### Community 153 - "scripts"
+Cohesion: 0.67
+Nodes (3): scripts, test, test:ci
 
 ### Community 154 - "2. Métricas de Observabilidade (`de "metricas"`)"
 Cohesion: 0.50
@@ -839,49 +830,49 @@ Nodes (4): 2. Métricas de Observabilidade (`de "metricas"`), A Classe `Contador
 Cohesion: 0.40
 Nodes (4): Global Constraints, Harpia CLI Fase A (DX, Formatação AST & Stream UI) Implementation Plan, Task 1: Terminal UI & Stream Helper (`cmd/ui.go`), Task 2: AST Code Formatter & Unified Diff (`cmd/formatar.go`)
 
-### Community 163 - "efeito"
-Cohesion: 0.16
-Nodes (11): Como rodar, Conceitos demonstrados, Exemplo: Contador Reativo, 📦 Estado Atual (v1.x - Produção), efeito(), moduloRemoto(), montar(), Portal() (+3 more)
+### Community 159 - "DidChangeTextDocumentParams"
+Cohesion: 0.67
+Nodes (3): DidChangeTextDocumentParams, TextDocumentContentChangeEvent, VersionedTextDocumentIdentifier
 
 ### Community 164 - "🔄 Subcomando: `atualize`"
 Cohesion: 0.50
 Nodes (4): Baixando e Instalando Releases, Fluxo de Atualização Semântica, Mapeamento de Sistema e Arquitetura, 🔄 Subcomando: `atualize`
 
-### Community 165 - "Mapeamento Detalhado do Pacote `compartilhado`"
-Cohesion: 0.50
-Nodes (4): 1. Cache LRU Thread-Safe (`cache_lru.go`), 2. Manipulação, Fast-Path e Indexação de Strings (`strings.go` & `compartilhado.go`), 3. Utilitários de Conversão e Bases Numéricas (`numeros.go`), Mapeamento Detalhado do Pacote `compartilhado`
-
-### Community 166 - "1. Logs Estruturados (`de "logs"`)"
+### Community 165 - "SuiteTestesJSON"
 Cohesion: 0.67
-Nodes (3): 1. Logs Estruturados (`de "logs"`), Funções de Configuração:, Funções de Gravação de Log:
+Nodes (3): RelatorioTestesJSON, ResultadoTesteJSON, SuiteTestesJSON
 
-### Community 167 - "3. Validador de Esquemas de Dados (`de "esquema"`)"
+### Community 166 - "LSPRange"
 Cohesion: 0.67
-Nodes (3): 3. Validador de Esquemas de Dados (`de "esquema"`), A Classe `Esquema`, Funções Globais do Módulo:
+Nodes (3): LSPDiagnostic, LSPRange, LSPRangePosition
+
+### Community 167 - "TestRoteamentoEForca"
+Cohesion: 0.67
+Nodes (3): calcularForcaRota(), matchRoute(), TestRoteamentoEForca()
 
 ### Community 179 - "Flags Suportadas"
 Cohesion: 0.67
 Nodes (3): Exemplo de Saída JSON-LSP (`--formato=json`), Flags Suportadas, 🧹 Subcomando: `checar` — Linter Estático
 
 ## Knowledge Gaps
-- **822 isolated node(s):** `OllamaGenerateReq`, `OllamaGenerateRes`, `DapMessage`, `ExplicacaoErro`, `ResponseMessage` (+817 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1123 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **40 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **839 isolated node(s):** `OllamaGenerateReq`, `OllamaGenerateRes`, `DapMessage`, `ExplicacaoErro`, `PacoteLockInfo` (+834 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1109 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **38 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Objeto` connect `Objeto` to `met_criarJwt`, `NewErroF`, `NewMetodoOuPanic`, `I_aritmeticaBooleana`, `Compilador`, `QueryBuilder`, `I__iter__`, `SequenciaNumerica`, `Inteiro`, `NewErro`, `testing.T`, `TarefaAgendada`, `.NewEscopo`, `I__define_atributo__`, `I__define_item__`, `I__divide_e_atribui__`, `I__divide_inteiro_e_atribui__`, `Bloco`, `I__multiplica_e_atribui__`, `I__obtem_attributo__`, `I__tamanho__`, `Lista`, `I_aritmeticaMatematica`, `GCMixin`, `Disjuntor`, `hrp.Texto`, `linter_lsp_test.go`, `I_comparacaoRica`, `Mapa`, `.NewTipo`, `Instancia`, `Tipo`, `I_conversaoEntreTipos`, `hrp.Contexto`, `ElementoJSX`?**
-  _High betweenness centrality (0.060) - this node is a cross-community bridge._
-- **Are the 79 inferred relationships involving `NewErroF()` (e.g. with `Adiciona()` and `Diferente()`) actually correct?**
-  _`NewErroF()` has 79 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `Objeto` connect `Objeto` to `Texto`, `I_aritmeticaMatematica`, `Compilador`, `NewErroF`, `NewMetodoOuPanic`, `I_comparacaoRica`, `I_aritmeticaBooleana`, `Tupla`, `QueryBuilder`, `sync.RWMutex`, `Inteiro`, `.NewEscopo`, `ArgumentoNomeadoObj`, `.M__obtem__`, `.M__obtem__`, `logar`, `GCMixin`, `Disjuntor`, `linter_lsp_test.go`, `Tipo`, `I_conversaoEntreTipos`, `ModuloImpl`, `I__iter__`, `ElementoJSX`?**
+  _High betweenness centrality (0.075) - this node is a cross-community bridge._
+- **Are the 25 inferred relationships involving `Texto` (e.g. with `TestRPC()` and `.M__texto__()`) actually correct?**
+  _`Texto` has 25 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `OllamaGenerateReq`, `OllamaGenerateRes`, `DapMessage` to the rest of the system?**
-  _822 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Interpretador` be split into smaller, more focused modules?**
-  _Cohesion score 0.05311676909569798 - nodes in this community are weakly interconnected._
-- **Why does `sinal()` connect `sinal` to `efeito`, `3. Estrutura Detalhada das Seções`, `📝 Registro de Desenvolvimento — 30 de Julho de 2026`, `armazem`, `limpar`, `Diretrizes de Marca: Harpia 🦅`, `4. Detalhamento por Commit`, `runtime-web.js`, `🛠️ Recursos de Produção e Otimizações de Performance (Fase 4-C)`, `test_vdom.js`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `VerificaNumeroArgumentos()` (e.g. with `.M__obtem_attributo__()` and `init()`) actually correct?**
-  _`VerificaNumeroArgumentos()` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Should `ObtemAtributoS` be split into smaller, more focused modules?**
-  _Cohesion score 0.08275862068965517 - nodes in this community are weakly interconnected._
+  _839 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `ast_nodes.go` be split into smaller, more focused modules?**
+  _Cohesion score 0.026584022038567492 - nodes in this community are weakly interconnected._
+- **Why does `Compilador` connect `Compilador` to `ast_nodes.go`, `Texto`, `compartilhado.go`, `Lexer`, `EscopoCompilador`, `cache_lru.go`, `cache_lru_test.go`, `Objeto`, `Tupla`, `Parser`, `numeros.go`, `Tipo`, `BaseNode`, `parser/helpers.go`, `Inteiro`, `strings.go`, `linter_lsp_test.go`, `.NewEscopo`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Are the 3 inferred relationships involving `Tupla` (e.g. with `.visiteNoJSX()` and `.visiteNoParaJSX()`) actually correct?**
+  _`Tupla` has 3 INFERRED edges - model-reasoned connections that need verification._
+- **Should `I_aritmeticaMatematica` be split into smaller, more focused modules?**
+  _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._

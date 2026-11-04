@@ -144,6 +144,10 @@ func (s *Soquete) AceitaConexao() (*Soquete, error) {
 			return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro no poll: %s", err)
 		}
 
+		if s.pollFd[0].Revents&(unix.POLLERR|unix.POLLHUP|unix.POLLNVAL) != 0 && s.pollFd[0].Revents&unix.POLLIN == 0 {
+			return nil, hrp.NewErroF(hrp.ErroDeSistema, "Soquete inválido ou desconectado para aceitar conexões")
+		}
+
 		if s.pollFd[0].Revents&unix.POLLIN != 0 {
 			fd, _, err := unix.Accept(s.descritorDoSoquete)
 			if err != nil {
@@ -184,7 +188,12 @@ func (s *Soquete) RecebeDados(tamanhoBuffer hrp.Inteiro) (*hrp.Bytes, error) {
 			return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro no poll: %s", err)
 		}
 
-		if n > 0 && ultimoElemento(s.pollFd).Revents&unix.POLLIN != 0 {
+		revents := ultimoElemento(s.pollFd).Revents
+		if n > 0 && revents&unix.POLLNVAL != 0 {
+			return nil, hrp.NewErroF(hrp.ErroDeSistema, "Descritor de soquete inválido")
+		}
+
+		if n > 0 && revents&(unix.POLLIN|unix.POLLHUP|unix.POLLERR) != 0 {
 			n, _, err := unix.Recvfrom(s.descritorDoSoquete, buffer, 0)
 			if err != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao receber dados: %v", err)
