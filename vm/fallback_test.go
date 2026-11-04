@@ -98,7 +98,7 @@ func TestErroDeRuntimeNaoReexecuta(t *testing.T) {
 	antigo := os.Stdout
 	os.Stdout = w
 	ctx := hrp.NewContexto(hrp.OpcsContexto{})
-	_, _ = hrp.ExecutarString(ctx, "imprimir(\"passo\")\nde \"modulo não suportada na VM\" importe x")
+	_, _ = hrp.ExecutarString(ctx, "imprimir(\"passo\")\nvar n = Inteiro(\"x não suportada na VM\")")
 	ctx.Terminar()
 	w.Close()
 	os.Stdout = antigo
