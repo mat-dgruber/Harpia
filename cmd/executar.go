@@ -31,6 +31,7 @@ var rodarNaVM bool
 var profilador bool
 var assistir bool
 var silencioso bool
+var sandbox bool
 
 // comandoExecutar projeta, configura e constrói a especificação do subcomando `executar` (com alias de atalho `exec`).
 //
@@ -97,8 +98,10 @@ func comandoExecutar() *cobra.Command {
 
 			executarUmaVez := func() {
 				ctx := hrp.NewContexto(hrp.OpcsContexto{
-					CaminhosPadrao: []string{cur},
-					Estrito:        estrito,
+					CaminhosPadrao:   []string{cur},
+					Estrito:          estrito,
+					BloquearArquivos: sandbox,
+					BloquearRede:     sandbox,
 				})
 				defer ctx.Terminar()
 
@@ -256,6 +259,7 @@ func comandoExecutar() *cobra.Command {
 	executar.PersistentFlags().BoolVar(&profilador, "perfil", false, "Exibe o relatório de perfil de execução (profiler).")
 	executar.PersistentFlags().BoolVarP(&assistir, "assistir", "w", false, "Monitora alterações no arquivo e recompila automaticamente (modo watch).")
 	executar.PersistentFlags().BoolVarP(&silencioso, "silencioso", "s", false, "Suprime cabeçalhos e mensagens de progresso do compilador CLI.")
+	executar.PersistentFlags().BoolVar(&sandbox, "sandbox", false, "Bloqueia acesso a arquivos, processos e rede (para executar código não confiável).")
 
 	return executar
 }

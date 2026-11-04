@@ -7,14 +7,56 @@ package sistema
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
+
+// TempoLimiteExecucaoIsolada é o tempo máximo de executarCodigoHarpia.
+var TempoLimiteExecucaoIsolada = 10 * time.Second
+
+// limiteSaidaIsolada limita stdout/stderr capturados de executarCodigoHarpia (1 MB cada).
+const limiteSaidaIsolada = 1 << 20
+
+// caminhoExecutavel localiza o binário do Harpia; substituível em testes.
+var caminhoExecutavel = os.Executable
+
+// bufferLimitado guarda no máximo `limite` bytes e descarta o resto, sem falhar a escrita
+// (falhar faria o processo filho receber SIGPIPE e esconder a saída já produzida).
+type bufferLimitado struct {
+	buf     bytes.Buffer
+	limite  int
+	cortado bool
+}
+
+func (b *bufferLimitado) Write(p []byte) (int, error) {
+	if resta := b.limite - b.buf.Len(); resta > 0 {
+		if len(p) > resta {
+			b.buf.Write(p[:resta])
+			b.cortado = true
+		} else {
+			b.buf.Write(p)
+		}
+	} else if len(p) > 0 {
+		b.cortado = true
+	}
+	return len(p), nil
+}
+
+func (b *bufferLimitado) String() string {
+	if b.cortado {
+		return b.buf.String() + "\n[saída truncada em 1 MB]"
+	}
+	return b.buf.String()
+}
 
 func init() {
 	var mu sync.Mutex
@@ -121,40 +163,50 @@ func init() {
 			return nil, hrp.NewErroF(hrp.TipagemErro, "O argumento de 'executarCodigoHarpia' deve ser do tipo 'Texto'")
 		}
 
-		// Escrever o código num arquivo temporário
-		tmpFile, err := os.CreateTemp("", "hrp_playground_*.hrp")
+		// O código costuma vir de fora (ex.: playground do portal), então o subprocesso roda isolado:
+		// diretório temporário próprio (não carrega o .env do projeto), ambiente mínimo (não herda
+		// segredos), flag --sandbox (sem arquivos/processos/rede), tempo limite e saída limitada.
+		dir, err := os.MkdirTemp("", "hrp_exec_*")
 		if err != nil {
 			return hrp.Mapa{
 				"saida": hrp.Texto(""),
-				"erro":  hrp.Texto("Erro ao criar arquivo temporário: " + err.Error()),
+				"erro":  hrp.Texto("Erro ao criar diretório temporário: " + err.Error()),
 			}, nil
 		}
-		defer os.Remove(tmpFile.Name())
+		defer os.RemoveAll(dir)
 
-		if _, err := tmpFile.WriteString(string(codigo)); err != nil {
-			tmpFile.Close()
+		arquivo := filepath.Join(dir, "codigo.hrp")
+		if err := os.WriteFile(arquivo, []byte(codigo), 0600); err != nil {
 			return hrp.Mapa{
 				"saida": hrp.Texto(""),
 				"erro":  hrp.Texto("Erro ao escrever código: " + err.Error()),
 			}, nil
 		}
-		tmpFile.Close()
 
-		// Descobrir o executável atual do Harpia
-		execPath, err := os.Executable()
+		execPath, err := caminhoExecutavel()
 		if err != nil {
-			execPath = "Harpia" // fallback para PATH
+			execPath = "harpia" // fallback para PATH
 		}
 
-		cmd := exec.Command(execPath, "executar", "--silencioso", tmpFile.Name())
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
+		ctxExec, cancel := context.WithTimeout(context.Background(), TempoLimiteExecucaoIsolada)
+		defer cancel()
+		cmd := exec.CommandContext(ctxExec, execPath, "executar", "--silencioso", "--sandbox", arquivo)
+		cmd.Dir = dir
+		cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "HOME=" + dir, "LANG=C.UTF-8"}
+		stdout := &bufferLimitado{limite: limiteSaidaIsolada}
+		stderr := &bufferLimitado{limite: limiteSaidaIsolada}
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
 		_ = cmd.Run()
+
+		erroTexto := stderr.String()
+		if ctxExec.Err() == context.DeadlineExceeded {
+			erroTexto += fmt.Sprintf("\nTempo limite de %v excedido: a execução foi interrompida.", TempoLimiteExecucaoIsolada)
+		}
 
 		return hrp.Mapa{
 			"saida": hrp.Texto(stdout.String()),
-			"erro":  hrp.Texto(stderr.String()),
+			"erro":  hrp.Texto(erroTexto),
 		}, nil
 	}, "executa um código Harpia em subprocesso e retorna {saida, erro}")
 
