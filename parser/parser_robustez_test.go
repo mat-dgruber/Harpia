@@ -68,3 +68,18 @@ func FuzzParser(f *testing.F) {
 		}
 	})
 }
+
+// '}' fecha a instrução como a quebra de linha: blocos de uma linha com atribuição são válidos.
+func TestFechaChavesTerminaInstrucao(t *testing.T) {
+	for _, src := range []string{
+		"funcao f() { var a = 1 }",
+		"se Verdadeiro { a = 2 }",
+		"funcao h(req, res) { res.corpo = \"oi\" }",
+		"enquanto Falso { x += 1 }",
+		"funcao g() { retorne 1 }",
+	} {
+		if err := parseComPrazo(t, src); err != nil {
+			t.Errorf("%q deveria ser válido: %v", src, err)
+		}
+	}
+}

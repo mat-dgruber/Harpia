@@ -149,8 +149,9 @@ func (p *Parser) consome(token string) error {
 			p.avancar()
 			return nil
 		}
-		// Separador implícito: quebra de linha ou fim de arquivo satisfazem a instrução
-		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFimDeArquivo {
+		// Separador implícito: quebra de linha, fim de arquivo ou '}' (fim do bloco, não consumido)
+		// satisfazem a instrução, como em Go/JS: `se x { a = 1 }` é válido.
+		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFimDeArquivo || p.token.Tipo == lexer.TokenFechaChaves {
 			return nil
 		}
 		return p.errof("era esperado o token ';' ou uma nova linha, mas no lugar foi encontrado '%v'", p.token.Valor)
