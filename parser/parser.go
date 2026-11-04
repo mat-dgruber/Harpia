@@ -606,6 +606,9 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 		if p.token.Tipo == lexer.TokenFechaParenteses {
 			break
 		}
+		if p.token.Tipo == lexer.TokenFimDeArquivo {
+			return nil, p.errof("era esperado ')' para fechar a lista de parâmetros da função '%s'", funcao.Nome)
+		}
 
 		params, err := p.parseDeclFuncaoParametro()
 
@@ -621,6 +624,8 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 		if p.token.Tipo == lexer.TokenVirgula {
 			p.avancar()
+		} else if p.token.Tipo != lexer.TokenFechaParenteses {
+			return nil, p.errof("esperava ',' ou ')' na lista de parâmetros, mas recebi '%s'", p.token.Valor)
 		}
 
 		for p.token.Tipo == lexer.TokenNovaLinha {
@@ -1378,7 +1383,7 @@ func (p *Parser) parseConjuncao() (BaseNode, error) {
 // parseInversao resolve o operador lógico de negação unária 'nao'.
 func (p *Parser) parseInversao() (BaseNode, error) {
 	if p.token.Tipo == lexer.TokenBoolNao {
-		p.consome("nao")
+		p.avancar() // ponytail: TokenBoolNao cobre "nao" e "!"; consumir por tipo, não por valor
 		operacao, err := p.parseInversao()
 
 		if err != nil {
