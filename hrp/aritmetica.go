@@ -14,6 +14,25 @@ func multiplicaInteiroSeguro(a, b Inteiro) (Inteiro, bool) {
 	return r, true
 }
 
+// erroOverflowInteiro padroniza o erro de estouro de 64 bits das operações de Inteiro.
+func erroOverflowInteiro(op string, a, b Inteiro) error {
+	return NewErroF(ErroDeLimite, "O resultado de %d %s %d excede o limite de Inteiro (64 bits)", a, op, b)
+}
+
+// somaInteiroSegura soma e informa overflow: há estouro quando os dois operandos têm o mesmo
+// sinal e o resultado tem sinal diferente.
+func somaInteiroSegura(a, b Inteiro) (Inteiro, bool) {
+	r := a + b
+	return r, (r^a)&(r^b) >= 0
+}
+
+// subtraiInteiroSegura subtrai e informa overflow: há estouro quando os operandos têm sinais
+// diferentes e o resultado não tem o sinal de a.
+func subtraiInteiroSegura(a, b Inteiro) (Inteiro, bool) {
+	r := a - b
+	return r, (a^b)&(a^r) >= 0
+}
+
 // Potencia implementa o operador '**'.
 // Inteiro ** Inteiro (expoente >= 0) devolve Inteiro, com erro em overflow em vez de dar a volta;
 // expoente negativo ou operando Decimal usa math.Pow e devolve Decimal.

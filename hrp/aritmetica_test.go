@@ -2,9 +2,11 @@ package hrp
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -169,5 +171,45 @@ func TestPotencia(t *testing.T) {
 	}
 	if _, err := Potencia(Texto("a"), Inteiro(2)); err == nil {
 		t.Error("'a' ** 2 deveria lançar TipagemErro")
+	}
+}
+
+func TestOverflowInteiroLancaErroDeLimite(t *testing.T) {
+	const max, min = Inteiro(math.MaxInt64), Inteiro(math.MinInt64)
+	estouros := map[string]func() (Objeto, error){
+		"max+1":   func() (Objeto, error) { return Adiciona(max, Inteiro(1)) },
+		"min-1":   func() (Objeto, error) { return Subtrai(min, Inteiro(1)) },
+		"max*2":   func() (Objeto, error) { return Multiplica(max, Inteiro(2)) },
+		"min*-1":  func() (Objeto, error) { return Multiplica(min, Inteiro(-1)) },
+		"-min":    func() (Objeto, error) { return min.M__neg__() },
+		"min//-1": func() (Objeto, error) { return min.M__divide_inteiro__(Inteiro(-1)) },
+	}
+	for nome, op := range estouros {
+		if _, err := op(); err == nil || !strings.Contains(err.Error(), "limite") {
+			t.Errorf("%s deveria lançar ErroDeLimite, veio %v", nome, err)
+		}
+	}
+	normais := map[string]struct {
+		op   func() (Objeto, error)
+		want Objeto
+	}{
+		"max-1+1": {func() (Objeto, error) { return Adiciona(max-1, Inteiro(1)) }, max},
+		"min+1-1": {func() (Objeto, error) { return Subtrai(min+1, Inteiro(1)) }, min},
+		"-3*4":    {func() (Objeto, error) { return Multiplica(Inteiro(-3), Inteiro(4)) }, Inteiro(-12)},
+		"0*min":   {func() (Objeto, error) { return Multiplica(Inteiro(0), min) }, Inteiro(0)},
+		"-max":    {func() (Objeto, error) { return max.M__neg__() }, -max},
+		"7//-2":   {func() (Objeto, error) { return Inteiro(7).M__divide_inteiro__(Inteiro(-2)) }, Inteiro(-3)},
+	}
+	for nome, c := range normais {
+		got, err := c.op()
+		if err != nil || got != c.want {
+			t.Errorf("%s = %v (%v), esperava %v", nome, got, err, c.want)
+		}
+	}
+}
+
+func BenchmarkAdicionaInteiro(b *testing.B) {
+	for b.Loop() {
+		_, _ = Adiciona(Inteiro(12345), Inteiro(678))
 	}
 }
