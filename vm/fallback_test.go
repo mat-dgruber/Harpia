@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -106,5 +107,42 @@ func TestErroDeRuntimeNaoReexecuta(t *testing.T) {
 	n, _ := r.Read(buf)
 	if c := strings.Count(string(buf[:n]), "passo"); c != 1 {
 		t.Fatalf("programa executado %d vezes (saída %q)", c, buf[:n])
+	}
+}
+
+// TestRecursaoInfinitaViraErroDePilha roda em subprocesso: antes da correção o processo
+// morria com "fatal error: stack overflow" (não recuperável).
+func TestRecursaoInfinitaViraErroDePilha(t *testing.T) {
+	if os.Getenv("HARPIA_TESTE_FILHO_RECURSAO") == "1" {
+		ctx := hrp.NewContexto(hrp.OpcsContexto{})
+		defer ctx.Terminar()
+		_, err := hrp.ExecutarString(ctx, "funcao f(n) { retorne f(n + 1) }\nf(0)")
+		if err == nil || !strings.Contains(err.Error(), "profundidade") {
+			t.Fatalf("esperava ErroDePilha de profundidade, veio %v", err)
+		}
+		// recursão legítima e profunda continua funcionando
+		mod, err := hrp.ExecutarString(ctx, "funcao soma(n) { se n == 0 { retorne 0 } retorne n + soma(n - 1) }\nvar r = soma(500)")
+		if err != nil {
+			t.Fatalf("recursão de 500 níveis deveria funcionar: %v", err)
+		}
+		if v, _ := mod.Escopo.ObterValor("r"); v != hrp.Inteiro(125250) {
+			t.Fatalf("soma(500) = %v", v)
+		}
+		return
+	}
+	cmd := exec.Command(os.Args[0], "-test.run=^TestRecursaoInfinitaViraErroDePilha$")
+	cmd.Env = append(os.Environ(), "HARPIA_TESTE_FILHO_RECURSAO=1")
+	done := make(chan struct{})
+	var out []byte
+	var err error
+	go func() { out, err = cmd.CombinedOutput(); close(done) }()
+	select {
+	case <-done:
+	case <-time.After(60 * time.Second):
+		_ = cmd.Process.Kill()
+		t.Fatal("recursão infinita não terminou em 60s")
+	}
+	if err != nil {
+		t.Fatalf("processo filho falhou: %v\n%.2000s", err, out)
 	}
 }

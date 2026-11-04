@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
@@ -44,6 +45,25 @@ type Contexto struct {
 	ResolvendoModulos []string                // Pilha de módulos que estão sendo importados/resolvidos para prevenção de ciclos.
 	LinhasExecutadas  map[string]map[int]bool // ponytail: mapa para rastreamento de linhas cobertas na execução de testes
 	linhasExecMu      sync.Mutex              // mutex para evitar concorrência no mapa de linhas executadas
+	profundidade      atomic.Int32            // chamadas de função em andamento (limite de recursão)
+}
+
+// MaxProfundidadeChamadas limita a recursão: acima disso a chamada lança ErroDePilha em vez de
+// estourar a pilha do Go (fatal error: stack overflow, que derruba o processo sem recover).
+// ponytail: o contador é por contexto e soma goroutines concorrentes (handlers HTTP, assíncronas);
+// o limite é generoso para cobrir isso. Upgrade: profundidade por frame/goroutine se houver falso positivo.
+const MaxProfundidadeChamadas = 2000
+
+// EntrarChamada registra uma chamada de função e devolve a função que a encerra.
+func (c *Contexto) EntrarChamada() (func(), error) {
+	if c == nil {
+		return func() {}, nil
+	}
+	if c.profundidade.Add(1) > MaxProfundidadeChamadas {
+		c.profundidade.Add(-1)
+		return nil, NewErroF(ErroDePilha, "Limite de profundidade de chamadas excedido (%d): provável recursão infinita", MaxProfundidadeChamadas)
+	}
+	return func() { c.profundidade.Add(-1) }, nil
 }
 
 func (c *Contexto) DefinirArquivoCodigo(arquivo, codigo string) {
