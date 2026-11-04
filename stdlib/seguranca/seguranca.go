@@ -38,9 +38,13 @@ func met_sanitizarSqlArgumento(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, err
 		return nil, err
 	}
 
-	limpo := strings.ReplaceAll(string(texto.(hrp.Texto)), "'", "''")
+	limpo := strings.ReplaceAll(string(texto.(hrp.Texto)), "\\", "\\\\")
+	limpo = strings.ReplaceAll(limpo, "\x00", "")
+	limpo = strings.ReplaceAll(limpo, "'", "''")
 	limpo = strings.ReplaceAll(limpo, ";", "")
 	limpo = strings.ReplaceAll(limpo, "--", "")
+	limpo = strings.ReplaceAll(limpo, "/*", "")
+	limpo = strings.ReplaceAll(limpo, "*/", "")
 	return hrp.Texto(limpo), nil
 }
 

@@ -80,6 +80,12 @@ func met_ia_softmax(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return floatSliceParaListaIA(v), nil
 	}
 
+	for _, x := range v {
+		if math.IsNaN(x) || math.IsInf(x, 0) {
+			return nil, hrp.NewErroF(hrp.ValorErro, "softmax nao aceita valores NaN ou Infinito")
+		}
+	}
+
 	maxVal := v[0]
 	for _, x := range v {
 		if x > maxVal {
@@ -92,6 +98,10 @@ func met_ia_softmax(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	for i, x := range v {
 		exps[i] = math.Exp(x - maxVal)
 		expSoma += exps[i]
+	}
+
+	if expSoma == 0.0 || math.IsNaN(expSoma) || math.IsInf(expSoma, 0) {
+		return nil, hrp.NewErroF(hrp.ValorErro, "soma de exponenciais invalida no softmax")
 	}
 
 	res := make([]float64, len(v))

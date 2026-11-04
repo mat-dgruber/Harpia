@@ -37,7 +37,7 @@ func met_emb_imprima(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 
 	fmt.Printf("%s%s", resultado, final)
-	return nil, nil
+	return hrp.Nulo, nil
 }
 
 // _emb_imprima cria e define a assinatura do método 'imprima' exposto globalmente.

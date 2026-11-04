@@ -54,7 +54,12 @@ func (e *Esquema) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				} else {
 					tipoEsperado = fmt.Sprintf("%v", tipoObj)
 				}
-				tipoObtido := val.Tipo().Nome
+				var tipoObtido string
+				if val == nil {
+					tipoObtido = "Nulo"
+				} else {
+					tipoObtido = val.Tipo().Nome
+				}
 
 				if tipoEsperado != tipoObtido {
 					retLista := &hrp.Lista{Itens: []hrp.Objeto{hrp.Nulo, hrp.Texto(fmt.Sprintf("Campo '%s' deve ser do tipo %s, obteve %s", chave, tipoEsperado, tipoObtido))}}
@@ -81,7 +86,11 @@ func met_esquema_criar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if !ok {
 		return nil, hrp.NewErroF(hrp.TipagemErro, "esquema esperava um Mapa contendo as regras de tipo")
 	}
-	return &Esquema{regras: mapaRegras}, nil
+	regrasClonadas := make(hrp.Mapa, len(mapaRegras))
+	for k, v := range mapaRegras {
+		regrasClonadas[k] = v
+	}
+	return &Esquema{regras: regrasClonadas}, nil
 }
 
 func init() {

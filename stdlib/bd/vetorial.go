@@ -39,7 +39,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 			if err := hrp.VerificaNumeroArgumentos("inserir", false, args, 3, 3); err != nil {
 				return nil, err
 			}
-			id, _ := hrp.NewInteiro(args[0])
+			id, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
 			vetorObj, ok := args[1].(*hrp.Lista)
 			if !ok {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "esperava lista para o vetor")
@@ -60,7 +63,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 
 			meta := make(map[string]interface{})
 			for k, v := range metaObj {
-				vTexto, _ := hrp.NewTexto(v)
+				vTexto, err := hrp.NewTexto(v)
+				if err != nil {
+					return nil, err
+				}
 				meta[k] = string(vTexto.(hrp.Texto))
 			}
 
@@ -104,7 +110,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 			if !ok {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "esperava lista para o vetor")
 			}
-			limite, _ := hrp.NewInteiro(args[1])
+			limite, err := hrp.NewInteiro(args[1])
+			if err != nil {
+				return nil, err
+			}
 
 			var vetor []float64
 			for _, v := range vetorObj.Itens {
@@ -181,7 +190,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 			if err := hrp.VerificaNumeroArgumentos("deletar", false, args, 1, 1); err != nil {
 				return nil, err
 			}
-			id, _ := hrp.NewInteiro(args[0])
+			id, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
 
 			query := map[string]interface{}{
 				"points": []interface{}{int64(id.(hrp.Inteiro))},

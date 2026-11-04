@@ -23,6 +23,15 @@ func TestValidarResposta(t *testing.T) {
 	if err == nil || valido {
 		t.Fatalf("Esperava falha na validacao por tipo incorreto")
 	}
+
+	// Regra de esquema que não seja hrp.Texto deve retornar erro
+	esquemaInvalido := hrp.Mapa{
+		"nome": hrp.Inteiro(123),
+	}
+	_, err = ValidarResposta(esquemaInvalido, `{"nome": "teste"}`)
+	if err == nil {
+		t.Fatalf("Esperava erro para regra de esquema que nao seja Texto")
+	}
 }
 
 func TestAgenteCriacao(t *testing.T) {

@@ -179,8 +179,8 @@ func TestHTTP_HMAC_e_OpenAPI(t *testing.T) {
 		t.Errorf("Assinatura HMAC deveria ser válida")
 	}
 
-	valInvalido, _ := res.Escopo.ObterValor("valido")
-	if valInvalido != hrp.Verdadeiro {
+	valInvalido, _ := res.Escopo.ObterValor("invalido")
+	if valInvalido != hrp.Falso {
 		t.Errorf("Assinatura HMAC adulterada não deveria ser válida")
 	}
 
@@ -216,9 +216,24 @@ func TestTelemetria(t *testing.T) {
 	metrica.registrar(1, "sucesso")
 	`
 
-	_, err := hrp.ExecutarString(ctx, codigo)
+	res, err := hrp.ExecutarString(ctx, codigo)
 	if err != nil {
 		t.Fatalf("Erro ao executar script de testes de telemetria: %v", err)
+	}
+
+	tracerVal, err := res.Escopo.ObterValor("tracer")
+	if err != nil || tracerVal == nil || tracerVal == hrp.Nulo {
+		t.Fatalf("esperava objeto tracer valido no escopo, obteve: %v, erro: %v", tracerVal, err)
+	}
+
+	spanVal, err := res.Escopo.ObterValor("span")
+	if err != nil || spanVal == nil || spanVal == hrp.Nulo {
+		t.Fatalf("esperava objeto span valido no escopo, obteve: %v, erro: %v", spanVal, err)
+	}
+
+	metricaVal, err := res.Escopo.ObterValor("metrica")
+	if err != nil || metricaVal == nil || metricaVal == hrp.Nulo {
+		t.Fatalf("esperava objeto metrica valido no escopo, obteve: %v, erro: %v", metricaVal, err)
 	}
 }
 

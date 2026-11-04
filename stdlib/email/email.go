@@ -30,14 +30,20 @@ func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	para := fmt.Sprintf("%v", mapa["para"])
 	assunto := fmt.Sprintf("%v", mapa["assunto"])
 	corpoHtml := fmt.Sprintf("%v", mapa["corpoHtml"])
+	de := fmt.Sprintf("%v", mapa["de"])
+	if de == "" || de == "<nil>" {
+		de = usuario
+	}
 
-	// Sanitiza cabeçalhos contra CRLF Injection
-	paraClean := strings.NewReplacer("\r", "", "\n", "").Replace(para)
-	assuntoClean := strings.NewReplacer("\r", "", "\n", "").Replace(assunto)
+	// Sanitiza cabeçalhos contra CRLF Injection (SMTP Header Injection)
+	replacer := strings.NewReplacer("\r", "", "\n", "")
+	deClean := replacer.Replace(de)
+	paraClean := replacer.Replace(para)
+	assuntoClean := replacer.Replace(assunto)
 
 	if servidor == "<nil>" || porta == "<nil>" {
 		// Simulação de envio local para desenvolvimento/teste para evitar bloqueios ou exceptions
-		fmt.Printf("📧 [SIMULAÇÃO EMAIL] Enviado para '%s' | Assunto: '%s'\n", paraClean, assuntoClean)
+		fmt.Printf("📧 [SIMULAÇÃO EMAIL] De: '%s' | Para: '%s' | Assunto: '%s'\n", deClean, paraClean, assuntoClean)
 		return hrp.Booleano(true), nil
 	}
 
@@ -46,7 +52,7 @@ func met_email_enviar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		auth = smtp.PlainAuth("", usuario, senha, servidor)
 	}
 
-	msg := fmt.Appendf(nil, "To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", paraClean, assuntoClean, corpoHtml)
+	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s", deClean, paraClean, assuntoClean, corpoHtml)
 
 	addr := fmt.Sprintf("%s:%s", servidor, porta)
 	err := smtp.SendMail(addr, auth, usuario, []string{paraClean}, msg)

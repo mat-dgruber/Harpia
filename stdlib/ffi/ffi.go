@@ -31,7 +31,10 @@ func (b *Biblioteca) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("obterFuncao", false, args, 1, 1); err != nil {
 				return nil, err
 			}
-			funcNome, _ := hrp.NewTexto(args[0])
+			funcNome, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
 			funcNomeStr := string(funcNome.(hrp.Texto))
 
 			return &FuncaoFFI{
@@ -62,12 +65,19 @@ func (f *FuncaoFFI) Tipo() *hrp.Tipo {
 // implementamos uma simulação robusta (Mock amigável) caso a biblioteca física de teste esteja ausente em tempo de execução,
 // prevenindo pânicos indesejados.
 func (f *FuncaoFFI) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
-	if _, err := os.Stat(f.Biblioteca.Caminho); os.IsNotExist(err) {
+	info, err := os.Stat(f.Biblioteca.Caminho)
+	if err != nil || info.IsDir() {
 		// Mock amigável para testes e DX quando rodando em ambientes sem a biblioteca C física compilada
 		if f.Nome == "soma" {
 			if len(args) == 2 {
-				a, _ := hrp.NewDecimal(args[0])
-				b, _ := hrp.NewDecimal(args[1])
+				a, errA := hrp.NewDecimal(args[0])
+				if errA != nil {
+					return nil, errA
+				}
+				b, errB := hrp.NewDecimal(args[1])
+				if errB != nil {
+					return nil, errB
+				}
 				return hrp.Decimal(float64(a.(hrp.Decimal)) + float64(b.(hrp.Decimal))), nil
 			}
 		}
@@ -83,7 +93,10 @@ func met_ffi_abrir(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("abrir", false, args, 1, 1); err != nil {
 		return nil, err
 	}
-	caminho, _ := hrp.NewTexto(args[0])
+	caminho, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
 	caminhoStr := string(caminho.(hrp.Texto))
 
 	return &Biblioteca{Caminho: caminhoStr}, nil

@@ -214,12 +214,17 @@ type RotaMeta struct {
 
 // tentarInferirMetaDeComentarios extrai comentários de documentação '///' imediatamente anteriores à chamada da rota.
 func tentarInferirMetaDeComentarios(ctx *hrp.Contexto) *RotaMeta {
-	if ctx == nil || ctx.CodigoAtual == "" || ctx.LinhaAtual <= 0 {
+	if ctx == nil {
+		return nil
+	}
+	_, cod := ctx.ObterArquivoCodigo()
+	_, lin, _ := ctx.ObterPosicaoToken()
+	if cod == "" || lin <= 0 {
 		return nil
 	}
 
-	linhas := strings.Split(ctx.CodigoAtual, "\n")
-	idx := ctx.LinhaAtual - 2 // Linha física L (1-based) é o índice L-1. Queremos a linha anterior, que é L-2.
+	linhas := strings.Split(cod, "\n")
+	idx := lin - 2 // Linha física L (1-based) é o índice L-1. Queremos a linha anterior, que é L-2.
 
 	if idx >= len(linhas) {
 		return nil
@@ -521,6 +526,38 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					return hrp.Nulo, nil
 				}, "Retorna a interface visual de documentação interativa das rotas da API.")
 			}
+			if s.rotas["GET"]["/livez"] == nil {
+				s.rotas["GET"]["/livez"] = hrp.NewMetodoOuPanic("livez_probe", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
+					if len(handlerArgs) < 2 {
+						return nil, fmt.Errorf("argumentos inválidos no livez_probe")
+					}
+					res := handlerArgs[1].(*Resposta)
+					res.Status = http.StatusOK
+					res.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
+					res.Corpo = hrp.Texto(`{"status":"ok"}`)
+					return hrp.Nulo, nil
+				}, "Probe de liveness do processo (/livez).")
+			}
+			if s.rotas["GET"]["/readyz"] == nil {
+				s.rotas["GET"]["/readyz"] = hrp.NewMetodoOuPanic("readyz_probe", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
+					if len(handlerArgs) < 2 {
+						return nil, fmt.Errorf("argumentos inválidos no readyz_probe")
+					}
+					res := handlerArgs[1].(*Resposta)
+					res.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
+					s.mu.RLock()
+					ultimoErro := s.msgsErrosUltimo
+					s.mu.RUnlock()
+					if ultimoErro != nil {
+						res.Status = http.StatusServiceUnavailable
+						res.Corpo = hrp.Texto(`{"status":"not_ready"}`)
+						return hrp.Nulo, nil
+					}
+					res.Status = http.StatusOK
+					res.Corpo = hrp.Texto(`{"status":"ready"}`)
+					return hrp.Nulo, nil
+				}, "Probe de readiness da infraestrutura (/readyz).")
+			}
 			s.mu.Unlock()
 
 			mux := http.NewServeMux()
@@ -555,7 +592,6 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 				s.mu.RLock()
 				rotasMetodo := s.rotas[req.Method]
-				s.mu.RUnlock()
 
 				var handler hrp.Objeto
 				var params map[string]string
@@ -577,9 +613,10 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 						}
 					}
 				}
+				s.mu.RUnlock()
 
 				if handler == nil {
-					fmt.Fprintf(os.Stderr, "[DEBUG] 404 para %s %s | rotas=%v\n", req.Method, req.URL.Path, rotasMetodo)
+					fmt.Fprintf(os.Stderr, "[DEBUG] 404 para %s %s\n", req.Method, req.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Rota não encontrada"))
 					return
@@ -603,7 +640,12 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 
 				// Limita o corpo da requisição a 10MB para prevenir DoS por exaustão de memória
 				bodyReader := http.MaxBytesReader(w, req.Body, 10*1024*1024)
-				bodyBytes, _ := io.ReadAll(bodyReader)
+				bodyBytes, err := io.ReadAll(bodyReader)
+				if err != nil {
+					w.WriteHeader(http.StatusRequestEntityTooLarge)
+					w.Write([]byte("Corpo da requisição excede o limite permitido"))
+					return
+				}
 				// Se houver parâmetros de rota (:id), mescla no objeto de requisição adicionando dinamicamente
 				reqParams := hrp.NewMapaVazio()
 				for k, v := range params {
@@ -684,6 +726,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				if errChain := executarpróximo(0); errChain != nil {
 					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]: %v\n", req.Method, req.URL.Path, errChain)
 					// ponytail: responde com 500 sem derrubar o servidor para preservar as demais requisições
+					// RFC 9457 / RFC 7807: diretriz Problem Details (application/problem+json) para respostas de erro de API
 					resObj.Status = hrp.Inteiro(http.StatusInternalServerError)
 					resObj.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("text/plain; charset=utf-8"))
 					resObj.Corpo = hrp.Texto(fmt.Sprintf("Erro interno: %v", errChain))
@@ -722,17 +765,17 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 
 			// Inicia o servidor em background para manter concorrência cooperativa/assíncrona
-			var errListen error
+			errCh := make(chan error, 1)
 			go func() {
 				if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					errListen = err
+					errCh <- err
 				}
 			}()
 
-			// Aguarda breve estabilização
-			time.Sleep(100 * time.Millisecond)
-			if errListen != nil {
-				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao escutar porta: %v", errListen)
+			select {
+			case err := <-errCh:
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao escutar porta: %v", err)
+			case <-time.After(100 * time.Millisecond):
 			}
 
 			return hrp.Nulo, nil

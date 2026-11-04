@@ -16,20 +16,13 @@ func met_mat_potencia(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	var base, expoente hrp.Objeto
-	expoente = hrp.Decimal(2.0)
-	base = args[0]
-
-	if len(args) > 1 {
-		expoente = args[1]
-	}
-
-	var err error
-	if base, err = hrp.NewDecimal(base); err != nil {
+	base, err := hrp.NewDecimal(args[0])
+	if err != nil {
 		return nil, err
 	}
 
-	if expoente, err = hrp.NewDecimal(expoente); err != nil {
+	expoente, err := hrp.NewDecimal(args[1])
+	if err != nil {
 		return nil, err
 	}
 

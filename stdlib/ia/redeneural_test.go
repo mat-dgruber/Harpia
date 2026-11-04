@@ -25,4 +25,17 @@ func TestSigmoideESimilaridade(t *testing.T) {
 	if math.Abs(float64(cos.(hrp.Decimal))-1.0) > 1e-6 {
 		t.Errorf("Similaridade cosseno de vetores iguais deveria ser 1.0, obtido: %f", cos)
 	}
+
+	// Softmax com NaN ou Inf deve falhar com ValorErro
+	vNaN := &hrp.Lista{Itens: hrp.Tupla{hrp.Decimal(math.NaN()), hrp.Decimal(1.0)}}
+	_, err = met_ia_softmax(nil, hrp.Tupla{vNaN})
+	if err == nil {
+		t.Errorf("Esperava erro ao passar NaN para softmax")
+	}
+
+	vInf := &hrp.Lista{Itens: hrp.Tupla{hrp.Decimal(math.Inf(1)), hrp.Decimal(1.0)}}
+	_, err = met_ia_softmax(nil, hrp.Tupla{vInf})
+	if err == nil {
+		t.Errorf("Esperava erro ao passar Inf para softmax")
+	}
 }

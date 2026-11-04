@@ -4,6 +4,7 @@ package ia
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -16,7 +17,7 @@ func validarCampo(tipoEsperado string, valor interface{}) bool {
 		return ok
 	case "inteiro":
 		if f, ok := valor.(float64); ok {
-			return f == float64(int64(f))
+			return math.Trunc(f) == f && f >= -9007199254740992 && f <= 9007199254740992
 		}
 		return false
 	case "decimal":
@@ -47,7 +48,7 @@ func ValidarResposta(esquema hrp.Mapa, resposta string) (bool, error) {
 	for chave, v := range esquema {
 		tipoEsp, ok := v.(hrp.Texto)
 		if !ok {
-			continue
+			return false, fmt.Errorf("regra de esquema inválida para o campo '%s': esperado Texto com o nome do tipo", chave)
 		}
 
 		valorJson, existe := dados[chave]

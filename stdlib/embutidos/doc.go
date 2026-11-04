@@ -19,7 +19,12 @@ func met_emb_doc(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 
 	arg := args[0]
-	imp, err := mod.(*hrp.Modulo).Escopo.ObterValor("imprima")
+	modulo, ok := mod.(*hrp.Modulo)
+	if !ok || modulo == nil {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "contexto inválido para doc")
+	}
+
+	imp, err := modulo.Escopo.ObterValor("imprima")
 	if err != nil {
 		return nil, err
 	}

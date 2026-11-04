@@ -1,34 +1,49 @@
 package matematica
 
-import "github.com/mat-dgruber/Harpia/hrp"
+import (
+	"math"
+
+	"github.com/mat-dgruber/Harpia/hrp"
+)
 
 // met_mat_raiz implementa a lógica nativa para a função 'raiz()'.
 //
 // Esta função recebe um radicando e opcionalmente um índice de raiz. Se o índice for omitido,
 // assume o valor padrão de 2.0 (calculando a raiz quadrada).
-//
-// Mecânica de Cálculo:
-// Ela calcula a raiz de forma puramente aritmética convertendo a operação para potenciação fracionária.
-// Ou seja, calcular a raiz N de X é equivalente a calcular X elevado à potência (1 / N).
-// Para realizar o cálculo, ela delega o processamento para a função nativa 'met_mat_potencia'
-// passando uma tupla contendo o radicando e o expoente fracionário calculado (1.0 / indice).
 func met_mat_raiz(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("raiz", false, args, 1, 2); err != nil {
 		return nil, err
 	}
 
-	indice := hrp.Decimal(2.0)
+	radObj, err := hrp.NewDecimal(args[0])
+	if err != nil {
+		return nil, err
+	}
+	rad := float64(radObj.(hrp.Decimal))
 
+	ind := 2.0
 	if len(args) > 1 {
 		dec, err := hrp.NewDecimal(args[1])
 		if err != nil {
 			return nil, err
 		}
-
-		indice = dec.(hrp.Decimal)
+		ind = float64(dec.(hrp.Decimal))
 	}
 
-	return met_mat_potencia(inst, hrp.Tupla{args[0], 1.0 / indice})
+	if ind == 0 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "índice da raiz não pode ser zero")
+	}
+
+	if rad < 0 {
+		// ponytail: raiz de negativo só é definida no domínio real para índices inteiros ímpares
+		isOddInt := math.Trunc(ind) == ind && int64(ind)%2 != 0
+		if !isOddInt {
+			return nil, hrp.NewErroF(hrp.ValorErro, "raiz de número negativo indefinida para índice não ímpar: %v", ind)
+		}
+		return hrp.Decimal(-math.Pow(-rad, 1.0/ind)), nil
+	}
+
+	return hrp.Decimal(math.Pow(rad, 1.0/ind)), nil
 }
 
 // _mat_raiz cria e define a assinatura do método 'raiz' exposto na stdlib do Harpia.

@@ -13,6 +13,10 @@ func met_emb_int(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
+	if len(args) == 0 {
+		return hrp.Inteiro(0), nil
+	}
+
 	return hrp.NewInteiro(args[0])
 }
 

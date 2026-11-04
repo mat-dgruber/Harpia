@@ -11,6 +11,12 @@ import (
 // met_pdf_gerarDeHtml implementa 'gerarDeHtml(htmlConteudo, caminhoSaida)' em nível de script Harpia.
 // Compila e traduz uma folha ou bloco HTML com regras de layout diretamente em um documento estruturado PDF.
 func met_pdf_gerarDeHtml(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if ctx := hrp.ObterContextoAtivo(); ctx != nil {
+		if err := ctx.VerificarPermissaoArquivos(); err != nil {
+			return nil, err
+		}
+	}
+
 	if err := hrp.VerificaNumeroArgumentos("gerarDeHtml", false, args, 2, 2); err != nil {
 		return nil, err
 	}
@@ -26,7 +32,7 @@ func met_pdf_gerarDeHtml(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 
 	// Simulação robusta e gravação do cabeçalho físico da especificação PDF v1.4 para o arquivo final.
 	pdfSimulado := fmt.Sprintf("%%PDF-1.4\n%% Generator: Harpia Native PDF Engine\n1 0 obj\n<< /Title (Documento Harpia) >>\nendobj\n%% HTML Content:\n%s", string(htmlConteudo.(hrp.Texto)))
-	err = os.WriteFile(string(caminhoSaida.(hrp.Texto)), []byte(pdfSimulado), 0644)
+	err = os.WriteFile(string(caminhoSaida.(hrp.Texto)), []byte(pdfSimulado), 0600)
 	if err != nil {
 		return hrp.Falso, hrp.NewErroF(hrp.ValorErro, "Erro ao gravar arquivo PDF: %v", err)
 	}

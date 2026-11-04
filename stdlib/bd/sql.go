@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -35,6 +36,17 @@ func validarOperadorSQL(op string) error {
 		return hrp.NewErroF(hrp.ValorErro, "Operador SQL inválido ou inseguro: '%s'", op)
 	}
 	return nil
+}
+
+func validarDirecaoSQL(dir string) (string, error) {
+	d := strings.ToUpper(strings.TrimSpace(dir))
+	if d == "" || d == "ASC" {
+		return "ASC", nil
+	}
+	if d == "DESC" {
+		return "DESC", nil
+	}
+	return "", hrp.NewErroF(hrp.ValorErro, "Direção SQL inválida: '%s' (use ASC ou DESC)", dir)
 }
 
 // MaxLimiteRegistrosSQL impõe um teto para consultas do QueryBuilder para mitigar exaustão de recursos.
@@ -278,15 +290,18 @@ func (t *TransacaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em TransacaoSQL", nome)
 }
 
-// QueryBuilder provê montagem dinâmico e flexível de queries SQL fluídas contra injeção SQL.
+// QueryBuilder provê montagem dinâmica e flexível de queries SQL fluídas contra injeção SQL.
 type QueryBuilder struct {
 	conexao      *ConexaoSQL
 	tabela       string
 	selecionados []string
 	condicoes    []string
 	args         []hrp.Objeto
+	ordenacoes   []string
 	limiteVal    int
 	schema       hrp.Mapa
+	ultimoFilho  *QueryBuilder
+	numFilhos    int
 }
 
 // TipoQueryBuilder mapeia a definição na VM.
@@ -297,232 +312,437 @@ func (q *QueryBuilder) Tipo() *hrp.Tipo {
 	return TipoQueryBuilder
 }
 
+func (q *QueryBuilder) clone() *QueryBuilder {
+	novo := &QueryBuilder{
+		conexao:   q.conexao,
+		tabela:    q.tabela,
+		limiteVal: q.limiteVal,
+		schema:    q.schema,
+	}
+	if len(q.selecionados) > 0 {
+		novo.selecionados = append([]string(nil), q.selecionados...)
+	}
+	if len(q.condicoes) > 0 {
+		novo.condicoes = append([]string(nil), q.condicoes...)
+	}
+	if len(q.args) > 0 {
+		novo.args = append([]hrp.Objeto(nil), q.args...)
+	}
+	if len(q.ordenacoes) > 0 {
+		novo.ordenacoes = append([]string(nil), q.ordenacoes...)
+	}
+	return novo
+}
+
+func (q *QueryBuilder) registrarFilho(filho *QueryBuilder) {
+	if q.numFilhos == 0 {
+		q.ultimoFilho = filho
+	} else {
+		q.ultimoFilho = nil
+	}
+	q.numFilhos++
+}
+
+func (q *QueryBuilder) alvoExecucao() *QueryBuilder {
+	if q.ultimoFilho != nil {
+		return q.ultimoFilho.alvoExecucao()
+	}
+	return q
+}
+
+func (q *QueryBuilder) validarSchemaEIdentificadores() error {
+	if err := validarIdentificadorSQL(q.tabela); err != nil {
+		return err
+	}
+	if q.schema != nil {
+		for colSchema := range q.schema {
+			if err := validarIdentificadorSQL(colSchema); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (q *QueryBuilder) selecionar(args hrp.Tupla) (hrp.Objeto, error) {
+	novo := q.clone()
+	var extrairCols func(hrp.Objeto) error
+	extrairCols = func(arg hrp.Objeto) error {
+		if lista, ok := arg.(*hrp.Lista); ok {
+			for _, item := range lista.Itens {
+				if err := extrairCols(item); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		if tupla, ok := arg.(hrp.Tupla); ok {
+			for _, item := range tupla {
+				if err := extrairCols(item); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+		col, err := hrp.NewTexto(arg)
+		if err != nil {
+			return err
+		}
+		colStr := string(col.(hrp.Texto))
+		if errVal := validarIdentificadorSQL(colStr); errVal != nil {
+			return errVal
+		}
+		novo.selecionados = append(novo.selecionados, colStr)
+		return nil
+	}
+	for _, arg := range args {
+		if err := extrairCols(arg); err != nil {
+			return nil, err
+		}
+	}
+	q.registrarFilho(novo)
+	return novo, nil
+}
+
+func (q *QueryBuilder) onde(args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("onde", false, args, 3, 3); err != nil {
+		return nil, err
+	}
+	coluna, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	colStr := string(coluna.(hrp.Texto))
+	if errVal := validarIdentificadorSQL(colStr); errVal != nil {
+		return nil, errVal
+	}
+	operador, err := hrp.NewTexto(args[1])
+	if err != nil {
+		return nil, err
+	}
+	opStr := string(operador.(hrp.Texto))
+	if errVal := validarOperadorSQL(opStr); errVal != nil {
+		return nil, errVal
+	}
+	novo := q.clone()
+	novo.condicoes = append(novo.condicoes, fmt.Sprintf("%s %s ?", colStr, opStr))
+	novo.args = append(novo.args, args[2])
+	q.registrarFilho(novo)
+	return novo, nil
+}
+
+func (q *QueryBuilder) ordenarPor(args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("ordenarPor", false, args, 1, 2); err != nil {
+		return nil, err
+	}
+	col, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	colStr := string(col.(hrp.Texto))
+	if errVal := validarIdentificadorSQL(colStr); errVal != nil {
+		return nil, errVal
+	}
+	dirStr := "ASC"
+	if len(args) == 2 {
+		dir, errDir := hrp.NewTexto(args[1])
+		if errDir != nil {
+			return nil, errDir
+		}
+		d, errValDir := validarDirecaoSQL(string(dir.(hrp.Texto)))
+		if errValDir != nil {
+			return nil, errValDir
+		}
+		dirStr = d
+	}
+	novo := q.clone()
+	novo.ordenacoes = append(novo.ordenacoes, fmt.Sprintf("%s %s", colStr, dirStr))
+	q.registrarFilho(novo)
+	return novo, nil
+}
+
+func (q *QueryBuilder) limite(args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("limite", false, args, 1, 1); err != nil {
+		return nil, err
+	}
+	n, err := hrp.NewInteiro(args[0])
+	if err != nil {
+		return nil, err
+	}
+	nVal := int64(n.(hrp.Inteiro))
+	if nVal < 0 || nVal > MaxLimiteRegistrosSQL {
+		return nil, hrp.NewErroF(hrp.ValorErro, "limite de registros SQL inválido (deve ser entre 0 e %d)", MaxLimiteRegistrosSQL)
+	}
+	novo := q.clone()
+	novo.limiteVal = int(nVal)
+	q.registrarFilho(novo)
+	return novo, nil
+}
+
+func (q *QueryBuilder) obterMuitos(args hrp.Tupla) (hrp.Objeto, error) {
+	if alvo := q.alvoExecucao(); alvo != q {
+		return alvo.obterMuitos(args)
+	}
+	if err := q.validarSchemaEIdentificadores(); err != nil {
+		return nil, err
+	}
+	if q.conexao == nil {
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Conexão de banco de dados não inicializada no QueryBuilder")
+	}
+	cols := "*"
+	if len(q.selecionados) > 0 {
+		cols = strings.Join(q.selecionados, ", ")
+	}
+	query := fmt.Sprintf("SELECT %s FROM %s", cols, q.tabela)
+	if len(q.condicoes) > 0 {
+		query += " WHERE " + strings.Join(q.condicoes, " AND ")
+	}
+	if len(q.ordenacoes) > 0 {
+		query += " ORDER BY " + strings.Join(q.ordenacoes, ", ")
+	}
+	if q.limiteVal > 0 {
+		query += fmt.Sprintf(" LIMIT %d", q.limiteVal)
+	}
+	query = q.converterPlaceholders(query)
+
+	var callArgs hrp.Tupla
+	callArgs = append(callArgs, hrp.Texto(query))
+	for _, arg := range q.args {
+		callArgs = append(callArgs, arg)
+	}
+
+	consultarMetodo, err := q.conexao.M__obtem_attributo__("consultar")
+	if err != nil {
+		return nil, err
+	}
+	return hrp.Chamar(consultarMetodo, callArgs)
+}
+
+func (q *QueryBuilder) obterUm(args hrp.Tupla) (hrp.Objeto, error) {
+	if alvo := q.alvoExecucao(); alvo != q {
+		return alvo.obterUm(args)
+	}
+	qComLimite := q.clone()
+	qComLimite.limiteVal = 1
+	res, err := qComLimite.obterMuitos(hrp.Tupla{})
+	if err != nil {
+		return nil, err
+	}
+	lista, ok := res.(*hrp.Lista)
+	if !ok || len(lista.Itens) == 0 {
+		return hrp.Nulo, nil
+	}
+	return lista.Itens[0], nil
+}
+
+func (q *QueryBuilder) inserir(args hrp.Tupla) (hrp.Objeto, error) {
+	if alvo := q.alvoExecucao(); alvo != q {
+		return alvo.inserir(args)
+	}
+	if err := hrp.VerificaNumeroArgumentos("inserir", false, args, 1, 1); err != nil {
+		return nil, err
+	}
+	if err := q.validarSchemaEIdentificadores(); err != nil {
+		return nil, err
+	}
+	mapa, ok := args[0].(hrp.Mapa)
+	if !ok {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "inserir esperava um Mapa como argumento")
+	}
+
+	colunas := make([]string, 0, len(mapa))
+	for k := range mapa {
+		if err := validarIdentificadorSQL(k); err != nil {
+			return nil, err
+		}
+		colunas = append(colunas, k)
+	}
+	sort.Strings(colunas)
+
+	if q.schema != nil {
+		for _, k := range colunas {
+			v := mapa[k]
+			tipoEsperado, existe := q.schema[k]
+			if !existe {
+				return nil, hrp.NewErroF(hrp.ValorErro, "campo '%s' nao existe no schema da tabela '%s'", k, q.tabela)
+			}
+			tipoTexto, ok := tipoEsperado.(hrp.Texto)
+			if ok {
+				if errVal := validarTipoCampo(string(tipoTexto), v); errVal != nil {
+					return nil, hrp.NewErroF(hrp.TipagemErro, "campo '%s' da tabela '%s': %v", k, q.tabela, errVal)
+				}
+			}
+		}
+	}
+
+	if q.conexao == nil {
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Conexão de banco de dados não inicializada no QueryBuilder")
+	}
+
+	placeholders := make([]string, len(colunas))
+	valueArgs := make(hrp.Tupla, len(colunas))
+	for i, col := range colunas {
+		placeholders[i] = "?"
+		valueArgs[i] = mapa[col]
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", q.tabela, strings.Join(colunas, ", "), strings.Join(placeholders, ", "))
+	query = q.converterPlaceholders(query)
+
+	var callArgs hrp.Tupla
+	callArgs = append(callArgs, hrp.Texto(query))
+	for _, arg := range valueArgs {
+		callArgs = append(callArgs, arg)
+	}
+
+	executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
+	if err != nil {
+		return nil, err
+	}
+	return hrp.Chamar(executarMetodo, callArgs)
+}
+
+func (q *QueryBuilder) atualizar(args hrp.Tupla) (hrp.Objeto, error) {
+	if alvo := q.alvoExecucao(); alvo != q {
+		return alvo.atualizar(args)
+	}
+	if err := hrp.VerificaNumeroArgumentos("atualizar", false, args, 1, 1); err != nil {
+		return nil, err
+	}
+	if err := q.validarSchemaEIdentificadores(); err != nil {
+		return nil, err
+	}
+	mapa, ok := args[0].(hrp.Mapa)
+	if !ok {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "atualizar esperava um Mapa como argumento")
+	}
+
+	colunas := make([]string, 0, len(mapa))
+	for k := range mapa {
+		if err := validarIdentificadorSQL(k); err != nil {
+			return nil, err
+		}
+		colunas = append(colunas, k)
+	}
+	sort.Strings(colunas)
+
+	if q.conexao == nil {
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Conexão de banco de dados não inicializada no QueryBuilder")
+	}
+
+	sets := make([]string, len(colunas))
+	valueArgs := make(hrp.Tupla, len(colunas))
+	for i, col := range colunas {
+		sets[i] = fmt.Sprintf("%s = ?", col)
+		valueArgs[i] = mapa[col]
+	}
+
+	query := fmt.Sprintf("UPDATE %s SET %s", q.tabela, strings.Join(sets, ", "))
+	if len(q.condicoes) > 0 {
+		query += " WHERE " + strings.Join(q.condicoes, " AND ")
+	}
+	query = q.converterPlaceholders(query)
+
+	var callArgs hrp.Tupla
+	callArgs = append(callArgs, hrp.Texto(query))
+	for _, arg := range valueArgs {
+		callArgs = append(callArgs, arg)
+	}
+	for _, arg := range q.args {
+		callArgs = append(callArgs, arg)
+	}
+
+	executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
+	if err != nil {
+		return nil, err
+	}
+	return hrp.Chamar(executarMetodo, callArgs)
+}
+
+func (q *QueryBuilder) deletar(args hrp.Tupla) (hrp.Objeto, error) {
+	if alvo := q.alvoExecucao(); alvo != q {
+		return alvo.deletar(args)
+	}
+	if err := q.validarSchemaEIdentificadores(); err != nil {
+		return nil, err
+	}
+	if q.conexao == nil {
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Conexão de banco de dados não inicializada no QueryBuilder")
+	}
+	query := fmt.Sprintf("DELETE FROM %s", q.tabela)
+	if len(q.condicoes) > 0 {
+		query += " WHERE " + strings.Join(q.condicoes, " AND ")
+	}
+	query = q.converterPlaceholders(query)
+
+	var callArgs hrp.Tupla
+	callArgs = append(callArgs, hrp.Texto(query))
+	for _, arg := range q.args {
+		callArgs = append(callArgs, arg)
+	}
+
+	executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
+	if err != nil {
+		return nil, err
+	}
+	return hrp.Chamar(executarMetodo, callArgs)
+}
+
 // M__obtem_attributo__ expõe os métodos fluídos da API do QueryBuilder.
 func (q *QueryBuilder) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	switch nome {
 	case "selecionar":
 		// Define quais colunas serão selecionadas na query SELECT final.
 		return hrp.NewMetodoOuPanic("selecionar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			for _, arg := range args {
-				col, err := hrp.NewTexto(arg)
-				if err != nil {
-					return nil, err
-				}
-				colStr := string(col.(hrp.Texto))
-				if errVal := validarIdentificadorSQL(colStr); errVal != nil {
-					return nil, errVal
-				}
-				q.selecionados = append(q.selecionados, colStr)
-			}
-			return q, nil
+			return q.selecionar(args)
 		}, "Seleciona um subconjunto de colunas físicas para a query."), nil
 
 	case "onde":
 		// Adiciona cláusulas de filtro WHERE utilizando parâmetros de substituição (bindings) seguros.
 		return hrp.NewMetodoOuPanic("onde", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("onde", false, args, 3, 3); err != nil {
-				return nil, err
-			}
-			coluna, err := hrp.NewTexto(args[0])
-			if err != nil {
-				return nil, err
-			}
-			colStr := string(coluna.(hrp.Texto))
-			if errVal := validarIdentificadorSQL(colStr); errVal != nil {
-				return nil, errVal
-			}
-			operador, err := hrp.NewTexto(args[1])
-			if err != nil {
-				return nil, err
-			}
-			opStr := string(operador.(hrp.Texto))
-			if errVal := validarOperadorSQL(opStr); errVal != nil {
-				return nil, errVal
-			}
-			q.condicoes = append(q.condicoes, fmt.Sprintf("%s %s ?", colStr, opStr))
-			q.args = append(q.args, args[2])
-			return q, nil
+			return q.onde(args)
 		}, "Adiciona uma restrição condicional de seleção no filtro (WHERE)."), nil
+
+	case "ordenarPor", "ordenar":
+		// Define a ordenação dos resultados (ORDER BY).
+		return hrp.NewMetodoOuPanic(nome, func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			return q.ordenarPor(args)
+		}, "Define a ordenação dos resultados (ORDER BY)."), nil
 
 	case "limite":
 		// Delimita o número máximo de registros a serem trazidos na query, respeitando MaxLimiteRegistrosSQL.
 		return hrp.NewMetodoOuPanic("limite", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("limite", false, args, 1, 1); err != nil {
-				return nil, err
-			}
-			n, err := hrp.NewInteiro(args[0])
-			if err != nil {
-				return nil, err
-			}
-			nVal := int64(n.(hrp.Inteiro))
-			if nVal < 0 || nVal > MaxLimiteRegistrosSQL {
-				return nil, hrp.NewErroF(hrp.ValorErro, "limite de registros SQL inválido (deve ser entre 0 e %d)", MaxLimiteRegistrosSQL)
-			}
-			q.limiteVal = int(nVal)
-			return q, nil
+			return q.limite(args)
 		}, "Limita o volume máximo de linhas da resposta."), nil
 
 	case "obterMuitos":
 		// Conclui e roda a query SELECT coletando uma lista com todas as correspondências do banco.
 		return hrp.NewMetodoOuPanic("obterMuitos", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			cols := "*"
-			if len(q.selecionados) > 0 {
-				cols = strings.Join(q.selecionados, ", ")
-			}
-			query := fmt.Sprintf("SELECT %s FROM %s", cols, q.tabela)
-			if len(q.condicoes) > 0 {
-				query += " WHERE " + strings.Join(q.condicoes, " AND ")
-			}
-			if q.limiteVal > 0 {
-				query += fmt.Sprintf(" LIMIT %d", q.limiteVal)
-			}
-			query = q.converterPlaceholders(query)
-
-			var callArgs hrp.Tupla
-			callArgs = append(callArgs, hrp.Texto(query))
-			for _, arg := range q.args {
-				callArgs = append(callArgs, arg)
-			}
-
-			consultarMetodo, err := q.conexao.M__obtem_attributo__("consultar")
-			if err != nil {
-				return nil, err
-			}
-			return hrp.Chamar(consultarMetodo, callArgs)
+			return q.obterMuitos(args)
 		}, "Executa a busca retornando todas as linhas correspondentes."), nil
 
 	case "obterUm":
 		// Atalho inteligente que impõe limite=1 e devolve o primeiro registro encontrado ou Nulo.
 		return hrp.NewMetodoOuPanic("obterUm", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			q.limiteVal = 1
-			obterMuitosMetodo, err := q.M__obtem_attributo__("obterMuitos")
-			if err != nil {
-				return nil, err
-			}
-			res, err := hrp.Chamar(obterMuitosMetodo, hrp.Tupla{})
-			if err != nil {
-				return nil, err
-			}
-			lista := res.(*hrp.Lista)
-			if len(lista.Itens) == 0 {
-				return hrp.Nulo, nil
-			}
-			return lista.Itens[0], nil
+			return q.obterUm(args)
 		}, "Retorna apenas o primeiro registro localizado."), nil
 
 	case "inserir":
 		// Insere dados no banco, validando tipos de campos dinamicamente se houver schema associado à tabela.
 		return hrp.NewMetodoOuPanic("inserir", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("inserir", false, args, 1, 1); err != nil {
-				return nil, err
-			}
-			mapa, ok := args[0].(hrp.Mapa)
-			if !ok {
-				return nil, hrp.NewErroF(hrp.TipagemErro, "inserir esperava um Mapa como argumento")
-			}
-
-			if q.schema != nil {
-				for k, v := range mapa {
-					tipoEsperado, existe := q.schema[k]
-					if !existe {
-						return nil, hrp.NewErroF(hrp.ValorErro, "campo '%s' nao existe no schema da tabela '%s'", k, q.tabela)
-					}
-					tipoTexto, ok := tipoEsperado.(hrp.Texto)
-					if ok {
-						if errVal := validarTipoCampo(string(tipoTexto), v); errVal != nil {
-							return nil, hrp.NewErroF(hrp.TipagemErro, "campo '%s' da tabela '%s': %v", k, q.tabela, errVal)
-						}
-					}
-				}
-			}
-
-			var colunas []string
-			var placeholders []string
-			var valueArgs hrp.Tupla
-
-			for k, v := range mapa {
-				colunas = append(colunas, k)
-				placeholders = append(placeholders, "?")
-				valueArgs = append(valueArgs, v)
-			}
-
-			query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", q.tabela, strings.Join(colunas, ", "), strings.Join(placeholders, ", "))
-			query = q.converterPlaceholders(query)
-
-			var callArgs hrp.Tupla
-			callArgs = append(callArgs, hrp.Texto(query))
-			for _, arg := range valueArgs {
-				callArgs = append(callArgs, arg)
-			}
-
-			executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
-			if err != nil {
-				return nil, err
-			}
-			return hrp.Chamar(executarMetodo, callArgs)
+			return q.inserir(args)
 		}, "Insere um registro e roda validações estritas de esquema."), nil
 
 	case "atualizar":
 		// Modifica dados existentes no banco que batem com as condições da cláusula onde().
 		return hrp.NewMetodoOuPanic("atualizar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos("atualizar", false, args, 1, 1); err != nil {
-				return nil, err
-			}
-			mapa, ok := args[0].(hrp.Mapa)
-			if !ok {
-				return nil, hrp.NewErroF(hrp.TipagemErro, "atualizar esperava um Mapa como argumento")
-			}
-
-			var sets []string
-			var valueArgs hrp.Tupla
-
-			for k, v := range mapa {
-				sets = append(sets, fmt.Sprintf("%s = ?", k))
-				valueArgs = append(valueArgs, v)
-			}
-
-			query := fmt.Sprintf("UPDATE %s SET %s", q.tabela, strings.Join(sets, ", "))
-			if len(q.condicoes) > 0 {
-				query += " WHERE " + strings.Join(q.condicoes, " AND ")
-			}
-			query = q.converterPlaceholders(query)
-
-			var callArgs hrp.Tupla
-			callArgs = append(callArgs, hrp.Texto(query))
-			for _, arg := range valueArgs {
-				callArgs = append(callArgs, arg)
-			}
-			for _, arg := range q.args {
-				callArgs = append(callArgs, arg)
-			}
-
-			executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
-			if err != nil {
-				return nil, err
-			}
-			return hrp.Chamar(executarMetodo, callArgs)
+			return q.atualizar(args)
 		}, "Atualiza registros em massa com base nas condições estabelecidas no onde()."), nil
 
 	case "deletar":
 		// Deleta registros correspondentes do banco de dados físico.
 		return hrp.NewMetodoOuPanic("deletar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			query := fmt.Sprintf("DELETE FROM %s", q.tabela)
-			if len(q.condicoes) > 0 {
-				query += " WHERE " + strings.Join(q.condicoes, " AND ")
-			}
-			query = q.converterPlaceholders(query)
-
-			var callArgs hrp.Tupla
-			callArgs = append(callArgs, hrp.Texto(query))
-			for _, arg := range q.args {
-				callArgs = append(callArgs, arg)
-			}
-
-			executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
-			if err != nil {
-				return nil, err
-			}
-			return hrp.Chamar(executarMetodo, callArgs)
+			return q.deletar(args)
 		}, "Deleta linhas físicas filtradas pelas regras do onde()."), nil
 	}
 
@@ -571,7 +791,7 @@ func toPtObject(val interface{}) hrp.Objeto {
 
 // converterPlaceholders ajusta dinamicamente a numeração de placeholders para drivers como Postgres ($1, $2, etc.).
 func (q *QueryBuilder) converterPlaceholders(query string) string {
-	if q.conexao.driver != "postgres" {
+	if q.conexao == nil || q.conexao.driver != "postgres" {
 		return query
 	}
 	partes := strings.Split(query, "?")

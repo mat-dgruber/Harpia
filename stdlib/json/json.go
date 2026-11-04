@@ -4,6 +4,7 @@ package json
 
 import (
 	"encoding/json"
+	"math"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -19,8 +20,8 @@ func converteParahrp(dados any) hrp.Objeto {
 		return hrp.Texto(v)
 	case float64:
 		// JSON interpreta todos os números como float64. Se o valor representar perfeitamente
-		// um inteiro matemático, convertemos para Inteiro de forma conveniente para o programador do Harpia.
-		if float64(int64(v)) == v {
+		// um inteiro matemático dentro do intervalo seguro, convertemos para Inteiro.
+		if !math.IsNaN(v) && !math.IsInf(v, 0) && math.Trunc(v) == v && v >= -9007199254740992 && v <= 9007199254740992 {
 			return hrp.Inteiro(int64(v))
 		}
 		return hrp.Decimal(v)

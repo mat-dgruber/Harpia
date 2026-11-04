@@ -3,7 +3,6 @@
 package soquete
 
 import (
-	"fmt"
 	"net"
 	"syscall"
 	"time"
@@ -77,7 +76,7 @@ func NewSoquete(familia, tipo, protocolo hrp.Inteiro) (hrp.Objeto, error) {
 // Se definido como verdadeiro, as operações de leitura e escrita retornam imediatamente em vez de bloquear o processo.
 func (s *Soquete) DefinirNaoBloqueante(naobloqueante hrp.Booleano) (hrp.Objeto, error) {
 	if err := unix.SetNonblock(s.descritorDoSoquete, bool(naobloqueante)); err != nil {
-		panic(err)
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "%v", err)
 	}
 
 	return hrp.Nulo, nil
@@ -86,7 +85,7 @@ func (s *Soquete) DefinirNaoBloqueante(naobloqueante hrp.Booleano) (hrp.Objeto, 
 // DefineOpcoes configura opções do nível de soquete (via unix.SetsockoptInt, ex: reuso de portas com SO_REUSEADDR).
 func (s *Soquete) DefineOpcoes(nivel, opcao, valor hrp.Inteiro) (hrp.Objeto, error) {
 	if err := unix.SetsockoptInt(s.descritorDoSoquete, int(nivel), int(opcao), int(valor)); err != nil {
-		panic(fmt.Sprintf("Erro ao definir opções do socket: %s", err))
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "%v", err)
 	}
 
 	return hrp.Nulo, nil
@@ -107,8 +106,17 @@ func (s *Soquete) Fecha() (hrp.Objeto, error) {
 
 // AssociaSoquete executa o bind (ligação) do soquete a uma interface de IP específica e porta no computador local.
 func (s *Soquete) AssociaSoquete(ip hrp.Texto, porta hrp.Inteiro) (hrp.Objeto, error) {
+	ipParsed := net.ParseIP(string(ip))
+	if ipParsed == nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "IP inválido: %s", ip)
+	}
+	ip4 := ipParsed.To4()
+	if ip4 == nil {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Apenas IPv4 é suportado: %s", ip)
+	}
+
 	addr := &unix.SockaddrInet4{Port: int(porta)}
-	copy(addr.Addr[:], net.ParseIP(string(ip)).To16())
+	copy(addr.Addr[:], ip4)
 
 	if err := unix.Bind(s.descritorDoSoquete, addr); err != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao associar soquete: %s", err)
@@ -142,8 +150,7 @@ func (s *Soquete) AceitaConexao() (*Soquete, error) {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao aceitar conexão: %s", err)
 			}
 
-			s.pollFd = append(s.pollFd, unix.PollFd{Fd: int32(fd), Events: unix.POLLIN})
-
+			// ponytail: não adiciona fd do cliente em s.pollFd do servidor de escuta para evitar vazamento
 			soq := &Soquete{
 				descritorDoSoquete: fd,
 				familia:            s.familia,
@@ -161,6 +168,11 @@ func (s *Soquete) AceitaConexao() (*Soquete, error) {
 
 // RecebeDados lê bytes de dados do socket ativo em um buffer do tamanho máximo especificado.
 func (s *Soquete) RecebeDados(tamanhoBuffer hrp.Inteiro) (*hrp.Bytes, error) {
+	if tamanhoBuffer <= 0 {
+		tamanhoBuffer = 4096
+	} else if tamanhoBuffer > 64*1024*1024 {
+		tamanhoBuffer = 64 * 1024 * 1024
+	}
 	buffer := make([]byte, int(tamanhoBuffer))
 
 	for {
@@ -215,7 +227,26 @@ func (s *Soquete) Conecta(endereco hrp.Texto, porta hrp.Inteiro) (hrp.Objeto, er
 
 // resolveEndereco traduz de forma inteligente endereços de hosts (ex: "google.com") para endereços IP.
 func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, error) {
-	ips, err := net.LookupIP(string(endereco))
+	if ipParsed := net.ParseIP(endereco); ipParsed != nil {
+		if s.familia == syscall.AF_INET6 {
+			ip6 := ipParsed.To16()
+			if ip6 != nil && ipParsed.To4() == nil {
+				addr := &unix.SockaddrInet6{Port: porta}
+				copy(addr.Addr[:], ip6)
+				return addr, nil
+			}
+			return nil, hrp.NewErroF(hrp.ValorErro, "Apenas IPv6 é suportado: %s", endereco)
+		}
+		ip4 := ipParsed.To4()
+		if ip4 == nil {
+			return nil, hrp.NewErroF(hrp.ValorErro, "Apenas IPv4 é suportado: %s", endereco)
+		}
+		addr := &unix.SockaddrInet4{Port: porta}
+		copy(addr.Addr[:], ip4)
+		return addr, nil
+	}
+
+	ips, err := net.LookupIP(endereco)
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao resolver o endereço: %v", err)
 	}
@@ -235,13 +266,13 @@ func (s *Soquete) resolveEndereco(endereco string, porta int) (unix.Sockaddr, er
 		case syscall.AF_INET:
 			if ip4 := ip.To4(); ip4 != nil {
 				addr := &unix.SockaddrInet4{Port: porta}
-				copy(addr.Addr[:], ip)
+				copy(addr.Addr[:], ip4)
 				return addr, nil
 			}
 		}
 	}
 
-	return nil, nil
+	return nil, hrp.NewErroF(hrp.ErroDeSistema, "Nenhum endereço compatível encontrado para: %s", endereco)
 }
 
 func init() {
@@ -257,10 +288,19 @@ func init() {
 			}
 		}
 
-		var familia, tipo, protocolo hrp.Inteiro = args[0].(hrp.Inteiro), args[1].(hrp.Inteiro), hrp.Inteiro(0)
+		familia, ok1 := args[0].(hrp.Inteiro)
+		tipo, ok2 := args[1].(hrp.Inteiro)
+		if !ok1 || !ok2 {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "familia e tipo devem ser Inteiros")
+		}
 
+		protocolo := hrp.Inteiro(0)
 		if len(args) == 3 {
-			protocolo = args[2].(hrp.Inteiro)
+			prot, ok := args[2].(hrp.Inteiro)
+			if !ok {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "protocolo deve ser Inteiro")
+			}
+			protocolo = prot
 		}
 
 		return NewSoquete(familia, tipo, protocolo)
@@ -273,7 +313,13 @@ func init() {
 			return nil, err
 		}
 
-		return inst.(*Soquete).AssociaSoquete(args[0].(hrp.Texto), args[1].(hrp.Inteiro))
+		ip, ok1 := args[0].(hrp.Texto)
+		porta, ok2 := args[1].(hrp.Inteiro)
+		if !ok1 || !ok2 {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "argumentos inválidos para associa(ip, porta)")
+		}
+
+		return inst.(*Soquete).AssociaSoquete(ip, porta)
 	}, "soquete.associa(ip, porta) -> Nulo\n\nAssocia um soquete a um endereço IP e porta.")
 
 	TipoSoquete.Mapa["ouve"] = hrp.NewMetodoOuPanic("ouve", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -281,9 +327,13 @@ func init() {
 			return nil, err
 		}
 
-		backlog := hrp.Inteiro(0)
+		backlog := hrp.Inteiro(1)
 		if len(args) == 1 {
-			backlog = args[0].(hrp.Inteiro)
+			b, ok := args[0].(hrp.Inteiro)
+			if !ok {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "backlog deve ser Inteiro")
+			}
+			backlog = b
 		}
 
 		return inst.(*Soquete).OuveSoquete(backlog)
@@ -302,20 +352,29 @@ func init() {
 			return nil, err
 		}
 
-		tamanhoBuffer := hrp.Inteiro(0)
+		tamanhoBuffer := hrp.Inteiro(4096)
 		if len(args) == 1 {
-			tamanhoBuffer = args[0].(hrp.Inteiro)
+			t, ok := args[0].(hrp.Inteiro)
+			if !ok {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "tamanhoBuffer deve ser Inteiro")
+			}
+			tamanhoBuffer = t
 		}
 
 		return inst.(*Soquete).RecebeDados(tamanhoBuffer)
-	}, "soquete.recebe(tamanhoBuffer?) -> Bytes\n\nRecebe os dados de uma conexão e retorna no tipo Bytes\nSe não for definido um tamanho de buffer, o padrão será 0")
+	}, "soquete.recebe(tamanhoBuffer?) -> Bytes\n\nRecebe os dados de uma conexão e retorna no tipo Bytes\nSe não for definido um tamanho de buffer, o padrão será 4096")
 
 	TipoSoquete.Mapa["envia"] = hrp.NewMetodoOuPanic("envia", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		if err := hrp.VerificaNumeroArgumentos("envia", true, args, 1, 1); err != nil {
 			return nil, err
 		}
 
-		return inst.(*Soquete).EnviaDados(args[0].(*hrp.Bytes))
+		dados, ok := args[0].(*hrp.Bytes)
+		if !ok {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "dados deve ser do tipo Bytes")
+		}
+
+		return inst.(*Soquete).EnviaDados(dados)
 	}, "soquete.envia(dados) -> Nulo\n\nEnvia um objeto do tipo Bytes para o outro lado da conexão")
 
 	TipoSoquete.Mapa["conecta"] = hrp.NewMetodoOuPanic("conecta", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -323,7 +382,13 @@ func init() {
 			return nil, err
 		}
 
-		return inst.(*Soquete).Conecta(args[0].(hrp.Texto), args[1].(hrp.Inteiro))
+		endereco, ok1 := args[0].(hrp.Texto)
+		porta, ok2 := args[1].(hrp.Inteiro)
+		if !ok1 || !ok2 {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "argumentos inválidos para conecta(endereco, porta)")
+		}
+
+		return inst.(*Soquete).Conecta(endereco, porta)
 	}, "soquete.conecta(endereco, porta) -> Nulo\n\nSe conecta a um servidor pela porta e endereço informado.\nO endereço pode ser um IP ou nome de domínio como: exemplo.com")
 
 	TipoSoquete.Mapa["def_nao_bloqueante"] = hrp.NewMetodoOuPanic("def_nao_bloqueante", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -331,7 +396,12 @@ func init() {
 			return nil, err
 		}
 
-		return inst.(*Soquete).DefinirNaoBloqueante(args[0].(hrp.Booleano))
+		nb, ok := args[0].(hrp.Booleano)
+		if !ok {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "naoBloqueante deve ser Booleano")
+		}
+
+		return inst.(*Soquete).DefinirNaoBloqueante(nb)
 	}, "soquete.def_nao_bloqueante(naoBloqueante) -> Nulo\n\nDefine se o soquete deve operar em modo não bloqueante")
 
 	TipoSoquete.Mapa["define_opcoes"] = hrp.NewMetodoOuPanic("define_opcoes", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -339,12 +409,21 @@ func init() {
 			return nil, err
 		}
 
-		valor := hrp.Inteiro(1)
-
-		if len(args) == 3 {
-			valor = args[2].(hrp.Inteiro)
+		nivel, ok1 := args[0].(hrp.Inteiro)
+		opcao, ok2 := args[1].(hrp.Inteiro)
+		if !ok1 || !ok2 {
+			return nil, hrp.NewErroF(hrp.TipagemErro, "nivel e opcao devem ser Inteiros")
 		}
 
-		return inst.(*Soquete).DefineOpcoes(args[0].(hrp.Inteiro), args[1].(hrp.Inteiro), valor)
+		valor := hrp.Inteiro(1)
+		if len(args) == 3 {
+			v, ok := args[2].(hrp.Inteiro)
+			if !ok {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "valor deve ser Inteiro")
+			}
+			valor = v
+		}
+
+		return inst.(*Soquete).DefineOpcoes(nivel, opcao, valor)
 	}, "soquete.define_opcoes(nivel, opcao, valor) -> Nulo\n\nDefine opções para o soquete.")
 }

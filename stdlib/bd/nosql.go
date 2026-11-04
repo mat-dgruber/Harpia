@@ -4,6 +4,8 @@ package bd
 
 import (
 	"context"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -170,7 +172,8 @@ func (r *ConexaoRedis) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				}
 				expiracao = time.Duration(expSegundos.(hrp.Inteiro)) * time.Second
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			errCmd := r.client.Set(ctx, string(chave.(hrp.Texto)), string(valor.(hrp.Texto)), expiracao).Err()
 			if errCmd != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro no Redis: %v", errCmd)
@@ -188,7 +191,8 @@ func (r *ConexaoRedis) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			val, errCmd := r.client.Get(ctx, string(chave.(hrp.Texto))).Result()
 			if errCmd == redis.Nil {
 				return hrp.Nulo, nil
@@ -209,7 +213,8 @@ func (r *ConexaoRedis) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			errCmd := r.client.Del(ctx, string(chave.(hrp.Texto))).Err()
 			if errCmd != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro no Redis: %v", errCmd)
@@ -229,14 +234,23 @@ func (r *ConexaoRedis) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 }
 
 // conectarMongoImpl cria uma instância configurada do cliente MongoDB.
-func conectarMongoImpl(url string) (*ConexaoMongo, error) {
+func conectarMongoImpl(rawURL string) (*ConexaoMongo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(url))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(rawURL))
 	if err != nil {
 		return nil, err
 	}
 	dbName := "Harpia"
+	if u, errParse := url.Parse(rawURL); errParse == nil {
+		path := strings.TrimPrefix(u.Path, "/")
+		if path != "" {
+			parts := strings.Split(path, "/")
+			if parts[0] != "" {
+				dbName = parts[0]
+			}
+		}
+	}
 	return &ConexaoMongo{client: client, dbName: dbName}, nil
 }
 

@@ -78,6 +78,9 @@ func init() {
 // Perguntar interage diretamente com o LLM provido através de um canal síncrono, gerenciando e
 // persistindo o histórico de mensagens em memória sob o formato de mensagens de Chat (User/Assistant).
 func (a *Agente) Perguntar(mensagem string) (string, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
 	// Adiciona a mensagem do usuário ao histórico local
 	userMsg := hrp.NewMapaVazio()
 	userMsg.M__define_item__(hrp.Texto("role"), hrp.Texto("user"))
@@ -91,10 +94,14 @@ func (a *Agente) Perguntar(mensagem string) (string, error) {
 		if mapaItem, ok := item.(hrp.Mapa); ok {
 			roleObj, _ := mapaItem.M__obtem_item__(hrp.Texto("role"))
 			contentObj, _ := mapaItem.M__obtem_item__(hrp.Texto("content"))
-			msgs = append(msgs, Mensagem{
-				Role:    string(roleObj.(hrp.Texto)),
-				Content: string(contentObj.(hrp.Texto)),
-			})
+			roleTxt, okRole := roleObj.(hrp.Texto)
+			contentTxt, okContent := contentObj.(hrp.Texto)
+			if okRole && okContent {
+				msgs = append(msgs, Mensagem{
+					Role:    string(roleTxt),
+					Content: string(contentTxt),
+				})
+			}
 		}
 	}
 
@@ -144,6 +151,8 @@ func (a *Agente) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	case "limpar_memoria":
 		// Zera todo o histórico de conversas acumulado na memória do agente.
 		return hrp.NewMetodoOuPanic("limpar_memoria", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			a.mu.Lock()
+			defer a.mu.Unlock()
 			a.Historico.Itens = hrp.Tupla(nil)
 			return hrp.Nulo, nil
 		}, "Apaga o histórico de conversação do agente."), nil

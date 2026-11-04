@@ -40,7 +40,7 @@ func met_emb_leia(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao ler a entrada: %v", err)
 	}
-	return hrp.Texto(strings.TrimRight(leitura, "\n")), nil
+	return hrp.Texto(strings.TrimRight(leitura, "\r\n")), nil
 }
 
 // _emb_leia cria e define a assinatura do método 'leia' exposto globalmente.

@@ -4,6 +4,7 @@ package metricas
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 
@@ -57,8 +58,12 @@ func (c *Contador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
+			f := float64(val.(hrp.Decimal))
+			if math.IsNaN(f) || math.IsInf(f, 0) || f < 0 {
+				return nil, hrp.NewErroF(hrp.ValorErro, "incrementar_por requer valor numérico finito e maior ou igual a zero")
+			}
 			c.info.mu.Lock()
-			c.info.Valor += float64(val.(hrp.Decimal))
+			c.info.Valor += f
 			c.info.mu.Unlock()
 			return hrp.Nulo, nil
 		}, "Soma um valor numérico decimal ao contador."), nil
@@ -131,17 +136,42 @@ func (m *Medidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no Medidor", nome)
 }
 
+func validarNomeMetrica(nome string) error {
+	if len(nome) == 0 {
+		return hrp.NewErroF(hrp.ValorErro, "nome da métrica não pode ser vazio")
+	}
+	for i, r := range nome {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '_' || r == ':' {
+			continue
+		}
+		if i > 0 && r >= '0' && r <= '9' {
+			continue
+		}
+		return hrp.NewErroF(hrp.ValorErro, "nome da métrica '%s' é inválido: deve conter apenas letras, números, '_' ou ':'", nome)
+	}
+	return nil
+}
+
 // met_metricas_criarContador implementa 'criarContador(nome, descricao)' em nível de script Harpia.
 // Fabrica e cadastra de forma única e thread-safe um Contador no registro de observabilidade.
 func met_metricas_criarContador(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("criarContador", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	nome, _ := hrp.NewTexto(args[0])
-	desc, _ := hrp.NewTexto(args[1])
+	nome, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	desc, err := hrp.NewTexto(args[1])
+	if err != nil {
+		return nil, err
+	}
 
 	nomeStr := string(nome.(hrp.Texto))
 	descStr := string(desc.(hrp.Texto))
+	if err := validarNomeMetrica(nomeStr); err != nil {
+		return nil, err
+	}
 
 	registroMu.Lock()
 	defer registroMu.Unlock()
@@ -163,11 +193,20 @@ func met_metricas_criarMedidor(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, err
 	if err := hrp.VerificaNumeroArgumentos("criarMedidor", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	nome, _ := hrp.NewTexto(args[0])
-	desc, _ := hrp.NewTexto(args[1])
+	nome, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	desc, err := hrp.NewTexto(args[1])
+	if err != nil {
+		return nil, err
+	}
 
 	nomeStr := string(nome.(hrp.Texto))
 	descStr := string(desc.(hrp.Texto))
+	if err := validarNomeMetrica(nomeStr); err != nil {
+		return nil, err
+	}
 
 	registroMu.Lock()
 	defer registroMu.Unlock()

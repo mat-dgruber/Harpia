@@ -12,14 +12,37 @@ func met_color_converteRGB(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) 
 		return nil, err
 	}
 
-	var vermelho, verde, azul = args[0], args[1], args[2]
-	background := false
-
-	if len(args) > 3 {
-		background = bool(args[3].(hrp.Booleano))
+	rObj, err := hrp.NewInteiro(args[0])
+	if err != nil {
+		return nil, err
+	}
+	gObj, err := hrp.NewInteiro(args[1])
+	if err != nil {
+		return nil, err
+	}
+	bObj, err := hrp.NewInteiro(args[2])
+	if err != nil {
+		return nil, err
 	}
 
-	return hrp.Texto(RgbParaAnsi(vermelho.(hrp.Inteiro), verde.(hrp.Inteiro), azul.(hrp.Inteiro), background)), nil
+	rInt := int64(rObj.(hrp.Inteiro))
+	gInt := int64(gObj.(hrp.Inteiro))
+	bInt := int64(bObj.(hrp.Inteiro))
+
+	if rInt < 0 || rInt > 255 || gInt < 0 || gInt > 255 || bInt < 0 || bInt > 255 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "valores RGB devem estar no intervalo [0, 255]")
+	}
+
+	background := false
+	if len(args) > 3 {
+		if bgBool, ok := args[3].(hrp.Booleano); ok {
+			background = bool(bgBool)
+		} else if b, err := hrp.NewBooleano(args[3]); err == nil {
+			background = bool(b.(hrp.Booleano))
+		}
+	}
+
+	return hrp.Texto(RgbParaAnsi(hrp.Inteiro(rInt), hrp.Inteiro(gInt), hrp.Inteiro(bInt), background)), nil
 }
 
 // _color_converteRGB cria e define a assinatura do método 'converteRGB' exposto no módulo colorize.

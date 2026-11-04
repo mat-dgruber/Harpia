@@ -55,7 +55,11 @@ func (d *DataHora) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if len(args) == 0 {
 				return nil, fmt.Errorf("adicionarDias requer o número de dias")
 			}
-			dias := int(args[0].(hrp.Inteiro))
+			diasInt, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
+			dias := int(diasInt.(hrp.Inteiro))
 			return &DataHora{t: d.t.AddDate(0, 0, dias)}, nil
 		}, ""), nil
 	}

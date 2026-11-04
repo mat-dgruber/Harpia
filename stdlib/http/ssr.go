@@ -4,6 +4,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +26,7 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 		distLimpo := filepath.Clean(diretorioDist)
 
 		// Valida se o caminho físico não sofreu Path Traversal escapando do diretório dist
-		if !strings.HasPrefix(caminhoFisico, distLimpo) {
+		if caminhoFisico != distLimpo && !strings.HasPrefix(caminhoFisico, distLimpo+string(filepath.Separator)) {
 			res.Status = 403
 			res.Corpo = hrp.Texto("Acesso negado")
 			return hrp.Nulo, nil
@@ -84,23 +85,25 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 		htmlStr := string(htmlBytes)
 
 		// 1. Executa e renderiza o componente raiz no backend (SSR)
-		vdomObjeto, err := hrp.Chamar(componenteRaiz, hrp.Tupla{req.Caminho})
-		if err != nil {
-			var err2 error
-			vdomObjeto, err2 = hrp.Chamar(componenteRaiz, hrp.Tupla{})
-			if err2 != nil {
-				res.Status = 500
-				res.Corpo = hrp.Texto(fmt.Sprintf("Erro no SSR ao executar componente raiz: %v", err2))
-				return hrp.Nulo, nil
-			}
-		}
-
 		ssrHtml := ""
-		if el, ok := vdomObjeto.(*hrp.ElementoJSX); ok {
-			ssrHtml = el.RenderizarHTML()
-		} else {
-			if s, err := hrp.NewTexto(vdomObjeto); err == nil {
-				ssrHtml = string(s.(hrp.Texto))
+		if componenteRaiz != nil && componenteRaiz != hrp.Nulo {
+			vdomObjeto, err := hrp.Chamar(componenteRaiz, hrp.Tupla{req.Caminho})
+			if err != nil {
+				var err2 error
+				vdomObjeto, err2 = hrp.Chamar(componenteRaiz, hrp.Tupla{})
+				if err2 != nil {
+					res.Status = 500
+					res.Corpo = hrp.Texto(fmt.Sprintf("Erro no SSR ao executar componente raiz: %v", err2))
+					return hrp.Nulo, nil
+				}
+			}
+
+			if el, ok := vdomObjeto.(*hrp.ElementoJSX); ok {
+				ssrHtml = el.RenderizarHTML()
+			} else {
+				if s, err := hrp.NewTexto(vdomObjeto); err == nil {
+					ssrHtml = string(s.(hrp.Texto))
+				}
 			}
 		}
 
@@ -111,21 +114,52 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 				// Título da Página
 				if t, ok := mapa["titulo"]; ok {
 					if txt, ok := t.(hrp.Texto); ok {
-						htmlStr = strings.Replace(htmlStr, "<title>Harpia App</title>", fmt.Sprintf("<title>%s</title>", txt), 1)
-						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:title\" content=\"%s\">", txt))
+						escaped := html.EscapeString(string(txt))
+						htmlStr = strings.Replace(htmlStr, "<title>Harpia App</title>", fmt.Sprintf("<title>%s</title>", escaped), 1)
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:title\" content=\"%s\">", escaped))
 					}
 				}
 				// Descrição SEO
 				if d, ok := mapa["descricao"]; ok {
 					if txt, ok := d.(hrp.Texto); ok {
-						headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"description\" content=\"%s\">", txt))
-						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:description\" content=\"%s\">", txt))
+						escaped := html.EscapeString(string(txt))
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"description\" content=\"%s\">", escaped))
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:description\" content=\"%s\">", escaped))
+					}
+				}
+				// Autor
+				if a, ok := mapa["autor"]; ok {
+					if txt, ok := a.(hrp.Texto); ok {
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"author\" content=\"%s\">", html.EscapeString(string(txt))))
+					}
+				}
+				// OpenGraph Titulo específico
+				if ogT, ok := mapa["ogTitulo"]; ok {
+					if txt, ok := ogT.(hrp.Texto); ok {
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:title\" content=\"%s\">", html.EscapeString(string(txt))))
+					}
+				}
+				// OpenGraph Descrição específica
+				if ogD, ok := mapa["ogDescricao"]; ok {
+					if txt, ok := ogD.(hrp.Texto); ok {
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:description\" content=\"%s\">", html.EscapeString(string(txt))))
 					}
 				}
 				// Imagem de Compartilhamento OpenGraph
 				if img, ok := mapa["imagem"]; ok {
 					if txt, ok := img.(hrp.Texto); ok {
-						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:image\" content=\"%s\">", txt))
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:image\" content=\"%s\">", html.EscapeString(string(txt))))
+					}
+				}
+				if ogImg, ok := mapa["ogImagem"]; ok {
+					if txt, ok := ogImg.(hrp.Texto); ok {
+						headMetaTags.WriteString(fmt.Sprintf("\n    <meta property=\"og:image\" content=\"%s\">", html.EscapeString(string(txt))))
+					}
+				}
+				// Canonical
+				if can, ok := mapa["canonical"]; ok {
+					if txt, ok := can.(hrp.Texto); ok {
+						headMetaTags.WriteString(fmt.Sprintf("\n    <link rel=\"canonical\" href=\"%s\">", html.EscapeString(string(txt))))
 					}
 				}
 
@@ -152,8 +186,8 @@ func ServirAppHandler(diretorioDist string, componenteRaiz hrp.Objeto, metadados
 						lat := m["latitude"]
 						lon := m["longitude"]
 						if lat != nil && lon != nil {
-							headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"geo.position\" content=\"%v; %v\">", lat, lon))
-							headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"ICBM\" content=\"%v, %v\">", lat, lon))
+							headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"geo.position\" content=\"%s; %s\">", html.EscapeString(fmt.Sprintf("%v", lat)), html.EscapeString(fmt.Sprintf("%v", lon))))
+							headMetaTags.WriteString(fmt.Sprintf("\n    <meta name=\"ICBM\" content=\"%s, %s\">", html.EscapeString(fmt.Sprintf("%v", lat)), html.EscapeString(fmt.Sprintf("%v", lon))))
 						}
 					}
 				}

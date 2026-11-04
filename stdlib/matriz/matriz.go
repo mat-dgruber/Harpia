@@ -156,6 +156,35 @@ func met_matriz_norma(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	return hrp.Decimal(math.Sqrt(soma)), nil
 }
 
+func extrairMatriz(obj hrp.Objeto) ([][]float64, error) {
+	lista, ok := obj.(*hrp.Lista)
+	if !ok {
+		return nil, hrp.NewErroF(hrp.TipagemErro, "esperava uma Lista de Listas, mas recebeu %s", obj.Tipo().Nome)
+	}
+	linhas := len(lista.Itens)
+	if linhas == 0 {
+		return [][]float64{}, nil
+	}
+	m := make([][]float64, linhas)
+	var cols int
+	for i, elem := range lista.Itens {
+		v, err := extrairSliceFloat(elem)
+		if err != nil {
+			return nil, err
+		}
+		if i == 0 {
+			cols = len(v)
+			if cols == 0 {
+				return nil, hrp.NewErroF(hrp.ValorErro, "linha da matriz não pode ser vazia")
+			}
+		} else if len(v) != cols {
+			return nil, hrp.NewErroF(hrp.ValorErro, "matriz irregular: linha %d tem tamanho %d, esperado %d", i, len(v), cols)
+		}
+		m[i] = v
+	}
+	return m, nil
+}
+
 func met_matriz_criar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("criar", false, args, 2, 3); err != nil {
 		return nil, err
@@ -170,12 +199,21 @@ func met_matriz_criar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 	linhas := int(linhasObj.(hrp.Decimal))
 	cols := int(colsObj.(hrp.Decimal))
+	if linhas <= 0 || cols <= 0 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "dimensões da matriz devem ser positivas (linhas: %d, colunas: %d)", linhas, cols)
+	}
+	const maxElementos = 1 << 24
+	if cols > maxElementos/linhas {
+		return nil, hrp.NewErroF(hrp.ValorErro, "tamanho total da matriz excede limite permitido (%d)", maxElementos)
+	}
 
 	valorPadrao := hrp.Decimal(0.0)
 	if len(args) > 2 {
-		if v, err := hrp.NewDecimal(args[2]); err == nil {
-			valorPadrao = v.(hrp.Decimal)
+		v, err := hrp.NewDecimal(args[2])
+		if err != nil {
+			return nil, err
 		}
+		valorPadrao = v.(hrp.Decimal)
 	}
 
 	linhasLista := make([]hrp.Objeto, linhas)
@@ -193,37 +231,22 @@ func met_matriz_multiplicar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error)
 	if err := hrp.VerificaNumeroArgumentos("multiplicar", false, args, 2, 2); err != nil {
 		return nil, err
 	}
-	m1Lista, ok1 := args[0].(*hrp.Lista)
-	m2Lista, ok2 := args[1].(*hrp.Lista)
-	if !ok1 || !ok2 {
-		return nil, hrp.NewErroF(hrp.TipagemErro, "argumentos para multiplicar matrizes devem ser listas de listas")
+	m1, err := extrairMatriz(args[0])
+	if err != nil {
+		return nil, err
+	}
+	m2, err := extrairMatriz(args[1])
+	if err != nil {
+		return nil, err
 	}
 
-	linhas1 := len(m1Lista.Itens)
+	linhas1 := len(m1)
 	if linhas1 == 0 {
 		return &hrp.Lista{Itens: hrp.Tupla([]hrp.Objeto{})}, nil
 	}
-
-	m1 := make([][]float64, linhas1)
-	for i, elem := range m1Lista.Itens {
-		v, err := extrairSliceFloat(elem)
-		if err != nil {
-			return nil, err
-		}
-		m1[i] = v
-	}
-
-	linhas2 := len(m2Lista.Itens)
+	linhas2 := len(m2)
 	if linhas2 == 0 {
 		return nil, hrp.NewErroF(hrp.SintaxeErro, "matriz m2 nao pode ser vazia")
-	}
-	m2 := make([][]float64, linhas2)
-	for i, elem := range m2Lista.Itens {
-		v, err := extrairSliceFloat(elem)
-		if err != nil {
-			return nil, err
-		}
-		m2[i] = v
 	}
 
 	cols1 := len(m1[0])
