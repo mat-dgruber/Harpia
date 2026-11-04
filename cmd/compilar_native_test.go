@@ -225,6 +225,9 @@ func TestTranspileTente(t *testing.T) {
 }
 
 func TestComandoCompilarNativo(t *testing.T) {
+	if testing.Short() {
+		t.Skip(`TestComandoCompilarNativo pula em "-short" (build/compilação AOT pesada)`)
+	}
 	tempDir := t.TempDir()
 	cur, _ := os.Getwd()
 
@@ -290,6 +293,9 @@ func TestComandoCompilarNativo(t *testing.T) {
 }
 
 func TestComandoCompilarWasm(t *testing.T) {
+	if testing.Short() {
+		t.Skip(`TestComandoCompilarWasm pula em "-short" (build WASM pesada)`)
+	}
 	tempDir := t.TempDir()
 	cur, _ := os.Getwd()
 

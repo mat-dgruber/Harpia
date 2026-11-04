@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/mat-dgruber/Harpia/parser"
 )
@@ -47,7 +49,11 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		if chamada, ok := n.Inicializador.(*parser.ChamadaFuncao); ok {
 			fnName := t.Transpile(chamada.Identificador)
 			if strings.HasPrefix(fnName, "sinal") {
-				nomeSetter := "definir" + strings.ToUpper(n.Nome[:1]) + n.Nome[1:]
+				nomeSetter := "definir"
+				if len(n.Nome) > 0 {
+					r, tam := utf8.DecodeRuneInString(n.Nome)
+					nomeSetter = "definir" + string(unicode.ToUpper(r)) + n.Nome[tam:]
+				}
 				return fmt.Sprintf("%s [%s, %s] = %s;", keyword, n.Nome, nomeSetter, initVal)
 			}
 		}
@@ -318,13 +324,21 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 					caminho = caminho[1 : len(caminho)-1]
 				}
 				caminhoCompleto := filepath.Join(t.DiretorioBase, caminho)
+				baseAbs, errBase := filepath.Abs(t.DiretorioBase)
+				caminhoAbs, errAbs := filepath.Abs(caminhoCompleto)
+				if errBase != nil || errAbs != nil || (caminhoAbs != baseAbs && !strings.HasPrefix(caminhoAbs, baseAbs+string(filepath.Separator))) {
+					msgErro := strings.ReplaceAll(fmt.Sprintf("Erro ao carregar html de %s: fora do diretório base", caminho), "*/", "* /")
+					return fmt.Sprintf("/* %s */", msgErro)
+				}
 				conteudo, err := os.ReadFile(caminhoCompleto)
 				if err != nil {
-					return fmt.Sprintf("/* Erro ao carregar html de %s: %v */", caminho, err)
+					msgErro := strings.ReplaceAll(fmt.Sprintf("Erro ao carregar html de %s: %v", caminho, err), "*/", "* /")
+					return fmt.Sprintf("/* %s */", msgErro)
 				}
 				subAst, err := parser.NewParserFromString(string(conteudo), caminho).Parse()
 				if err != nil {
-					return fmt.Sprintf("/* Erro de sintaxe no template HTML de %s: %v */", caminho, err)
+					msgErro := strings.ReplaceAll(fmt.Sprintf("Erro de sintaxe no template HTML de %s: %v", caminho, err), "*/", "* /")
+					return fmt.Sprintf("/* %s */", msgErro)
 				}
 				return t.Transpile(subAst)
 			}
@@ -456,7 +470,9 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		for _, part := range n.Partes {
 			switch p := part.(type) {
 			case *parser.TextoLiteral:
-				parts = append(parts, p.Valor)
+				val := strings.ReplaceAll(p.Valor, "`", "\\`")
+				val = strings.ReplaceAll(val, "${", "\\${")
+				parts = append(parts, val)
 			case *parser.TemplateExpr:
 				parts = append(parts, fmt.Sprintf("${%s}", t.Transpile(p.Expressao)))
 			}

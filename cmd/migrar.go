@@ -124,7 +124,7 @@ func comandoMigrar() *cobra.Command {
 				return err
 			}
 			ts := time.Now().Format("2006-01-02-150405")
-			nome := strings.ReplaceAll(args[0], " ", "-")
+			nome := filepath.Base(strings.ReplaceAll(args[0], " ", "-"))
 			arq := filepath.Join(dir, fmt.Sprintf("%s-%s.sql", ts, nome))
 			tpl := "-- +migrar ParaCima\n-- escreva SQL de subida aqui\n\n-- +migrar ParaBaixo\n-- escreva SQL de descida aqui\n"
 			if err := os.WriteFile(arq, []byte(tpl), 0644); err != nil {
@@ -265,7 +265,15 @@ func comandoMigrar() *cobra.Command {
 				c, err := os.ReadFile(a)
 				if err != nil {
 					fmt.Printf("aviso: %s não encontrado, removendo do registro\n", v)
-					if _, err := db.Exec(`DELETE FROM _migracoes WHERE versao = ?`, v); err != nil {
+					tx, errTx := db.Begin()
+					if errTx != nil {
+						return errTx
+					}
+					if _, err := tx.Exec(`DELETE FROM _migracoes WHERE versao = ?`, v); err != nil {
+						_ = tx.Rollback()
+						return err
+					}
+					if err := tx.Commit(); err != nil {
 						return err
 					}
 					continue
@@ -275,10 +283,19 @@ func comandoMigrar() *cobra.Command {
 					fmt.Printf("pulando reversão de %s (sem bloco ParaBaixo)\n", v)
 					continue
 				}
-				if _, err := db.Exec(sql); err != nil {
+				tx, errTx := db.Begin()
+				if errTx != nil {
+					return errTx
+				}
+				if _, err := tx.Exec(sql); err != nil {
+					_ = tx.Rollback()
 					return fmt.Errorf("falha revertendo %s: %w", v, err)
 				}
-				if _, err := db.Exec(`DELETE FROM _migracoes WHERE versao = ?`, v); err != nil {
+				if _, err := tx.Exec(`DELETE FROM _migracoes WHERE versao = ?`, v); err != nil {
+					_ = tx.Rollback()
+					return err
+				}
+				if err := tx.Commit(); err != nil {
 					return err
 				}
 				fmt.Printf("revertida: %s\n", v)

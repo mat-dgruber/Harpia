@@ -21,6 +21,7 @@ import (
 var (
 	reChamadaI18n     = regexp.MustCompile(`(?i)(?:^|[^\w])(?:t|tr|i18n\.texto|texto|traduzir)\s*\(\s*"((?:[^"\\]|\\.)*)"`)
 	reComentarioLinha = regexp.MustCompile(`(?m)^\s*--.*$`)
+	reIdiomaValido    = regexp.MustCompile(`^[a-zA-Z]{2,3}([_-][a-zA-Z0-9]{2,8})?$`)
 )
 
 type entradaPot struct {
@@ -70,6 +71,7 @@ func extrairEntradas(src string) []entradaPot {
 func escaparPo(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, "\r", `\r`)
 	s = strings.ReplaceAll(s, "\n", `\n`)
 	s = strings.ReplaceAll(s, "\t", `\t`)
 	return s
@@ -143,7 +145,7 @@ func caminharPtst(raiz string) ([]string, error) {
 		if d.IsDir() {
 			return nil
 		}
-		if ext := filepath.Ext(path); ext == ".ptst" || ext == ".pt" {
+		if ext := filepath.Ext(path); ext == ".ptst" || ext == ".pt" || ext == ".hrp" {
 			out = append(out, path)
 		}
 		return nil
@@ -213,6 +215,9 @@ func comandoI18n() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			idioma := args[0]
+			if !reIdiomaValido.MatchString(idioma) {
+				return fmt.Errorf("código de idioma inválido: '%s'", idioma)
+			}
 			outDir := caminhoTraducoes(dir)
 			if err := os.MkdirAll(outDir, 0755); err != nil {
 				return err

@@ -117,9 +117,11 @@ func comandoExecutar() *cobra.Command {
 						}
 						frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 						parar := make(chan bool)
+						done := make(chan struct{})
 						var errExec error
 
 						go func() {
+							defer close(done)
 							i := 0
 							for {
 								select {
@@ -136,6 +138,7 @@ func comandoExecutar() *cobra.Command {
 
 						errExec = acao()
 						close(parar)
+						<-done
 						return errExec
 					}
 
@@ -179,7 +182,11 @@ func comandoExecutar() *cobra.Command {
 
 						virtualMachine := vm.NewVM(ctx)
 						virtualMachine.Perfil = profilador
-						frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil)
+						frame := vm.NewFrame(prog.Bytecode, prog.Constantes, mainEscopo, nil, prog.NomesLocais)
+						frame.ConstantesLocais = prog.ConstantesLocais
+						frame.MapaTokens = prog.MapaTokens
+						frame.Arquivo = prog.Arquivo
+						frame.Codigo = prog.Codigo
 						_, err = virtualMachine.Executar(frame)
 						if err != nil {
 							hrp.LancarErro(err)

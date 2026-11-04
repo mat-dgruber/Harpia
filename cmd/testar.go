@@ -5,6 +5,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"io/fs"
 	"os"
@@ -81,6 +82,7 @@ func comandoTestar() *cobra.Command {
 				// Carrega o arquivo e parseia em AST
 				_, ast, err := ctx.TransformarEmAst(arq, false, cur)
 				if err != nil {
+					testesFalhos++
 					if formato == "json" {
 						reportJSON.Suites = append(reportJSON.Suites, SuiteTestesJSON{
 							Arquivo: arq,
@@ -91,6 +93,7 @@ func comandoTestar() *cobra.Command {
 					} else {
 						fmt.Fprintf(out, "Erro de sintaxe no arquivo %s: %v\n", arq, err)
 					}
+					ctx.Terminar()
 					continue
 				}
 
@@ -121,6 +124,7 @@ func comandoTestar() *cobra.Command {
 				})
 
 				if err != nil {
+					testesFalhos++
 					if formato == "json" {
 						reportJSON.Suites = append(reportJSON.Suites, SuiteTestesJSON{
 							Arquivo: arq,
@@ -282,7 +286,7 @@ func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[
             </div>
             <div class="p-6 overflow-x-auto font-mono text-xs leading-relaxed select-none">
                 <table class="w-full border-collapse">
-`, filepath.Base(arq), arq, corPorPorcentagem(pct), pct, totalCobertas, totalExecutaveis))
+`, html.EscapeString(filepath.Base(arq)), html.EscapeString(arq), corPorPorcentagem(pct), pct, totalCobertas, totalExecutaveis))
 
 		for idx, linha := range linhas {
 			lNo := idx + 1
@@ -299,8 +303,7 @@ func gerarRelatorioCoberturaHTML(cobertura map[string]map[int]bool, codigos map[
 				}
 			}
 
-			linhaEscapada := strings.ReplaceAll(linha, "<", "&lt;")
-			linhaEscapada = strings.ReplaceAll(linhaEscapada, ">", "&gt;")
+			linhaEscapada := html.EscapeString(linha)
 
 			sb.WriteString(fmt.Sprintf(`
                     <tr class="%s">
@@ -367,7 +370,7 @@ func encontrarArquivosTeste(raiz string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && (strings.HasSuffix(caminho, ".hrp") || strings.HasSuffix(caminho, ".pt")) {
+		if !d.IsDir() && (strings.HasSuffix(caminho, ".hrp") || strings.HasSuffix(caminho, ".pt") || strings.HasSuffix(caminho, ".ptst")) {
 			arquivos = append(arquivos, caminho)
 		}
 		return nil

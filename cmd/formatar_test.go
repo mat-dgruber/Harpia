@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
@@ -45,5 +46,23 @@ func TestGerarUnifiedDiff(t *testing.T) {
 	diff := GerarUnifiedDiff("teste.hrp", orig, form, ui)
 	if !strings.Contains(diff, "--- a/teste.hrp") || !strings.Contains(diff, "+++ b/teste.hrp") {
 		t.Errorf("diff ausente de cabecalho esperado: %s", diff)
+	}
+}
+
+func TestFormatarStdinEChavesEmStrings(t *testing.T) {
+	codigo := "funcao x(){\nimprimir(\"}\")\n}"
+	cmd := comandoFormatar()
+	cmd.SetIn(strings.NewReader(codigo))
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Comando falhou ao ler de stdin sem argumentos: %v", err)
+	}
+
+	res := out.String()
+	esperado := "funcao x() {\n    imprimir(\"}\")\n}\n"
+	if res != esperado {
+		t.Errorf("Formatação inesperada via stdin.\nEsperado:\n%q\nObtido:\n%q", esperado, res)
 	}
 }

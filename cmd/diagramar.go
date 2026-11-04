@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"strings"
@@ -246,7 +247,7 @@ func gerarAlertasHTML(errs []string) string {
 	sb.WriteString("<b>🚨 Violações de Clean Architecture detectadas:</b>")
 	sb.WriteString("<ul style=\"margin: 10px 0 0 0; padding-left: 20px;\">")
 	for _, errStr := range errs {
-		sb.WriteString(fmt.Sprintf("<li style=\"margin-bottom: 5px;\">%s</li>", errStr))
+		sb.WriteString(fmt.Sprintf("<li style=\"margin-bottom: 5px;\">%s</li>", strings.ReplaceAll(html.EscapeString(errStr), "&#39;", "'")))
 	}
 	sb.WriteString("</ul>")
 	sb.WriteString("</div>")

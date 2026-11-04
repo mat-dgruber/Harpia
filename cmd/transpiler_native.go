@@ -184,7 +184,7 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if len(n.Valor) >= 2 {
 			valorLimpo = n.Valor[1 : len(n.Valor)-1]
 		}
-		code := fmt.Sprintf("\t%s := hrp.Texto(\"%s\")\n\t_ = %s\n", varName, strings.ReplaceAll(valorLimpo, `"`, `\"`), varName)
+		code := fmt.Sprintf("\t%s := hrp.Texto(%q)\n\t_ = %s\n", varName, valorLimpo, varName)
 		return code, varName
 
 	case *parser.InteiroLiteral:
@@ -229,8 +229,20 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 			opFunc = "hrp.Multiplica"
 		case "/":
 			opFunc = "hrp.Divide"
+		case "%":
+			opFunc = "hrp.Mod"
 		case "==":
 			opFunc = "hrp.Igual"
+		case "!=":
+			opFunc = "hrp.Diferente"
+		case "<":
+			opFunc = "hrp.MenorQue"
+		case ">":
+			opFunc = "hrp.MaiorQue"
+		case "<=":
+			opFunc = "hrp.MenorOuIgual"
+		case ">=":
+			opFunc = "hrp.MaiorOuIgual"
 		default:
 			opFunc = "hrp.Adiciona" // fallback simples
 		}
@@ -264,11 +276,11 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		if len(valorLimpo) >= 2 && (strings.HasPrefix(valorLimpo, `"`) || strings.HasPrefix(valorLimpo, `'`)) {
 			valorLimpo = valorLimpo[1 : len(valorLimpo)-1]
 		}
-		sb.WriteString(fmt.Sprintf("\t%s, err_%s := hrp.MaquinarioImporteModulo(ctx, \"%s\", escopo)\n", varName, varName, valorLimpo))
+		sb.WriteString(fmt.Sprintf("\t%s, err_%s := hrp.MaquinarioImporteModulo(ctx, %q, escopo)\n", varName, varName, valorLimpo))
 		sb.WriteString(fmt.Sprintf("\tif err_%s != nil { panic(err_%s) }\n", varName, varName))
 		for _, nome := range n.Nomes {
 			nomeVar := t.newVar()
-			sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, \"%s\")\n", nomeVar, varName, nome))
+			sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, %q)\n", nomeVar, varName, nome))
 			sb.WriteString(fmt.Sprintf("\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", %s))\n", nome, nomeVar))
 		}
 		return sb.String(), "hrp.Nulo"
@@ -291,7 +303,9 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		sb.WriteString("\t{\n")
 		sb.WriteString(fmt.Sprintf("\t\tfn_%s := func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {\n", n.Nome))
 		for i, p := range n.Parametros {
-			sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", args[%d]))\n", p.Nome, i))
+			sb.WriteString(fmt.Sprintf("\t\t\tvar param_%s hrp.Objeto = hrp.Nulo\n", p.Nome))
+			sb.WriteString(fmt.Sprintf("\t\t\tif len(args) > %d { param_%s = args[%d] }\n", i, p.Nome, i))
+			sb.WriteString(fmt.Sprintf("\t\t\tescopo.DefinirSimbolo(hrp.NewVarSimbolo(\"%s\", param_%s))\n", p.Nome, p.Nome))
 		}
 		sb.WriteString(body)
 		sb.WriteString("\t\t\treturn hrp.Nulo, nil\n")
@@ -357,11 +371,19 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 	case *parser.AcessoMembro:
 		var sb strings.Builder
 		donoCode, donoVar := t.Transpile(n.Dono)
-		membroCode, membroVar := t.Transpile(n.Membro)
 		sb.WriteString(donoCode)
-		sb.WriteString(membroCode)
+		nomeMembro := ""
+		if id, ok := n.Membro.(*parser.Identificador); ok {
+			nomeMembro = id.Nome
+		} else if txt, ok := n.Membro.(*parser.TextoLiteral); ok {
+			nomeMembro = txt.Valor
+		} else {
+			membroCode, membroVar := t.Transpile(n.Membro)
+			sb.WriteString(membroCode)
+			nomeMembro = membroVar
+		}
 		varName := t.newVar()
-		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, %s.(hrp.Texto))\n", varName, donoVar, membroVar))
+		sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.ObtemAtributoS(%s, %q)\n", varName, donoVar, nomeMembro))
 		return sb.String(), varName
 
 	case *parser.OpUnaria:
@@ -385,13 +407,18 @@ func (t *TranspilerNative) Transpile(node parser.BaseNode) (string, string) {
 		esqCode, esqVar := t.Transpile(n.Esq)
 		sb.WriteString(esqCode)
 		if call, ok := n.Dir.(*parser.ChamadaFuncao); ok {
-			callCode, callVar := t.Transpile(&parser.ChamadaFuncao{
-				Identificador: call.Identificador,
-				Argumentos:    append([]parser.BaseNode{nil}, call.Argumentos...),
-			})
-			sb.WriteString(callCode)
+			targetCode, targetVar := t.Transpile(call.Identificador)
+			sb.WriteString(targetCode)
+			var argVars []string
+			argVars = append(argVars, esqVar)
+			for _, arg := range call.Argumentos {
+				aCode, aVar := t.Transpile(arg)
+				sb.WriteString(aCode)
+				argVars = append(argVars, aVar)
+			}
 			varName := t.newVar()
-			sb.WriteString(fmt.Sprintf("\t%s, _ = %s(%s)\n", varName, callVar, esqVar))
+			argsSlice := "hrp.Tupla{" + strings.Join(argVars, ", ") + "}"
+			sb.WriteString(fmt.Sprintf("\t%s, _ := hrp.Chamar(%s, %s)\n", varName, targetVar, argsSlice))
 			return sb.String(), varName
 		}
 		dirCode, dirVar := t.Transpile(n.Dir)

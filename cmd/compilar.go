@@ -20,10 +20,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func gerarImportHeaderWeb(relPath string) string {
+func GerarImportHeaderWeb(relPath string) string {
 	depth := strings.Count(relPath, "/")
 	prefix := "./" + strings.Repeat("../", depth)
-	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento, Animado, mola, escalonar, animar, linhaTempo } from '" + prefix + "runtime-web.js';\n\n"
+	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento, Animado, mola, escalonar, animar, linhaTempo, aoMontar, aoDesmontar, criarNo, criarRef, hidratar, lote, moduloRemoto, semRastreio, untrack, usarAtraso, usarCabecalho, usarIntervalo, usarTransicao, batch, desmontarVNo, injetar, ler, preguicoso, reconciliar, Animacao, BarreiraDeErro, CabecalhoPagina, Fragment, Fragmento, FronteiraDeErro, GradeDeDados, ImagemWeb, ListaVirtual, Provedor, Suspense, __HARPIA_DEVTOOLS__, devTools, existe, escrever, conectarMongo, conectarMysql, conectarPostgres, conectarQdrant, conectarRedis, conectarSqlite } from '" + prefix + "runtime-web.js';\n\n"
 }
 
 // OpcsCompilarWeb agrupa as opções para a função compilarParaWeb.
@@ -363,7 +363,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 
 			destJs := filepath.Join(opts.Saida, strings.TrimSuffix(rel, ".hrp")+".js")
 			_ = os.MkdirAll(filepath.Dir(destJs), 0755)
-			importHeaderSub := gerarImportHeaderWeb(rel)
+			importHeaderSub := GerarImportHeaderWeb(rel)
 			_ = os.WriteFile(destJs, []byte(importHeaderSub+subJs), 0644)
 
 			// Copia também sem o prefixo web/ para resolver imports relativos como ./../componentes/navbar.js
@@ -371,7 +371,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 				relSemWeb := strings.TrimPrefix(rel, "web/")
 				destJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
 				_ = os.MkdirAll(filepath.Dir(destJsSemWeb), 0755)
-				importHeaderSubSemWeb := gerarImportHeaderWeb(relSemWeb)
+				importHeaderSubSemWeb := GerarImportHeaderWeb(relSemWeb)
 				_ = os.WriteFile(destJsSemWeb, []byte(importHeaderSubSemWeb+subJs), 0644)
 			}
 			return nil
@@ -381,19 +381,19 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 	relEntrada, _ := filepath.Rel(projDir, absEntrada)
 	destEntradaJs := filepath.Join(opts.Saida, strings.TrimSuffix(relEntrada, ".hrp")+".js")
 	_ = os.MkdirAll(filepath.Dir(destEntradaJs), 0755)
-	importHeaderEntrada := gerarImportHeaderWeb(relEntrada)
+	importHeaderEntrada := GerarImportHeaderWeb(relEntrada)
 	_ = os.WriteFile(destEntradaJs, []byte(importHeaderEntrada+jsOutput), 0644)
 
 	if strings.HasPrefix(relEntrada, "web/") {
 		relSemWeb := strings.TrimPrefix(relEntrada, "web/")
 		destEntradaJsSemWeb := filepath.Join(opts.Saida, strings.TrimSuffix(relSemWeb, ".hrp")+".js")
 		_ = os.MkdirAll(filepath.Dir(destEntradaJsSemWeb), 0755)
-		importHeaderEntradaSemWeb := gerarImportHeaderWeb(relSemWeb)
+		importHeaderEntradaSemWeb := GerarImportHeaderWeb(relSemWeb)
 		_ = os.WriteFile(destEntradaJsSemWeb, []byte(importHeaderEntradaSemWeb+jsOutput), 0644)
 	}
 
 	appPath := filepath.Join(opts.Saida, "app.js")
-	importHeader := gerarImportHeaderWeb("")
+	importHeader := GerarImportHeaderWeb("")
 	if err = os.WriteFile(appPath, []byte(importHeader+jsOutput), 0644); err != nil {
 		return fmt.Errorf("erro ao gravar app.js: %w", err)
 	}

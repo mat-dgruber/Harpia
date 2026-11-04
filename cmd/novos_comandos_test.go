@@ -96,3 +96,47 @@ func TestCmdDepurarDapHandshake(t *testing.T) {
 		t.Errorf("Resposta DAP inválida ou incompleta: %s", res)
 	}
 }
+
+func TestDAPFallbackSemContentLength(t *testing.T) {
+	l, errL := net.Listen("tcp", "127.0.0.1:0")
+	if errL != nil {
+		t.Fatalf("Erro ao obter porta livre: %v", errL)
+	}
+	addr := l.Addr().String()
+	partes := strings.Split(addr, ":")
+	portaLivre := partes[len(partes)-1]
+	l.Close()
+
+	cmd := comandoDepurar()
+	cmd.SetArgs([]string{"--porta", portaLivre})
+
+	go func() {
+		_ = cmd.Execute()
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+
+	conn, err := net.Dial("tcp", "127.0.0.1:"+portaLivre)
+	if err != nil {
+		t.Fatalf("Erro ao conectar no servidor DAP: %v", err)
+	}
+	defer conn.Close()
+
+	// Envia linha direta sem Content-Length (fallback de linha)
+	msg := `{"seq":20,"type":"request","command":"initialize"}` + "\n"
+	_, err = conn.Write([]byte(msg))
+	if err != nil {
+		t.Fatalf("Erro ao enviar dados DAP via fallback: %v", err)
+	}
+
+	buf := make([]byte, 1024)
+	n, errRead := conn.Read(buf)
+	if errRead != nil {
+		t.Fatalf("Erro ao ler resposta do fallback DAP: %v", errRead)
+	}
+
+	res := string(buf[:n])
+	if !strings.Contains(res, `"type":"response"`) || !strings.Contains(res, `"request_seq":20`) {
+		t.Errorf("Resposta DAP fallback inválida: %s", res)
+	}
+}

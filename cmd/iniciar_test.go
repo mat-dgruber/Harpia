@@ -147,3 +147,16 @@ func TestComandoCrieAssistido(t *testing.T) {
 		t.Errorf("Arquivo de estilo esperado '%s' não foi gerado", caminhoEstilo)
 	}
 }
+
+func TestValidarNomeIdentificador(t *testing.T) {
+	testesInvalidos := []string{"", "../../x", "a/b", "1abc", "<img>"}
+	for _, inv := range testesInvalidos {
+		if err := validarNomeIdentificador(inv); err == nil {
+			t.Errorf("esperava erro para identificador inválido '%s', mas obteve nil", inv)
+		}
+	}
+
+	if err := validarNomeIdentificador("Painel_1"); err != nil {
+		t.Errorf("esperava sucesso para identificador 'Painel_1', mas obteve erro: %v", err)
+	}
+}

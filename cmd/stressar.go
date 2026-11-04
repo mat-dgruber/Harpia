@@ -48,6 +48,11 @@ func comandoStressar() *cobra.Command {
 				return fmt.Errorf("arquivo de entrada não especificado")
 			}
 
+			if concorrencia < 1 || requisicoes < 1 {
+				fmt.Fprintln(errOut, "erro: concorrência e requisições devem ser maiores ou iguais a 1")
+				return fmt.Errorf("concorrência e requisições devem ser >= 1")
+			}
+
 			fmt.Fprintf(out, "🔥 Iniciando teste de estresse em '%s'...\n", arquivo)
 			fmt.Fprintf(out, "Concorrência: %d | Total de Execuções: %d\n\n", concorrencia, requisicoes)
 
