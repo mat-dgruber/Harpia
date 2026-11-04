@@ -5,24 +5,14 @@ import (
 )
 
 // Simbolo representa uma entrada individual registrada no escopo de variáveis da VM.
+// O acesso concorrente a Simbolo e a seu campo Valor é protegido pelo mutex do Escopo
+// proprietário onde o símbolo está registrado (Escopo.mu), e deve ser realizado por meio
+// dos métodos thread-safe do Escopo (como RedefinirValor, ObterValor e ObterSimbolosSeguro).
 type Simbolo struct {
-	Nome      string       // O nome textual identificador da variável ou constante.
-	Valor     Objeto       // O ponteiro para a instância de Objeto associada.
-	Constante bool         // Verdadeiro indica que o símbolo é imutável (constante), bloqueando redefinições.
-	Tipo      string       // Tipo opcional para verificação de tipagem dinâmica estrita.
-	mu        sync.RWMutex // Mutex de grão fino para proteger o valor individual do símbolo em runtime concorrente.
-}
-
-func (s *Simbolo) ObterValor() Objeto {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.Valor
-}
-
-func (s *Simbolo) DefinirValor(v Objeto) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.Valor = v
+	Nome      string // O nome textual identificador da variável ou constante.
+	Valor     Objeto // O ponteiro para a instância de Objeto associada.
+	Constante bool   // Verdadeiro indica que o símbolo é imutável (constante), bloqueando redefinições.
+	Tipo      string // Tipo opcional para validação de tipagem dinâmica estrita.
 }
 
 // Escopo gerencia a tabela hash de símbolos e variáveis em tempo de execução.
@@ -46,9 +36,12 @@ var poolEscopo = sync.Pool{
 }
 
 // NewEscopo aloca e retorna uma nova tabela hash de escopo isolada de nível superior.
-func NewEscopo() *Escopo {
+func NewEscopo(pai ...*Escopo) *Escopo {
 	e := poolEscopo.Get().(*Escopo)
 	e.Pai = nil
+	if len(pai) > 0 {
+		e.Pai = pai[0]
+	}
 	e.Capturado = false
 	if e.Simbolos == nil {
 		e.Simbolos = make(map[string]*Simbolo)
@@ -137,7 +130,8 @@ func (e *Escopo) ObterSimbolosSeguro() []*Simbolo {
 	simbs := make([]*Simbolo, 0, len(e.Simbolos))
 	for _, simb := range e.Simbolos {
 		if simb != nil {
-			simbs = append(simbs, simb)
+			c := *simb
+			simbs = append(simbs, &c)
 		}
 	}
 	return simbs
@@ -145,30 +139,28 @@ func (e *Escopo) ObterSimbolosSeguro() []*Simbolo {
 
 // RedefinirValor executa a reatribuição de valores de variáveis em tempo de execução (ex: x = 10).
 //
-// Regras e Resolução Recursiva:
-//   - Tenta localizar o símbolo na tabela local. Se o encontrar e este for mutável, atualiza o seu valor.
-//   - Se não encontrar localmente, mas o escopo possuir um escopo 'Pai', delega recursivamente a redefinição
-//     subindo na hierarquia até localizar o escopo onde o símbolo foi originalmente definido.
+// Regras e Resolução:
+//   - Percorre a cadeia de escopos a partir do escopo atual até a raiz.
+//   - Ao encontrar o símbolo no escopo proprietário, adquire o lock exclusivo deste escopo
+//     e atualiza o valor do símbolo dentro do lock.
 //   - Lança erro se tentar reatribuir constantes imutáveis ou se o símbolo não existir na hierarquia.
 func (e *Escopo) RedefinirValor(nome string, valor Objeto) error {
-	e.mu.Lock()
-	simbolo, ok := e.Simbolos[nome]
-	e.mu.Unlock()
-
-	if !ok {
-		if e.Pai != nil {
-			return e.Pai.RedefinirValor(nome, valor)
+	for atual := e; atual != nil; atual = atual.Pai {
+		atual.mu.Lock()
+		if atual.Simbolos != nil {
+			if simbolo, ok := atual.Simbolos[nome]; ok && simbolo != nil {
+				if simbolo.Constante {
+					atual.mu.Unlock()
+					return NewErroF(TipagemErro, "Você não pode reatribuir valor a '%s', pois é uma constante", nome)
+				}
+				simbolo.Valor = valor
+				atual.mu.Unlock()
+				return nil
+			}
 		}
-
-		return NewErroF(TipagemErro, "Você não pode reatribuir valor a '%s', pois a variável não existe", nome)
+		atual.mu.Unlock()
 	}
-
-	if simbolo.Constante {
-		return NewErroF(TipagemErro, "Você não pode reatribuir valor a '%s', pois é uma constante", nome)
-	}
-
-	simbolo.DefinirValor(valor)
-	return nil
+	return NewErroF(TipagemErro, "Você não pode reatribuir valor a '%s', pois a variável não existe", nome)
 }
 
 // ObterValor resolve e retorna o objeto associado ao nome informado de forma léxica.
@@ -176,44 +168,34 @@ func (e *Escopo) RedefinirValor(nome string, valor Objeto) error {
 // Realiza a busca incremental: se o símbolo não constar localmente, sobe recursivamente as referências de
 // escopos pais. Se atingir o escopo raiz primordial sem sucesso, retorna um erro estruturado NomeErro.
 func (e *Escopo) ObterValor(nome string) (Objeto, error) {
-	e.mu.RLock()
-	var simbolo *Simbolo
-	var ok bool
-	if e.Simbolos != nil {
-		simbolo, ok = e.Simbolos[nome]
-	}
-	e.mu.RUnlock()
-
-	if !ok {
-		if e.Pai != nil {
-			return e.Pai.ObterValor(nome)
+	for atual := e; atual != nil; atual = atual.Pai {
+		atual.mu.RLock()
+		if atual.Simbolos != nil {
+			if simbolo, ok := atual.Simbolos[nome]; ok && simbolo != nil {
+				val := simbolo.Valor
+				atual.mu.RUnlock()
+				return val, nil
+			}
 		}
-
-		return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
+		atual.mu.RUnlock()
 	}
-
-	return simbolo.ObterValor(), nil
+	return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
 }
 
-// ObterSimbolo busca e retorna a struct Simbolo completa de forma léxica recursiva.
+// ObterSimbolo busca e retorna uma cópia rasa da struct Simbolo completa de forma léxica recursiva.
 func (e *Escopo) ObterSimbolo(nome string) (*Simbolo, error) {
-	e.mu.RLock()
-	var simbolo *Simbolo
-	var ok bool
-	if e.Simbolos != nil {
-		simbolo, ok = e.Simbolos[nome]
-	}
-	e.mu.RUnlock()
-
-	if !ok {
-		if e.Pai != nil {
-			return e.Pai.ObterSimbolo(nome)
+	for atual := e; atual != nil; atual = atual.Pai {
+		atual.mu.RLock()
+		if atual.Simbolos != nil {
+			if simbolo, ok := atual.Simbolos[nome]; ok && simbolo != nil {
+				c := *simbolo
+				atual.mu.RUnlock()
+				return &c, nil
+			}
 		}
-
-		return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
+		atual.mu.RUnlock()
 	}
-
-	return simbolo, nil
+	return nil, NewErroF(NomeErro, "'%s' não foi encontrado no escopo atual", nome)
 }
 
 // ExcluirSimbolo remove fisicamente um símbolo da tabela local caso exista. Lança erro se o nome não for achado.

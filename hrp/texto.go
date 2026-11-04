@@ -142,23 +142,21 @@ func (t Texto) M__adiciona__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return Texto(fmt.Sprintf("%s%s", t, outroTexto.(Texto))), nil
+	return t + outroTexto.(Texto), nil
 }
 
 // M__multiplica__ repete a string atual N vezes, onde N é um número Inteiro positivo (ex: "A" * 3 ➔ "AAA").
 func (t Texto) M__multiplica__(outro Objeto) (Objeto, error) {
 	switch obj := outro.(type) {
 	case Inteiro:
-		vezes := int64(obj)
-		if vezes <= 0 {
+		qtd := int64(obj)
+		if qtd <= 0 {
 			return Texto(""), nil
 		}
-		resultado := Texto("")
-		for i := int64(0); i < vezes; i++ {
-			resultado += t
+		if len(t) > 0 && int64(len(t))*qtd > (64<<20) {
+			return nil, NewErroF(ErroDeLimite, "Texto resultante excede o limite de memória")
 		}
-
-		return resultado, nil
+		return Texto(strings.Repeat(string(t), int(qtd))), nil
 	default:
 		return nil, NewErroF(TipagemErro, "A operação '*' não é suportada entre os tipos '%s' e '%s'", t.Tipo().Nome, obj.Tipo().Nome)
 	}
@@ -194,6 +192,8 @@ func (t Texto) M__contem__(obj Objeto) (Objeto, error) {
 	return Falso, nil
 }
 
+var reFormatoTexto = regexp.MustCompile(`%(\w)`)
+
 // M__mod__ implementa a interpolação de strings no Harpia usando o operador modulo % (semelhante ao Python).
 //
 // Suporta formatações:
@@ -202,6 +202,17 @@ func (t Texto) M__contem__(obj Objeto) (Objeto, error) {
 //   - %b: Formata valores Booleanos.
 //   - %s (default): Formata qualquer objeto chamando sua representação textual.
 func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
+	defer func() {
+		if erroRecuperado := recover(); erroRecuperado != nil {
+			if e, ok := erroRecuperado.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("%v", erroRecuperado)
+			}
+			res = nil
+		}
+	}()
+
 	copia := string(t)
 	var args Tupla
 
@@ -214,8 +225,7 @@ func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 	maximo := len(args)
 	atual := 0
 
-	re := regexp.MustCompile(`%(\w)`)
-	copia = re.ReplaceAllStringFunc(copia, func(s string) string {
+	copia = reFormatoTexto.ReplaceAllStringFunc(copia, func(s string) string {
 		if atual >= maximo {
 			return s
 		}
@@ -232,6 +242,9 @@ func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 		}
 
 		arg := args[atual]
+		if arg == nil {
+			arg = Nulo
+		}
 		atual += 1
 
 		return string(
@@ -241,13 +254,6 @@ func (t Texto) M__mod__(obj Objeto) (res Objeto, err error) {
 			).(Texto),
 		)
 	})
-
-	defer func() {
-		if erroRecuperado := recover(); erroRecuperado != nil {
-			err = erroRecuperado.(error)
-			res = nil
-		}
-	}()
 
 	res, err = NewTexto(copia)
 	return
@@ -272,21 +278,27 @@ func init() {
 	// Injeção de métodos de instância de Texto no mapa da classe.
 
 	TipoTexto.Mapa["junta"] = NewMetodoOuPanic("junta", func(inst Objeto, iter Objeto) (Objeto, error) {
-		saida := ""
+		tupla, ok := iter.(Tupla)
+		if !ok {
+			return nil, NewErroF(TipagemErro, "O argumento de 'junta' deve ser uma Tupla")
+		}
 
-		for i, arg := range iter.(Tupla) {
+		var sb strings.Builder
+		sep := string(inst.(Texto))
+
+		for i, arg := range tupla {
 			texto, err := NewTexto(arg)
 			if err != nil {
 				return nil, err
 			}
 
-			saida += string(texto.(Texto))
-			if i != len(iter.(Tupla))-1 {
-				saida += string(inst.(Texto))
+			sb.WriteString(string(texto.(Texto)))
+			if i != len(tupla)-1 {
+				sb.WriteString(sep)
 			}
 		}
 
-		return Texto(saida), nil
+		return Texto(sb.String()), nil
 	}, `concatena o iterável recebido com o texto da instancia`)
 
 	TipoTexto.Mapa["titulo"] = NewMetodoOuPanic("titulo", func(inst Objeto) (Objeto, error) {

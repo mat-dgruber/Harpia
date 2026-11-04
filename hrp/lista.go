@@ -97,23 +97,18 @@ func (l *Lista) Pop(indice Inteiro) (Objeto, error) {
 		return nil, err
 	}
 
-	if indice > tamanho.(Inteiro) || indice < 0 {
+	if indice >= tamanho.(Inteiro) || indice < 0 {
 		return nil, NewErroF(IndiceErro, "O range é de %d indice(s), %d está fora dele", tamanho.(Inteiro), indice)
 	}
 
-	var removido Objeto
-	var novaTupla Tupla
+	idx := int(indice)
+	removido := l.Itens[idx]
 
-	for idx, item := range l.Itens {
-		if idx == int(indice) {
-			removido = item
-			continue
-		}
+	// ponytail: PERF-11 remoção in-place sem alocação de nova fatia
+	copy(l.Itens[idx:], l.Itens[idx+1:])
+	l.Itens[len(l.Itens)-1] = nil
+	l.Itens = l.Itens[:len(l.Itens)-1]
 
-		novaTupla = append(novaTupla, item)
-	}
-
-	l.Itens = novaTupla
 	return removido, nil
 }
 

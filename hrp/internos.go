@@ -34,22 +34,29 @@ func adicionaContextoSeNaoTiver(err error, context *Contexto) {
 	}
 
 	if erro.Linha == -1 {
-		if context.LinhaAtual > 0 {
-			erro.Linha = context.LinhaAtual - 1
+		tok, lin, col := context.ObterPosicaoToken()
+		arq, cod := context.ObterArquivoCodigo()
+		if lin > 0 {
+			erro.Linha = lin - 1
 		} else {
-			erro.Linha = context.LinhaAtual
+			erro.Linha = lin
 		}
-		erro.Coluna = context.ColunaAtual
-		erro.Token = context.TokenAtual
-		if erro.Arquivo == "" {
-			erro.Arquivo = context.ArquivoAtual
+		erro.Coluna = col
+		erro.Token = tok
+		if erro.Arquivo == "" || erro.Arquivo == "<desconhecido>" {
+			erro.Arquivo = arq
 		}
-		erro.Codigo = context.CodigoAtual
+		if erro.Codigo == "" {
+			erro.Codigo = cod
+		}
 	}
 
 	// Double check that if Codigo is still empty, we fallback to context
-	if erro.Codigo == "" && context.CodigoAtual != "" {
-		erro.Codigo = context.CodigoAtual
+	if erro.Codigo == "" {
+		_, cod := context.ObterArquivoCodigo()
+		if cod != "" {
+			erro.Codigo = cod
+		}
 	}
 }
 

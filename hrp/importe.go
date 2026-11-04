@@ -139,5 +139,9 @@ func MultiImporteModulo(ctx *Contexto, nomes ...string) error {
 
 // Importe é a referência global da VM para enlace de carregamento de dependências.
 var Importe func(string, *Escopo) (Objeto, error) = func(s string, e *Escopo) (Objeto, error) {
-	panic("Antes de usar a função `Importe` você precisa criar um contexto")
+	ctx := ObterContextoAtivo()
+	if ctx == nil || ctx.Fechado() {
+		panic("Antes de usar a função `Importe` você precisa criar um contexto")
+	}
+	return MaquinarioImporteModulo(ctx, s, e)
 }

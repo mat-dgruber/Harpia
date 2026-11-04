@@ -83,10 +83,11 @@ func ObtemGlobalsDoLinter() map[string]bool {
 
 // Modulo representa o objeto de instância de escopo dinâmico que a VM utiliza para representar pacotes carregados.
 type Modulo struct {
-	Impl         *ModuloImpl // Ponteiro para a especificação estática de compilação Go.
-	Contexto     *Contexto   // Instância associada do supervisor da VM.
-	Escopo       *Escopo     // Tabela local de símbolos e escopo pertencente ao módulo.
-	acessoRapido Mapa        // Cache de propriedades resolvidas recentemente para acelerar acessos O(1).
+	Impl         *ModuloImpl  // Ponteiro para a especificação estática de compilação Go.
+	Contexto     *Contexto    // Instância associada do supervisor da VM.
+	Escopo       *Escopo      // Tabela local de símbolos e escopo pertencente ao módulo.
+	acessoRapido Mapa         // Cache de propriedades resolvidas recentemente para acelerar acessos O(1).
+	mu           sync.RWMutex // Mutex para sincronização de acesso concorrente ao cache acessoRapido.
 }
 
 // TipoModulo especifica a assinatura e os metadados de Tipo da classe Modulo no Harpia.
@@ -104,17 +105,21 @@ func (m *Modulo) Tipo() *Tipo {
 //   - Se for um acesso inédito, busca o valor do símbolo na tabela hash do escopo.
 //   - Se localizar, grava no mapa 'acessoRapido' para acelerar futuros acessos a este atributo e o retorna.
 func (m *Modulo) M__obtem_attributo__(nome string) (objeto Objeto, err error) {
-	ok := false
-	if objeto, ok = m.acessoRapido[nome]; ok {
-		return
+	m.mu.RLock()
+	if obj, ok := m.acessoRapido[nome]; ok {
+		m.mu.RUnlock()
+		return obj, nil
 	}
+	m.mu.RUnlock()
 
 	objeto, err = m.Escopo.ObterValor(nome)
 	if err != nil {
 		return
 	}
 
+	m.mu.Lock()
 	m.acessoRapido[nome] = objeto
+	m.mu.Unlock()
 	return
 }
 
@@ -125,6 +130,7 @@ var _ I__obtem_attributo__ = (*Modulo)(nil)
 type TabelaModulos struct {
 	modulos   map[string]*Modulo // Mapa ligando nomes textuais às instâncias ativas de Modulo.
 	Embutidos *Modulo            // Atalho referenciando a instância do módulo especial de funções embutidas globais.
+	mu        sync.RWMutex       // Mutex para sincronização do catálogo de módulos.
 }
 
 // NewTabelaModulos aloca o mapa do cache de registros de módulos.
@@ -171,6 +177,7 @@ func (tabela *TabelaModulos) NewModulo(ctx *Contexto, impl *ModuloImpl) (*Modulo
 		modulo.Escopo.DefinirSimbolo(NewVarSimbolo(string(nome), valor))
 	}
 
+	tabela.mu.Lock()
 	tabela.modulos[nome] = modulo
 	if impl.Info.Arquivo != "" {
 		tabela.modulos[impl.Info.Arquivo] = modulo
@@ -184,13 +191,16 @@ func (tabela *TabelaModulos) NewModulo(ctx *Contexto, impl *ModuloImpl) (*Modulo
 	if nome == "embutidos" {
 		tabela.Embutidos = modulo
 	}
+	tabela.mu.Unlock()
 
 	return modulo, nil
 }
 
 // ObterModulo retorna a instância ativa do módulo cadastrado no cache, disparando erro de importação se não existir.
 func (tabela *TabelaModulos) ObterModulo(nome string) (*Modulo, error) {
+	tabela.mu.RLock()
 	m, ok := tabela.modulos[nome]
+	tabela.mu.RUnlock()
 	if !ok {
 		return nil, NewErroF(ImportacaoErro, "O módulo '%v' não pode ser achado", nome)
 	}

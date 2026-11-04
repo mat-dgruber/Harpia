@@ -47,8 +47,9 @@ func NewFuncao(nome string, corpo *parser.Bloco, contexto *Contexto, escopo *Esc
 	// tracebacks de execução apontem para o arquivo de origem da função, não para o
 	// módulo que a chamou (corrige #21: false-positive main.hrp:N ao chamar @backend).
 	if contexto != nil {
-		f.declArquivo = contexto.ArquivoAtual
-		f.declCodigo = contexto.CodigoAtual
+		arq, cod := contexto.ObterArquivoCodigo()
+		f.declArquivo = arq
+		f.declCodigo = cod
 		if prog, ok := contextoUltimoPrograma(contexto); ok {
 			f.declPosicoes = prog.Posicoes
 		}
@@ -59,10 +60,14 @@ func NewFuncao(nome string, corpo *parser.Bloco, contexto *Contexto, escopo *Esc
 // contextoUltimoPrograma busca o *parser.Programa correspondente ao arquivo atual do contexto
 // percorrendo o cache de módulos carregados. Usado em NewFuncao para snapshot do Posicoes.
 func contextoUltimoPrograma(c *Contexto) (*parser.Programa, bool) {
-	if c == nil || c.ArquivoAtual == "" || c.Modulos == nil {
+	if c == nil || c.Modulos == nil {
 		return nil, false
 	}
-	mod, err := c.Modulos.ObterModulo(c.ArquivoAtual)
+	arq, _ := c.ObterArquivoCodigo()
+	if arq == "" {
+		return nil, false
+	}
+	mod, err := c.Modulos.ObterModulo(arq)
 	if err != nil || mod == nil || mod.Impl == nil || mod.Impl.Ast == nil {
 		return nil, false
 	}
@@ -213,13 +218,16 @@ func (f *Funcao) M__chame__(args Tupla) (Objeto, error) {
 		if f.declPosicoes != nil {
 			newInterpret.Posicoes = f.declPosicoes
 		}
-	} else if f.contexto != nil && f.contexto.ArquivoAtual != "" {
-		newInterpret.Arquivo = f.contexto.ArquivoAtual
-		newInterpret.Codigo = f.contexto.CodigoAtual
-		if f.contexto.Modulos != nil {
-			if mod, err := f.contexto.Modulos.ObterModulo(f.contexto.ArquivoAtual); err == nil && mod != nil && mod.Impl.Ast != nil {
-				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
-					newInterpret.Posicoes = prog.Posicoes
+	} else if f.contexto != nil {
+		ctxArq, ctxCod := f.contexto.ObterArquivoCodigo()
+		if ctxArq != "" {
+			newInterpret.Arquivo = ctxArq
+			newInterpret.Codigo = ctxCod
+			if f.contexto.Modulos != nil {
+				if mod, err := f.contexto.Modulos.ObterModulo(ctxArq); err == nil && mod != nil && mod.Impl.Ast != nil {
+					if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
+						newInterpret.Posicoes = prog.Posicoes
+					}
 				}
 			}
 		}
