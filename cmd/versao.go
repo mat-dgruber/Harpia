@@ -7,11 +7,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	Versao    = "dev"
-	GitCommit = "desconhecido"
-	DataBuild = "desconhecida"
-)
+// Os metadados vêm de cmd.Version/Commit/Datetime (cmd.go), preenchidos por main.go a partir
+// das ldflags da release (.goreleaser.yaml). As antigas variáveis Versao/GitCommit/DataBuild
+// nunca eram preenchidas, e `harpia versao` sempre mostrava "dev".
 
 func comandoVersao() *cobra.Command {
 	var formato string
@@ -28,9 +26,9 @@ func comandoVersao() *cobra.Command {
 
 			if formato == "json" {
 				meta := map[string]string{
-					"versao":     Versao,
-					"git_commit": GitCommit,
-					"data_build": DataBuild,
+					"versao":     Version,
+					"git_commit": Commit,
+					"data_build": Datetime,
 				}
 				enc := json.NewEncoder(out)
 				enc.SetIndent("", "  ")
@@ -38,11 +36,11 @@ func comandoVersao() *cobra.Command {
 			}
 
 			if curto {
-				fmt.Fprintln(out, Versao)
+				fmt.Fprintln(out, Version)
 				return nil
 			}
 
-			fmt.Fprintf(out, "Harpia CLI %s (commit %s, compilado em %s)\n", Versao, GitCommit, DataBuild)
+			fmt.Fprintf(out, "Harpia CLI %s (commit %s, compilado em %s)\n", Version, Commit, Datetime)
 			return nil
 		},
 	}

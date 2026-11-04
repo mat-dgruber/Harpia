@@ -169,15 +169,15 @@ func comandoAtualizar() *cobra.Command {
 				return err
 			}
 
-			vAtual, _ := semver.NewVersion(Versao)
+			vAtual, _ := semver.NewVersion(Version)
 			vRemota, _ := semver.NewVersion(remota)
 
 			if vAtual != nil && vRemota != nil && !vAtual.LessThan(vRemota) {
-				fmt.Fprintf(out, "Sua CLI do Harpia já está atualizada (%s).\n", Versao)
+				fmt.Fprintf(out, "Sua CLI do Harpia já está atualizada (%s).\n", Version)
 				return nil
 			}
 
-			fmt.Fprintf(out, "Nova versão disponível: %s (versão atual: %s)\n", remota, Versao)
+			fmt.Fprintf(out, "Nova versão disponível: %s (versão atual: %s)\n", remota, Version)
 
 			if apenasChecar {
 				return nil
