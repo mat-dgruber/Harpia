@@ -2,6 +2,7 @@ package hrp
 
 import (
 	"bufio"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -243,6 +244,10 @@ func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode
 	return ast, nil
 }
 
+// ErrNaoSuportadoVM marca construções que o compilador de bytecode ainda não cobre;
+// AvaliarAst usa errors.Is para cair no interpretador AST apenas nesses casos.
+var ErrNaoSuportadoVM = errors.New("construção ainda não suportada na VM de bytecode")
+
 var executadorVM func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)
 
 func DefinirExecutadorVM(exec func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)) {
@@ -261,11 +266,9 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 		if errVM == nil {
 			return resVM, nil
 		}
-		if !strings.Contains(errVM.Error(), "não implementada na VM") &&
-			!strings.Contains(errVM.Error(), "não suportada na VM") &&
-			!strings.Contains(errVM.Error(), "não suportadas na VM") &&
-			!strings.Contains(errVM.Error(), "não é suportada na VM") &&
-			!strings.Contains(errVM.Error(), "não são suportadas na VM") {
+		// Só erros de COMPILAÇÃO carregam o sentinela: um erro de runtime do script nunca
+		// dispara reexecução pelo interpretador (o que duplicaria efeitos colaterais).
+		if !errors.Is(errVM, ErrNaoSuportadoVM) {
 			return nil, errVM
 		}
 	}

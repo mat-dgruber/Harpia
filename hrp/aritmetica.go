@@ -1,5 +1,63 @@
 package hrp
 
+import "math"
+
+// multiplicaInteiroSeguro multiplica dois Inteiro e informa se houve overflow de 64 bits.
+func multiplicaInteiroSeguro(a, b Inteiro) (Inteiro, bool) {
+	if a == 0 || b == 0 {
+		return 0, true
+	}
+	r := a * b
+	if r/b != a || (a == -1 && b == math.MinInt64) || (b == -1 && a == math.MinInt64) {
+		return 0, false
+	}
+	return r, true
+}
+
+// Potencia implementa o operador '**'.
+// Inteiro ** Inteiro (expoente >= 0) devolve Inteiro, com erro em overflow em vez de dar a volta;
+// expoente negativo ou operando Decimal usa math.Pow e devolve Decimal.
+func Potencia(a, b Objeto) (Objeto, error) {
+	base, baseInt := a.(Inteiro)
+	exp, expInt := b.(Inteiro)
+	if baseInt && expInt && exp >= 0 {
+		res := Inteiro(1)
+		for e := exp; e > 0; e >>= 1 {
+			var ok bool
+			if e&1 == 1 {
+				if res, ok = multiplicaInteiroSeguro(res, base); !ok {
+					return nil, NewErroF(ErroDeLimite, "O resultado de %d ** %d excede o limite de Inteiro (64 bits)", a, b)
+				}
+			}
+			if e > 1 {
+				if base, ok = multiplicaInteiroSeguro(base, base); !ok {
+					return nil, NewErroF(ErroDeLimite, "O resultado de %d ** %d excede o limite de Inteiro (64 bits)", a, b)
+				}
+			}
+		}
+		return res, nil
+	}
+
+	_, aNum := a.(Decimal)
+	_, bNum := b.(Decimal)
+	if (!baseInt && !aNum) || (!expInt && !bNum) {
+		return nil, NewErroF(TipagemErro, "A operação '**' não é suportada entre os tipos '%s' e '%s'", a.Tipo().Nome, b.Tipo().Nome)
+	}
+	x, err := NewDecimal(a)
+	if err != nil {
+		return nil, err
+	}
+	y, err := NewDecimal(b)
+	if err != nil {
+		return nil, err
+	}
+	r := math.Pow(float64(x.(Decimal)), float64(y.(Decimal)))
+	if math.IsNaN(r) {
+		return nil, NewErroF(ValorErro, "%v ** %v não tem resultado real", a, b)
+	}
+	return Decimal(r), nil
+}
+
 // Adiciona realiza a soma aritmética polimórfica ou concatenação de dois objetos.
 // Verifica se o membro da esquerda 'a' satisfaz o protocolo 'I__adiciona__' e delega a ele.
 func Adiciona(a, b Objeto) (Objeto, error) {

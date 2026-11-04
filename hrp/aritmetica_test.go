@@ -140,3 +140,34 @@ func TestRPC(t *testing.T) {
 		}
 	})
 }
+
+func TestPotencia(t *testing.T) {
+	casos := []struct {
+		a, b Objeto
+		want Objeto
+	}{
+		{Inteiro(2), Inteiro(3), Inteiro(8)},
+		{Inteiro(2), Inteiro(0), Inteiro(1)},
+		{Inteiro(-3), Inteiro(3), Inteiro(-27)},
+		{Inteiro(2), Inteiro(62), Inteiro(1 << 62)},
+		{Inteiro(2), Inteiro(-1), Decimal(0.5)},
+		{Decimal(2.25), Decimal(0.5), Decimal(1.5)},
+	}
+	for _, c := range casos {
+		got, err := Potencia(c.a, c.b)
+		if err != nil || got != c.want {
+			t.Errorf("%v ** %v = %v (%v), esperava %v", c.a, c.b, got, err, c.want)
+		}
+	}
+	for _, c := range [][2]Objeto{{Inteiro(2), Inteiro(63)}, {Inteiro(10), Inteiro(19)}} {
+		if _, err := Potencia(c[0], c[1]); err == nil {
+			t.Errorf("%v ** %v deveria lançar ErroDeLimite", c[0], c[1])
+		}
+	}
+	if _, err := Potencia(Decimal(-8), Decimal(0.5)); err == nil {
+		t.Error("-8 ** 0.5 deveria lançar ValorErro")
+	}
+	if _, err := Potencia(Texto("a"), Inteiro(2)); err == nil {
+		t.Error("'a' ** 2 deveria lançar TipagemErro")
+	}
+}

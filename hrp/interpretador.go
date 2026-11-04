@@ -535,6 +535,9 @@ func (i *Interpretador) visiteOpBinaria(node *parser.OpBinaria) (Objeto, error) 
 	case "%":
 		val, err := Mod(esquerda, direita)
 		return val, i.anotarErro(node, err)
+	case "**":
+		val, err := Potencia(esquerda, direita)
+		return val, i.anotarErro(node, err)
 	case "<":
 		val, err := MenorQue(esquerda, direita)
 		return val, i.anotarErro(node, err)

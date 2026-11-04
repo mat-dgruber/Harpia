@@ -378,7 +378,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			c.emitir(OP_POP)
 
 		default:
-			return fmt.Errorf("compilação de reatribuição para o nó tipo %T ainda não suportada na VM", obj)
+			return fmt.Errorf("%w: reatribuição para o nó tipo %T", hrp.ErrNaoSuportadoVM, obj)
 		}
 
 	case *parser.OpBinaria:
@@ -849,10 +849,10 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		}
 
 	case *parser.DeclVarDestructuring, *parser.DeclDesestruturacao:
-		return fmt.Errorf("desestruturação var [a, b] = ... ainda não é suportada na VM de Bytecode (use transpilação ou interpretador)")
+		return fmt.Errorf("%w: desestruturação var [a, b] = ...", hrp.ErrNaoSuportadoVM)
 
 	case *parser.DeclEnum, *parser.DeclInterface:
-		return fmt.Errorf("enumerações e interfaces ainda não são suportadas na VM de Bytecode (use transpilação ou interpretador)")
+		return fmt.Errorf("%w: enumerações e interfaces", hrp.ErrNaoSuportadoVM)
 
 	case *parser.OpUnaria:
 		if err := c.visite(n.Expressao); err != nil {
@@ -866,11 +866,11 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		case "nao":
 			c.emitir(OP_NOT)
 		default:
-			return fmt.Errorf("operador unário '%s' não suportado na VM de bytecode", n.Operador)
+			return fmt.Errorf("%w: operador unário '%s'", hrp.ErrNaoSuportadoVM, n.Operador)
 		}
 
 	default:
-		return fmt.Errorf("compilação do nó tipo %T ainda não implementada na VM de bytecode", n)
+		return fmt.Errorf("%w: nó tipo %T", hrp.ErrNaoSuportadoVM, n)
 	}
 
 	return nil
@@ -903,7 +903,7 @@ func (c *Compilador) emitirOpBinaria(operador string) error {
 	case ">=":
 		c.emitir(OP_GTE)
 	default:
-		return fmt.Errorf("operador binário '%s' não suportado na VM de bytecode", operador)
+		return fmt.Errorf("%w: operador binário '%s'", hrp.ErrNaoSuportadoVM, operador)
 	}
 	return nil
 }
