@@ -415,6 +415,21 @@ func (c *Contexto) CanalCancelamento() <-chan struct{} {
 	return c.cancelCh
 }
 
+// VerificarCancelamento retorna erro se o contexto foi encerrado (ex.: timeout do playground).
+// Laços do interpretador e saltos para trás da VM chamam isto a cada iteração para que
+// um script em loop infinito pare quando Terminar() é chamado.
+func (c *Contexto) VerificarCancelamento() error {
+	if c == nil || c.cancelCh == nil {
+		return nil
+	}
+	select {
+	case <-c.cancelCh:
+		return NewErroF(RuntimeErro, "Execução cancelada: o contexto foi encerrado")
+	default:
+		return nil
+	}
+}
+
 // Fechado retorna true se o contexto foi marcado como encerrado.
 func (c *Contexto) Fechado() bool {
 	if c == nil {

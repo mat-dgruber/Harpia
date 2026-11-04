@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -44,6 +46,66 @@ type ExecucaoPlaygroundResponse struct {
 // ponytail: garante segurança concorrente contra corridas de dados no Stdout compartilhado
 var mutexExecucaoPlayground sync.Mutex
 
+// opcsPlayground liga o sandbox em TODO contexto criado pelo playground, inclusive os que só
+// transpilam: NewContexto troca o contexto ativo global, então nenhum contexto aberto em
+// paralelo pode ser o que libera arquivos, processos ou rede.
+var opcsPlayground = hrp.OpcsContexto{BloquearArquivos: true, BloquearRede: true}
+
+// tempoLimitePlayground é o tempo máximo de uma execução em /api/executar.
+var tempoLimitePlayground = 5 * time.Second
+
+// hostLocal informa se o hostname (sem porta) é um endereço de loopback.
+func hostLocal(hostport string) bool {
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+	return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+// requisicaoLocalConfiavel bloqueia execução remota de código vinda de outros sites ou da rede:
+//   - Host precisa ser loopback (bloqueia acesso pela LAN e DNS rebinding);
+//   - Origin, se presente, precisa ser a própria origem;
+//   - Content-Type precisa ser JSON, o que força preflight CORS (bloqueia CSRF com text/plain).
+func requisicaoLocalConfiavel(r *http.Request) bool {
+	if !hostLocal(r.Host) {
+		return false
+	}
+	if origem := r.Header.Get("Origin"); origem != "" {
+		u, err := url.Parse(origem)
+		if err != nil || u.Host != r.Host || !hostLocal(u.Host) {
+			return false
+		}
+	}
+	return strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "application/json")
+}
+
+// definirCorsLocal libera CORS só para origens em loopback (ex.: front em :5173 chamando o
+// dev server em :3000). Outras origens não recebem Access-Control-Allow-Origin e o navegador
+// bloqueia a leitura, impedindo que um site qualquer leia os arquivos do projeto.
+func definirCorsLocal(w http.ResponseWriter, r *http.Request) {
+	origem := r.Header.Get("Origin")
+	if origem == "" {
+		return
+	}
+	if u, err := url.Parse(origem); err == nil && hostLocal(u.Host) {
+		w.Header().Set("Access-Control-Allow-Origin", origem)
+		w.Header().Add("Vary", "Origin")
+	}
+}
+
+// caminhoTemSegmentoOculto informa se algum segmento do caminho começa com '.' (.env, .git/),
+// que nunca deve ser servido pelos servidores de desenvolvimento.
+func caminhoTemSegmentoOculto(p string) bool {
+	for _, seg := range strings.Split(p, "/") {
+		if strings.HasPrefix(seg, ".") && seg != "." {
+			return true
+		}
+	}
+	return false
+}
+
 // comandoPlayground cria e retorna o subcomando Cobra 'playground' que é acionado
 // no terminal (`harpia playground`). Este comando inicializa um servidor web de desenvolvimento
 // local hospedando a interface gráfica e o REPL web interativo de forma portátil.
@@ -77,9 +139,10 @@ func iniciarServidorPlayground(porta int) {
 	fmt.Printf("🚀 Playground Interativo do Harpia rodando em: http://localhost:%d\n", porta)
 	fmt.Println("Pressione Ctrl+C para encerrar o servidor.")
 
-	// ponytail: servidor HTTP resiliente com timeouts para mitigar DoS/estouro de conexões
+	// ponytail: servidor HTTP resiliente com timeouts para mitigar DoS/estouro de conexões.
+	// Escuta só em loopback: o playground executa código e não deve ser alcançável pela rede.
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", porta),
+		Addr:         fmt.Sprintf("127.0.0.1:%d", porta),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
@@ -120,7 +183,7 @@ func serveRuntimeWeb(w http.ResponseWriter, r *http.Request) {
 // para código Javascript puro, enviando-o para execução no navegador do cliente de forma dinâmica.
 func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	ctx := hrp.NewContexto(opcsPlayground)
 	defer ctx.Terminar()
 
 	conteudo, err := os.ReadFile("playground/interface.hrp")
@@ -155,7 +218,7 @@ func servePlaygroundJS(w http.ResponseWriter, r *http.Request) {
 // injetando um leiaute CSS Dark de alta performance alinhado com o tema profissional.
 func servePlaygroundCSS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/css; charset=utf-8")
-	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	ctx := hrp.NewContexto(opcsPlayground)
 	defer ctx.Terminar()
 
 	conteudo, err := os.ReadFile("playground/interface.hrp")
@@ -322,17 +385,14 @@ pre {
 // apiExecutarCodigoPlayground recebe o payload contendo o código enviado do navegador,
 // executa-o de forma segura sob um escopo isolado na VM e captura saídas e variáveis em tempo real.
 func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
+	// Sem CORS: o editor é servido pela mesma origem. Qualquer outra origem é recusada.
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método não suportado", http.StatusMethodNotAllowed)
 		return
 	}
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Método não suportado", http.StatusMethodNotAllowed)
+	if !requisicaoLocalConfiavel(r) {
+		http.Error(w, "Origem não permitida: /api/executar aceita apenas requisições JSON da própria origem em localhost", http.StatusForbidden)
 		return
 	}
 
@@ -351,11 +411,21 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 
 	// Captura stdout para coletar impressões de logs do console
 	oldStdout := os.Stdout
-	readP, writeP, _ := os.Pipe()
+	readP, writeP, errPipe := os.Pipe()
+	if errPipe != nil {
+		http.Error(w, "Falha ao capturar a saída do script", http.StatusInternalServerError)
+		return
+	}
 	os.Stdout = writeP
 
-	ctx := hrp.NewContexto(hrp.OpcsContexto{})
-	defer ctx.Terminar()
+	ctx := hrp.NewContexto(opcsPlayground)
+	// ponytail: Terminar() espera o script acabar; em timeout ele roda em goroutine (ver abaixo)
+	terminado := false
+	defer func() {
+		if !terminado {
+			ctx.Terminar()
+		}
+	}()
 
 	escopo := hrp.NewEscopo()
 
@@ -381,11 +451,40 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 			close(doneRead)
 		}()
 
-		// Executa o script sob o escopo isolado
-		_, errExec := ctx.AvaliarAst(ast, escopo)
+		// Executa o script sob o escopo isolado, com tempo limite.
+		var errExec error
+		doneExec := make(chan error, 1) // a goroutine só se comunica por este canal (sem corrida)
+		go func() {
+			var errScript error
+			defer func() {
+				if rec := recover(); rec != nil {
+					errScript = fmt.Errorf("pânico durante a execução: %v", rec)
+				}
+				doneExec <- errScript
+			}()
+			_, errScript = ctx.AvaliarAst(ast, escopo)
+		}()
+
+		expirou := false
+		select {
+		case errExec = <-doneExec:
+		case <-time.After(tempoLimitePlayground):
+			expirou = true
+			terminado = true
+			// Terminar() fecha o canal de cancelamento (os laços param) e espera o script sair.
+			go ctx.Terminar()
+			// ponytail: espera até 1s o script observar o cancelamento; código sem laço que bloqueia
+			// em I/O pode continuar, isolamento total exige subprocesso (executarCodigoHarpia).
+			select {
+			case <-doneExec:
+			case <-time.After(time.Second):
+			}
+			errExec = fmt.Errorf("Tempo limite de %v excedido: a execução foi interrompida", tempoLimitePlayground)
+		}
 
 		if errExec != nil {
-			fmt.Printf("⚠️ [Harpia Server] Erro de execução na VM: %v\n", errExec)
+			// stderr: os.Stdout ainda está redirecionado e o log vazaria para a saída do usuário
+			fmt.Fprintf(os.Stderr, "⚠️ [Harpia Server] Erro de execução na VM: %v\n", errExec)
 		}
 
 		// Fecha a gravação e lê o buffer capturado de Stdout
@@ -404,7 +503,10 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Coleta variáveis do escopo local pós-execução de forma segura
-		simbolos := escopo.ObterSimbolosSeguro()
+		var simbolos []*hrp.Simbolo
+		if !expirou {
+			simbolos = escopo.ObterSimbolosSeguro()
+		}
 		var vars []VariavelEscopo
 		for _, simb := range simbolos {
 			if simb != nil {

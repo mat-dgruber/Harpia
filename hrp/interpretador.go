@@ -854,6 +854,9 @@ func (i *Interpretador) visiteRetorneNode(node *parser.RetorneNode) (Objeto, err
 // visiteEnquanto roda o laço condicional em Go. Intercepta erros estruturados 'ErroContinue' e 'ErroPare'.
 func (i *Interpretador) visiteEnquanto(node *parser.Enquanto) (Objeto, error) {
 	for {
+		if err := i.Contexto.VerificarCancelamento(); err != nil {
+			return nil, err
+		}
 		condicao, err := i.visite(node.Condicao)
 		if err != nil {
 			return nil, err
@@ -939,6 +942,9 @@ func (i *Interpretador) visiteBlocoPara(node *parser.BlocoPara) (Objeto, error) 
 	}
 
 	for {
+		if err = i.Contexto.VerificarCancelamento(); err != nil {
+			return nil, err
+		}
 		if item, err = próximo(iterador); err != nil {
 			if objErr, ok := err.(*Erro); ok {
 				if objErr.Tipo() == FimIteracao {
