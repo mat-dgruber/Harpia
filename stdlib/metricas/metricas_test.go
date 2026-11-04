@@ -39,6 +39,22 @@ func TestContadorMetrica(t *testing.T) {
 	if !strings.Contains(exporStr, "requisicoes_total 1") {
 		t.Errorf("Saída do expor incorreta, obtive:\n%s", exporStr)
 	}
+
+	// Testar incrementar_por com valor negativo
+	incPor, err := contador.M__obtem_attributo__("incrementar_por")
+	if err != nil {
+		t.Fatalf("Erro ao obter incrementar_por: %v", err)
+	}
+	_, err = hrp.Chamar(incPor, hrp.Tupla{hrp.Decimal(-5.0)})
+	if err == nil {
+		t.Errorf("Esperava erro ao passar valor negativo para incrementar_por")
+	}
+
+	// Testar nome de métrica inválido
+	_, err = met_metricas_criarContador(nil, hrp.Tupla{hrp.Texto("nome com espaco"), hrp.Texto("desc")})
+	if err == nil {
+		t.Errorf("Esperava erro ao criar contador com nome inválido")
+	}
 }
 
 func TestMedidorMetrica(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -53,8 +54,7 @@ func ChamarLLM(provedor, modelo string, instrucoes string, historico []Mensagem)
 }
 
 // chamarOllama envia mensagens de chat para o servidor Ollama local via requisição REST POST.
-// Caso o Ollama esteja inacessível no localhost, possui um fallback inteligente que redireciona o fluxo
-// para as APIs em nuvem do Gemini ou OpenAI, se as chaves correspondentes estiverem definidas, mantendo o sistema funcional.
+// Não faz fallback silencioso para nuvem a menos que haja opt-in explícito via HARPIA_IA_FALLBACK=1.
 func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 	url := fmt.Sprintf("%s/api/chat", host)
 
@@ -71,19 +71,21 @@ func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 
 	resp, err := clientIA.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
 	if err != nil {
-		// Fallback amigável se o Ollama local não estiver rodando: tentar nuvens
-		if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
-			return chamarGemini("gemini-1.5-flash", apiKey, mensagens)
-		}
-		if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-			return chamarOpenAI("gpt-4o-mini", apiKey, mensagens)
+		// Fallback para nuvem apenas com opt-in explícito
+		if os.Getenv("HARPIA_IA_FALLBACK") == "1" || os.Getenv("HARPIA_IA_FALLBACK") == "true" {
+			if apiKey := os.Getenv("GEMINI_API_KEY"); apiKey != "" {
+				return chamarGemini("gemini-1.5-flash", apiKey, mensagens)
+			}
+			if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+				return chamarOpenAI("gpt-4o-mini", apiKey, mensagens)
+			}
 		}
 		return "", fmt.Errorf("erro de conexão com Ollama local em %s: %v. Certifique-se de que o Ollama está rodando.", host, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBytes, _ := io.ReadAll(resp.Body)
+		respBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 		return "", fmt.Errorf("erro retornado pelo Ollama (Status %d): %s", resp.StatusCode, string(respBytes))
 	}
 
@@ -93,7 +95,7 @@ func chamarOllama(host, modelo string, mensagens []Mensagem) (string, error) {
 		} `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 10<<20)).Decode(&response); err != nil {
 		return "", err
 	}
 
@@ -105,7 +107,7 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	if modelo == "" || modelo == "llama3" || modelo == "llama2" {
 		modelo = "gemini-1.5-flash"
 	}
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", modelo, apiKey)
+	urlStr := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent", url.PathEscape(modelo))
 
 	type Part struct {
 		Text string `json:"text"`
@@ -140,14 +142,21 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		return "", err
 	}
 
-	resp, err := clientIA.Post(url, "application/json", bytes.NewBuffer(bodyBytes))
+	req, err := http.NewRequest("POST", urlStr, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-goog-api-key", apiKey)
+
+	resp, err := clientIA.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBytes, _ := io.ReadAll(resp.Body)
+		respBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 		return "", fmt.Errorf("erro retornado pelo Gemini (Status %d): %s", resp.StatusCode, string(respBytes))
 	}
 
@@ -161,7 +170,7 @@ func chamarGemini(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		} `json:"candidates"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 10<<20)).Decode(&response); err != nil {
 		return "", err
 	}
 
@@ -203,7 +212,7 @@ func chamarOpenAI(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		respBytes, _ := io.ReadAll(resp.Body)
+		respBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 		return "", fmt.Errorf("erro retornado pelo OpenAI (Status %d): %s", resp.StatusCode, string(respBytes))
 	}
 
@@ -215,7 +224,7 @@ func chamarOpenAI(modelo, apiKey string, mensagens []Mensagem) (string, error) {
 		} `json:"choices"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 10<<20)).Decode(&response); err != nil {
 		return "", err
 	}
 

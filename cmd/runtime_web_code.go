@@ -23,13 +23,62 @@ const devToolsMetrics = {
 const registroSinais = new Set();
 const registroEfeitos = new Set();
 
+/**
+ * Objeto de inspeção global e Métricas DevTools do Harpia Web.
+ */
+export const devTools = {
+  ativo: false,
+  get sinaisAtivos() {
+    return registroSinais.size || devToolsMetrics.sinaisCriados;
+  },
+  get totalSinais() {
+    return devToolsMetrics.sinaisCriados;
+  },
+  get totalEfeitos() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  get efeitosAtivos() {
+    return registroEfeitos.size;
+  },
+  get renderizacoesVDOM() {
+    return devToolsMetrics.renderizacoesVDOM;
+  },
+  obterSinaisAtivos() {
+    return registroSinais.size;
+  },
+  obterEfeitosRegistrados() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  obterMetricasRender() {
+    return {
+      renderizacoes: devToolsMetrics.renderizacoesVDOM,
+      sinaisAtivos: registroSinais.size,
+      totalEfeitos: devToolsMetrics.efeitosCriados,
+      efeitosAtivos: registroEfeitos.size,
+    };
+  },
+};
+
+export const __HARPIA_DEVTOOLS__ = devTools;
+
+if (typeof globalThis !== "undefined") {
+  globalThis.__HARPIA_DEVTOOLS__ = devTools;
+}
+
 // ponytail: fila global e flag para agrupar e lotear execuções de efeitos síncronos na mesma microtask.
 // Isso impede múltiplas reconciliações de VDOM desnecessárias e repaints repetitivos.
 const filaEfeitos = new Set();
 let agendamentoLote = false;
 
 function executarFilaEfeitos() {
+  let contadorLoop = 0;
   while (filaEfeitos.size > 0) {
+    contadorLoop++;
+    if (contadorLoop > 100) {
+      console.warn("[Harpia Web] Ciclo infinito de efeitos reativos interrompido por segurança (>100 iterações).");
+      filaEfeitos.clear();
+      break;
+    }
     const loteEfeitos = Array.from(filaEfeitos);
     filaEfeitos.clear();
     loteEfeitos.forEach((ef) => ef.run());
@@ -83,11 +132,21 @@ export function sinal(valor) {
     valor = novoValor;
     // Clona para evitar recursão infinita se assinantes mutarem o sinal
     const paraDisparar = Array.from(assinantes);
-    paraDisparar.forEach((sub) => agendarEfeito(sub));
+    paraDisparar.forEach((sub) => {
+      if (sub !== efeitoAtivo) {
+        agendarEfeito(sub);
+      }
+    });
   };
 
   ler.set = definir; // ponytail: expõe atualizador direto no getter para binding bidirecional
-  registroSinais.add(ler);
+  if (
+    typeof __HARPIA_DEVTOOLS__ !== "undefined" &&
+    __HARPIA_DEVTOOLS__ &&
+    __HARPIA_DEVTOOLS__.ativo
+  ) {
+    registroSinais.add(ler);
+  }
   return [ler, definir];
 }
 
@@ -265,7 +324,9 @@ export function efeito(funcao) {
     cleanups: new Set(),
     desmontarCleanups: new Set(),
     iniciado: false,
+    desmontado: false,
     run() {
+      if (ef.desmontado) return;
       if (typeof ef.cleanup === "function") {
         try {
           ef.cleanup();
@@ -297,6 +358,8 @@ export function efeito(funcao) {
       }
     },
     desmontar() {
+      ef.desmontado = true;
+      filaEfeitos.delete(ef);
       registroEfeitos.delete(ef);
       if (typeof ef.cleanup === "function") {
         try {
@@ -361,26 +424,36 @@ export function derivado(funcao) {
  * @returns {Proxy} Objeto reativo global
  */
 export function armazem(objeto) {
-  const sinais = {};
+  const sinais = Object.create(null);
   for (const chave in objeto) {
-    if (objeto.hasOwnProperty(chave)) {
+    if (Object.hasOwn(objeto, chave)) {
       sinais[chave] = sinal(objeto[chave]);
     }
   }
   return new Proxy(objeto, {
     get(target, propriedade) {
-      if (sinais[propriedade]) {
+      if (
+        typeof propriedade === "string" &&
+        Object.hasOwn(objeto, propriedade) &&
+        sinais[propriedade]
+      ) {
         return sinais[propriedade][0]();
       }
       return target[propriedade];
     },
     set(target, propriedade, valor) {
-      if (sinais[propriedade]) {
+      if (
+        typeof propriedade === "string" &&
+        Object.hasOwn(objeto, propriedade) &&
+        sinais[propriedade]
+      ) {
         sinais[propriedade][1](valor);
         target[propriedade] = valor;
         return true;
       }
-      sinais[propriedade] = sinal(valor);
+      if (typeof propriedade === "string") {
+        sinais[propriedade] = sinal(valor);
+      }
       target[propriedade] = valor;
       return true;
     },
@@ -572,6 +645,24 @@ export function criarNo(vno) {
   return el;
 }
 
+function urlSegura(valor) {
+  if (!valor || typeof valor !== "string") return "#";
+  const url = valor.trim();
+  if (
+    url.startsWith("/") ||
+    url.startsWith("./") ||
+    url.startsWith("../") ||
+    url.startsWith("#") ||
+    url.startsWith("?")
+  ) {
+    return url;
+  }
+  if (/^(https?:|mailto:|tel:)/i.test(url)) {
+    return url;
+  }
+  return "#";
+}
+
 function atualizarAtributos(el, velhosProps, novosProps) {
   velhosProps = velhosProps || {};
   novosProps = novosProps || {};
@@ -631,6 +722,11 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       }
 
       if (nomeLimpo === "innerHTML") {
+        el.innerHTML = sanitizarHtml(valor);
+        continue;
+      }
+
+      if (nomeLimpo === "htmlBruto") {
         el.innerHTML = valor;
         continue;
       }
@@ -657,6 +753,14 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       } else {
         const attrName = mapearAtributo(nomeLimpo);
         if (!attrName) continue;
+        if (
+          attrName === "href" ||
+          attrName === "src" ||
+          attrName === "action" ||
+          attrName === "formaction"
+        ) {
+          valor = urlSegura(valor);
+        }
         if (attrName === "value" || nomeLimpo === "valor" || nomeLimpo === "value") {
           const valStr = (valor === null || valor === undefined) ? "" : String(valor);
           if (el.value !== valStr) {
@@ -823,9 +927,23 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
       desmontarVNo(velhoVNo);
     }
     if (Array.isArray(velhoVNo)) {
-      for (let i = velhoVNo.length - 1; i >= 0; i--) {
-        reconciliar(pai, velhoVNo[i], null, index + i);
+      function removerFilhosFisicos(v) {
+        if (Array.isArray(v)) {
+          v.forEach(removerFilhosFisicos);
+        } else {
+          const noFilho = obterNoFisico(v, pai);
+          if (
+            noFilho &&
+            (noFilho.parentNode === pai || !noFilho.parentNode) &&
+            typeof pai.removeChild === "function"
+          ) {
+            try {
+              pai.removeChild(noFilho);
+            } catch (_) {}
+          }
+        }
       }
+      removerFilhosFisicos(velhoVNo);
       return;
     }
     if (noFisico && (noFisico.parentNode === pai || !noFisico.parentNode) && typeof pai.removeChild === "function") {
@@ -1029,7 +1147,7 @@ export function montar(appComponente, elementoAlvo) {
   const obterVNo =
     typeof appComponente === "function" ? appComponente : () => appComponente;
 
-  efeito(() => {
+  return efeito(() => {
     try {
       const novoVNo = obterVNo();
       reconciliar(elementoAlvo, velhoVNo, novoVNo);
@@ -1041,7 +1159,7 @@ export function montar(appComponente, elementoAlvo) {
           '<div style="background:#1E1E2E; color:#F87171; font-family:monospace; padding:24px; border-radius:12px; margin:20px; border:1px solid #EF4444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">' +
             '<h2 style="color:#FCA5A5; margin-top:0;">Erro de Renderização Harpia (Runtime)</h2>' +
             '<p style="color:#E5E7EB; margin-bottom:12px;">Ocorreu uma exceção ao executar o componente web:</p>' +
-            '<pre style="background:#0F0F17; color:#F3F4F6; padding:16px; border-radius:8px; overflow-x:auto; white-space:pre-wrap; font-size:13px; line-height:1.5; border:1px solid #374151;">' + String(err && err.stack ? err.stack : err) + '</pre>' +
+            '<pre style="background:#0F0F17; color:#F3F4F6; padding:16px; border-radius:8px; overflow-x:auto; white-space:pre-wrap; font-size:13px; line-height:1.5; border:1px solid #374151;">' + sanitizarHtml(String(err && err.stack ? err.stack : err)) + '</pre>' +
           '</div>';
       }
     }
@@ -1077,6 +1195,54 @@ export function hidratar(appComponente, elementoAlvo) {
 }
 
 // Polyfills para suporte nativo a getters/métodos em Português
+if (typeof window !== "undefined") {
+  if (!window.tamanho) {
+    window.tamanho = function(valor) {
+      if (valor === null || valor === undefined) return 0;
+      if (typeof valor.length === 'number') return valor.length;
+      if (valor instanceof Map || valor instanceof Set) return valor.size;
+      if (typeof valor === 'object') return Object.keys(valor).length;
+      return 0;
+    };
+  }
+  if (!window.texto) {
+    window.texto = function(v) {
+      if (v === null || v === undefined) return "";
+      return String(v);
+    };
+  }
+  if (!window.inteiro) {
+    window.inteiro = function(v) {
+      if (v === null || v === undefined) return 0;
+      let n = parseInt(v, 10);
+      return isNaN(n) ? 0 : n;
+    };
+  }
+  if (!window.decimal) {
+    window.decimal = function(v) {
+      if (v === null || v === undefined) return 0.0;
+      let n = parseFloat(v);
+      return isNaN(n) ? 0.0 : n;
+    };
+  }
+}
+
+if (typeof String !== "undefined") {
+  if (!String.prototype.minusculas) String.prototype.minusculas = String.prototype.toLowerCase;
+  if (!String.prototype.maiusculas) String.prototype.maiusculas = String.prototype.toUpperCase;
+  if (!String.prototype.contem) String.prototype.contem = String.prototype.includes;
+  if (!String.prototype.inclui) String.prototype.inclui = String.prototype.includes;
+}
+
+if (typeof Array !== "undefined") {
+  if (!Array.prototype.adicionar) Array.prototype.adicionar = Array.prototype.push;
+  if (!Array.prototype.inclui) Array.prototype.inclui = Array.prototype.includes;
+  if (!Array.prototype.remover) Array.prototype.remover = function(item) {
+    const idx = this.indexOf(item);
+    if (idx !== -1) this.splice(idx, 1);
+  };
+}
+
 if (typeof Event !== "undefined" && !("alvo" in Event.prototype)) {
   Object.defineProperty(Event.prototype, "alvo", {
     get() {
@@ -1137,7 +1303,9 @@ function vincularNos(elFisico, vno) {
 // ============================================================================
 
 const [urlAtiva, setUrlAtiva] = sinal(
-  typeof window !== "undefined" ? window.location.pathname : "/",
+  typeof window !== "undefined"
+    ? window.location.pathname + window.location.search
+    : "/",
 );
 
 /**
@@ -1145,19 +1313,90 @@ const [urlAtiva, setUrlAtiva] = sinal(
  * @param {string} destino - O caminho de URL de destino (ex: "/sobre")
  */
 export function navegar(destino) {
-  if (typeof window !== "undefined" && window.location.pathname !== destino) {
-    window.history.pushState({}, "", destino);
-    setUrlAtiva(destino);
-    window.scrollTo(0, 0);
+  if (typeof window !== "undefined") {
+    const atual = window.location.pathname + window.location.search;
+    if (atual !== destino) {
+      window.history.pushState({}, "", destino);
+      setUrlAtiva(destino);
+      window.scrollTo(0, 0);
+    }
   }
 }
 
 if (typeof window !== "undefined") {
   window.addEventListener("popstate", () => {
-    setUrlAtiva(window.location.pathname);
+    setUrlAtiva(window.location.pathname + window.location.search);
   });
 
   window.addEventListener("click", (e) => {
+    const summary = e.target.closest && e.target.closest("summary");
+    if (summary && summary.parentElement && summary.parentElement.tagName === "DETAILS") {
+      const details = summary.parentElement;
+      if (details.dataset.animando === "true") {
+        e.preventDefault();
+        return;
+      }
+
+      e.preventDefault();
+      const isOpening = !details.hasAttribute("open");
+      details.dataset.animando = "true";
+
+      let content = details.querySelector(".detalhes-conteudo");
+      if (!content) {
+        content = document.createElement("div");
+        content.className = "detalhes-conteudo";
+        content.style.overflow = "hidden";
+        content.style.transition = "max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1)";
+
+        const nodes = Array.from(details.childNodes).filter(n => n !== summary);
+        nodes.forEach(n => content.appendChild(n));
+        details.appendChild(content);
+      }
+
+      const icon = summary.querySelector(".faq-icone, .icone-sanfona");
+
+      if (isOpening) {
+        details.setAttribute("open", "");
+        content.style.maxHeight = "0px";
+        content.style.opacity = "0";
+        content.style.transform = "translateY(-8px)";
+        if (icon) icon.style.transform = "rotate(180deg)";
+
+        const targetHeight = content.scrollHeight + "px";
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            content.style.maxHeight = targetHeight;
+            content.style.opacity = "1";
+            content.style.transform = "translateY(0px)";
+          });
+        });
+
+        setTimeout(() => {
+          content.style.maxHeight = "none";
+          delete details.dataset.animando;
+        }, 360);
+      } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        content.style.opacity = "1";
+        content.style.transform = "translateY(0px)";
+        if (icon) icon.style.transform = "rotate(0deg)";
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            content.style.maxHeight = "0px";
+            content.style.opacity = "0";
+            content.style.transform = "translateY(-8px)";
+          });
+        });
+
+        setTimeout(() => {
+          details.removeAttribute("open");
+          delete details.dataset.animando;
+        }, 360);
+      }
+      return;
+    }
+
     const a = e.target.closest && e.target.closest("a");
     if (a && a.href && a.origin === window.location.origin) {
       const target = a.getAttribute("target");
@@ -1360,23 +1599,29 @@ export function usarConsulta(url, opcoes = {}) {
   const [carregando, setCarregando] = sinal(!cacheGlobalConsultas.has(url));
   const [erro, setErro] = sinal(null);
 
-  async function buscar() {
+  async function buscar(signal) {
     try {
       setCarregando(true);
-      const res = await fetch(url);
+      const res = await fetch(url, { ...opcoes, signal });
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       cacheGlobalConsultas.set(url, data);
       setDados(data);
       setErro(null);
     } catch (err) {
+      if (err && err.name === "AbortError") return;
       setErro(err.message || "Erro ao carregar consulta");
     } finally {
-      setCarregando(false);
+      if (!signal || !signal.aborted) {
+        setCarregando(false);
+      }
     }
   }
 
   efeito(() => {
-    buscar();
+    const ctrl = new AbortController();
+    buscar(ctrl.signal);
+    return () => ctrl.abort();
   });
 
   return {
@@ -1384,7 +1629,7 @@ export function usarConsulta(url, opcoes = {}) {
     carregando,
     erro,
     mutarOtimista: (novo) => setDados(novo),
-    recarregar: buscar,
+    recarregar: () => buscar(),
   };
 }
 
@@ -1426,12 +1671,22 @@ export function ImagemWeb(props) {
 export function moduloRemoto(url, nomeComponente) {
   return function ComponenteRemoto(props) {
     const [comp, setComp] = sinal(null);
+    const [erro, setErro] = sinal(null);
     efeito(() => {
-      import(/* webpackIgnore: true */ url).then((mod) => {
-        setComp(() => mod[nomeComponente] || mod.default);
-      });
+      import(/* webpackIgnore: true */ url)
+        .then((mod) => {
+          setComp(() => mod[nomeComponente] || mod.default);
+        })
+        .catch((e) => setErro(e));
     });
     return () => {
+      if (erro()) {
+        return h(
+          "div",
+          { classe: "erro-remoto" },
+          "Erro ao carregar módulo remoto: " + (erro().message || erro()),
+        );
+      }
       const C = comp();
       return C
         ? h(C, props)
@@ -1479,8 +1734,9 @@ export function Portal(props) {
   el.className = "harpia-portal";
   efeito(() => {
     document.body.appendChild(el);
-    montar(h("div", {}, props.children), el);
+    const desmontarMontar = montar(h("div", {}, props.children), el);
     return () => {
+      if (typeof desmontarMontar === "function") desmontarMontar();
       if (el.parentNode) el.parentNode.removeChild(el);
     };
   });
@@ -1841,7 +2097,7 @@ export function Link(props) {
       }
     };
   }
-  restanteProps.href = para || "#";
+  restanteProps.href = urlSegura(para || "#");
   return h("a", restanteProps, children);
 }
 
@@ -2210,45 +2466,225 @@ export function CabecalhoPagina(props) {
 }
 
 /**
- * Objeto de inspeção global e Métricas DevTools do Harpia Web.
+ * Engine de Animações Estilo Anime.js e Física de Mola Nativas do Harpia Web
  */
-export const devTools = {
-  get sinaisAtivos() {
-    return registroSinais.size;
-  },
-  get totalSinais() {
-    return devToolsMetrics.sinaisCriados;
-  },
-  get totalEfeitos() {
-    return devToolsMetrics.efeitosCriados;
-  },
-  get efeitosAtivos() {
-    return registroEfeitos.size;
-  },
-  get renderizacoesVDOM() {
-    return devToolsMetrics.renderizacoesVDOM;
-  },
-  obterSinaisAtivos() {
-    return registroSinais.size;
-  },
-  obterEfeitosRegistrados() {
-    return devToolsMetrics.efeitosCriados;
-  },
-  obterMetricasRender() {
-    return {
-      renderizacoes: devToolsMetrics.renderizacoesVDOM,
-      sinaisAtivos: registroSinais.size,
-      totalEfeitos: devToolsMetrics.efeitosCriados,
-      efeitosAtivos: registroEfeitos.size,
-    };
-  },
-};
-
-export const __HARPIA_DEVTOOLS__ = devTools;
-
-if (typeof globalThis !== "undefined") {
-  globalThis.__HARPIA_DEVTOOLS__ = devTools;
+export function mola(massa = 1, rigidez = 100, amortecimento = 10, velocidadeInicial = 0) {
+  return function (t) {
+    if (t <= 0) return 0;
+    if (t >= 1) return 1;
+    const w0 = Math.sqrt(rigidez / massa);
+    const zeta = amortecimento / (2 * Math.sqrt(rigidez * massa));
+    if (zeta < 1) {
+      const wd = w0 * Math.sqrt(1 - zeta * zeta);
+      const b = (zeta * w0 + velocidadeInicial) / wd;
+      return 1 - Math.exp(-zeta * w0 * t * 2) * (Math.cos(wd * t * 2) + b * Math.sin(wd * t * 2));
+    } else {
+      return 1 - Math.exp(-w0 * t * 2) * (1 + w0 * t * 2);
+    }
+  };
 }
+
+export function escalonar(passo = 100, opcoes = {}) {
+  const de = opcoes.de || "inicio";
+  return function (indice, total) {
+    if (de === "fim") return (total - 1 - indice) * passo;
+    if (de === "centro") {
+      const centro = (total - 1) / 2;
+      return Math.abs(centro - indice) * passo;
+    }
+    return indice * passo;
+  };
+}
+
+export function animar(alvos, opcoes) {
+  const elementos = Array.isArray(alvos)
+    ? alvos
+    : typeof alvos === "string"
+    ? Array.from(document.querySelectorAll(alvos))
+    : alvos && alvos.nodeType
+    ? [alvos]
+    : [];
+
+  if (elementos.length === 0) return Promise.resolve([]);
+
+  const duracao = opcoes.duracao || 800;
+  const atenuacaoFn =
+    typeof opcoes.atenuacao === "function"
+      ? opcoes.atenuacao
+      : opcoes.atenuacao === "mola"
+      ? mola()
+      : (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  const atrasoBase = opcoes.atraso || 0;
+  const promessas = [];
+
+  elementos.forEach((el, i) => {
+    const atraso = typeof atrasoBase === "function" ? atrasoBase(i, elementos.length) : atrasoBase;
+
+    promessas.push(
+      new Promise((resolve) => {
+        const inicioTempo = performance.now() + atraso;
+
+        function renderFrame(agora) {
+          if (agora < inicioTempo) {
+            requestAnimationFrame(renderFrame);
+            return;
+          }
+
+          const decorrido = agora - inicioTempo;
+          const progressoBruto = Math.min(decorrido / duracao, 1);
+          const progresso = atenuacaoFn(progressoBruto);
+
+          if (opcoes.opacidade) {
+            const [de, para] = opcoes.opacidade;
+            el.style.opacity = de + (para - de) * progresso;
+          }
+
+          if (opcoes.transladarY) {
+            const [de, para] = opcoes.transladarY;
+            const val = de + (para - de) * progresso;
+            el.style.transform = "translateY(" + val + "px)";
+          }
+
+          if (opcoes.escala) {
+            const de = typeof opcoes.escala === "number" ? 1 : opcoes.escala[0];
+            const para = typeof opcoes.escala === "number" ? opcoes.escala : opcoes.escala[1];
+            const val = de + (para - de) * progresso;
+            el.style.transform = "scale(" + val + ")";
+          }
+
+          if (progressoBruto < 1) {
+            requestAnimationFrame(renderFrame);
+          } else {
+            if (opcoes.aoConcluir) opcoes.aoConcluir(el);
+            resolve(el);
+          }
+        }
+
+        requestAnimationFrame(renderFrame);
+      })
+    );
+  });
+
+  return Promise.all(promessas);
+}
+
+export function linhaTempo(opcoesPadrao = {}) {
+  const passos = [];
+  const api = {
+    adicionar(alvos, opcoes, offset = "+=0") {
+      passos.push({ alvos, opcoes, offset });
+      return api;
+    },
+    async executar() {
+      for (const passo of passos) {
+        await animar(passo.alvos, { ...opcoesPadrao, ...passo.opcoes });
+      }
+    }
+  };
+  return api;
+}
+
+export function Animado(props) {
+  props = props || {};
+  let elementoDOM = null;
+
+  function iniciarAnimacao(el) {
+    if (!el || el.__animadoEntrou) return;
+    el.__animadoEntrou = true;
+    elementoDOM = el;
+
+    if (props.aoVisivel) {
+      if (typeof IntersectionObserver !== "undefined") {
+        const obs = new IntersectionObserver(
+          (entradas) => {
+            entradas.forEach((e) => {
+              if (e.isIntersecting) {
+                animar(el, {
+                  opacidade: [0, 1],
+                  transladarY: [props.distanciaY || 35, 0],
+                  duracao: props.duracao || 950,
+                  atenuacao: props.atenuacao || "mola",
+                  atraso: props.atraso || 0,
+                  aoConcluir: () => {
+                    el.style.opacity = "1";
+                    el.style.transform = "none";
+                  }
+                });
+                obs.unobserve(el);
+              }
+            });
+          },
+          { threshold: props.limiar || 0.15 }
+        );
+        obs.observe(el);
+      } else {
+        el.style.opacity = "1";
+        el.style.transform = "none";
+      }
+    } else if (props.aoEntrar) {
+      animar(el, {
+        opacidade: [0, 1],
+        transladarY: [props.distanciaY || 35, 0],
+        duracao: props.duracao || 900,
+        atenuacao: props.atenuacao || "mola",
+        atraso: props.atraso || 0,
+        aoConcluir: () => {
+          el.style.opacity = "1";
+          el.style.transform = "none";
+        }
+      });
+    }
+  }
+
+  const estiloInicial = {
+    ...(props.estilo || {}),
+    willChange: "transform, opacity",
+  };
+
+  if (props.aoVisivel || props.aoEntrar) {
+    estiloInicial.opacity = "0";
+    estiloInicial.transform = "translateY(20px)";
+  }
+
+  return h(
+    "div",
+    {
+      ref: (el) => {
+        if (el) {
+          if (el.__animadoEntrou) {
+            el.style.opacity = "1";
+            el.style.transform = "none";
+          } else {
+            setTimeout(() => iniciarAnimacao(el), 10);
+          }
+        }
+      },
+      classe: props.classe || "",
+      estilo: estiloInicial,
+      onMouseEnter: () => {
+        if (props.emHover && elementoDOM) {
+          animar(elementoDOM, {
+            escala: props.escalaHover || 1.03,
+            duracao: 250,
+            atenuacao: "mola",
+          });
+        }
+      },
+      onMouseLeave: () => {
+        if (props.emHover && elementoDOM) {
+          animar(elementoDOM, {
+            escala: 1,
+            duracao: 200,
+          });
+        }
+      }
+    },
+    props.children
+  );
+}
+
+// ponytail: Animado e Animacao sao exportados individualmente acima
 
 // ponytail: vincula as primitivas ao escopo global do navegador para compatibilidade de transpilação
 if (typeof window !== "undefined") {
@@ -2291,6 +2727,11 @@ if (typeof window !== "undefined") {
     Caso,
     Padrao,
     usarFormulario,
+    mola,
+    escalonar,
+    animar,
+    linhaTempo,
+    Animado,
     Animacao,
     ImagemWeb,
     moduloRemoto,

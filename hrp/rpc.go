@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/mat-dgruber/Harpia/parser"
 )
@@ -32,6 +34,11 @@ func CarregarModuloRPC(ctx *Contexto, nome string) (Objeto, error) {
 
 	if config.UrlBackend == "" {
 		config.UrlBackend = "http://localhost:8083"
+	}
+
+	u, errUrl := url.Parse(config.UrlBackend)
+	if errUrl != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return nil, NewErroF(ErroDeSistema, "URL do backend RPC inválida: '%s' (apenas esquemas http e https com host válido são permitidos)", config.UrlBackend)
 	}
 
 	// Remove prefixo "@backend/"
@@ -113,7 +120,7 @@ func CarregarModuloRPC(ctx *Contexto, nome string) (Objeto, error) {
 		currentMetName := metName
 		metodo := NewMetodoOuPanic(currentMetName, func(inst Objeto, args Tupla) (Objeto, error) {
 			// Realiza chamada RPC HTTP POST
-			url := fmt.Sprintf("%s/rpc/%s/%s", config.UrlBackend, subModulo, currentMetName)
+			urlRpc := fmt.Sprintf("%s/rpc/%s/%s", config.UrlBackend, subModulo, currentMetName)
 
 			// Serializa argumentos
 			var listArgs []interface{}
@@ -123,19 +130,32 @@ func CarregarModuloRPC(ctx *Contexto, nome string) (Objeto, error) {
 			payloadMap := map[string]interface{}{
 				"args": listArgs,
 			}
-			payloadBytes, _ := json.Marshal(payloadMap)
+			payloadBytes, errMarshal := json.Marshal(payloadMap)
+			if errMarshal != nil {
+				return nil, NewErroF(ErroDeSistema, "Falha ao serializar argumentos RPC: %v", errMarshal)
+			}
 
-			resp, errPost := http.Post(url, "application/json", strings.NewReader(string(payloadBytes)))
+			cliente := &http.Client{Timeout: 30 * time.Second}
+			resp, errPost := cliente.Post(urlRpc, "application/json", strings.NewReader(string(payloadBytes)))
 			if errPost != nil {
-				return &Lista{}, nil
+				return nil, NewErroF(ErroDeSistema, "Falha na requisição RPC: %v", errPost)
 			}
 			defer resp.Body.Close()
 
-			bodyBytes, _ := io.ReadAll(resp.Body)
+			if resp.StatusCode >= 400 {
+				return nil, NewErroF(ErroDeSistema, "Servidor RPC retornou status de erro: %d", resp.StatusCode)
+			}
+
+			bodyBytes, errRead := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+			if errRead != nil {
+				return nil, NewErroF(ErroDeSistema, "Falha ao ler corpo da resposta RPC: %v", errRead)
+			}
 
 			// Desserializa retorno
 			var resMap map[string]interface{}
-			json.Unmarshal(bodyBytes, &resMap)
+			if errUnmarshal := json.Unmarshal(bodyBytes, &resMap); errUnmarshal != nil {
+				return nil, NewErroF(ErroDeSistema, "Falha ao desserializar retorno JSON do RPC: %v", errUnmarshal)
+			}
 
 			if val, ok := resMap["retorno"]; ok {
 				return ConverteDeGo(val), nil

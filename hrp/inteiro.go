@@ -24,6 +24,9 @@ func init() {
 
 	// Nova define o construtor do Inteiro na VM para chamadas explícitas de scripts.
 	TipoInteiro.Nova = func(args Tupla) (Objeto, error) {
+		if len(args) == 0 {
+			return Inteiro(0), nil
+		}
 		return NewInteiro(args[0])
 	}
 }
@@ -62,10 +65,16 @@ func NewInteiro(obj any) (Objeto, error) {
 	case Inteiro:
 		return b, nil
 	case Texto:
-		num, _ := compartilhado.StringParaInt(string(b))
+		num, err := compartilhado.StringParaInt(string(b))
+		if err != nil {
+			return nil, NewErroF(ValorErro, "Não foi possível converter '%s' para Inteiro", b)
+		}
 		return Inteiro(num), nil
 	case string:
-		num, _ := compartilhado.StringParaInt(string(b))
+		num, err := compartilhado.StringParaInt(b)
+		if err != nil {
+			return nil, NewErroF(ValorErro, "Não foi possível converter '%s' para Inteiro", b)
+		}
 		return Inteiro(num), nil
 	default:
 		if O, ok := b.(I__inteiro__); ok {
@@ -73,13 +82,6 @@ func NewInteiro(obj any) (Objeto, error) {
 		}
 
 		return nil, NewErroF(TipagemErro, "O argumento do construtor do tipo Inteiro deve ser uma string, Texto ou um outro tipo que implemente o método __inteiro__()")
-	}
-}
-
-func init() {
-	// Nova define o construtor do Inteiro na VM para chamadas explícitas de scripts.
-	TipoInteiro.Nova = func(args Tupla) (Objeto, error) {
-		return NewInteiro(args[0])
 	}
 }
 
@@ -189,6 +191,10 @@ func (i Inteiro) M__divide_inteiro__(b Objeto) (Objeto, error) {
 
 // M__mod__ calcula o resto de divisão inteira (módulo) entre os dois termos.
 func (i Inteiro) M__mod__(b Objeto) (Objeto, error) {
+	if talvezZero := TalvezLanceErroDivisaoPorZero(b); talvezZero != nil {
+		return nil, talvezZero
+	}
+
 	bInt, err := NewInteiro(b)
 	if err != nil {
 		return nil, err

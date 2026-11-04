@@ -153,15 +153,21 @@ func (e *Erro) AdicionarContexto(contexto *Contexto) {
 	}
 
 	if e.Linha == -1 {
-		if contexto.LinhaAtual > 0 {
-			e.Linha = contexto.LinhaAtual - 1
+		tok, lin, col := contexto.ObterPosicaoToken()
+		arq, cod := contexto.ObterArquivoCodigo()
+		if lin > 0 {
+			e.Linha = lin - 1
 		} else {
-			e.Linha = contexto.LinhaAtual
+			e.Linha = lin
 		}
-		e.Coluna = contexto.ColunaAtual
-		e.Token = contexto.TokenAtual
-		e.Arquivo = contexto.ArquivoAtual
-		e.Codigo = contexto.CodigoAtual
+		e.Coluna = col
+		e.Token = tok
+		if e.Arquivo == "" || e.Arquivo == "<desconhecido>" {
+			e.Arquivo = arq
+		}
+		if e.Codigo == "" {
+			e.Codigo = cod
+		}
 	}
 }
 
@@ -278,11 +284,8 @@ func ObterSugestaoErro(tipo *Tipo, mensagem string) string {
 	if tipo == NomeErro {
 		// A mensagem costuma ser: "'<identificador>' não foi encontrado no escopo atual"
 		var id string
-		if strings.HasPrefix(mensagem, "'") {
-			parts := strings.Split(mensagem, "'")
-			if len(parts) >= 2 {
-				id = parts[1]
-			}
+		if parts := strings.Split(mensagem, "'"); len(parts) >= 2 {
+			id = parts[1]
 		}
 		if id == "" {
 			// Fallback: se não achar por aspas simples, tenta extrair as palavras
@@ -347,9 +350,13 @@ func (e *Erro) Error() string {
 
 	codigoStr := e.Codigo
 	if codigoStr == "" {
-		if e.Contexto != nil && e.Contexto.CodigoAtual != "" {
-			codigoStr = e.Contexto.CodigoAtual
-		} else if e.Arquivo != "" && e.Arquivo != "<string>" && e.Arquivo != "<playground>" {
+		if e.Contexto != nil {
+			_, cod := e.Contexto.ObterArquivoCodigo()
+			if cod != "" {
+				codigoStr = cod
+			}
+		}
+		if codigoStr == "" && e.Arquivo != "" && e.Arquivo != "<string>" && e.Arquivo != "<playground>" {
 			if bytes, err := os.ReadFile(e.Arquivo); err == nil {
 				codigoStr = string(bytes)
 			}

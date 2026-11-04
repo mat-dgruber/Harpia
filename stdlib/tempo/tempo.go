@@ -2,6 +2,7 @@ package tempo
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -55,7 +56,15 @@ func (d *DataHora) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if len(args) == 0 {
 				return nil, fmt.Errorf("adicionarDias requer o número de dias")
 			}
-			dias := int(args[0].(hrp.Inteiro))
+			diasInt, err := hrp.NewInteiro(args[0])
+			if err != nil {
+				return nil, err
+			}
+			dias64 := int64(diasInt.(hrp.Inteiro))
+			if dias64 < math.MinInt32 || dias64 > math.MaxInt32 {
+				return nil, hrp.NewErroF(hrp.ErroDeLimite, "Número de dias fora do intervalo suportado")
+			}
+			dias := int(dias64)
 			return &DataHora{t: d.t.AddDate(0, 0, dias)}, nil
 		}, ""), nil
 	}

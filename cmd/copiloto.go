@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -41,7 +42,8 @@ Contexto de código:
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	resp, err := http.Post(ollamaURL, "application/json", bytes.NewReader(bodyBytes))
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Post(ollamaURL, "application/json", bytes.NewReader(bodyBytes))
 	if err != nil {
 		return "", fmt.Errorf("Ollama offline em %s: %v", ollamaURL, err)
 	}
@@ -529,8 +531,9 @@ func detectarVarsSublinhadoNaoUsadas(linhas [][]byte) []achadoRevisao {
 		if !bytes.HasPrefix(resto, []byte("var ")) && !bytes.HasPrefix(resto, []byte("const ")) {
 			continue
 		}
-		// Extrai o nome (primeira palavra após 'var ').
-		depois := resto[4:]
+		// Extrai o nome após 'var ' ou 'const '
+		depois := bytes.TrimPrefix(resto, []byte("var "))
+		depois = bytes.TrimPrefix(depois, []byte("const "))
 		k := 0
 		for k < len(depois) && depois[k] == ' ' {
 			k++

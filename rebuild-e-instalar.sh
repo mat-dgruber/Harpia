@@ -6,9 +6,10 @@
 
 set -e
 
-COMPILADOR_DIR="/Users/matheus.diniz_1/Documents/GitHub/Harpia/Harpia"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+COMPILADOR_DIR="$SCRIPT_DIR"
 BINARIOS_DESTINO=(
-    "/Users/matheus.diniz_1/go/bin/harpia"
+    "${GOBIN:-$(go env GOPATH)/bin}/harpia"
     "/usr/local/bin/harpia"
 )
 

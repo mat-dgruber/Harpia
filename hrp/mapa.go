@@ -1,12 +1,16 @@
 package hrp
 
 import (
-	"bytes"
 	"reflect"
+	"strings"
+	"sync"
 )
 
 // refsMapas gerencia de forma global as contagens de referências das instâncias do tipo Mapa (ponteiros implícitos).
-var refsMapas = make(map[uintptr]int)
+var (
+	refsMapas   = make(map[uintptr]int)
+	refsMapasMu sync.RWMutex
+)
 
 // Mapa representa a coleção do tipo dicionário ou mapa chave-valor associativo do Harpia (ex: { "a": 1 }).
 //
@@ -17,23 +21,39 @@ type Mapa map[string]Objeto
 // Métodos de gerenciamento explícito de memória (ObjetoGC) para o tipo Mapa.
 
 func (m Mapa) Reter() {
+	if len(m) == 0 {
+		return
+	}
 	addr := reflect.ValueOf(m).Pointer()
+	refsMapasMu.Lock()
 	refsMapas[addr]++
+	refsMapasMu.Unlock()
 }
 
 func (m Mapa) Liberar() {
+	if len(m) == 0 {
+		return
+	}
 	addr := reflect.ValueOf(m).Pointer()
+	refsMapasMu.Lock()
 	if refsMapas[addr] > 0 {
 		refsMapas[addr]--
 		if refsMapas[addr] == 0 {
 			delete(refsMapas, addr) // Limpa registro do cache
 		}
 	}
+	refsMapasMu.Unlock()
 }
 
 func (m Mapa) ObterRefs() int {
+	if len(m) == 0 {
+		return 0
+	}
 	addr := reflect.ValueOf(m).Pointer()
-	return refsMapas[addr]
+	refsMapasMu.RLock()
+	refs := refsMapas[addr]
+	refsMapasMu.RUnlock()
+	return refs
 }
 
 func (m Mapa) ObterFilhos() []Objeto {
@@ -62,13 +82,13 @@ func (m Mapa) Tipo() *Tipo {
 
 // M__texto__ converte os pares de chave-valor em sua representação string agregada, envolvida por chaves {}.
 func (m Mapa) M__texto__() (Objeto, error) {
-	var out bytes.Buffer
-	out.WriteString("{ ")
+	var sb strings.Builder
+	sb.WriteString("{ ")
 	separar := false
 
 	for chave, valor := range m {
 		if separar {
-			out.WriteString(", ")
+			sb.WriteString(", ")
 		}
 
 		var chaveT, valorT Objeto
@@ -82,14 +102,14 @@ func (m Mapa) M__texto__() (Objeto, error) {
 			return nil, err
 		}
 
-		out.WriteString(string(chaveT.(Texto)))
-		out.WriteString(": ")
-		out.WriteString(string(valorT.(Texto)))
+		sb.WriteString(string(chaveT.(Texto)))
+		sb.WriteString(": ")
+		sb.WriteString(string(valorT.(Texto)))
 		separar = true
 	}
 
-	out.WriteString(" }")
-	return NewTexto(out.String())
+	sb.WriteString(" }")
+	return NewTexto(sb.String())
 }
 
 // M__iter__ satisfaz o protocolo de objetos iteráveis.

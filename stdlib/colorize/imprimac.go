@@ -47,7 +47,7 @@ func met_color_imprimac(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 
 	fmt.Println(saida)
-	return nil, nil
+	return hrp.Nulo, nil
 }
 
 // _color_imprimac cria e define a assinatura do método 'imprimac' exposto no módulo colorize.

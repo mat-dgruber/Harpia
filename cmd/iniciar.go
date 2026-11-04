@@ -6,10 +6,37 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 )
+
+var reIdentificador = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]*$`)
+
+func validarNomeIdentificador(nome string) error {
+	if !reIdentificador.MatchString(nome) {
+		return fmt.Errorf("identificador inválido '%s': deve iniciar com letra e conter apenas letras, números e sublinhados", nome)
+	}
+	return nil
+}
+
+func capitalizarNome(nome string) string {
+	if len(nome) == 0 {
+		return ""
+	}
+	r, size := utf8.DecodeRuneInString(nome)
+	return string(unicode.ToUpper(r)) + strings.ToLower(nome[size:])
+}
+
+func validarNomeProjeto(nomeProj string) error {
+	if nomeProj == "" || strings.Contains(nomeProj, "..") || strings.ContainsAny(nomeProj, `/\`) || filepath.IsAbs(nomeProj) {
+		return fmt.Errorf("nome de projeto inválido: '%s'", nomeProj)
+	}
+	return nil
+}
 
 // comandoNovo gerencia a criação direcionada de novas aplicações (Monolito, Backend ou Frontend)
 func comandoNovo() *cobra.Command {
@@ -33,6 +60,10 @@ func comandoMonolito() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nomeProj := args[0]
+			if err := validarNomeProjeto(nomeProj); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
 			// ponytail: impede sobrescrita acidental de projetos existentes
 			if _, err := os.Stat(nomeProj); err == nil {
 				fmt.Fprintf(os.Stderr, "Alerta: O diretório '%s' já existe! Abortando para evitar sobrescrita física.\n", nomeProj)
@@ -435,6 +466,10 @@ func comandoBackend() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nomeProj := args[0]
+			if err := validarNomeProjeto(nomeProj); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
 			// ponytail: impede sobrescrita acidental de projetos existentes
 			if _, err := os.Stat(nomeProj); err == nil {
 				fmt.Fprintf(os.Stderr, "Alerta: O diretório '%s' já existe! Abortando para evitar sobrescrita física.\n", nomeProj)
@@ -761,6 +796,10 @@ func comandoFrontend() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nomeProj := args[0]
+			if err := validarNomeProjeto(nomeProj); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
 			// ponytail: impede sobrescrita acidental de projetos existentes
 			if _, err := os.Stat(nomeProj); err == nil {
 				fmt.Fprintf(os.Stderr, "Alerta: O diretório '%s' já existe! Abortando para evitar sobrescrita física.\n", nomeProj)
@@ -1003,7 +1042,11 @@ func comandoCrieRota() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nome := args[0]
-			nomeLimp := strings.Title(strings.ToLower(nome))
+			if err := validarNomeIdentificador(nome); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
+			nomeLimp := capitalizarNome(nome)
 
 			// Detecta se existe a pasta web/pages ou pages
 			pastaPages := "pages"
@@ -1069,7 +1112,11 @@ func comandoCrieComponente() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nome := args[0]
-			nomeLimp := strings.Title(strings.ToLower(nome))
+			if err := validarNomeIdentificador(nome); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
+			nomeLimp := capitalizarNome(nome)
 
 			pastaDest := "componentes"
 			if _, err := os.Stat("web/componentes"); err == nil {
@@ -1213,7 +1260,11 @@ func comandoCrieModelo() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			nome := args[0]
-			nomeLimp := strings.Title(strings.ToLower(nome))
+			if err := validarNomeIdentificador(nome); err != nil {
+				fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
+				os.Exit(1)
+			}
+			nomeLimp := capitalizarNome(nome)
 
 			pastaDest := filepath.Join("dominio", "entidades")
 			if _, err := os.Stat("web"); err == nil {

@@ -18,6 +18,48 @@ const devToolsMetrics = {
 const registroSinais = new Set();
 const registroEfeitos = new Set();
 
+/**
+ * Objeto de inspeção global e Métricas DevTools do Harpia Web.
+ */
+export const devTools = {
+  ativo: false,
+  get sinaisAtivos() {
+    return registroSinais.size || devToolsMetrics.sinaisCriados;
+  },
+  get totalSinais() {
+    return devToolsMetrics.sinaisCriados;
+  },
+  get totalEfeitos() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  get efeitosAtivos() {
+    return registroEfeitos.size;
+  },
+  get renderizacoesVDOM() {
+    return devToolsMetrics.renderizacoesVDOM;
+  },
+  obterSinaisAtivos() {
+    return registroSinais.size;
+  },
+  obterEfeitosRegistrados() {
+    return devToolsMetrics.efeitosCriados;
+  },
+  obterMetricasRender() {
+    return {
+      renderizacoes: devToolsMetrics.renderizacoesVDOM,
+      sinaisAtivos: registroSinais.size,
+      totalEfeitos: devToolsMetrics.efeitosCriados,
+      efeitosAtivos: registroEfeitos.size,
+    };
+  },
+};
+
+export const __HARPIA_DEVTOOLS__ = devTools;
+
+if (typeof globalThis !== "undefined") {
+  globalThis.__HARPIA_DEVTOOLS__ = devTools;
+}
+
 // ponytail: fila global e flag para agrupar e lotear execuções de efeitos síncronos na mesma microtask.
 // Isso impede múltiplas reconciliações de VDOM desnecessárias e repaints repetitivos.
 const filaEfeitos = new Set();
@@ -93,7 +135,13 @@ export function sinal(valor) {
   };
 
   ler.set = definir; // ponytail: expõe atualizador direto no getter para binding bidirecional
-  registroSinais.add(ler);
+  if (
+    typeof __HARPIA_DEVTOOLS__ !== "undefined" &&
+    __HARPIA_DEVTOOLS__ &&
+    __HARPIA_DEVTOOLS__.ativo
+  ) {
+    registroSinais.add(ler);
+  }
   return [ler, definir];
 }
 
@@ -271,7 +319,9 @@ export function efeito(funcao) {
     cleanups: new Set(),
     desmontarCleanups: new Set(),
     iniciado: false,
+    desmontado: false,
     run() {
+      if (ef.desmontado) return;
       if (typeof ef.cleanup === "function") {
         try {
           ef.cleanup();
@@ -303,6 +353,8 @@ export function efeito(funcao) {
       }
     },
     desmontar() {
+      ef.desmontado = true;
+      filaEfeitos.delete(ef);
       registroEfeitos.delete(ef);
       if (typeof ef.cleanup === "function") {
         try {
@@ -367,26 +419,36 @@ export function derivado(funcao) {
  * @returns {Proxy} Objeto reativo global
  */
 export function armazem(objeto) {
-  const sinais = {};
+  const sinais = Object.create(null);
   for (const chave in objeto) {
-    if (objeto.hasOwnProperty(chave)) {
+    if (Object.hasOwn(objeto, chave)) {
       sinais[chave] = sinal(objeto[chave]);
     }
   }
   return new Proxy(objeto, {
     get(target, propriedade) {
-      if (sinais[propriedade]) {
+      if (
+        typeof propriedade === "string" &&
+        Object.hasOwn(objeto, propriedade) &&
+        sinais[propriedade]
+      ) {
         return sinais[propriedade][0]();
       }
       return target[propriedade];
     },
     set(target, propriedade, valor) {
-      if (sinais[propriedade]) {
+      if (
+        typeof propriedade === "string" &&
+        Object.hasOwn(objeto, propriedade) &&
+        sinais[propriedade]
+      ) {
         sinais[propriedade][1](valor);
         target[propriedade] = valor;
         return true;
       }
-      sinais[propriedade] = sinal(valor);
+      if (typeof propriedade === "string") {
+        sinais[propriedade] = sinal(valor);
+      }
       target[propriedade] = valor;
       return true;
     },
@@ -578,6 +640,24 @@ export function criarNo(vno) {
   return el;
 }
 
+function urlSegura(valor) {
+  if (!valor || typeof valor !== "string") return "#";
+  const url = valor.trim();
+  if (
+    url.startsWith("/") ||
+    url.startsWith("./") ||
+    url.startsWith("../") ||
+    url.startsWith("#") ||
+    url.startsWith("?")
+  ) {
+    return url;
+  }
+  if (/^(https?:|mailto:|tel:)/i.test(url)) {
+    return url;
+  }
+  return "#";
+}
+
 function atualizarAtributos(el, velhosProps, novosProps) {
   velhosProps = velhosProps || {};
   novosProps = novosProps || {};
@@ -637,6 +717,11 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       }
 
       if (nomeLimpo === "innerHTML") {
+        el.innerHTML = sanitizarHtml(valor);
+        continue;
+      }
+
+      if (nomeLimpo === "htmlBruto") {
         el.innerHTML = valor;
         continue;
       }
@@ -663,6 +748,14 @@ function atualizarAtributos(el, velhosProps, novosProps) {
       } else {
         const attrName = mapearAtributo(nomeLimpo);
         if (!attrName) continue;
+        if (
+          attrName === "href" ||
+          attrName === "src" ||
+          attrName === "action" ||
+          attrName === "formaction"
+        ) {
+          valor = urlSegura(valor);
+        }
         if (attrName === "value" || nomeLimpo === "valor" || nomeLimpo === "value") {
           const valStr = (valor === null || valor === undefined) ? "" : String(valor);
           if (el.value !== valStr) {
@@ -829,9 +922,23 @@ export function reconciliar(pai, velhoVNo, novoVNo, index = 0) {
       desmontarVNo(velhoVNo);
     }
     if (Array.isArray(velhoVNo)) {
-      for (let i = velhoVNo.length - 1; i >= 0; i--) {
-        reconciliar(pai, velhoVNo[i], null, index + i);
+      function removerFilhosFisicos(v) {
+        if (Array.isArray(v)) {
+          v.forEach(removerFilhosFisicos);
+        } else {
+          const noFilho = obterNoFisico(v, pai);
+          if (
+            noFilho &&
+            (noFilho.parentNode === pai || !noFilho.parentNode) &&
+            typeof pai.removeChild === "function"
+          ) {
+            try {
+              pai.removeChild(noFilho);
+            } catch (_) {}
+          }
+        }
       }
+      removerFilhosFisicos(velhoVNo);
       return;
     }
     if (noFisico && (noFisico.parentNode === pai || !noFisico.parentNode) && typeof pai.removeChild === "function") {
@@ -1035,7 +1142,7 @@ export function montar(appComponente, elementoAlvo) {
   const obterVNo =
     typeof appComponente === "function" ? appComponente : () => appComponente;
 
-  efeito(() => {
+  return efeito(() => {
     try {
       const novoVNo = obterVNo();
       reconciliar(elementoAlvo, velhoVNo, novoVNo);
@@ -1047,7 +1154,7 @@ export function montar(appComponente, elementoAlvo) {
           '<div style="background:#1E1E2E; color:#F87171; font-family:monospace; padding:24px; border-radius:12px; margin:20px; border:1px solid #EF4444; box-shadow:0 10px 30px rgba(0,0,0,0.5);">' +
             '<h2 style="color:#FCA5A5; margin-top:0;">Erro de Renderização Harpia (Runtime)</h2>' +
             '<p style="color:#E5E7EB; margin-bottom:12px;">Ocorreu uma exceção ao executar o componente web:</p>' +
-            '<pre style="background:#0F0F17; color:#F3F4F6; padding:16px; border-radius:8px; overflow-x:auto; white-space:pre-wrap; font-size:13px; line-height:1.5; border:1px solid #374151;">' + String(err && err.stack ? err.stack : err) + '</pre>' +
+            '<pre style="background:#0F0F17; color:#F3F4F6; padding:16px; border-radius:8px; overflow-x:auto; white-space:pre-wrap; font-size:13px; line-height:1.5; border:1px solid #374151;">' + sanitizarHtml(String(err && err.stack ? err.stack : err)) + '</pre>' +
           '</div>';
       }
     }
@@ -1191,7 +1298,9 @@ function vincularNos(elFisico, vno) {
 // ============================================================================
 
 const [urlAtiva, setUrlAtiva] = sinal(
-  typeof window !== "undefined" ? window.location.pathname : "/",
+  typeof window !== "undefined"
+    ? window.location.pathname + window.location.search
+    : "/",
 );
 
 /**
@@ -1199,16 +1308,19 @@ const [urlAtiva, setUrlAtiva] = sinal(
  * @param {string} destino - O caminho de URL de destino (ex: "/sobre")
  */
 export function navegar(destino) {
-  if (typeof window !== "undefined" && window.location.pathname !== destino) {
-    window.history.pushState({}, "", destino);
-    setUrlAtiva(destino);
-    window.scrollTo(0, 0);
+  if (typeof window !== "undefined") {
+    const atual = window.location.pathname + window.location.search;
+    if (atual !== destino) {
+      window.history.pushState({}, "", destino);
+      setUrlAtiva(destino);
+      window.scrollTo(0, 0);
+    }
   }
 }
 
 if (typeof window !== "undefined") {
   window.addEventListener("popstate", () => {
-    setUrlAtiva(window.location.pathname);
+    setUrlAtiva(window.location.pathname + window.location.search);
   });
 
   window.addEventListener("click", (e) => {
@@ -1482,23 +1594,29 @@ export function usarConsulta(url, opcoes = {}) {
   const [carregando, setCarregando] = sinal(!cacheGlobalConsultas.has(url));
   const [erro, setErro] = sinal(null);
 
-  async function buscar() {
+  async function buscar(signal) {
     try {
       setCarregando(true);
-      const res = await fetch(url);
+      const res = await fetch(url, { ...opcoes, signal });
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       cacheGlobalConsultas.set(url, data);
       setDados(data);
       setErro(null);
     } catch (err) {
+      if (err && err.name === "AbortError") return;
       setErro(err.message || "Erro ao carregar consulta");
     } finally {
-      setCarregando(false);
+      if (!signal || !signal.aborted) {
+        setCarregando(false);
+      }
     }
   }
 
   efeito(() => {
-    buscar();
+    const ctrl = new AbortController();
+    buscar(ctrl.signal);
+    return () => ctrl.abort();
   });
 
   return {
@@ -1506,7 +1624,7 @@ export function usarConsulta(url, opcoes = {}) {
     carregando,
     erro,
     mutarOtimista: (novo) => setDados(novo),
-    recarregar: buscar,
+    recarregar: () => buscar(),
   };
 }
 
@@ -1548,12 +1666,22 @@ export function ImagemWeb(props) {
 export function moduloRemoto(url, nomeComponente) {
   return function ComponenteRemoto(props) {
     const [comp, setComp] = sinal(null);
+    const [erro, setErro] = sinal(null);
     efeito(() => {
-      import(/* webpackIgnore: true */ url).then((mod) => {
-        setComp(() => mod[nomeComponente] || mod.default);
-      });
+      import(/* webpackIgnore: true */ url)
+        .then((mod) => {
+          setComp(() => mod[nomeComponente] || mod.default);
+        })
+        .catch((e) => setErro(e));
     });
     return () => {
+      if (erro()) {
+        return h(
+          "div",
+          { classe: "erro-remoto" },
+          "Erro ao carregar módulo remoto: " + (erro().message || erro()),
+        );
+      }
       const C = comp();
       return C
         ? h(C, props)
@@ -1601,8 +1729,9 @@ export function Portal(props) {
   el.className = "harpia-portal";
   efeito(() => {
     document.body.appendChild(el);
-    montar(h("div", {}, props.children), el);
+    const desmontarMontar = montar(h("div", {}, props.children), el);
     return () => {
+      if (typeof desmontarMontar === "function") desmontarMontar();
       if (el.parentNode) el.parentNode.removeChild(el);
     };
   });
@@ -1963,7 +2092,7 @@ export function Link(props) {
       }
     };
   }
-  restanteProps.href = para || "#";
+  restanteProps.href = urlSegura(para || "#");
   return h("a", restanteProps, children);
 }
 
@@ -2332,47 +2461,6 @@ export function CabecalhoPagina(props) {
 }
 
 /**
- * Objeto de inspeção global e Métricas DevTools do Harpia Web.
- */
-export const devTools = {
-  get sinaisAtivos() {
-    return registroSinais.size;
-  },
-  get totalSinais() {
-    return devToolsMetrics.sinaisCriados;
-  },
-  get totalEfeitos() {
-    return devToolsMetrics.efeitosCriados;
-  },
-  get efeitosAtivos() {
-    return registroEfeitos.size;
-  },
-  get renderizacoesVDOM() {
-    return devToolsMetrics.renderizacoesVDOM;
-  },
-  obterSinaisAtivos() {
-    return registroSinais.size;
-  },
-  obterEfeitosRegistrados() {
-    return devToolsMetrics.efeitosCriados;
-  },
-  obterMetricasRender() {
-    return {
-      renderizacoes: devToolsMetrics.renderizacoesVDOM,
-      sinaisAtivos: registroSinais.size,
-      totalEfeitos: devToolsMetrics.efeitosCriados,
-      efeitosAtivos: registroEfeitos.size,
-    };
-  },
-};
-
-export const __HARPIA_DEVTOOLS__ = devTools;
-
-if (typeof globalThis !== "undefined") {
-  globalThis.__HARPIA_DEVTOOLS__ = devTools;
-}
-
-/**
  * Engine de Animações Estilo Anime.js e Física de Mola Nativas do Harpia Web
  */
 export function mola(massa = 1, rigidez = 100, amortecimento = 10, velocidadeInicial = 0) {
@@ -2450,14 +2538,14 @@ export function animar(alvos, opcoes) {
           if (opcoes.transladarY) {
             const [de, para] = opcoes.transladarY;
             const val = de + (para - de) * progresso;
-            el.style.transform = `translateY(${val}px)`;
+            el.style.transform = "translateY(" + val + "px)";
           }
 
           if (opcoes.escala) {
             const de = typeof opcoes.escala === "number" ? 1 : opcoes.escala[0];
             const para = typeof opcoes.escala === "number" ? opcoes.escala : opcoes.escala[1];
             const val = de + (para - de) * progresso;
-            el.style.transform = `scale(${val})`;
+            el.style.transform = "scale(" + val + ")";
           }
 
           if (progressoBruto < 1) {

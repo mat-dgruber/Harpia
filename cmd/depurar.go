@@ -6,21 +6,23 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 type DapMessage struct {
-	Seq     int    `json:"seq"`
-	Type    string `json:"type"`
-	Command string `json:"command,omitempty"`
-	Event   string `json:"event,omitempty"`
-	Request string `json:"request_seq,omitempty"`
-	Success bool   `json:"success,omitempty"`
-	Body    any    `json:"body,omitempty"`
+	Seq        int    `json:"seq"`
+	Type       string `json:"type"`
+	Command    string `json:"command,omitempty"`
+	Event      string `json:"event,omitempty"`
+	RequestSeq int    `json:"request_seq,omitempty"`
+	Success    bool   `json:"success,omitempty"`
+	Body       any    `json:"body,omitempty"`
 }
 
 // comandoDepurar instancia o servidor de Debug Adapter Protocol (DAP) do Harpia.
@@ -84,44 +86,71 @@ func comandoDepurar() *cobra.Command {
 // automaticamente via `defer conn.Close()` no retorno de `comandoDepurar`.
 func lidarComDap(conn net.Conn) {
 	defer conn.Close()
-	scanner := bufio.NewScanner(conn)
+	reader := bufio.NewReader(conn)
 
-	// Lida com handshake simples do protocolo DAP
-	for scanner.Scan() {
-		linha := scanner.Text()
-		if strings.HasPrefix(linha, "Content-Length:") {
-			// Lê corpo da mensagem
-			scanner.Scan() // pula linha em branco
-			if scanner.Scan() {
-				corpo := scanner.Text()
-				var msg DapMessage
-				if err := json.Unmarshal([]byte(corpo), &msg); err == nil {
-					fmt.Printf("[DAP] Recebido comando: %s\n", msg.Command)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			break
+		}
+		lineTrim := strings.TrimSpace(line)
+		if lineTrim == "" {
+			continue
+		}
 
-					// Resposta de exemplo/handshake de sucesso
-					resposta := DapMessage{
-						Seq:     msg.Seq + 1,
-						Type:    "response",
-						Request: fmt.Sprintf("%d", msg.Seq),
-						Success: true,
-					}
-
-					switch msg.Command {
-					case "initialize":
-						resposta.Body = map[string]any{
-							"supportsConfigurationDoneRequest": true,
-							"supportsStepBack":                 false,
-						}
-					}
-
-					respBytes, _ := json.Marshal(resposta)
-					header := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(respBytes))
-					_, _ = conn.Write([]byte(header + string(respBytes)))
+		var corpo []byte
+		if strings.HasPrefix(strings.ToLower(lineTrim), "content-length:") {
+			parts := strings.Split(lineTrim, ":")
+			contentLength := 0
+			if len(parts) == 2 {
+				contentLength, _ = strconv.Atoi(strings.TrimSpace(parts[1]))
+			}
+			for {
+				headerLine, err := reader.ReadString('\n')
+				if err != nil {
+					break
+				}
+				if strings.TrimSpace(headerLine) == "" {
+					break
 				}
 			}
+			if contentLength > 0 && contentLength <= (10<<20) {
+				buf := make([]byte, contentLength)
+				if _, err := io.ReadFull(reader, buf); err == nil {
+					corpo = buf
+				}
+			}
+		} else {
+			// Fallback: linha JSON direta
+			corpo = []byte(lineTrim)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		fmt.Printf("[DAP] Erro no scanner: %v\n", err)
+
+		if len(corpo) > 0 {
+			var msg DapMessage
+			if err := json.Unmarshal(corpo, &msg); err == nil && msg.Type != "" {
+				fmt.Printf("[DAP] Recebido comando: %s\n", msg.Command)
+
+				// Resposta de exemplo/handshake de sucesso
+				resposta := DapMessage{
+					Seq:        msg.Seq + 1,
+					Type:       "response",
+					Command:    msg.Command,
+					RequestSeq: msg.Seq,
+					Success:    true,
+				}
+
+				switch msg.Command {
+				case "initialize":
+					resposta.Body = map[string]any{
+						"supportsConfigurationDoneRequest": true,
+						"supportsStepBack":                 false,
+					}
+				}
+
+				respBytes, _ := json.Marshal(resposta)
+				header := fmt.Sprintf("Content-Length: %d\r\n\r\n", len(respBytes))
+				_, _ = conn.Write([]byte(header + string(respBytes)))
+			}
+		}
 	}
 }

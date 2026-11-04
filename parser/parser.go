@@ -31,6 +31,11 @@ import (
 	"github.com/mat-dgruber/Harpia/lexer"
 )
 
+var (
+	reComentarioHTML     = regexp.MustCompile(`(?s)<!--.*?-->`)
+	reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*//.*$`)
+)
+
 // Parser representa o analisador sintático de descida recursiva manual do Harpia.
 //
 // O Parser consome a torrente de tokens lógicos fornecidos pelo Lexer e os
@@ -2098,9 +2103,6 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			node.Filhos = append(node.Filhos, expr)
 			continue
 		}
-
-		var reComentarioHTML = regexp.MustCompile(`<!--[\s\S]*?-->`)
-		var reComentarioLinhaJSX = regexp.MustCompile(`(?m)^\s*(?:#|//).*$`)
 
 		// Caso contrário, é texto literal livre
 		inicioTexto := p.ultimoTokenFimIndice

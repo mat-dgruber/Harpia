@@ -3,6 +3,7 @@ package vetores
 import (
 	"math"
 	"sort"
+	"sync"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -15,6 +16,7 @@ type ItemVetorial struct {
 
 type BancoVetorialObj struct {
 	hrp.GCMixin
+	mu    sync.RWMutex
 	Itens []*ItemVetorial
 }
 
@@ -52,7 +54,11 @@ func init() {
 			return nil, err
 		}
 		banco := inst.(*BancoVetorialObj)
-		id := string(args[0].(hrp.Texto))
+		idTexto, err := hrp.NewTexto(args[0])
+		if err != nil {
+			return nil, err
+		}
+		id := string(idTexto.(hrp.Texto))
 
 		listaVetor, ok := args[1].(*hrp.Lista)
 		if !ok {
@@ -75,11 +81,13 @@ func init() {
 			}
 		}
 
+		banco.mu.Lock()
 		banco.Itens = append(banco.Itens, &ItemVetorial{
 			ID:        id,
 			Vetor:     vFloats,
 			Metadados: metadados,
 		})
+		banco.mu.Unlock()
 		return hrp.Verdadeiro, nil
 	}, "inserir(id, vetor, [metadados]) -> Insere um item vetorial no banco")
 
@@ -105,9 +113,14 @@ func init() {
 		k := 5
 		if len(args) > 1 {
 			kDec, err := hrp.NewDecimal(args[1])
-			if err == nil {
-				k = int(kDec.(hrp.Decimal))
+			if err != nil {
+				return nil, err
 			}
+			k = int(kDec.(hrp.Decimal))
+		}
+
+		if k <= 0 {
+			return &hrp.Lista{Itens: hrp.Tupla{}}, nil
 		}
 
 		type ResultadoBusca struct {
@@ -115,11 +128,13 @@ func init() {
 			Score float64
 		}
 
+		banco.mu.RLock()
 		resultados := make([]ResultadoBusca, 0, len(banco.Itens))
 		for _, item := range banco.Itens {
 			score := calcularSimilaridadeCosseno(vConsulta, item.Vetor)
 			resultados = append(resultados, ResultadoBusca{Item: item, Score: score})
 		}
+		banco.mu.RUnlock()
 
 		sort.Slice(resultados, func(i, j int) bool {
 			return resultados[i].Score > resultados[j].Score

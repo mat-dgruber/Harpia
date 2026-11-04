@@ -110,3 +110,53 @@ func TestRetentativaEsgotaTentativas(t *testing.T) {
 type dummyErr struct{}
 
 func (e *dummyErr) Error() string { return "dummy" }
+
+func TestRetentativaZeroTentativas(t *testing.T) {
+	r := &Retentativa{Tentativas: 0}
+	err := r.Executar(func() error { return nil })
+	if err == nil {
+		t.Fatal("esperava erro ao executar retentativa com 0 tentativas")
+	}
+}
+
+func TestDisjuntorMeioAbertoFalhaReabreImediatamente(t *testing.T) {
+	d := NovoDisjuntor(3, 0.05) // limite 3 falhas quando fechado
+	d.RegistrarFalha()
+	d.RegistrarFalha()
+	d.RegistrarFalha()
+	if d.Estado() != "aberto" {
+		t.Fatalf("deveria estar aberto, got %s", d.Estado())
+	}
+	time.Sleep(60 * time.Millisecond)
+
+	// Primeira requisição após timeout passa (sonda em meio_aberto)
+	if !d.Permitir() {
+		t.Fatal("deveria permitir a sonda de teste")
+	}
+	if d.Estado() != "meio_aberto" {
+		t.Fatalf("esperava estado meio_aberto, got %s", d.Estado())
+	}
+
+	// Sonda falha: disjuntor deve reabrir IMEDIATAMENTE na primeira falha!
+	d.RegistrarFalha()
+	if d.Estado() != "aberto" {
+		t.Fatalf("esperava que meio_aberto reabrisse na 1a falha, got %s", d.Estado())
+	}
+}
+
+func TestDisjuntorMeioAbertoApenasUmaSondaConcorrente(t *testing.T) {
+	d := NovoDisjuntor(2, 0.05)
+	d.RegistrarFalha()
+	d.RegistrarFalha()
+	time.Sleep(60 * time.Millisecond)
+
+	// Primeira chamada consome a sonda
+	if !d.Permitir() {
+		t.Fatal("primeira sonda deveria ser permitida")
+	}
+
+	// Segunda chamada concorrente em meio_aberto DEVE ser bloqueada
+	if d.Permitir() {
+		t.Fatal("segunda sonda em meio_aberto concorrente não deveria ser permitida")
+	}
+}

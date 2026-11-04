@@ -33,10 +33,11 @@ func ExecutarString(ctx *Contexto, codigo string) (*Modulo, error) {
 				if hrpErr.Codigo == "" {
 					hrpErr.Codigo = prog.Codigo
 				}
-				if hrpErr.Token == nil && prog.Posicoes != nil && ctx.TokenAtual != nil {
-					hrpErr.Token = ctx.TokenAtual
-					hrpErr.Linha = ctx.LinhaAtual
-					hrpErr.Coluna = ctx.ColunaAtual
+				tok, lin, col := ctx.ObterPosicaoToken()
+				if hrpErr.Token == nil && prog.Posicoes != nil && tok != nil {
+					hrpErr.Token = tok
+					hrpErr.Linha = lin
+					hrpErr.Coluna = col
 				}
 			}
 		}

@@ -21,7 +21,12 @@ func met_mat_teto(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	return hrp.Inteiro(math.Ceil(float64(num.(hrp.Decimal)))), nil
+	f := float64(num.(hrp.Decimal))
+	if math.IsNaN(f) || math.IsInf(f, 0) || f < math.MinInt64 || f > math.MaxInt64 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "valor inválido para teto: %v", f)
+	}
+
+	return hrp.Inteiro(math.Ceil(f)), nil
 }
 
 // _mat_teto cria e define a assinatura do método 'teto' exposto na stdlib do Harpia.

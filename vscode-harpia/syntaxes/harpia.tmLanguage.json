@@ -3,6 +3,7 @@
   "name": "Harpia",
   "scopeName": "source.harpia",
   "patterns": [
+    { "include": "#components" },
     { "include": "#comments" },
     { "include": "#strings" },
     { "include": "#jsx-tags" },
@@ -76,9 +77,9 @@
     },
     "keywords": {
       "patterns": [
-        { "name": "keyword.control.flow.harpia", "match": "\\b(se|senao|enquanto|para|de|retorne|pare|continue)\\b" },
+        { "name": "keyword.control.flow.harpia", "match": "\\b(se|senao|enquanto|para|de|retorne|pare|continue|aguarde)\\b" },
         { "name": "keyword.control.try.harpia", "match": "\\b(tente|capture|finalmente|assegura|lance)\\b" },
-        { "name": "keyword.control.import.harpia", "match": "\\b(importe|exporte|de|como|em)\\b" },
+        { "name": "keyword.control.import.harpia", "match": "\\b(importar|importe|exportar|exporte|de|como|em)\\b" },
         { "name": "keyword.control.conditional.harpia", "match": "\\b(novo|exclua)\\b" },
         { "name": "keyword.operator.logical.harpia", "match": "\\b(e|ou|nao|xor)\\b" },
         { "name": "keyword.control.harpia", "match": "\\b(super|isto)\\b" },
@@ -142,15 +143,19 @@
     },
     "styles": {
       "patterns": [
-        { "name": "entity.other.attribute-name.style.harpia", "match": "\\b([a-zA-Z-]+)(?=\\s*:\\s*)" },
-        { "name": "meta.property-value.css.harpia", "match": "(?<=:\\s)([^;]+)(?=[;}])" }
+        {
+          "match": "^(?!\\s*(?:var|const|constante|let|funcao|func)\\b)\\s*\\b([a-zA-Z-]+)(?=\\s*:\\s*(?!\\s*(?:Texto|Inteiro|Decimal|Booleano|Logico|Nulo|Canal|Lista|Mapa|Tupla|Objeto|Erro|qualquer|texto|numero|inteiro|real|booleano|binario|lista|vetor|matriz|dicionario|objeto|funcao_qualquer|nulo)\\b))",
+          "captures": {
+            "1": { "name": "entity.other.attribute-name.style.harpia" }
+          }
+        }
       ]
     },
     "variables": {
       "patterns": [
         { "name": "variable.other.readwrite.declaration.harpia", "match": "(?<=\\b(?:var|const|constante|let)\\s+)[a-zA-Z_][a-zA-Z0-9_]*" },
-        { "name": "variable.other.readwrite.harpia", "match": "\\b[a-z_][a-zA-Z0-9_]*\\b" },
-        { "name": "variable.language.self.harpia", "match": "\\b(self|isto|super)\\b" }
+        { "name": "variable.language.self.harpia", "match": "\\b(self|isto|super)\\b" },
+        { "name": "variable.other.readwrite.harpia", "match": "\\b[a-z_][a-zA-Z0-9_]*\\b" }
       ]
     },
     "operators": {
@@ -166,9 +171,8 @@
         { "name": "punctuation.definition.block.harpia", "match": "[{}]" },
         { "name": "punctuation.definition.brackets.harpia", "match": "[\\[\\]]" },
         { "name": "punctuation.definition.parenthesis.harpia", "match": "[\\(\\)]" },
-        { "name": "punctuation.separator.comma.harpia", "match": "," },
-        { "name": "punctuation.separator.semicolon.harpia", "match": ";" },
-        { "name": "punctuation.terminator.harpia", "match": ";|::" }
+        { "name": "punctuation.terminator.harpia", "match": "::|;" },
+        { "name": "punctuation.separator.comma.harpia", "match": "," }
       ]
     },
     "jsx-tags": {

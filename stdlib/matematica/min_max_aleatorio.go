@@ -3,12 +3,9 @@ package matematica
 import (
 	"math"
 	"math/rand"
-	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
-
-var rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func met_mat_max(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err := hrp.VerificaNumeroArgumentos("max", false, args, 2, 2); err != nil {
@@ -42,7 +39,7 @@ func met_mat_min(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 
 func met_mat_aleatorio(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) == 0 {
-		return hrp.Decimal(rng.Float64()), nil
+		return hrp.Decimal(rand.Float64()), nil
 	}
 	if len(args) == 2 {
 		minVal, err := hrp.NewDecimal(args[0])
@@ -55,7 +52,7 @@ func met_mat_aleatorio(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		}
 		minF := float64(minVal.(hrp.Decimal))
 		maxF := float64(maxVal.(hrp.Decimal))
-		return hrp.Decimal(minF + rng.Float64()*(maxF-minF)), nil
+		return hrp.Decimal(minF + rand.Float64()*(maxF-minF)), nil
 	}
 	return nil, hrp.NewErroF(hrp.SintaxeErro, "aleatorio aceita 0 ou 2 argumentos: aleatorio() ou aleatorio(min, max)")
 }

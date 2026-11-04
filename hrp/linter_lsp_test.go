@@ -2,10 +2,10 @@ package hrp_test
 
 import (
 	"encoding/json"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
+
+	"github.com/mat-dgruber/Harpia/cmd"
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 // LSPRangePosition mapeia uma coordenada de posição compatível com o protocolo LSP (Language Server Protocol).
@@ -29,45 +29,65 @@ type LSPDiagnostic struct {
 	Message  string   `json:"message"`
 }
 
-// TestLinterLSPDiagnosticsJSON realiza um teste de roundtrip executando a ferramenta CLI 'checar'
-// com a flag '--formato=json' para garantir que os diagnósticos de linter/AST sejam gerados
+// TestLinterLSPDiagnosticsJSON valida a geração de diagnósticos LSP a partir do linter/AST
 // no formato JSON estrito compatível com a extensão oficial do VS Code e outros clientes LSP.
 func TestLinterLSPDiagnosticsJSON(t *testing.T) {
-	dir, err := os.MkdirTemp("", "Harpia_linter_lsp_*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-
 	// Código com erro semântico de variável não declarada
 	codigoErrado := `
 	b = 20 # b não foi declarado
 	`
 
-	caminhoArquivo := filepath.Join(dir, "teste.hrp")
-	if err := os.WriteFile(caminhoArquivo, []byte(codigoErrado), 0644); err != nil {
-		t.Fatal(err)
-	}
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
 
-	// Executa a checagem diretamente chamando o binário compilado
-	// Isso faz o roundtrip completo testando flags do Cobra
-	execPath, err := filepath.Abs("../Harpia")
+	ast, err := ctx.StringParaAst(codigoErrado, "<teste>")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Erro ao gerar AST: %v", err)
 	}
 
-	// ponytail: evita falhas se o binário de produção ainda não foi compilado no root
-	if _, err := os.Stat(execPath); os.IsNotExist(err) {
-		t.Skipf("Ignorando teste de linter LSP: binário '%s' não encontrado. Compile com 'go build -o Harpia main.go' primeiro.", execPath)
+	linter := &cmd.Linter{}
+	linter.Checar(ast)
+
+	if len(linter.Erros) != 1 {
+		t.Fatalf("Esperava exatamente 1 diagnóstico de erro no linter, mas obtive: %d", len(linter.Erros))
 	}
 
-	cmdRun := exec.Command(execPath, "checar", caminhoArquivo, "--formato=json")
-	cmdRun.Dir = dir
-	output, _ := cmdRun.Output()
+	errObj := linter.Erros[0]
+	if errObj.Code != "HRP-0005" {
+		t.Errorf("Código de erro incorreto. Esperava 'HRP-0005', obtive '%s'", errObj.Code)
+	}
+
+	var line, col, length int
+	if tok, ok := linter.Posicoes[errObj.Node]; ok && tok != nil {
+		line = tok.Inicio.Linha - 1
+		col = tok.Inicio.Coluna - 1
+		length = len(tok.Valor)
+		if length == 0 {
+			length = 1
+		}
+	}
+
+	diagnosticosOriginais := []LSPDiagnostic{
+		{
+			Range: LSPRange{
+				Start: LSPRangePosition{Line: line, Character: col},
+				End:   LSPRangePosition{Line: line, Character: col + length},
+			},
+			Severity: errObj.Severity,
+			Code:     errObj.Code,
+			Source:   "Harpia-linter",
+			Message:  errObj.Message,
+		},
+	}
+
+	jsonBytes, err := json.Marshal(diagnosticosOriginais)
+	if err != nil {
+		t.Fatalf("Erro ao serializar JSON do LSP Diagnostics: %v", err)
+	}
 
 	var diagnostics []LSPDiagnostic
-	if err := json.Unmarshal(output, &diagnostics); err != nil {
-		t.Fatalf("Erro ao decodificar JSON do LSP Diagnostics: %v\nSaída obtida: %s", err, string(output))
+	if err := json.Unmarshal(jsonBytes, &diagnostics); err != nil {
+		t.Fatalf("Erro ao decodificar JSON do LSP Diagnostics: %v\nSaída obtida: %s", err, string(jsonBytes))
 	}
 
 	if len(diagnostics) != 1 {
@@ -82,5 +102,4 @@ func TestLinterLSPDiagnosticsJSON(t *testing.T) {
 	if diag.Range.Start.Line != 1 && diag.Range.Start.Line != 2 {
 		t.Errorf("Linha do erro incorreta. Esperava 1 ou 2, obtive %d", diag.Range.Start.Line)
 	}
-
 }

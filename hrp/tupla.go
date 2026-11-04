@@ -1,5 +1,7 @@
 package hrp
 
+import "math"
+
 // Tupla representa a coleção indexada ordenada e imutável de dados do Harpia (ex: (1, 2, 3)).
 //
 // É um apelido (alias) para um slice de Objetos Go (`[]Objeto`). Diferente da Lista, uma vez instanciada,
@@ -50,10 +52,11 @@ func (t Tupla) M__tamanho__() (Objeto, error) {
 // ObtemItem resolve o fatiamento e leitura de itens indexados. Lança erro de tipagem caso o índice não seja Inteiro.
 func (t Tupla) ObtemItem(i Objeto, nomeTipo string) (Objeto, error) {
 	if I, ok := i.(Inteiro); ok {
-		if I < 0 || I >= Inteiro(len(t)) {
+		v := int64(I)
+		if v < 0 || v > math.MaxInt32 || v >= int64(len(t)) {
 			return nil, NewErroF(IndiceErro, "Índice '%d' fora dos limites do tipo '%s' (tamanho %d)", I, nomeTipo, len(t))
 		}
-		idx := int(I)
+		idx := int(v)
 		return t[idx], nil
 	}
 
@@ -64,10 +67,11 @@ func (t Tupla) ObtemItem(i Objeto, nomeTipo string) (Objeto, error) {
 // Embora exposta como interface Go, o Harpia lança erros ou impede mutabilidades em scripts de usuário.
 func (t Tupla) DefineItem(chave, valor Objeto, nomeTipo string) (Objeto, error) {
 	if I, ok := chave.(Inteiro); ok {
-		if I < 0 || I >= Inteiro(len(t)) {
+		v := int64(I)
+		if v < 0 || v > math.MaxInt32 || v >= int64(len(t)) {
 			return nil, NewErroF(IndiceErro, "Índice '%d' fora dos limites do tipo '%s' (tamanho %d)", I, nomeTipo, len(t))
 		}
-		idx := int(I)
+		idx := int(v)
 		t[idx] = valor
 		return t, nil
 	}

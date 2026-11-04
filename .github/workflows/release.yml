@@ -22,7 +22,7 @@ jobs:
       - name: Configurar Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.2'
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Executar GoReleaser (Gera binários, tags e release)
@@ -63,6 +63,8 @@ jobs:
           npm version $TAG_VERSION --no-git-tag-version
 
       - name: Publicar no VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           cd vscode-harpia
-          npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }}
+          npx @vscode/vsce publish

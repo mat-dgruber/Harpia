@@ -21,7 +21,12 @@ func met_mat_piso(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	return hrp.Inteiro(math.Floor(float64(num.(hrp.Decimal)))), nil
+	f := float64(num.(hrp.Decimal))
+	if math.IsNaN(f) || math.IsInf(f, 0) || f < math.MinInt64 || f > math.MaxInt64 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "valor inválido para piso: %v", f)
+	}
+
+	return hrp.Inteiro(math.Floor(f)), nil
 }
 
 // _mat_piso cria e define a assinatura do método 'piso' exposto na stdlib do Harpia.

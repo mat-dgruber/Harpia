@@ -14,6 +14,10 @@ func met_emb_texto(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
+	if len(args) == 0 {
+		return hrp.Texto(""), nil
+	}
+
 	return hrp.NewTexto(args[0])
 }
 

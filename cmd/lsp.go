@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/lexer"
@@ -131,7 +132,7 @@ func lerMensagemLSP(reader *bufio.Reader) ([]byte, error) {
 		if line == "" {
 			break
 		}
-		if strings.HasPrefix(line, "Content-Length:") {
+		if strings.HasPrefix(strings.ToLower(line), "content-length:") {
 			parts := strings.Split(line, ":")
 			if len(parts) == 2 {
 				val, _ := strconv.Atoi(strings.TrimSpace(parts[1]))
@@ -140,8 +141,8 @@ func lerMensagemLSP(reader *bufio.Reader) ([]byte, error) {
 		}
 	}
 
-	if contentLength == 0 {
-		return nil, fmt.Errorf("Content-Length inválido")
+	if contentLength <= 0 || contentLength > (10<<20) {
+		return nil, fmt.Errorf("Content-Length inválido: %d", contentLength)
 	}
 
 	buf := make([]byte, contentLength)
@@ -152,9 +153,13 @@ func lerMensagemLSP(reader *bufio.Reader) ([]byte, error) {
 	return buf, nil
 }
 
+var lspWriteMu sync.Mutex
+
 // enviarMensagemLSP formata uma resposta ou notificação com o cabeçalho "Content-Length"
 // e envia síncronamente via Stdout para que a IDE cliente possa consumi-la.
 func enviarMensagemLSP(msg interface{}) {
+	lspWriteMu.Lock()
+	defer lspWriteMu.Unlock()
 	bytes, _ := json.Marshal(msg)
 	fmt.Printf("Content-Length: %d\r\n\r\n%s", len(bytes), string(bytes))
 }
@@ -209,23 +214,38 @@ func tratarRequisicaoLSP(req RequestMessage) {
 		}
 		if err := json.Unmarshal(req.Params, &params); err == nil {
 			codigo := cacheArquivosLSP[params.TextDocument.URI]
+			var edits []map[string]interface{}
 			if codigo != "" {
 				codigoFormatado := FormatarCodigoHarpia(codigo)
-				res := ResponseMessage{
-					Jsonrpc: "2.0",
-					ID:      req.ID,
-					Result: []map[string]interface{}{
-						{
-							"range": map[string]interface{}{
-								"start": map[string]interface{}{"line": 0, "character": 0},
-								"end":   map[string]interface{}{"line": 100000, "character": 0},
-							},
-							"newText": codigoFormatado,
+				edits = []map[string]interface{}{
+					{
+						"range": map[string]interface{}{
+							"start": map[string]interface{}{"line": 0, "character": 0},
+							"end":   map[string]interface{}{"line": 100000, "character": 0},
 						},
+						"newText": codigoFormatado,
 					},
 				}
-				enviarMensagemLSP(res)
+			} else {
+				edits = []map[string]interface{}{}
 			}
+			res := ResponseMessage{
+				Jsonrpc: "2.0",
+				ID:      req.ID,
+				Result:  edits,
+			}
+			enviarMensagemLSP(res)
+		}
+
+	case "textDocument/didClose":
+		var params struct {
+			TextDocument struct {
+				URI string `json:"uri"`
+			} `json:"textDocument"`
+		}
+		if err := json.Unmarshal(req.Params, &params); err == nil {
+			delete(cacheArquivosLSP, params.TextDocument.URI)
+			delete(cacheAstLSP, params.TextDocument.URI)
 		}
 
 	case "textDocument/completion":

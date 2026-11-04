@@ -15,8 +15,11 @@ import (
 // tem privilégios adequados no sandbox de segurança do Harpia para tocar em recursos físicos de arquivo.
 // Ele impede que o código execute ataques do tipo Path Traversal se o sandbox estiver travado.
 func verificarPermissao(inst hrp.Objeto) error {
-	if modulo, ok := inst.(*hrp.Modulo); ok && modulo != nil {
+	if modulo, ok := inst.(*hrp.Modulo); ok && modulo != nil && modulo.Contexto != nil {
 		return modulo.Contexto.VerificarPermissaoArquivos()
+	}
+	if ctx := hrp.ObterContextoAtivo(); ctx != nil {
+		return ctx.VerificarPermissaoArquivos()
 	}
 	return nil
 }

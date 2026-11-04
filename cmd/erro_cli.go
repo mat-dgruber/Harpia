@@ -117,7 +117,8 @@ func comandoErroCLI() *cobra.Command {
 				return
 			}
 			codigo := strings.ToUpper(args[0])
-			explicacao, encontrada := explicacoes[codigo]
+			chave := strings.Replace(codigo, "HRP-", "PSC-", 1)
+			explicacao, encontrada := explicacoes[chave]
 
 			if !encontrada {
 				fmt.Printf("Código de erro '%s' não encontrado. Use um código como 'PSC-0005'.\n", codigo)
@@ -139,7 +140,8 @@ func comandoErroCLI() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			codigo := strings.ToUpper(args[0])
-			explicacao, encontrada := explicacoes[codigo]
+			chave := strings.Replace(codigo, "HRP-", "PSC-", 1)
+			explicacao, encontrada := explicacoes[chave]
 
 			if !encontrada {
 				fmt.Printf("Código de erro '%s' não reconhecido.\n", codigo)

@@ -278,3 +278,26 @@ func TestLSPSecurityLinter(t *testing.T) {
 		t.Errorf("Esperava aviso de canal inseguro fora de contexto assíncrono 'HRP-SEC-003'. Obtido: %s", saida)
 	}
 }
+
+func TestLerMensagemLSPLimites(t *testing.T) {
+	// Caso negativo: Content-Length negativo
+	negativo := "Content-Length: -5\r\n\r\n"
+	_, errNeg := lerMensagemLSP(bufio.NewReader(strings.NewReader(negativo)))
+	if errNeg == nil {
+		t.Errorf("Esperava erro ao ler Content-Length negativo, mas obteve nil")
+	}
+
+	// Caso gigante: Content-Length exorbitante (>10MB)
+	gigante := "Content-Length: 999999999\r\n\r\n"
+	_, errGig := lerMensagemLSP(bufio.NewReader(strings.NewReader(gigante)))
+	if errGig == nil {
+		t.Errorf("Esperava erro ao ler Content-Length excessivo (>10MB), mas obteve nil")
+	}
+
+	// Caso case-insensitive
+	caseIns := "content-length: 5\r\n\r\nhello"
+	msg, errCase := lerMensagemLSP(bufio.NewReader(strings.NewReader(caseIns)))
+	if errCase != nil || string(msg) != "hello" {
+		t.Errorf("Esperava ler cabeçalho case-insensitive com sucesso, obteve %v (msg: %s)", errCase, string(msg))
+	}
+}

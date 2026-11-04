@@ -2,6 +2,7 @@ package hrp
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mat-dgruber/Harpia/compartilhado"
 )
@@ -117,7 +118,7 @@ func (d Decimal) M__subtrai__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return outroInt.(Decimal) - d, nil
+	return d - outroInt.(Decimal), nil
 }
 
 // M__divide__ executa a divisão real de dois termos, lançando erro se o divisor for zero.
@@ -131,7 +132,7 @@ func (d Decimal) M__divide__(outro Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return outroDec.(Decimal) - d, nil
+	return d / outroDec.(Decimal), nil
 }
 
 // M__divide_inteiro__ realiza a divisão real e trunca o resultado retornando Inteiro.
@@ -148,14 +149,22 @@ func (d Decimal) M__divide_inteiro__(b Objeto) (Objeto, error) {
 	return Inteiro(d) / bInt.(Inteiro), nil
 }
 
-// M__mod__ delega a resolução de resto de divisão inteira convertendo o Decimal corrente para Inteiro.
+// M__mod__ calcula o resto da divisão real (float64) usando math.Mod.
 func (d Decimal) M__mod__(b Objeto) (Objeto, error) {
-	dInt, err := NewInteiro(d)
+	if talvezZero := TalvezLanceErroDivisaoPorZero(b); talvezZero != nil {
+		return nil, talvezZero
+	}
+
+	bDec, err := NewDecimal(b)
 	if err != nil {
 		return nil, err
 	}
 
-	return dInt.(Inteiro).M__mod__(b)
+	if talvezZero := TalvezLanceErroDivisaoPorZero(bDec); talvezZero != nil {
+		return nil, talvezZero
+	}
+
+	return Decimal(math.Mod(float64(d), float64(bDec.(Decimal)))), nil
 }
 
 // M__neg__ executa a inversão unária de sinal.

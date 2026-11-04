@@ -1,9 +1,10 @@
 package http
 
 import (
-	"fmt"
-	"io"
+	"encoding/json"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -128,6 +129,67 @@ func TestServirAppPathTraversal(t *testing.T) {
 	}
 }
 
+func TestServirAppSiblingTraversalEXSS(t *testing.T) {
+	baseDir := t.TempDir()
+	distDir := filepath.Join(baseDir, "dist")
+	distSecretDir := filepath.Join(baseDir, "dist_secret")
+
+	if err := os.MkdirAll(distDir, 0755); err != nil {
+		t.Fatalf("erro ao criar dist: %v", err)
+	}
+	if err := os.MkdirAll(distSecretDir, 0755); err != nil {
+		t.Fatalf("erro ao criar dist_secret: %v", err)
+	}
+
+	indexHtml := "<!DOCTYPE html><html><head><title>Harpia App</title></head><body><div id=\"app\"></div></body></html>"
+	if err := os.WriteFile(filepath.Join(distDir, "index.html"), []byte(indexHtml), 0644); err != nil {
+		t.Fatalf("erro ao escrever index.html: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(distSecretDir, "key.txt"), []byte("SEGREDO"), 0644); err != nil {
+		t.Fatalf("erro ao escrever key.txt: %v", err)
+	}
+
+	meta := hrp.Mapa{"titulo": hrp.Texto("</title><script>alert(1)</script>")}
+	handler := ServirAppHandler(distDir, hrp.Nulo, meta)
+
+	// 1. Testar sibling directory traversal
+	reqTraversal := &Requisicao{
+		Caminho: hrp.Texto("../dist_secret/key.txt"),
+	}
+	resTraversal := &Resposta{
+		Cabecalho: hrp.NewMapaVazio(),
+	}
+	_, err := hrp.Chamar(handler, hrp.Tupla{reqTraversal, resTraversal})
+	if err != nil {
+		t.Fatalf("erro ao chamar handler para traversal: %v", err)
+	}
+	if strings.Contains(string(resTraversal.Corpo), "SEGREDO") {
+		t.Errorf("vulnerabilidade Sibling Path Traversal: retornou conteúdo secreto")
+	}
+	if resTraversal.Status != 403 {
+		t.Errorf("esperava status 403 para sibling traversal, obteve %d", resTraversal.Status)
+	}
+
+	// 2. Testar escape XSS no título
+	reqXSS := &Requisicao{
+		Caminho: hrp.Texto("/"),
+	}
+	resXSS := &Resposta{
+		Cabecalho: hrp.NewMapaVazio(),
+	}
+	_, err = hrp.Chamar(handler, hrp.Tupla{reqXSS, resXSS})
+	if err != nil {
+		t.Fatalf("erro ao chamar handler para XSS: %v", err)
+	}
+	corpoHtml := string(resXSS.Corpo)
+	if strings.Contains(corpoHtml, "<script>alert(1)</script>") {
+		t.Errorf("vulnerabilidade XSS: tag <script> crua encontrada no HTML gerado")
+	}
+	if !strings.Contains(corpoHtml, "&lt;script&gt;alert(1)&lt;/script&gt;") {
+		t.Errorf("esperava HTML escapado no título")
+	}
+}
+
 func TestHMACInvalidoArgs(t *testing.T) {
 	_, err := met_assinar_hmac(nil, hrp.Tupla{hrp.Texto("chave")})
 	if err == nil {
@@ -166,5 +228,43 @@ func TestGerarOpenAPI(t *testing.T) {
 }
 
 func TestAuxiliaresDocs(t *testing.T) {
-	_ = fmt.Sprintf("%v", io.EOF)
+	srv := &Servidor{
+		rotas: map[string]map[string]hrp.Objeto{
+			"GET": {
+				"/usuarios": hrp.NewMetodoOuPanic("listar", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+					return hrp.Nulo, nil
+				}, "Listar todos os usuarios"),
+			},
+		},
+		rotasMeta: map[string]map[string]*RotaMeta{
+			"GET": {
+				"/usuarios": {
+					Descricao: "Listar todos os usuarios",
+					Tags:      []string{"Usuarios"},
+				},
+			},
+		},
+		metricas: make(map[string]int64),
+	}
+
+	resOpenAPI, err := met_gerar_openapi(nil, hrp.Tupla{srv})
+	if err != nil {
+		t.Fatalf("erro ao gerar openapi: %v", err)
+	}
+	specStr := string(resOpenAPI.(hrp.Texto))
+	var openapiJSON map[string]interface{}
+	if err := json.Unmarshal([]byte(specStr), &openapiJSON); err != nil {
+		t.Fatalf("JSON OpenAPI 3.0 gerado é inválido: %v", err)
+	}
+	if openapiJSON["openapi"] != "3.0.0" {
+		t.Errorf("esperava versao 3.0.0 no OpenAPI, obteve: %v", openapiJSON["openapi"])
+	}
+	paths, ok := openapiJSON["paths"].(map[string]interface{})
+	if !ok || paths["/usuarios"] == nil {
+		t.Errorf("esperava rota '/usuarios' em paths do OpenAPI, obteve: %v", openapiJSON["paths"])
+	}
+
+	if !strings.Contains(htmlDocsTemplate, "<!DOCTYPE html>") || !strings.Contains(htmlDocsTemplate, "Harpia API Console") {
+		t.Errorf("htmlDocsTemplate inválido ou não contém cabeçalho da API Console")
+	}
 }

@@ -71,14 +71,17 @@ func gerarCPF() string {
 	for i, d := range digs {
 		d2 += d * (11 - i)
 	}
-	d2 = ((d2+d1)*10)%11 - d1*10%11
-	_ = d2
+	d2 += d1 * 2
+	d2 = (d2 * 10) % 11
+	if d2 == 10 {
+		d2 = 0
+	}
 	cpf := make([]byte, 11)
 	for i, d := range digs {
 		cpf[i] = byte('0' + d)
 	}
 	cpf[9] = byte('0' + d1)
-	cpf[10] = byte('0' + rand.Intn(10))
+	cpf[10] = byte('0' + d2)
 	return string(cpf)
 }
 

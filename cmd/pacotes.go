@@ -323,7 +323,7 @@ func baixarEExtrairPacote(nome, url string, sha256Esperado string) (string, erro
 		// ponytail: impede a vulnerabilidade crítica de Zip Slip (path traversal)
 		caminhoLimpo := filepath.Clean(caminhoFisico)
 		pastaLimpa := filepath.Clean(pastaDest)
-		if !strings.HasPrefix(caminhoLimpo, pastaLimpa) {
+		if caminhoLimpo != pastaLimpa && !strings.HasPrefix(caminhoLimpo, pastaLimpa+string(filepath.Separator)) {
 			return "", fmt.Errorf("caminho de arquivo ilegal detectado no pacote ZIP: %s", arquivo.Name)
 		}
 
@@ -563,6 +563,10 @@ func comandoPacote() *cobra.Command {
 				return
 			}
 			nome := args[0]
+			if filepath.Base(nome) != nome || nome == ".." || nome == "." {
+				cmd.Println("Erro: nome de pacote inválido.")
+				return
+			}
 
 			pastaModulo := filepath.Join("pt_modulos", nome)
 			os.RemoveAll(pastaModulo)

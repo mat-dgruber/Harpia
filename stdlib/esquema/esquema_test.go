@@ -61,6 +61,16 @@ func TestEsquemaValidacaoFalhaTipo(t *testing.T) {
 	if !stringsContains(erroStr, "deve ser do tipo Texto, obteve Inteiro") {
 		t.Errorf("Mensagem de erro inadequada: %s", erroStr)
 	}
+
+	// Testar valor nulo explicitamente no mapa
+	dadosComNulo := hrp.Mapa{
+		"nome": nil,
+	}
+	resNulo, _ := hrp.Chamar(analisarMetodo, hrp.Tupla{dadosComNulo})
+	listaNulo := resNulo.(*hrp.Lista)
+	if listaNulo.Itens[0] != hrp.Nulo {
+		t.Fatalf("Esperava erro na validação com valor nulo")
+	}
 }
 
 func stringsContains(s, substr string) bool {

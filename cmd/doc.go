@@ -5,6 +5,7 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -205,16 +206,20 @@ func gerarDocHTML(arquivo string, elementos []DocElement) string {
 <body>
     <h1>📖 Documentação de %s</h1>
     <p class="meta">Gerado automaticamente a partir do código fonte original.</p>
-`, nomeBase, nomeBase))
+`, html.EscapeString(nomeBase), html.EscapeString(nomeBase)))
 
 	for _, el := range elementos {
+		var descEscaped []string
+		for _, d := range el.Descricao {
+			descEscaped = append(descEscaped, html.EscapeString(d))
+		}
 		sb.WriteString(fmt.Sprintf(`    <div class="elemento">
         <h2>%s</h2>
         <span class="tag">%s</span>
         <pre><code>%s</code></pre>
         <p>%s</p>
     </div>
-`, el.Nome, el.Tipo, el.Assinatura, strings.Join(el.Descricao, "<br>")))
+`, html.EscapeString(el.Nome), html.EscapeString(el.Tipo), html.EscapeString(el.Assinatura), strings.Join(descEscaped, "<br>")))
 	}
 
 	sb.WriteString(`</body>

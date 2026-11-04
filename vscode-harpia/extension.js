@@ -4,6 +4,15 @@ const cp = require('child_process');
 
 let client;
 
+function escaparArgShell(arg) {
+    if (arg === null || arg === undefined) return "''";
+    return "'" + String(arg).replace(/'/g, "'\\''") + "'";
+}
+
+function escaparRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
  * Ativa a extensão oficial do VS Code para a linguagem Harpia.
  *
@@ -434,9 +443,10 @@ function activate(context) {
                         const texto = fs.readFileSync(resultado.caminho, 'utf-8');
                         const linhas = texto.split('\n');
 
-                        const regexFunc = new RegExp(`(?:funcao|func)\\s+\\b${palavra}\\b`);
-                        const regexClasse = new RegExp(`classe\\s+\\b${palavra}\\b`);
-                        const regexVar = new RegExp(`(?:var|constante)\\s+\\b${palavra}\\b`);
+                        const palavraEsc = escaparRegex(palavra);
+                        const regexFunc = new RegExp(`(?:funcao|func)\\s+\\b${palavraEsc}\\b`);
+                        const regexClasse = new RegExp(`classe\\s+\\b${palavraEsc}\\b`);
+                        const regexVar = new RegExp(`(?:var|constante)\\s+\\b${palavraEsc}\\b`);
 
                         for (let i = 0; i < linhas.length; i++) {
                             const linha = linhas[i];
@@ -488,7 +498,7 @@ function activate(context) {
         vscode.commands.registerCommand('harpia.rodarTeste', (caminhoArquivo, nomeTeste) => {
             let term = vscode.window.terminals.find(t => t.name === 'Harpia Testes') || vscode.window.createTerminal('Harpia Testes');
             term.show();
-            term.sendText(`harpia testar "${caminhoArquivo}" --filtro="${nomeTeste}"`);
+            term.sendText(`harpia testar ${escaparArgShell(caminhoArquivo)} --filtro=${escaparArgShell(nomeTeste)}`);
         })
     );
 
@@ -565,7 +575,8 @@ function activate(context) {
                 const textoCompleto = document.getText();
 
                 // Regex para encontrar todas as ocorrências isoladas do nome da palavra no arquivo atual
-                const regexWord = new RegExp(`\\b${oldName}\\b`, 'g');
+                const oldNameEsc = escaparRegex(oldName);
+                const regexWord = new RegExp(`\\b${oldNameEsc}\\b`, 'g');
                 let match;
 
                 while ((match = regexWord.exec(textoCompleto)) !== null) {
@@ -587,7 +598,7 @@ function activate(context) {
         'sinalPersistente': { assinatura: 'sinalPersistente(chave: Texto, valorInicial)', params: ['chave', 'valorInicial'], doc: 'Cria um sinal reativo persistido automaticamente no Local Storage.' },
         'sinalDebounce': { assinatura: 'sinalDebounce(valorInicial, tempoEmMs: Inteiro)', params: ['valorInicial', 'tempoEmMs'], doc: 'Cria um sinal reativo com atraso de propagação (debounce).' },
         'efeito': { assinatura: 'efeito(funcao)', params: ['funcao'], doc: 'Cria um efeito colateral que reage a mudanças nos sinais lidos dentro dele.' },
-        'derivado': { signature: 'derivado(funcao)', params: ['funcao'], doc: 'Cria um valor reativo derivado (calculado) somente leitura.' },
+        'derivado': { assinatura: 'derivado(funcao)', params: ['funcao'], doc: 'Cria um valor reativo derivado (calculado) somente leitura.' },
         'recurso': { assinatura: 'recurso(funcaoAsync)', params: ['funcaoAsync'], doc: 'Cria um sinal assíncrono para consumo de APIs.' },
         'armazem': { assinatura: 'armazem(objeto)', params: ['objeto'], doc: 'Cria um contêiner reativo mutável compartilhado para estado global.' },
         'imprimir': { assinatura: 'imprimir(...valores)', params: ['...valores'], doc: 'Exibe valores de qualquer tipo na saída padrão de depuração.' },
@@ -879,9 +890,10 @@ function resolverPalavraEstendida(palavra, caminhoArquivo, root, arquivosProcess
     const texto = fs.readFileSync(caminhoArquivo, 'utf-8');
     const linhas = texto.split('\n');
 
-    const regexFunc = new RegExp(`(?:funcao|func)\\s+(${palavra})\\s*\\((.*?)\\)`);
-    const regexClasse = new RegExp(`classe\\s+(${palavra})(?:\\s+estende\\s+(\\w+))?\\s*\\{`);
-    const regexVar = new RegExp(`(?:var|constante)\\s+(${palavra})\\s*(?::\\s*[\\w<>]+)?`);
+    const palavraEsc = escaparRegex(palavra);
+    const regexFunc = new RegExp(`(?:funcao|func)\\s+(${palavraEsc})\\s*\\((.*?)\\)`);
+    const regexClasse = new RegExp(`classe\\s+(${palavraEsc})(?:\\s+estende\\s+(\\w+))?\\s*\\{`);
+    const regexVar = new RegExp(`(?:var|constante)\\s+(${palavraEsc})\\s*(?::\\s*[\\w<>]+)?`);
 
     for (let i = 0; i < linhas.length; i++) {
         const linha = linhas[i];
@@ -974,7 +986,8 @@ function resolverPalavraEstendida(palavra, caminhoArquivo, root, arquivosProcess
  */
 function buscarCaminhoImportado(palavra, texto, caminhoArquivoAtual, root) {
     const path = require('path');
-    const regexImport = new RegExp(`importar\\s*\\{[^\\}]*\\b${palavra}\\b[^\\}]*\\}\\s*de\\s*["']([^"']+)["']`);
+    const palavraEsc = escaparRegex(palavra);
+    const regexImport = new RegExp(`importar\\s*\\{[^\\}]*\\b${palavraEsc}\\b[^\\}]*\\}\\s*de\\s*["']([^"']+)["']`);
     const match = texto.match(regexImport);
     if (!match) return null;
 
@@ -1050,14 +1063,14 @@ class HarpiaDashboardProvider {
 
                     let termEmp = vscode.window.terminals.find(t => t.name === 'Harpia Empacotar') || vscode.window.createTerminal('Harpia Empacotar');
                     termEmp.show();
-                    termEmp.sendText(`harpia empacotar --entrada=${entrada} --saida=${saida}`);
+                    termEmp.sendText(`harpia empacotar --entrada=${escaparArgShell(entrada)} --saida=${escaparArgShell(saida)}`);
                     break;
                 case 'stressar':
                     const arqStress = await vscode.window.showInputBox({ prompt: 'Arquivo de teste (.hrp)', defaultValue: 'main.hrp' });
                     if (!arqStress) return;
                     let termStress = vscode.window.terminals.find(t => t.name === 'Harpia Stressar') || vscode.window.createTerminal('Harpia Stressar');
                     termStress.show();
-                    termStress.sendText(`harpia stressar --arquivo=${arqStress} -c 10 -r 100`);
+                    termStress.sendText(`harpia stressar --arquivo=${escaparArgShell(arqStress)} -c 10 -r 100`);
                     break;
                 case 'scaffold':
                     this.executarScaffolding(data.tipo, data.nome);
@@ -1078,6 +1091,7 @@ class HarpiaDashboardProvider {
         <html lang="pt-br">
         <head>
             <meta charset="UTF-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body {

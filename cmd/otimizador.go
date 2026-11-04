@@ -144,7 +144,13 @@ func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 		// Se a variável é 'usada' ou 'soma' (qualquer uma que esteja no mapa de usados), mantemos
 		if !o.usados[n.Nome] {
 			// ponytail: remove declarações de variáveis mortas / não referenciadas (DCE)
-			return nil
+			// Preserva efeitos colaterais caso a inicialização não seja um literal puro ou identificador
+			switch n.Inicializador.(type) {
+			case nil, *parser.InteiroLiteral, *parser.DecimalLiteral, *parser.TextoLiteral, *parser.ConstanteLiteral, *parser.Identificador:
+				return nil
+			default:
+				return o.OtimizarNo(n.Inicializador)
+			}
 		}
 		n.Inicializador = o.OtimizarNo(n.Inicializador)
 		return n
@@ -152,7 +158,9 @@ func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 	case *parser.ExpressaoSe:
 		n.Condicao = o.OtimizarNo(n.Condicao)
 		if opt := o.OtimizarNo(n.Corpo); opt != nil {
-			n.Corpo = opt.(*parser.Bloco)
+			if blk, ok := opt.(*parser.Bloco); ok {
+				n.Corpo = blk
+			}
 		} else {
 			n.Corpo = nil
 		}
@@ -172,7 +180,9 @@ func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 	case *parser.Enquanto:
 		n.Condicao = o.OtimizarNo(n.Condicao)
 		if opt := o.OtimizarNo(n.Corpo); opt != nil {
-			n.Corpo = opt.(*parser.Bloco)
+			if blk, ok := opt.(*parser.Bloco); ok {
+				n.Corpo = blk
+			}
 		} else {
 			n.Corpo = nil
 		}
@@ -197,7 +207,9 @@ func (o *Otimizador) OtimizarNo(node parser.BaseNode) parser.BaseNode {
 
 	case *parser.DeclFuncao:
 		if opt := o.OtimizarNo(n.Corpo); opt != nil {
-			n.Corpo = opt.(*parser.Bloco)
+			if blk, ok := opt.(*parser.Bloco); ok {
+				n.Corpo = blk
+			}
 		} else {
 			n.Corpo = nil
 		}

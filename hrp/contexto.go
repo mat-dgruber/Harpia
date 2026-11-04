@@ -29,8 +29,11 @@ type Contexto struct {
 	Modulos           *TabelaModulos          // Catálogo e cache de módulos ativos carregados na VM.
 	Opcs              OpcsContexto            // Opções de configuração da VM.
 	fechado           bool                    // Flag reativa que impede operações após o encerramento do contexto.
+	mu                sync.Mutex              // Mutex para proteção de fechamento e waitgroup de tarefas concorrentes.
+	cancelCh          chan struct{}           // Canal fechado quando o contexto encerra suas operações.
 	waitgroup         sync.WaitGroup          // Mecanismo de controle de concorrência para processos ativos em segundo plano.
 	once              sync.Once               // Garante encerramento seguro de ciclo único da VM.
+	posMu             sync.RWMutex            // Mutex para proteção de campos de arquivo, código e coordenadas geográficas
 	ArquivoAtual      string                  // O nome do arquivo físico sob execução corrente.
 	CodigoAtual       string                  // O código fonte textual sob execução.
 	DiretorioTrabalho string                  // Diretório base isolado de trabalho deste contexto.
@@ -40,6 +43,45 @@ type Contexto struct {
 	ResolvendoModulos []string                // Pilha de módulos que estão sendo importados/resolvidos para prevenção de ciclos.
 	LinhasExecutadas  map[string]map[int]bool // ponytail: mapa para rastreamento de linhas cobertas na execução de testes
 	linhasExecMu      sync.Mutex              // mutex para evitar concorrência no mapa de linhas executadas
+}
+
+func (c *Contexto) DefinirArquivoCodigo(arquivo, codigo string) {
+	if c == nil {
+		return
+	}
+	c.posMu.Lock()
+	defer c.posMu.Unlock()
+	c.ArquivoAtual = arquivo
+	c.CodigoAtual = codigo
+}
+
+func (c *Contexto) ObterArquivoCodigo() (string, string) {
+	if c == nil {
+		return "", ""
+	}
+	c.posMu.RLock()
+	defer c.posMu.RUnlock()
+	return c.ArquivoAtual, c.CodigoAtual
+}
+
+func (c *Contexto) DefinirPosicaoToken(tok *lexer.Token, linha, coluna int) {
+	if c == nil {
+		return
+	}
+	c.posMu.Lock()
+	defer c.posMu.Unlock()
+	c.TokenAtual = tok
+	c.LinhaAtual = linha
+	c.ColunaAtual = coluna
+}
+
+func (c *Contexto) ObterPosicaoToken() (*lexer.Token, int, int) {
+	if c == nil {
+		return nil, -1, 0
+	}
+	c.posMu.RLock()
+	defer c.posMu.RUnlock()
+	return c.TokenAtual, c.LinhaAtual, c.ColunaAtual
 }
 
 var (
@@ -58,7 +100,6 @@ func DefinirContextoAtivo(ctx *Contexto) {
 	contextoAtivoMu.Lock()
 	defer contextoAtivoMu.Unlock()
 	contextoAtivo = ctx
-	ContextoAtivo = ctx
 }
 
 var ContextoAtivo *Contexto
@@ -79,6 +120,7 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 		Modulos:           NewTabelaModulos(),
 		Opcs:              opcs,
 		fechado:           false,
+		cancelCh:          make(chan struct{}),
 		DiretorioTrabalho: dirTrabalho,
 		LinhaAtual:        -1,
 		LinhasExecutadas:  make(map[string]map[int]bool), // ponytail: inicializa mapa de cobertura
@@ -90,10 +132,6 @@ func NewContexto(opcs OpcsContexto) *Contexto {
 	carregarArquivoEnv(dirTrabalho)
 	for _, dir := range opcs.CaminhosPadrao {
 		carregarArquivoEnv(dir)
-	}
-
-	Importe = func(nome string, escopo *Escopo) (Objeto, error) {
-		return MaquinarioImporteModulo(context, nome, escopo)
 	}
 
 	MultiImporteModulo(context, "embutidos")
@@ -179,8 +217,7 @@ func (c *Contexto) TransformarEmAst(caminhoInicial string, useSysPaths bool, cur
 
 // StringParaAst é a ponte direta que invoca e aciona o Parser para traduzir uma string de código em nós de AST.
 func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode, error) {
-	c.CodigoAtual = codigo
-	c.ArquivoAtual = caminho
+	c.DefinirArquivoCodigo(caminho, codigo)
 	ast, err := parser.NewParserFromString(string(codigo), caminho).Parse()
 	if err != nil {
 		if errSintatico, ok := err.(*parser.ErroSintatico); ok {
@@ -234,18 +271,22 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 	}
 
 	interpret := &Interpretador{Ast: ast, Contexto: c, Escopo: escopo}
+	oldArquivo, oldCodigo := c.ObterArquivoCodigo()
+	defer func() {
+		c.DefinirArquivoCodigo(oldArquivo, oldCodigo)
+	}()
+
 	if prog, ok := ast.(*parser.Programa); ok {
 		interpret.Arquivo = prog.Arquivo
 		interpret.Codigo = prog.Codigo
 		interpret.Posicoes = prog.Posicoes
-		c.ArquivoAtual = prog.Arquivo
-		c.CodigoAtual = prog.Codigo
+		c.DefinirArquivoCodigo(prog.Arquivo, prog.Codigo)
 	} else {
-		interpret.Arquivo = c.ArquivoAtual
-		interpret.Codigo = c.CodigoAtual
+		interpret.Arquivo = oldArquivo
+		interpret.Codigo = oldCodigo
 		// If Contexto already has parsed posicoes map or we can load it:
-		if c.ArquivoAtual != "" {
-			if mod, err := c.Modulos.ObterModulo(c.ArquivoAtual); err == nil && mod.Impl.Ast != nil {
+		if oldArquivo != "" {
+			if mod, err := c.Modulos.ObterModulo(oldArquivo); err == nil && mod.Impl.Ast != nil {
 				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
 					interpret.Posicoes = prog.Posicoes
 				}
@@ -255,26 +296,18 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 
 	// Fetch Posicoes from Program AST if wrapped, or get them if we can find it
 	if interpret.Posicoes == nil {
+		curArq, _ := c.ObterArquivoCodigo()
 		if prog, ok := ast.(*parser.Programa); ok {
 			interpret.Posicoes = prog.Posicoes
-		} else if c.ArquivoAtual != "" {
+		} else if curArq != "" {
 			// Find the parsed program from cached modules if available
-			if mod, err := c.Modulos.ObterModulo(c.ArquivoAtual); err == nil && mod.Impl.Ast != nil {
+			if mod, err := c.Modulos.ObterModulo(curArq); err == nil && mod.Impl.Ast != nil {
 				if prog, ok := mod.Impl.Ast.(*parser.Programa); ok {
 					interpret.Posicoes = prog.Posicoes
 				}
 			}
 		}
 	}
-
-	// Save and restore context state because MultiImporteModulo("embutidos") or inner evaluations
-	// will mutate c.CodigoAtual and c.ArquivoAtual.
-	oldArquivo := c.ArquivoAtual
-	oldCodigo := c.CodigoAtual
-	defer func() {
-		c.ArquivoAtual = oldArquivo
-		c.CodigoAtual = oldCodigo
-	}()
 
 	res, err := interpret.Inicializa()
 
@@ -287,10 +320,11 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 				hrpErr.Codigo = interpret.Codigo
 			}
 			// Enrich token details from visitor state if possible
-			if hrpErr.Token == nil && interpret.Posicoes != nil && c.TokenAtual != nil {
-				hrpErr.Token = c.TokenAtual
-				hrpErr.Linha = c.LinhaAtual
-				hrpErr.Coluna = c.ColunaAtual
+			tok, lin, col := c.ObterPosicaoToken()
+			if hrpErr.Token == nil && interpret.Posicoes != nil && tok != nil {
+				hrpErr.Token = tok
+				hrpErr.Linha = lin
+				hrpErr.Coluna = col
 			}
 		}
 		return nil, err
@@ -310,11 +344,9 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 	}
 	defer c.EncerrarTrabalho()
 
-	oldArquivo := c.ArquivoAtual
-	oldCodigo := c.CodigoAtual
+	oldArquivo, oldCodigo := c.ObterArquivoCodigo()
 	defer func() {
-		c.ArquivoAtual = oldArquivo
-		c.CodigoAtual = oldCodigo
+		c.DefinirArquivoCodigo(oldArquivo, oldCodigo)
 	}()
 
 	modulo, err := c.Modulos.NewModulo(c, implementacao)
@@ -324,8 +356,7 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 
 	if implementacao.Ast != nil {
 		if prog, ok := implementacao.Ast.(*parser.Programa); ok {
-			c.ArquivoAtual = prog.Arquivo
-			c.CodigoAtual = prog.Codigo
+			c.DefinirArquivoCodigo(prog.Arquivo, prog.Codigo)
 		}
 		_, err := c.AvaliarAst(implementacao.Ast, modulo.Escopo)
 		if err != nil {
@@ -339,6 +370,9 @@ func (c *Contexto) InicializarModulo(implementacao *ModuloImpl) (*Modulo, error)
 // adicionarTrabalho incrementa de forma concorrente a contagem do WaitGroup, controlando que
 // o contexto não seja finalizado abruptamente enquanto tarefas ativas estão em processamento.
 func (c *Contexto) AdicionarTrabalho() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.fechado {
 		return NewErro(RuntimeErro, Texto("Contexto já fechado"))
 	}
@@ -356,12 +390,39 @@ func (c *Contexto) EncerrarTrabalho() {
 // Aguarda a liberação de todas as rotinas concorrentes registradas no WaitGroup antes de encerrar as operações.
 func (c *Contexto) Terminar() {
 	c.once.Do(func() {
-		c.waitgroup.Wait()
+		c.mu.Lock()
 		c.fechado = true
-		Importe = func(s string, e *Escopo) (Objeto, error) {
-			panic("Antes de usar a função `Importe` você precisa criar um contexto")
+		if c.cancelCh != nil {
+			close(c.cancelCh)
 		}
+		c.mu.Unlock()
+
+		c.waitgroup.Wait()
+
+		contextoAtivoMu.Lock()
+		if contextoAtivo == c {
+			contextoAtivo = nil
+		}
+		contextoAtivoMu.Unlock()
 	})
+}
+
+// CanalCancelamento retorna um canal que é fechado quando o contexto encerra suas operações.
+func (c *Contexto) CanalCancelamento() <-chan struct{} {
+	if c == nil {
+		return nil
+	}
+	return c.cancelCh
+}
+
+// Fechado retorna true se o contexto foi marcado como encerrado.
+func (c *Contexto) Fechado() bool {
+	if c == nil {
+		return true
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.fechado
 }
 
 // VerificarPermissaoArquivos valida se o contexto possui a flag de permissão para ler ou escrever arquivos.

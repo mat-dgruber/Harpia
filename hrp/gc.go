@@ -94,7 +94,7 @@ func ColetarCiclos(escopo *Escopo) {
 	}
 
 	for _, simb := range escopo.ObterSimbolosSeguro() {
-		varrer(simb.ObterValor())
+		varrer(simb.Valor)
 	}
 
 	if len(alcancaveis) == 0 {

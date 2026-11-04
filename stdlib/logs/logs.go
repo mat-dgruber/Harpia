@@ -32,6 +32,8 @@ func logar(nivel string, cor string, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 
 	msgStr := fmt.Sprintf("%v", args[0])
+	msgStr = strings.ReplaceAll(msgStr, "\r", "\\r")
+	msgStr = strings.ReplaceAll(msgStr, "\n", "\\n")
 
 	var meta map[string]interface{}
 	if len(args) > 1 {

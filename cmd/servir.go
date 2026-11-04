@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"fmt"
+	"html"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -498,7 +499,7 @@ func comandoServir() *cobra.Command {
     };
   </script>
 </body>
-</html>`, strings.ReplaceAll(errStr, "<", "&lt;"))
+</html>`, html.EscapeString(errStr))
 						w.Write([]byte(htmlErro))
 						return
 					}

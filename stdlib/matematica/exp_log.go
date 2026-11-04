@@ -25,7 +25,11 @@ func met_mat_log(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err != nil {
 		return nil, err
 	}
-	return hrp.Decimal(math.Log(float64(val.(hrp.Decimal)))), nil
+	f := float64(val.(hrp.Decimal))
+	if f <= 0 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "Logaritmo indefinido para valores <= 0")
+	}
+	return hrp.Decimal(math.Log(f)), nil
 }
 
 var _mat_exp = hrp.NewMetodoOuPanic("exp", met_mat_exp, "exp(x) -> Retorna e^x")

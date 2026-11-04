@@ -22,6 +22,7 @@ package cmd
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -222,7 +223,14 @@ func processaBlocoEstilo(nome string, corpo string) string {
 		sb.WriteString("}\n")
 	}
 
-	for sel, inner := range nested {
+	seletores := make([]string, 0, len(nested))
+	for sel := range nested {
+		seletores = append(seletores, sel)
+	}
+	sort.Strings(seletores)
+
+	for _, sel := range seletores {
+		inner := nested[sel]
 		planosInner, _, _ := parseCorpoToken(inner, true)
 		sb.WriteString(".")
 		sb.WriteString(nome)

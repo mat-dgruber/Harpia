@@ -49,11 +49,14 @@ func extrairZipNativo(zipPath, destDir string) error {
 	defer r.Close()
 
 	cleanDest := filepath.Clean(destDir)
+	prefixoDest := cleanDest + string(os.PathSeparator)
 
 	for _, f := range r.File {
+		if strings.Contains(f.Name, "..") {
+			return fmt.Errorf("caminho invalido no zip: %s", f.Name)
+		}
 		cleanPath := filepath.Clean(filepath.Join(cleanDest, f.Name))
-		rel, err := filepath.Rel(cleanDest, cleanPath)
-		if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
+		if cleanPath != cleanDest && !strings.HasPrefix(cleanPath, prefixoDest) {
 			return fmt.Errorf("caminho invalido no zip: %s", f.Name)
 		}
 		fpath := cleanPath
@@ -103,6 +106,7 @@ func extrairTarGzNativo(tarGzPath, destDir string) error {
 
 	tr := tar.NewReader(gzr)
 	cleanDest := filepath.Clean(destDir)
+	prefixoDest := cleanDest + string(os.PathSeparator)
 
 	for {
 		header, err := tr.Next()
@@ -113,9 +117,11 @@ func extrairTarGzNativo(tarGzPath, destDir string) error {
 			return err
 		}
 
+		if strings.Contains(header.Name, "..") {
+			return fmt.Errorf("caminho invalido no tar.gz: %s", header.Name)
+		}
 		cleanPath := filepath.Clean(filepath.Join(cleanDest, header.Name))
-		rel, err := filepath.Rel(cleanDest, cleanPath)
-		if err != nil || strings.HasPrefix(rel, "..") || rel == ".." {
+		if cleanPath != cleanDest && !strings.HasPrefix(cleanPath, prefixoDest) {
 			return fmt.Errorf("caminho invalido no tar.gz: %s", header.Name)
 		}
 		fpath := cleanPath

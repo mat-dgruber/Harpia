@@ -76,3 +76,29 @@ func TestOtimizador_BranchesConstantes(t *testing.T) {
 		t.Errorf("bloco senao alternativo deveria ter sido promovido")
 	}
 }
+
+func TestOtimizador_DCE_PreservaEfeitoColateral(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+	var x = imprimir("a")
+	`
+
+	astNode, err := ctx.StringParaAst(codigo, "<teste>")
+	if err != nil {
+		t.Fatalf("erro ao gerar AST: %v", err)
+	}
+
+	prog := astNode.(*parser.Programa)
+	opt := Otimizar(prog)
+
+	transpiler := &TranspilerNative{}
+	goCode := transpiler.GenerateFullCode(opt)
+
+	t.Logf("CÓDIGO GERADO: %s", goCode)
+
+	if !strings.Contains(goCode, "imprimir") {
+		t.Errorf("chamada 'imprimir' com efeito colateral deveria ser preservada mesmo se variável não for usada")
+	}
+}

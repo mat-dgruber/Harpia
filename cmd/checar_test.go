@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/mat-dgruber/Harpia/hrp"
+	"github.com/mat-dgruber/Harpia/parser"
 )
 
 func TestLinterShadowingWarning(t *testing.T) {
@@ -118,5 +119,69 @@ func TestLinterJSXComponentSignature(t *testing.T) {
 	erro := errosJsx[0]
 	if erro.Severity != 2 {
 		t.Errorf("Esperava Severity=2 (Aviso), obteve %d", erro.Severity)
+	}
+}
+
+func TestChecarArquiteturaEstritaECPF(t *testing.T) {
+	// 1. checarArquitetura com aspas no caminho
+	impComAspas := &parser.ImporteDe{
+		Caminho: &parser.TextoLiteral{Valor: "\"../web/tela.hrp\""},
+	}
+	prog := &parser.Programa{
+		Arquivo:     "infra/servicos/api.hrp",
+		Declaracoes: []parser.BaseNode{impComAspas},
+	}
+	errosArch := checarArquitetura("infra/servicos/api.hrp", prog)
+	if len(errosArch) == 0 {
+		t.Errorf("Esperava violação HRP-ARCH-002 para importação da camada web dentro de infra com caminho com aspas")
+	}
+
+	// 2. gerarCPF validação matemática
+	for i := 0; i < 50; i++ {
+		cpf := gerarCPF()
+		if len(cpf) != 11 {
+			t.Fatalf("Esperava CPF com 11 dígitos, obteve %d (%s)", len(cpf), cpf)
+		}
+		digs := make([]int, 11)
+		for idx, ch := range cpf {
+			if ch < '0' || ch > '9' {
+				t.Fatalf("CPF contém caractere não numérico: %s", cpf)
+			}
+			digs[idx] = int(ch - '0')
+		}
+
+		soma1 := 0
+		for idx := 0; idx < 9; idx++ {
+			soma1 += digs[idx] * (10 - idx)
+		}
+		dv1 := (soma1 * 10) % 11
+		if dv1 == 10 {
+			dv1 = 0
+		}
+		if digs[9] != dv1 {
+			t.Errorf("Dígito verificador 1 inválido no CPF %s: esperava %d, obteve %d", cpf, dv1, digs[9])
+		}
+
+		soma2 := 0
+		for idx := 0; idx < 9; idx++ {
+			soma2 += digs[idx] * (11 - idx)
+		}
+		soma2 += digs[9] * 2
+		dv2 := (soma2 * 10) % 11
+		if dv2 == 10 {
+			dv2 = 0
+		}
+		if digs[10] != dv2 {
+			t.Errorf("Dígito verificador 2 inválido no CPF %s: esperava %d, obteve %d", cpf, dv2, digs[10])
+		}
+	}
+}
+
+func TestGerarCPF(t *testing.T) {
+	for i := 0; i < 30; i++ {
+		cpf := gerarCPF()
+		if len(cpf) != 11 {
+			t.Fatalf("Esperava 11 dígitos, obteve %d", len(cpf))
+		}
 	}
 }

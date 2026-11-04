@@ -150,11 +150,21 @@ func TestComandoAtualizarChecarFlag(t *testing.T) {
 	var buf bytes.Buffer
 	cmd.SetOut(&buf)
 	cmd.SetErr(&buf)
-	cmd.SetArgs([]string{"--checar"})
 
-	// Verify the flag exists
 	flag := cmd.Flags().Lookup("checar")
 	if flag == nil {
 		t.Fatalf("flag --checar nao encontrada")
+	}
+
+	if err := cmd.ParseFlags([]string{"--checar"}); err != nil {
+		t.Fatalf("erro ao processar flag --checar: %v", err)
+	}
+
+	val, err := cmd.Flags().GetBool("checar")
+	if err != nil {
+		t.Fatalf("erro ao obter valor da flag checar: %v", err)
+	}
+	if !val {
+		t.Errorf("esperava flag checar como true apos parse de '--checar', obteve false")
 	}
 }

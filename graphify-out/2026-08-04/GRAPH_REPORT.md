@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `739f833f`
+- Built from commit: `7dca74a1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -18,12 +18,12 @@
 - Objeto
 - .M__obtem_attributo__
 - NoBase
-- Tupla
+- met_pdf_gerarDeHtml
 - NewErroF
-- Tipo
+- met_emb_sequencia
 - Interpretador
 - .visiteOpBinaria
-- NewMetodoOuPanic
+- NewMapaVazio
 - Lexer
 - lsp.go
 - Parser
@@ -58,23 +58,23 @@
 - 📝 Registro de Desenvolvimento — 30 de Julho de 2026
 - Modulo
 - test_vdom.js
-- GCMixin
+- .M__obtem_attributo__
 - iniciar.go
 - Diretrizes de Marca: Harpia 🦅
 - criaRenderizadorDeCores
-- testar.go
-- cmd/playground.go
+- Tipo
+- NewParserFromString
 - 📝 Registro de Desenvolvimento — 2026-07-20
 - 📝 Registro de Desenvolvimento — 2026-07-22
 - 📝 Registro de Desenvolvimento — 2026-07-20
 - 📝 Registro de Desenvolvimento — 2026-07-22
 - metricas.go
-- NewParserFromString
+- Bloco
 - strings.go
 - Especificação Gramatical (`gramatica` do Harpia)
 - h
 - ⚡ Recursos de Performance e Otimizações
-- .M__obtem_attributo__
+- NewMetodoOuPanic
 - compilar_test.go
 - Pacote `cmd` (Comandos da CLI do Harpia)
 - 📝 Registro de Desenvolvimento — 2026-07-14
@@ -92,31 +92,31 @@
 - Capítulo 7 — Desenvolvimento Frontend Reativo e SPA (Sinais, JSX, Estilos e SSR)
 - Pacote `parser` (Analisador Sintático do Harpia)
 - 🤖 Módulo `ia` (Biblioteca Padrão)
-- Bloco
+- NewVarSimbolo
 - diagramar.go
 - 📝 Registro de Desenvolvimento — 2026-07-28
 - Exemplos Práticos de Aplicação — Guia de Marca Harpia
 - Harpia Lexer & Parser Maturity V2 — Design Specification
 - Pacote `lexer` (Analisador Léxico do Harpia)
-- UI
+- Tupla
 - package.json
 - logar
-- ObtemAtributoS
+- UI
 - atualizar_test.go
-- checar.go
-- met_emb_sequencia
+- ObtemAtributoS
+- .Executar
 - Promessa
 - Funcao
-- met_fila_enfileirar
-- 🇧🇷 Harpia — Roadmap Oficial
+- cmd/playground.go
+- checar.go
 - contributes
 - ConexaoMongo
-- TranspilerNative
 - .M__obtem_attributo__
+- tratarRequisicaoLSP
 - README.md
-- .visiteBlocoPara
+- testar.go
 - Detalhamento Técnico
-- .Executar
+- .Checar
 - comandoDepurar
 - comandoDoc
 - i18n.go
@@ -134,8 +134,8 @@
 - 2. Resolução de Módulos (Stdlib Dinâmica)
 - 2. Detalhemento por Commit
 - Componentes
-- Erro
-- 🦅 Harpia
+- .M__obtem_attributo__
+- GCMixin
 - TensorObj
 - ⚡ FASE 5 — Tooling & Ecossistema
 - Otimizar
@@ -146,7 +146,7 @@
 - Componentes
 - Capítulo 10 — Arcabouço de Testes Nativos, Diagnósticos e Suporte a IA
 - Texto
-- Metodo
+- 🇧🇷 Harpia — Roadmap Oficial
 - efeito
 - Executando Códigos Através do Terminal
 - TestContemApenasAlfaNum
@@ -156,31 +156,31 @@
 - ElementoJSX
 - 🇧🇷 Manual de Referência Oficial do Harpia
 - 🚀 FASE 6 — Compilação Nativa Otimizada e Ecossistema Corporativo
-- 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
+- inicializarTuiModel
 - ValidarResposta
 - iterador_bytes_test.go
-- 🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade
+- 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
 - comandoStressar
 - Global Constraints
 - Global Constraints
 - PULL_REQUEST_TEMPLATE.md
 - linter_lsp_test.go
 - ChamarLLM
-- [Nome do Repositório]
+- 🦅 Harpia
 - keywords
-- NewMapaVazio
+- [Nome do Repositório]
 - bd_test.go
-- Funções
 - 4. Arquitetura e Fluxo
+- Erro
 - Global Constraints
 - TestConstanteImutavel
 - sql_test.go
 - DataHora
 - get
-- hrp/utils.go
-- tratarRequisicaoLSP
+- TranspilerNative
+- .parseDeclaracao
 - 🔄 Subcomando: `atualize`
-- 7. Modo Claro ("Harpia Light")
+- hrp/utils.go
 - Exemplo: Contador Reativo
 - Exemplo: Formulário de Contato
 - Exemplo: Lista de Tarefas
@@ -192,35 +192,35 @@
 - TestTipagemEstaticaExecucao
 - categories
 - TestRPCModulo
-- TestSSRBasico
+- Metodo
 - TestAPIExecutarCodigoPlayground
 - Flags Suportadas
 - TestColorEnabledNoColor
 - Módulos de Extensões Externas (.so)
-- .Checar
+- 🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade
 - TestErrosRicos
 - Aplicar-Estilo
 - TestProdutoEscalar
 - lote
-- .M__obtem_attributo__
-- TestSSRServidorCompleto
+- Funções
+- met_fila_enfileirar
 - default
 - repository
 - Extensão Harpia para VS Code
-- NewVarSimbolo
+- Programa
 - instalar.sh script
 - exemplo.com/externos
 - rebuild-e-instalar.sh
 - Lista
 - NotificacaoToast
-- inicializarTuiModel
-- met_esquema_criar
-- .parseDeclaracao
-- met_pdf_gerarDeHtml
-- Programa
 - comandoLsp
-- TestModuloIA_ComunicacaoMultiAgente
+- met_esquema_criar
+- .visiteBlocoPara
+- 7. Modo Claro ("Harpia Light")
+- TestSSRBasico
 - NomeOpcode
+- TestModuloIA_ComunicacaoMultiAgente
+- TestSSRServidorCompleto
 - TestClassesEHeranca
 
 ## God Nodes (most connected - your core abstractions)
@@ -264,25 +264,25 @@ Nodes (22): ObterContextoAtivo(), RotaMeta, Servidor, Server, met_assinar_hmac()
 Cohesion: 0.03
 Nodes (46): AcessoMembro, AcessoMembroOpcional, AguardeNode, Anotacao, ArgumentoNomeado, AsseguraNode, CasoEscolha, ChamadaFuncao (+38 more)
 
-### Community 3 - "Tupla"
-Cohesion: 0.06
-Nodes (50): Decimal, init(), NewDecimal(), Tupla, VerificaNumeroArgumentos(), met_vetores_criarBanco(), met_emb_doc(), met_emb_instanciaDe() (+42 more)
+### Community 3 - "met_pdf_gerarDeHtml"
+Cohesion: 0.33
+Nodes (3): met_pdf_gerarDeHtml(), T, TestGerarDeHtml()
 
 ### Community 4 - "NewErroF"
 Cohesion: 0.09
 Nodes (19): init(), NewErroF(), DefineItem(), NomeAtributo(), ObtemItem(), PollFd, Sockaddr, met_bd_conectarMongo() (+11 more)
 
-### Community 5 - "Tipo"
-Cohesion: 0.05
-Nodes (19): ObjetoBrowserStub, ObjetoBrowserStubMetodo, ObjetoPromise, ObjetoPromiseResult, ObjetoRoteador, ObjetoRoteadorApp, Esquema, ArgumentoNomeadoObj (+11 more)
+### Community 5 - "met_emb_sequencia"
+Cohesion: 0.26
+Nodes (7): SequenciaNumerica, met_emb_sequencia(), T, TestSequenciaDoisArgumentos(), TestSequenciaPassoZero(), TestSequenciaTresArgumentosPassoNegativo(), TestSequenciaUmArgumento()
 
 ### Community 7 - ".visiteOpBinaria"
 Cohesion: 0.18
 Nodes (21): Adiciona(), AdicionaEAtribui(), Diferente(), Divide(), DivideEAtribui(), DivideInteiro(), DivideInteiroEAtribui(), E() (+13 more)
 
-### Community 8 - "NewMetodoOuPanic"
-Cohesion: 0.07
-Nodes (26): ConexaoSQL, QueryBuilder, TransacaoSQL, Background, InicializaModulo(), NewMetodoOuPanic(), init(), converterArgumentosParaGo() (+18 more)
+### Community 8 - "NewMapaVazio"
+Cohesion: 0.09
+Nodes (20): ClienteVetorial, Builder, NewMapaVazio(), Name, Client, met_conectar_qdrant(), met_email_enviar(), T (+12 more)
 
 ### Community 9 - "Lexer"
 Cohesion: 0.10
@@ -416,9 +416,9 @@ Nodes (9): GerenciadorModulos, Modulo, RWMutex, NewTabelaModulos(), ObtemImplMod
 Cohesion: 0.14
 Nodes (23): aoDesmontar(), aoMontar(), armazem(), batch, CabecalhoPagina(), criarRef(), derivado(), devTools (+15 more)
 
-### Community 43 - "GCMixin"
-Cohesion: 0.18
-Nodes (9): ColetarCiclos(), LiberarObjeto(), obterIDObjetoGC(), ReterObjeto(), GCMixin, ObjetoGC, calcularSimilaridadeCosseno(), BancoVetorialObj (+1 more)
+### Community 43 - ".M__obtem_attributo__"
+Cohesion: 0.11
+Nodes (12): Mutex, RWMutex, Time, init(), met_nova_metrica(), met_novo_tracer(), T, TestMetrica() (+4 more)
 
 ### Community 44 - "iniciar.go"
 Cohesion: 0.26
@@ -432,13 +432,13 @@ Nodes (19): 1. Essência da Marca, 2.1 Paleta de Cores (Cromia), 2.2 Texturas e 
 Cohesion: 0.22
 Nodes (7): cor, Foreground, met_color_converteRGB(), init(), criaRenderizadorDeCores(), HexParaRgb(), RgbParaAnsi()
 
-### Community 47 - "testar.go"
-Cohesion: 0.22
-Nodes (11): RelatorioTestesJSON, ResultadoTesteJSON, SuiteTestesJSON, comandoTestar(), corPorPorcentagem(), gerarRelatorioCoberturaHTML(), Command, Writer (+3 more)
+### Community 47 - "Tipo"
+Cohesion: 0.05
+Nodes (19): ObjetoBrowserStub, ObjetoBrowserStubMetodo, ObjetoPromise, ObjetoPromiseResult, ObjetoRoteador, ObjetoRoteadorApp, Esquema, ArgumentoNomeadoObj (+11 more)
 
-### Community 48 - "cmd/playground.go"
-Cohesion: 0.22
-Nodes (17): ExecucaoPlaygroundRequest, ExecucaoPlaygroundResponse, ansiParaHtml(), apiDocsPlayground(), apiEditorConfig(), apiExecutarCodigoPlayground(), comandoPlayground(), Command (+9 more)
+### Community 48 - "NewParserFromString"
+Cohesion: 0.07
+Nodes (45): T, TestExtraiEGerarCssUtilitarios(), compilarParaWeb(), copiarArquivo(), corrigirCaminhoImport(), gerarImportHeaderWeb(), gerarWebPSeDisponivel(), Command (+37 more)
 
 ### Community 49 - "📝 Registro de Desenvolvimento — 2026-07-20"
 Cohesion: 0.11
@@ -460,9 +460,9 @@ Nodes (16): 10. Validações Mapeadas, 1. Visão Geral das Alterações, 2. Arqu
 Cohesion: 0.15
 Nodes (11): Contador, Medidor, MetricaInfo, RWMutex, init(), met_metricas_criarContador(), met_metricas_criarMedidor(), met_metricas_expor() (+3 more)
 
-### Community 54 - "NewParserFromString"
-Cohesion: 0.07
-Nodes (45): T, TestExtraiEGerarCssUtilitarios(), compilarParaWeb(), copiarArquivo(), corrigirCaminhoImport(), gerarImportHeaderWeb(), gerarWebPSeDisponivel(), Command (+37 more)
+### Community 54 - "Bloco"
+Cohesion: 0.11
+Nodes (9): Bloco, BlocoPara, DeclClasse, DeclFuncao, DeclFuncaoParametro, DeclTeste, Enquanto, ExpressaoSe (+1 more)
 
 ### Community 55 - "strings.go"
 Cohesion: 0.19
@@ -480,9 +480,9 @@ Nodes (13): Aguardar(), Animacao(), BarraDeProgresso(), FronteiraDeErro(), Grade
 Cohesion: 0.12
 Nodes (15): 1. Loop `switch` Zero-Alloc Plano, 2. Slots Locais $O(1)$ com Indexação `uint16`, 3. Internamento $O(1)$ de Constantes (`constMap`), 4. Laços `para-em` (`BlocoPara`) e Controle de Fluxo (`pare` / `continue`), 5. Reatribuição Composta e Escritas em Coleções / Membros, 6. Suporte Expandido a Operandos 16-Bit BigEndian, 7. Gestão de Memória via `sync.Pool`, 8. Tratamento Nativo de Exceções (`tente / capture`) (+7 more)
 
-### Community 59 - ".M__obtem_attributo__"
-Cohesion: 0.11
-Nodes (12): Mutex, RWMutex, Time, init(), met_nova_metrica(), met_novo_tracer(), T, TestMetrica() (+4 more)
+### Community 59 - "NewMetodoOuPanic"
+Cohesion: 0.07
+Nodes (26): ConexaoSQL, QueryBuilder, TransacaoSQL, Background, InicializaModulo(), NewMetodoOuPanic(), init(), converterArgumentosParaGo() (+18 more)
 
 ### Community 60 - "compilar_test.go"
 Cohesion: 0.24
@@ -552,9 +552,9 @@ Nodes (14): 1. Visão Geral, 2. Arquivos do Pacote, 3. Dependências, 5.1. Parsi
 Cohesion: 0.14
 Nodes (13): 1. Ollama (Provedor Local / Padrão), 2. Google Gemini, 3. OpenAI, Atributos, 🚀 Como Importar, Construtor, Exemplo 1: Conversa Simples com Memória, Exemplo 2: Comunicação Multi-Agente (+5 more)
 
-### Community 77 - "Bloco"
-Cohesion: 0.11
-Nodes (9): Bloco, BlocoPara, DeclClasse, DeclFuncao, DeclFuncaoParametro, DeclTeste, Enquanto, ExpressaoSe (+1 more)
+### Community 77 - "NewVarSimbolo"
+Cohesion: 0.21
+Nodes (3): NewVarSimbolo(), NewFuncao(), ValidarTipo()
 
 ### Community 78 - "diagramar.go"
 Cohesion: 0.29
@@ -576,9 +576,9 @@ Nodes (12): 1. Overview & Goals, 2.1 Lexer ASCII Lookup Table & Tokenization, 2.
 Cohesion: 0.15
 Nodes (12): ⚙️ Algoritmo Operacional e Máquina de Estados, 🛠️ Documentação de Métodos e Funções, 🌐 Entidades HTML Inline, 📍 Estrutura e Representação de Coordenadas (Zero-Alloc), 🧪 Fuzzing e Testes de Regressão, Pacote `lexer` (Analisador Léxico do Harpia), `PosicaoToken`, 🚀 Recursos Avançados da Linguagem (+4 more)
 
-### Community 83 - "UI"
-Cohesion: 0.19
-Nodes (10): comandoFormatar(), FormatarCodigoHarpia(), GerarUnifiedDiff(), Command, maximo(), T, TestFormatarCodigoHarpia(), TestGerarUnifiedDiff() (+2 more)
+### Community 83 - "Tupla"
+Cohesion: 0.06
+Nodes (50): Decimal, init(), NewDecimal(), Tupla, VerificaNumeroArgumentos(), met_vetores_criarBanco(), met_emb_doc(), met_emb_instanciaDe() (+42 more)
 
 ### Community 84 - "package.json"
 Cohesion: 0.15
@@ -588,33 +588,33 @@ Nodes (12): onLanguage:harpia, activationEvents, description, displayName, engin
 Cohesion: 0.27
 Nodes (11): formatarData(), init(), logar(), met_logs_alerta(), met_logs_configurar(), met_logs_depurar(), met_logs_erro(), met_logs_info() (+3 more)
 
-### Community 86 - "ObtemAtributoS"
+### Community 86 - "UI"
 Cohesion: 0.19
-Nodes (13): NewBytes(), T, TestConversaoDeTipos(), TestConversaoParaBytesPorMetodoImplementado(), TestConversaoPelaChamadaDoConstrutor(), TestCriacaoDeInstanciaVazia(), TestStringParaBytes(), adicionaContextoSeNaoTiver() (+5 more)
+Nodes (10): comandoFormatar(), FormatarCodigoHarpia(), GerarUnifiedDiff(), Command, maximo(), T, TestFormatarCodigoHarpia(), TestGerarUnifiedDiff() (+2 more)
 
 ### Community 87 - "atualizar_test.go"
 Cohesion: 0.26
 Nodes (13): comandoAtualizar(), extrairTarGzNativo(), extrairZipNativo(), Command, obterUltimaVersaoURL(), createTestTarGz(), createTestZip(), T (+5 more)
 
-### Community 88 - "checar.go"
-Cohesion: 0.17
-Nodes (13): checarArquitetura(), comandoChecar(), ExecutarChecagemSilenciosa(), Command, init(), DiagnosticRange, LinterError, Location (+5 more)
+### Community 88 - "ObtemAtributoS"
+Cohesion: 0.19
+Nodes (13): NewBytes(), T, TestConversaoDeTipos(), TestConversaoParaBytesPorMetodoImplementado(), TestConversaoPelaChamadaDoConstrutor(), TestCriacaoDeInstanciaVazia(), TestStringParaBytes(), adicionaContextoSeNaoTiver() (+5 more)
 
-### Community 89 - "met_emb_sequencia"
-Cohesion: 0.26
-Nodes (7): SequenciaNumerica, met_emb_sequencia(), T, TestSequenciaDoisArgumentos(), TestSequenciaPassoZero(), TestSequenciaTresArgumentosPassoNegativo(), TestSequenciaUmArgumento()
+### Community 89 - ".Executar"
+Cohesion: 0.25
+Nodes (9): Neg(), Pos(), Nao(), Frame, PerfilInfo, TryHandler, VM, Duration (+1 more)
 
 ### Community 90 - "Promessa"
 Cohesion: 0.21
 Nodes (5): Canal, Mutex, Promessa, Mutex, NewPromessa()
 
-### Community 92 - "met_fila_enfileirar"
-Cohesion: 0.33
-Nodes (4): GerenciadorFila, Mutex, met_fila_enfileirar(), met_fila_tamanho()
+### Community 92 - "cmd/playground.go"
+Cohesion: 0.22
+Nodes (17): ExecucaoPlaygroundRequest, ExecucaoPlaygroundResponse, ansiParaHtml(), apiDocsPlayground(), apiEditorConfig(), apiExecutarCodigoPlayground(), comandoPlayground(), Command (+9 more)
 
-### Community 93 - "🇧🇷 Harpia — Roadmap Oficial"
+### Community 93 - "checar.go"
 Cohesion: 0.17
-Nodes (12): 🧭 As 10 Decisões Fundamentais, ✅ Conclusão do Roadmap, Critérios de Priorização, 📦 Estado Atual (v1.x - Produção), Estimativa de Esforço Agregado, 📅 Estimativa de Tempo (solo, part-time ~10–15h/semana), 💡 Filosofia de Design, 🇧🇷 Harpia — Roadmap Oficial (+4 more)
+Nodes (13): checarArquitetura(), comandoChecar(), ExecutarChecagemSilenciosa(), Command, init(), DiagnosticRange, LinterError, Location (+5 more)
 
 ### Community 94 - "contributes"
 Cohesion: 0.17
@@ -624,25 +624,25 @@ Nodes (12): contributes, commands, fileIconThemes, grammars, keybindings, langua
 Cohesion: 0.25
 Nodes (7): ColecaoMongo, ConexaoMongo, ConexaoRedis, Collection, conectarMongoImpl(), conectarRedisImpl(), Client
 
-### Community 97 - ".M__obtem_attributo__"
+### Community 96 - ".M__obtem_attributo__"
 Cohesion: 0.15
 Nodes (9): ConfigDependencias, ConverteDeGo(), ConverteParaGo(), CarregarModuloRPC(), Resposta, converteParahrp(), init(), met_json_analisar() (+1 more)
+
+### Community 97 - "tratarRequisicaoLSP"
+Cohesion: 0.34
+Nodes (13): processarDiagnosticosLSP(), T, TestLSPCleanArchLinter(), TestLSPCompletion(), TestLSPDefinition(), TestLSPDiagnosticsSyntax(), TestLSPFormatting(), TestLSPHover() (+5 more)
 
 ### Community 98 - "README.md"
 Cohesion: 0.20
 Nodes (5): Agradecimentos, Como Contribuir, Diretrizes de Contribuição, Guia de Contribuição, Padrão de Commits
 
-### Community 99 - ".visiteBlocoPara"
-Cohesion: 0.50
-Nodes (3): Em(), Iter(), próximo()
+### Community 99 - "testar.go"
+Cohesion: 0.22
+Nodes (11): RelatorioTestesJSON, ResultadoTesteJSON, SuiteTestesJSON, comandoTestar(), corPorPorcentagem(), gerarRelatorioCoberturaHTML(), Command, Writer (+3 more)
 
 ### Community 100 - "Detalhamento Técnico"
 Cohesion: 0.18
 Nodes (11): 10. Decorator syntax `@nome`, 1. Arrow Functions, 2. `||` como OR lógico distinto do pipe `|>`, 3. `<` literal dentro de strings sem disparar JSX, 4. Ternário dentro de JSX `style={...}`, 5. `tente/capture` capturar panics Go nativos, 6. Import curto para stdlib (`de "sinais"`), 7. `<style>` aceitar concatenação `{"a" + "b"}` (+3 more)
-
-### Community 101 - ".Executar"
-Cohesion: 0.25
-Nodes (9): Neg(), Pos(), Nao(), Frame, PerfilInfo, TryHandler, VM, Duration (+1 more)
 
 ### Community 102 - "comandoDepurar"
 Cohesion: 0.24
@@ -712,13 +712,13 @@ Nodes (8): 1. `refactor(vm): aprimora tracebacks, suporte a .env, tratamento de 
 Cohesion: 0.22
 Nodes (8): 1. Centralizador de Terminal & UI (`cmd/ui.go`), 2. Formatador de Código Baseado em AST & Tokens (`cmd/formatar.go`), 3. Exibição de Diff Unificado (`--diff`), 4. Integração com CI (`--verificar`), Componentes, Especificação de Design: Harpia CLI - Fase A (DX, Formatação AST & Stream UI), Objetivo, Testes Automatizados
 
-### Community 119 - "Erro"
-Cohesion: 0.43
-Nodes (4): Erro, levenshtein(), ObterCodigoErro(), ObterSugestaoErro()
+### Community 119 - ".M__obtem_attributo__"
+Cohesion: 0.18
+Nodes (6): Biblioteca, FuncaoFFI, init(), met_ffi_abrir(), T, TestFFIMockSoma()
 
-### Community 120 - "🦅 Harpia"
-Cohesion: 0.22
-Nodes (9): ✨ Características Principais & Performance, 🏗️ Clean Architecture e DDD Nativo, 📚 Documentação & Guias, ⚡ Filosofia e Conceito: O Método Ponytail, 🦅 Harpia, 🚀 Instalação Rápida, Linux / macOS, 📖 O que é a Harpia? (+1 more)
+### Community 120 - "GCMixin"
+Cohesion: 0.18
+Nodes (9): ColetarCiclos(), LiberarObjeto(), obterIDObjetoGC(), ReterObjeto(), GCMixin, ObjetoGC, calcularSimilaridadeCosseno(), BancoVetorialObj (+1 more)
 
 ### Community 122 - "⚡ FASE 5 — Tooling & Ecossistema"
 Cohesion: 0.22
@@ -756,9 +756,9 @@ Nodes (8): A Diretiva `assegura` (ou `assegure`), A Palavra-Chave `testar`, Cap�
 Cohesion: 0.07
 Nodes (38): Texto, init(), NewTexto(), Agente, met_arq_acrescentar(), met_arq_caminhar(), met_arq_escrever(), met_arq_juntar() (+30 more)
 
-### Community 131 - "Metodo"
-Cohesion: 0.28
-Nodes (4): Metodo, NewMetodo(), NewMetodoProxyDeNativo(), Executor
+### Community 131 - "🇧🇷 Harpia — Roadmap Oficial"
+Cohesion: 0.17
+Nodes (12): 🧭 As 10 Decisões Fundamentais, ✅ Conclusão do Roadmap, Critérios de Priorização, 📦 Estado Atual (v1.x - Produção), Estimativa de Esforço Agregado, 📅 Estimativa de Tempo (solo, part-time ~10–15h/semana), 💡 Filosofia de Design, 🇧🇷 Harpia — Roadmap Oficial (+4 more)
 
 ### Community 132 - "efeito"
 Cohesion: 0.33
@@ -796,9 +796,9 @@ Nodes (20): 22.1. Confinamento Robusto de Diretórios (Anti-Path Traversal), 22.
 Cohesion: 0.29
 Nodes (7): 6.1 — Compilação AOT (Ahead-Of-Time) Real e Otimizações Nativa, 6.2 — Sandbox de Segurança WASM e WASI de Alta Performance, 6.3 — LSP com Linter de Segurança e Sugestões Assistidas, 6.4 — SDK de IA e Primitivas Agentes Nativas (`de "ia"`), 6.5 — ORM Tipado e Proteção Estática contra SQL Injection (`de "bd"`), 6.6 — Microsserviços e Resiliência Nativa (Service Mesh Integrada), 🚀 FASE 6 — Compilação Nativa Otimizada e Ecossistema Corporativo
 
-### Community 141 - "🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)"
-Cohesion: 0.25
-Nodes (8): 4.1 — Transpilação de Alta Performance para Web (Compilador & Emissor), 4.2 — Estilização Nativa e Unificada (Três Pilares), 4.3 — Roteamento SPA Baseado em Arquivos (File-system Routing), 4.4 — Metadados Semânticos Nativos (AEO & GEO), 4.5 — Componentes JSX-like, 4.5 — Sinais e Estado Global Nativo, 4.6 — Virtual DOM / Reconciliação, 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
+### Community 141 - "inicializarTuiModel"
+Cohesion: 0.36
+Nodes (7): comandoTui(), Command, inicializarTuiModel(), T, TestInicializarTuiModel(), TestTUIDebuggerSimulation(), TestTUIFocoInterativo()
 
 ### Community 142 - "ValidarResposta"
 Cohesion: 0.38
@@ -808,9 +808,9 @@ Nodes (5): validarCampo(), ValidarResposta(), T, TestAgenteCriacao(), TestValida
 Cohesion: 0.48
 Nodes (6): T, TestBytesConversaoErroAmigavel(), TestIteradorNativoBytes(), TestIteradorNativoTexto(), TestIteradorSobreTexto(), TestIteradorSobreTextoPalavra()
 
-### Community 144 - "🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade"
-Cohesion: 0.29
-Nodes (7): 7.1 — Canais de Distribuição e Instaladores Automatizados, 7.2 — Portal Oficial e Playground Online (`harpia.org`), 7.3 — Registro Público de Pacotes (Central de Dependências), 7.4 — Governança e Contribuição Aberta (RFCs em PT), 7.5 — Kits de Sucesso e Evangelismo (Marketing Educacional), 🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade, 🔤 Sintaxe Alvo (referência)
+### Community 144 - "🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)"
+Cohesion: 0.25
+Nodes (8): 4.1 — Transpilação de Alta Performance para Web (Compilador & Emissor), 4.2 — Estilização Nativa e Unificada (Três Pilares), 4.3 — Roteamento SPA Baseado em Arquivos (File-system Routing), 4.4 — Metadados Semânticos Nativos (AEO & GEO), 4.5 — Componentes JSX-like, 4.5 — Sinais e Estado Global Nativo, 4.6 — Virtual DOM / Reconciliação, 🟠 FASE 4 — Frontend + Sinais + JSX-like (SPA Completo)
 
 ### Community 145 - "comandoStressar"
 Cohesion: 0.17
@@ -836,29 +836,29 @@ Nodes (5): T, TestLinterLSPDiagnosticsJSON(), LSPDiagnostic, LSPRange, LSPRangeP
 Cohesion: 0.93
 Nodes (5): Mensagem, chamarGemini(), ChamarLLM(), chamarOllama(), chamarOpenAI()
 
-### Community 151 - "[Nome do Repositório]"
-Cohesion: 0.29
-Nodes (6): Comunidade, 🤝 Contribuindo, 📚 Documentação, 📜 Licença, [Nome do Repositório], 🚀 Quick Start
+### Community 151 - "🦅 Harpia"
+Cohesion: 0.22
+Nodes (9): ✨ Características Principais & Performance, 🏗️ Clean Architecture e DDD Nativo, 📚 Documentação & Guias, ⚡ Filosofia e Conceito: O Método Ponytail, 🦅 Harpia, 🚀 Instalação Rápida, Linux / macOS, 📖 O que é a Harpia? (+1 more)
 
 ### Community 152 - "keywords"
 Cohesion: 0.33
 Nodes (6): dap, harpia, lsp, portuguese, syntax-highlighting, keywords
 
-### Community 153 - "NewMapaVazio"
-Cohesion: 0.09
-Nodes (20): ClienteVetorial, Builder, NewMapaVazio(), Name, Client, met_conectar_qdrant(), met_email_enviar(), T (+12 more)
+### Community 153 - "[Nome do Repositório]"
+Cohesion: 0.29
+Nodes (6): Comunidade, 🤝 Contribuindo, 📚 Documentação, 📜 Licença, [Nome do Repositório], 🚀 Quick Start
 
 ### Community 154 - "bd_test.go"
 Cohesion: 0.53
 Nodes (5): T, TestBDModulo(), TestBDModuloMySQL(), TestBDModuloORMTipado(), TestBDModuloQdrant()
 
-### Community 155 - "Funções"
-Cohesion: 0.33
-Nodes (6): `debug(valor: T) -> T`, Funções, `imprimir(mensagem: Texto) -> Nada`, Módulo: `raiz` — Núcleo do Sistema, `Resultado<T, E>`, Tipos
-
-### Community 156 - "4. Arquitetura e Fluxo"
+### Community 155 - "4. Arquitetura e Fluxo"
 Cohesion: 0.33
 Nodes (6): 4.1. Estrutura da AST (`ast_nodes.go`), 4.2. O Parser (`parser.go`), 4.3. Precedência de Operadores, 4.4. Recuperação de Erros, 4.5. Renderização de Erros (`ErroSintatico`), 4. Arquitetura e Fluxo
+
+### Community 156 - "Erro"
+Cohesion: 0.43
+Nodes (4): Erro, levenshtein(), ObterCodigoErro(), ObterSugestaoErro()
 
 ### Community 157 - "Global Constraints"
 Cohesion: 0.40
@@ -876,21 +876,13 @@ Nodes (4): T, TestConverterPlaceholdersMysql(), TestConverterPlaceholdersPostgre
 Cohesion: 0.40
 Nodes (5): get(), injetar(), Provedor(), requisitar(), usarConsulta()
 
-### Community 162 - "hrp/utils.go"
-Cohesion: 0.67
-Nodes (3): FuncaoComErro, T, RetornaOuPanic()
-
-### Community 163 - "tratarRequisicaoLSP"
-Cohesion: 0.34
-Nodes (13): processarDiagnosticosLSP(), T, TestLSPCleanArchLinter(), TestLSPCompletion(), TestLSPDefinition(), TestLSPDiagnosticsSyntax(), TestLSPFormatting(), TestLSPHover() (+5 more)
-
 ### Community 164 - "🔄 Subcomando: `atualize`"
 Cohesion: 0.50
 Nodes (4): Baixando e Instalando Releases, Fluxo de Atualização Semântica, Mapeamento de Sistema e Arquitetura, 🔄 Subcomando: `atualize`
 
-### Community 165 - "7. Modo Claro ("Harpia Light")"
-Cohesion: 0.50
-Nodes (4): 7.1 Paleta de Cores — Harpia Light, 7.2 Tema de Sintaxe — "Harpia Light", 7.3 Princípios de Aplicação do Light Mode, 7. Modo Claro ("Harpia Light")
+### Community 165 - "hrp/utils.go"
+Cohesion: 0.67
+Nodes (3): FuncaoComErro, T, RetornaOuPanic()
 
 ### Community 166 - "Exemplo: Contador Reativo"
 Cohesion: 0.50
@@ -932,21 +924,29 @@ Nodes (4): Debuggers, Formatters, Programming Languages, categories
 Cohesion: 0.67
 Nodes (3): T, TestRPCCORS(), TestRPCModulo()
 
-### Community 177 - "TestSSRBasico"
-Cohesion: 0.67
-Nodes (3): T, TestSSRBasico(), TestSSRElementosCustomizados()
+### Community 177 - "Metodo"
+Cohesion: 0.28
+Nodes (4): Metodo, NewMetodo(), NewMetodoProxyDeNativo(), Executor
 
 ### Community 179 - "Flags Suportadas"
 Cohesion: 0.67
 Nodes (3): Exemplo de Saída JSON-LSP (`--formato=json`), Flags Suportadas, 🧹 Subcomando: `checar` — Linter Estático
 
+### Community 182 - "🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade"
+Cohesion: 0.29
+Nodes (7): 7.1 — Canais de Distribuição e Instaladores Automatizados, 7.2 — Portal Oficial e Playground Online (`harpia.org`), 7.3 — Registro Público de Pacotes (Central de Dependências), 7.4 — Governança e Contribuição Aberta (RFCs em PT), 7.5 — Kits de Sucesso e Evangelismo (Marketing Educacional), 🌐 FASE 7 — Lançamento Público e Consolidação da Comunidade, 🔤 Sintaxe Alvo (referência)
+
 ### Community 186 - "lote"
 Cohesion: 0.67
 Nodes (3): agendarEfeito(), executarFilaEfeitos(), lote()
 
-### Community 187 - ".M__obtem_attributo__"
-Cohesion: 0.18
-Nodes (6): Biblioteca, FuncaoFFI, init(), met_ffi_abrir(), T, TestFFIMockSoma()
+### Community 187 - "Funções"
+Cohesion: 0.33
+Nodes (6): `debug(valor: T) -> T`, Funções, `imprimir(mensagem: Texto) -> Nada`, Módulo: `raiz` — Núcleo do Sistema, `Resultado<T, E>`, Tipos
+
+### Community 188 - "met_fila_enfileirar"
+Cohesion: 0.33
+Nodes (4): GerenciadorFila, Mutex, met_fila_enfileirar(), met_fila_tamanho()
 
 ### Community 189 - "default"
 Cohesion: 0.67
@@ -956,29 +956,29 @@ Nodes (3): editor.defaultFormatter, editor.formatOnSave, default
 Cohesion: 0.67
 Nodes (3): repository, type, url
 
-### Community 192 - "NewVarSimbolo"
-Cohesion: 0.21
-Nodes (3): NewVarSimbolo(), NewFuncao(), ValidarTipo()
+### Community 192 - "Programa"
+Cohesion: 0.40
+Nodes (3): entradaAstLSP, contextoUltimoPrograma(), Programa
 
-### Community 209 - "inicializarTuiModel"
-Cohesion: 0.36
-Nodes (7): comandoTui(), Command, inicializarTuiModel(), T, TestInicializarTuiModel(), TestTUIDebuggerSimulation(), TestTUIFocoInterativo()
+### Community 209 - "comandoLsp"
+Cohesion: 0.40
+Nodes (5): comandoLsp(), Command, iniciarServidorLSP(), lerMensagemLSP(), Reader
 
 ### Community 210 - "met_esquema_criar"
 Cohesion: 0.36
 Nodes (6): init(), met_esquema_criar(), T, stringsContains(), TestEsquemaValidacaoFalhaTipo(), TestEsquemaValidacaoSucesso()
 
-### Community 212 - "met_pdf_gerarDeHtml"
-Cohesion: 0.33
-Nodes (3): met_pdf_gerarDeHtml(), T, TestGerarDeHtml()
+### Community 211 - ".visiteBlocoPara"
+Cohesion: 0.50
+Nodes (3): Em(), Iter(), próximo()
 
-### Community 213 - "Programa"
-Cohesion: 0.40
-Nodes (3): entradaAstLSP, contextoUltimoPrograma(), Programa
+### Community 212 - "7. Modo Claro ("Harpia Light")"
+Cohesion: 0.50
+Nodes (4): 7.1 Paleta de Cores — Harpia Light, 7.2 Tema de Sintaxe — "Harpia Light", 7.3 Princípios de Aplicação do Light Mode, 7. Modo Claro ("Harpia Light")
 
-### Community 214 - "comandoLsp"
-Cohesion: 0.40
-Nodes (5): comandoLsp(), Command, iniciarServidorLSP(), lerMensagemLSP(), Reader
+### Community 213 - "TestSSRBasico"
+Cohesion: 0.67
+Nodes (3): T, TestSSRBasico(), TestSSRElementosCustomizados()
 
 ### Community 215 - "TestModuloIA_ComunicacaoMultiAgente"
 Cohesion: 0.60
@@ -992,11 +992,11 @@ Nodes (4): T, TestModuloIA_ComunicacaoMultiAgente(), TestModuloIA_ContratosSeman
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Objeto` connect `Objeto` to `.M__obtem_attributo__`, `Texto`, `Tupla`, `NewErroF`, `Tipo`, `Interpretador`, `.visiteOpBinaria`, `NewMetodoOuPanic`, `ElementoJSX`, `Disjuntor`, `Compilador`, `NewMapaVazio`, `.NewEscopo`, `hrp/utils.go`, `Contexto`, `Modulo`, `GCMixin`, `criaRenderizadorDeCores`, `metricas.go`, `.M__obtem_attributo__`, `.M__obtem_attributo__`, `NewVarSimbolo`, `Escopo`, `MaquinarioImporteModulo`, `Lista`, `met_esquema_criar`, `met_pdf_gerarDeHtml`, `logar`, `ObtemAtributoS`, `met_emb_sequencia`, `Promessa`, `met_fila_enfileirar`, `.M__obtem_attributo__`, `.visiteBlocoPara`, `.Executar`, `Erro`, `TensorObj`?**
+- **Why does `Objeto` connect `Objeto` to `.M__obtem_attributo__`, `Texto`, `met_pdf_gerarDeHtml`, `NewErroF`, `met_emb_sequencia`, `Interpretador`, `.visiteOpBinaria`, `NewMapaVazio`, `ElementoJSX`, `Disjuntor`, `Compilador`, `Erro`, `.NewEscopo`, `hrp/utils.go`, `Contexto`, `Modulo`, `.M__obtem_attributo__`, `criaRenderizadorDeCores`, `Tipo`, `metricas.go`, `NewMetodoOuPanic`, `met_fila_enfileirar`, `Escopo`, `MaquinarioImporteModulo`, `NewVarSimbolo`, `Lista`, `met_esquema_criar`, `Tupla`, `.visiteBlocoPara`, `logar`, `ObtemAtributoS`, `.Executar`, `Promessa`, `.M__obtem_attributo__`, `.M__obtem_attributo__`, `GCMixin`, `TensorObj`?**
   _High betweenness centrality (0.111) - this node is a cross-community bridge._
-- **Why does `InstalarComandos()` connect `InstalarComandos` to `comandoStressar`, `copiloto.go`, `pacotes.go`, `.NewEscopo`, `iniciar.go`, `main`, `testar.go`, `cmd/playground.go`, `compilar_test.go`, `gerar.go`, `diagramar.go`, `inicializarTuiModel`, `UI`, `comandoLsp`, `atualizar_test.go`, `checar.go`, `comandoDepurar`, `comandoDoc`, `i18n.go`, `comandoMigrar`, `pwa.go`, `comandoVersao`?**
+- **Why does `InstalarComandos()` connect `InstalarComandos` to `inicializarTuiModel`, `comandoStressar`, `copiloto.go`, `pacotes.go`, `.NewEscopo`, `iniciar.go`, `main`, `compilar_test.go`, `gerar.go`, `diagramar.go`, `comandoLsp`, `UI`, `atualizar_test.go`, `cmd/playground.go`, `checar.go`, `testar.go`, `comandoDepurar`, `comandoDoc`, `i18n.go`, `comandoMigrar`, `pwa.go`, `comandoVersao`?**
   _High betweenness centrality (0.081) - this node is a cross-community bridge._
-- **Why does `NewContexto()` connect `NewContexto` to `iterador_bytes_test.go`, `comandoStressar`, `ExecutarString`, `bd_test.go`, `TestConstanteImutavel`, `.NewEscopo`, `tratarRequisicaoLSP`, `Contexto`, `TestTemplateComPipes`, `Modulo`, `TestExportacaoESimbolos`, `main`, `TestOperadorPipe`, `TestTipagemEstaticaExecucao`, `testar.go`, `cmd/playground.go`, `TestRPCModulo`, `TestSSRBasico`, `TestErrosRicos`, `compilar_test.go`, `TestSSRServidorCompleto`, `MaquinarioImporteModulo`, `diagramar.go`, `inicializarTuiModel`, `TestModuloIA_ComunicacaoMultiAgente`, `TestClassesEHeranca`, `Otimizar`?**
+- **Why does `NewContexto()` connect `NewContexto` to `inicializarTuiModel`, `iterador_bytes_test.go`, `comandoStressar`, `ExecutarString`, `bd_test.go`, `TestConstanteImutavel`, `.NewEscopo`, `Contexto`, `TestTemplateComPipes`, `Modulo`, `TestExportacaoESimbolos`, `main`, `TestOperadorPipe`, `TestTipagemEstaticaExecucao`, `TestRPCModulo`, `TestErrosRicos`, `compilar_test.go`, `MaquinarioImporteModulo`, `diagramar.go`, `TestSSRBasico`, `TestModuloIA_ComunicacaoMultiAgente`, `TestSSRServidorCompleto`, `TestClassesEHeranca`, `cmd/playground.go`, `tratarRequisicaoLSP`, `testar.go`, `Otimizar`?**
   _High betweenness centrality (0.058) - this node is a cross-community bridge._
 - **Are the 172 inferred relationships involving `NewErroF()` (e.g. with `.M__obtem_attributo__()` and `.M__obtem_attributo__()`) actually correct?**
   _`NewErroF()` has 172 INFERRED edges - model-reasoned connections that need verification._

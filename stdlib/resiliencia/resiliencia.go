@@ -3,6 +3,8 @@
 package resiliencia
 
 import (
+	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -26,6 +28,8 @@ type Disjuntor struct {
 	limiteFalhas       int
 	timeoutAberto      time.Duration
 	ultimaFalha        time.Time
+	sondaEmCurso       bool
+	ultimoErro         error
 }
 
 // TipoDisjuntor define a representação na VM.
@@ -47,20 +51,38 @@ func (d *Disjuntor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			return hrp.Nulo, nil
 		}, "Registra sucesso e reseta falhas."), nil
 	case "registrarFalha":
-		return hrp.NewMetodoOuPanic("registrarFalha", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
-			d.RegistrarFalha()
+		return hrp.NewMetodoOuPanic("registrarFalha", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			var err error
+			if len(args) > 0 {
+				if txt, ok := args[0].(hrp.Texto); ok {
+					err = fmt.Errorf("%s", string(txt))
+				}
+			}
+			d.RegistrarFalhaComErro(err)
 			return hrp.Nulo, nil
 		}, "Registra uma falha e altera estado se limite for atingido."), nil
 	case "estado":
 		return hrp.NewMetodoOuPanic("estado", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
 			return hrp.Texto(d.Estado()), nil
 		}, "Retorna estado atual do disjuntor."), nil
+	case "ultimoErro":
+		return hrp.NewMetodoOuPanic("ultimoErro", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+			d.mu.Lock()
+			defer d.mu.Unlock()
+			if d.ultimoErro == nil {
+				return hrp.Nulo, nil
+			}
+			return hrp.Texto(d.ultimoErro.Error()), nil
+		}, "Retorna o último erro registrado."), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Disjuntor", nome)
 }
 
 // NovoDisjuntor constrói e configura uma nova instância da máquina de estados do Circuit Breaker.
 func NovoDisjuntor(limite int, timeoutSegundos float64) *Disjuntor {
+	if limite < 1 {
+		limite = 1
+	}
 	return &Disjuntor{
 		estado:        "fechado",
 		limiteFalhas:  limite,
@@ -78,11 +100,16 @@ func (d *Disjuntor) Permitir() bool {
 	case "aberto":
 		if time.Since(d.ultimaFalha) > d.timeoutAberto {
 			d.estado = "meio_aberto"
+			d.sondaEmCurso = true
 			return true
 		}
 		return false
 	case "meio_aberto":
-		return true
+		if !d.sondaEmCurso {
+			d.sondaEmCurso = true
+			return true
+		}
+		return false
 	default: // fechado
 		return true
 	}
@@ -93,16 +120,24 @@ func (d *Disjuntor) RegistrarSucesso() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.falhasConsecutivas = 0
+	d.sondaEmCurso = false
 	d.estado = "fechado"
 }
 
 // RegistrarFalha incrementa o contador e abre o disjuntor caso o teto seja atingido, mudando para estado aberto.
 func (d *Disjuntor) RegistrarFalha() {
+	d.RegistrarFalhaComErro(nil)
+}
+
+// RegistrarFalhaComErro registra a falha com o erro ocorrido e transiciona o estado.
+func (d *Disjuntor) RegistrarFalhaComErro(err error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.falhasConsecutivas++
 	d.ultimaFalha = time.Now()
-	if d.falhasConsecutivas >= d.limiteFalhas {
+	d.sondaEmCurso = false
+	d.ultimoErro = err
+	if d.estado == "meio_aberto" || d.falhasConsecutivas >= d.limiteFalhas {
 		d.estado = "aberto"
 	}
 }
@@ -215,26 +250,26 @@ func NovaRetentativa() *Retentativa {
 
 // Executar repete uma rotina que gera erro, aguardando um tempo exponencialmente maior entre falhas consecutivas.
 func (r *Retentativa) Executar(fn func() error) error {
+	if r.Tentativas < 1 {
+		return hrp.NewErroF(hrp.ValorErro, "número de tentativas deve ser no mínimo 1")
+	}
 	var err error
+	const maxEspera = 30 * time.Second
 	for i := 0; i < r.Tentativas; i++ {
 		err = fn()
 		if err == nil {
 			return nil
 		}
 		if i < r.Tentativas-1 {
-			espera := time.Duration(r.BaseEsperaMs * pow(r.FatorBackoff, float64(i)) * float64(time.Millisecond))
+			esperaMs := r.BaseEsperaMs * math.Pow(r.FatorBackoff, float64(i))
+			espera := time.Duration(esperaMs * float64(time.Millisecond))
+			if espera > maxEspera {
+				espera = maxEspera
+			}
 			time.Sleep(espera)
 		}
 	}
 	return err
-}
-
-func pow(base, exp float64) float64 {
-	result := 1.0
-	for i := 0; i < int(exp); i++ {
-		result *= base
-	}
-	return result
 }
 
 func init() {
@@ -267,10 +302,14 @@ func met_novo_disjuntor(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 	limVal := int64(limite.(hrp.Inteiro))
-	if limVal < 0 || limVal > MaxLimiteDisjuntor {
-		return nil, hrp.NewErroF(hrp.ValorErro, "limite de taxa inválido (deve ser entre 0 e %d)", MaxLimiteDisjuntor)
+	if limVal < 1 || limVal > MaxLimiteDisjuntor {
+		return nil, hrp.NewErroF(hrp.ValorErro, "limite de disjuntor inválido (deve ser entre 1 e %d)", MaxLimiteDisjuntor)
 	}
-	d := NovoDisjuntor(int(limVal), float64(timeout.(hrp.Decimal)))
+	timeoutVal := float64(timeout.(hrp.Decimal))
+	if timeoutVal <= 0 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "timeout deve ser maior que zero")
+	}
+	d := NovoDisjuntor(int(limVal), timeoutVal)
 	return d, nil
 }
 
@@ -287,7 +326,12 @@ func met_novo_limite(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if err != nil {
 		return nil, err
 	}
-	l := NovoLimiteDeTaxa(float64(max.(hrp.Decimal)), float64(porSeg.(hrp.Decimal)))
+	maxVal := float64(max.(hrp.Decimal))
+	porSegVal := float64(porSeg.(hrp.Decimal))
+	if maxVal <= 0 || porSegVal <= 0 {
+		return nil, hrp.NewErroF(hrp.ValorErro, "max e tokens por segundo devem ser maiores que zero")
+	}
+	l := NovoLimiteDeTaxa(maxVal, porSegVal)
 	return l, nil
 }
 
@@ -303,22 +347,32 @@ func met_nova_retentativa(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 			return nil, err
 		}
 		tVal := int64(t.(hrp.Inteiro))
-		if tVal < 0 || tVal > MaxTentativasRetentativa {
-			return nil, hrp.NewErroF(hrp.ValorErro, "número de tentativas inválido (deve ser entre 0 e %d)", MaxTentativasRetentativa)
+		if tVal < 1 || tVal > MaxTentativasRetentativa {
+			return nil, hrp.NewErroF(hrp.ValorErro, "número de tentativas inválido (deve ser entre 1 e %d)", MaxTentativasRetentativa)
 		}
 		r.Tentativas = int(tVal)
 	}
 	if len(args) >= 2 {
 		b, err := hrp.NewDecimal(args[1])
-		if err == nil {
-			r.BaseEsperaMs = float64(b.(hrp.Decimal))
+		if err != nil {
+			return nil, err
 		}
+		bVal := float64(b.(hrp.Decimal))
+		if bVal < 0 {
+			return nil, hrp.NewErroF(hrp.ValorErro, "base de espera deve ser não negativa")
+		}
+		r.BaseEsperaMs = bVal
 	}
 	if len(args) >= 3 {
 		f, err := hrp.NewDecimal(args[2])
-		if err == nil {
-			r.FatorBackoff = float64(f.(hrp.Decimal))
+		if err != nil {
+			return nil, err
 		}
+		fVal := float64(f.(hrp.Decimal))
+		if fVal < 1.0 {
+			return nil, hrp.NewErroF(hrp.ValorErro, "fator de backoff deve ser no mínimo 1.0")
+		}
+		r.FatorBackoff = fVal
 	}
 	return r, nil
 }

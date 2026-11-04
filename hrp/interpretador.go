@@ -9,6 +9,9 @@ import (
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
+// MemoriaErro é lançado quando uma operação em tempo de execução excede o teto de alocação de memória.
+var MemoriaErro = TipoErro.NewTipo("MemoriaErro", "Texto resultante excede o limite de memória")
+
 // Interpretador representa o motor avaliador (Visitor) de nós da AST (Árvore de Sintaxe Abstrata) do Harpia.
 //
 // O Interpretador varre os nós de forma recursiva, mantendo referências do contexto global,
@@ -93,8 +96,7 @@ func (i *Interpretador) Visite(nodes []parser.BaseNode) (Objeto, error) {
 // utilizando o mapa de posições físicas do parser. Isso garante que tracebacks tenham as coordenadas físicas reais do erro.
 func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 	if i.Contexto != nil {
-		i.Contexto.ArquivoAtual = i.Arquivo
-		i.Contexto.CodigoAtual = i.Codigo
+		i.Contexto.DefinirArquivoCodigo(i.Arquivo, i.Codigo)
 	}
 	if i.Posicoes != nil {
 		tok := i.Posicoes[astNode]
@@ -103,13 +105,17 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 			// try to search if we can match it via custom traversal or if we can use the closest token
 		}
 		if tok != nil {
-			i.Contexto.TokenAtual = tok
-			if tok.Inicio.Linha > 0 {
-				i.Contexto.LinhaAtual = tok.Inicio.Linha
-				i.Contexto.ColunaAtual = tok.Inicio.Coluna
+			if i.Contexto != nil {
+				linha := -1
+				coluna := 0
+				if tok.Inicio.Linha > 0 {
+					linha = tok.Inicio.Linha
+					coluna = tok.Inicio.Coluna
+				}
+				i.Contexto.DefinirPosicaoToken(tok, linha, coluna)
 
 				// ponytail: record executed line in the current context for coverage reporting!
-				if i.Contexto.LinhasExecutadas != nil && i.Arquivo != "" {
+				if i.Contexto.LinhasExecutadas != nil && i.Arquivo != "" && tok.Inicio.Linha > 0 {
 					i.Contexto.RegistrarLinhaExecutada(i.Arquivo, tok.Inicio.Linha)
 				}
 			}
@@ -198,6 +204,12 @@ func (i *Interpretador) visite(astNode parser.BaseNode) (Objeto, error) {
 		return i.visiteOpCoalescenciaNula(node)
 	case *parser.AcessoMembroOpcional:
 		return i.visiteAcessoMembroOpcional(node)
+	case *parser.ChamadaOpcional:
+		return i.visiteChamadaOpcional(node)
+	case *parser.IndexacaoOpcional:
+		return i.visiteIndexacaoOpcional(node)
+	case *parser.DeclEscolha:
+		return i.visiteDeclEscolha(node)
 	case *parser.DeclEnum:
 		return i.visiteDeclEnum(node)
 	case *parser.DeclInterface:
@@ -616,39 +628,109 @@ func (i *Interpretador) visiteReatribuicao(node *parser.Reatribuicao) (Objeto, e
 			if err != nil {
 				return nil, err
 			}
-			membro := obj.Membro.(*parser.Identificador).Nome
+			var membro string
+			if id, ok := obj.Membro.(*parser.Identificador); ok {
+				membro = id.Nome
+			} else if txt, ok := obj.Membro.(*parser.TextoLiteral); ok {
+				membro = txt.Valor
+			}
+			if membro == "" {
+				return nil, i.criarErroNoNode(obj, SintaxeErro, "membro inválido na atribuição")
+			}
 			err = DefineAtributo(pai, membro, direita)
 			return direita, err
 		}
+
+		if obj, ok := node.Objeto.(*parser.Indexacao); ok {
+			pai, err := i.visite(obj.Objeto)
+			if err != nil {
+				return nil, err
+			}
+			chave, err := i.visite(obj.Argumento)
+			if err != nil {
+				return nil, err
+			}
+			return DefineItem(pai, chave, direita)
+		}
+	}
+
+	// Atribuições compostas (+=, -=, *=, /=, //=)
+	// Avalia container e índice/membro uma única vez (R3-VM-02)
+	if obj, ok := node.Objeto.(*parser.Indexacao); ok && node.Operador != "=" {
+		container, err := i.visite(obj.Objeto)
+		if err != nil {
+			return nil, err
+		}
+		chave, err := i.visite(obj.Argumento)
+		if err != nil {
+			return nil, err
+		}
+		esquerda, err = ObtemItem(container, chave)
+		if err != nil {
+			return nil, err
+		}
+
+		valor = direita
+		switch node.Operador {
+		case "+=":
+			valor, err = AdicionaEAtribui(esquerda, direita)
+		case "*=":
+			valor, err = MultiplicaEAtribui(esquerda, direita)
+		case "-=":
+			valor, err = SubtraiEAtribui(esquerda, direita)
+		case "/=":
+			valor, err = DivideEAtribui(esquerda, direita)
+		case "//=":
+			valor, err = DivideInteiroEAtribui(esquerda, direita)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return DefineItem(container, chave, valor)
+	}
+
+	if obj, ok := node.Objeto.(*parser.AcessoMembro); ok && node.Operador != "=" {
+		pai, err := i.visite(obj.Dono)
+		if err != nil {
+			return nil, err
+		}
+		var membro string
+		if id, ok := obj.Membro.(*parser.Identificador); ok {
+			membro = id.Nome
+		} else if txt, ok := obj.Membro.(*parser.TextoLiteral); ok {
+			membro = txt.Valor
+		}
+		if membro == "" {
+			return nil, i.criarErroNoNode(obj, SintaxeErro, "membro inválido no acesso")
+		}
+		esquerda, err = ObtemAtributoS(pai, membro)
+		if err != nil {
+			return nil, i.anotarErro(obj, err)
+		}
+
+		valor = direita
+		switch node.Operador {
+		case "+=":
+			valor, err = AdicionaEAtribui(esquerda, direita)
+		case "*=":
+			valor, err = MultiplicaEAtribui(esquerda, direita)
+		case "-=":
+			valor, err = SubtraiEAtribui(esquerda, direita)
+		case "/=":
+			valor, err = DivideEAtribui(esquerda, direita)
+		case "//=":
+			valor, err = DivideInteiroEAtribui(esquerda, direita)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		err = DefineAtributo(pai, membro, valor)
+		return valor, err
 	}
 
 	if esquerda, err = i.visite(node.Objeto); err != nil {
-		if obj, ok := node.Objeto.(*parser.Indexacao); ok && node.Operador == "=" {
-			nodePai := obj.Objeto
-			nodeFilho := obj.Argumento
-
-			for {
-				if a, ok := nodeFilho.(*parser.Indexacao); ok {
-					nodePai = a.Objeto
-					nodeFilho = a.Argumento
-					continue
-				}
-
-				break
-			}
-
-			var pai, filho Objeto
-			if pai, err = i.visite(nodePai); err != nil {
-				return nil, err
-			}
-
-			if filho, err = i.visite(nodeFilho); err != nil {
-				return nil, err
-			}
-
-			return DefineItem(pai, filho, direita)
-		}
-
 		return nil, err
 	}
 
@@ -677,7 +759,12 @@ func (i *Interpretador) visiteReatribuicao(node *parser.Reatribuicao) (Objeto, e
 		if err != nil {
 			return nil, err
 		}
-		membro := obj.Membro.(*parser.Identificador).Nome
+		var membro string
+		if id, ok := obj.Membro.(*parser.Identificador); ok {
+			membro = id.Nome
+		} else if txt, ok := obj.Membro.(*parser.TextoLiteral); ok {
+			membro = txt.Valor
+		}
 		err = DefineAtributo(pai, membro, valor)
 		return valor, err
 	case *parser.Indexacao:
@@ -793,6 +880,10 @@ func (i *Interpretador) visiteEnquanto(node *parser.Enquanto) (Objeto, error) {
 
 			return nil, err
 		}
+
+		if i.ValorRetorno != nil {
+			return i.ValorRetorno, nil
+		}
 	}
 
 	return nil, nil
@@ -805,7 +896,21 @@ func (i *Interpretador) visiteAcessoMembro(node *parser.AcessoMembro) (Objeto, e
 		return nil, err
 	}
 
-	membro := node.Membro.(*parser.Identificador).Nome
+	var membro string
+	if id, ok := node.Membro.(*parser.Identificador); ok {
+		membro = id.Nome
+	} else if ch, ok := node.Membro.(*parser.ChamadaFuncao); ok {
+		if id, ok := ch.Identificador.(*parser.Identificador); ok {
+			membro = id.Nome
+		}
+	} else if txt, ok := node.Membro.(*parser.TextoLiteral); ok {
+		membro = txt.Valor
+	}
+
+	if membro == "" {
+		return nil, i.criarErroNoNode(node, SintaxeErro, "membro inválido no acesso")
+	}
+
 	val, err := ObtemAtributoS(dono, membro)
 	if err != nil {
 		// ponytail: ancora o erro no nó do acesso (ex: mapa["args"]) para que o
@@ -858,6 +963,10 @@ func (i *Interpretador) visiteBlocoPara(node *parser.BlocoPara) (Objeto, error) 
 			}
 
 			return nil, err
+		}
+
+		if i.ValorRetorno != nil {
+			return i.ValorRetorno, nil
 		}
 	}
 }
@@ -1475,6 +1584,107 @@ func (i *Interpretador) visiteAcessoMembroOpcional(node *parser.AcessoMembroOpci
 			return Nulo, nil
 		}
 		return attr, nil
+	}
+
+	return Nulo, nil
+}
+
+func (i *Interpretador) visiteChamadaOpcional(node *parser.ChamadaOpcional) (Objeto, error) {
+	objeto, err := i.visite(node.Funcao)
+	if err != nil {
+		return nil, err
+	}
+	if objeto == nil || objeto == Nulo {
+		return Nulo, nil
+	}
+
+	var args Tupla
+	for _, argnode := range node.Argumentos {
+		arg, err := i.visite(argnode)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, arg)
+	}
+
+	return Chamar(objeto, args)
+}
+
+func (i *Interpretador) visiteIndexacaoOpcional(node *parser.IndexacaoOpcional) (Objeto, error) {
+	obj, err := i.visite(node.Objeto)
+	if err != nil {
+		return nil, err
+	}
+	if obj == nil || obj == Nulo {
+		return Nulo, nil
+	}
+
+	arg, err := i.visite(node.Argumento)
+	if err != nil {
+		return nil, err
+	}
+
+	return ObtemItem(obj, arg)
+}
+
+func (i *Interpretador) visiteDeclEscolha(node *parser.DeclEscolha) (Objeto, error) {
+	valAlvo, err := i.visite(node.Expressao)
+	if err != nil {
+		return nil, err
+	}
+
+	var casoPadrao *parser.CasoEscolha
+	for idx := range node.Casos {
+		caso := &node.Casos[idx]
+
+		ehPadrao := false
+		if caso.Padrao == nil {
+			ehPadrao = true
+		} else if id, ok := caso.Padrao.(*parser.Identificador); ok && (id.Nome == "_" || id.Nome == "padrao") {
+			ehPadrao = true
+		}
+
+		if ehPadrao {
+			if caso.Guarda != nil {
+				g, err := i.visite(caso.Guarda)
+				if err != nil {
+					return nil, err
+				}
+				gBool, errBool := NewBooleano(g)
+				if errBool == nil && gBool == Verdadeiro {
+					return i.visite(caso.Corpo)
+				}
+			} else if casoPadrao == nil {
+				casoPadrao = caso
+			}
+			continue
+		}
+
+		valCaso, err := i.visite(caso.Padrao)
+		if err != nil {
+			return nil, err
+		}
+
+		resIgual, err := Igual(valAlvo, valCaso)
+		if err == nil {
+			if resBool, errBool := NewBooleano(resIgual); errBool == nil && resBool == Verdadeiro {
+				if caso.Guarda != nil {
+					g, err := i.visite(caso.Guarda)
+					if err != nil {
+						return nil, err
+					}
+					gBool, errBool := NewBooleano(g)
+					if errBool != nil || gBool != Verdadeiro {
+						continue
+					}
+				}
+				return i.visite(caso.Corpo)
+			}
+		}
+	}
+
+	if casoPadrao != nil {
+		return i.visite(casoPadrao.Corpo)
 	}
 
 	return Nulo, nil

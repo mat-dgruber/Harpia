@@ -1,6 +1,7 @@
 package compartilhado
 
 import (
+	"math"
 	"strconv"
 	"strings"
 )
@@ -19,7 +20,7 @@ import (
 // A Harpia adota precisão de 64 bits em seus tipos numéricos para evitar estouro de
 // limite (overflow) e garantir compatibilidade cruzada entre plataformas (x86/ARM).
 func StringParaInt(s string) (int64, error) {
-	return strconv.ParseInt(s, 10, 64)
+	return StringParaIntBase(s)
 }
 
 // StringParaIntBase converte uma string numerica (decimal, hex 0x, binario 0b, octal 0o, com sinal opcional) em int64.
@@ -29,12 +30,16 @@ func StringParaIntBase(s string) (int64, error) {
 		return 0, strconv.ErrSyntax
 	}
 
-	sinal := int64(1)
+	negativo := false
 	if strings.HasPrefix(s, "-") {
-		sinal = -1
+		negativo = true
 		s = s[1:]
 	} else if strings.HasPrefix(s, "+") {
 		s = s[1:]
+	}
+
+	if strings.HasPrefix(s, "+") || strings.HasPrefix(s, "-") {
+		return 0, strconv.ErrSyntax
 	}
 
 	base := 10
@@ -55,11 +60,28 @@ func StringParaIntBase(s string) (int64, error) {
 		}
 	}
 
-	val, err := strconv.ParseInt(sLimpa, base, 64)
+	uval, err := strconv.ParseUint(sLimpa, base, 64)
 	if err != nil {
 		return 0, err
 	}
-	return val * sinal, nil
+
+	const maxUintPositivo = uint64(math.MaxInt64)
+	const maxUintNegativo = uint64(1 << 63)
+
+	if negativo {
+		if uval > maxUintNegativo {
+			return 0, strconv.ErrRange
+		}
+		if uval == maxUintNegativo {
+			return math.MinInt64, nil
+		}
+		return -int64(uval), nil
+	}
+
+	if uval > maxUintPositivo {
+		return 0, strconv.ErrRange
+	}
+	return int64(uval), nil
 }
 
 // StringParaDec converte a representação textual de um número de ponto flutuante em float64.

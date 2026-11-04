@@ -6,12 +6,19 @@ package bd
 
 import (
 	"database/sql"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	"github.com/mat-dgruber/Harpia/hrp"
 )
+
+func configurarPoolPadrao(db *sql.DB) {
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+}
 
 // met_bd_conectarSqlite abre conexão com o banco SQLite em modo arquivo local de forma embarcada.
 // Excelente para ambientes de desenvolvimento local ou armazenamento embarcado de baixo overhead.
@@ -27,6 +34,7 @@ func met_bd_conectarSqlite(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) 
 	if errOpen != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao abrir banco SQLite: %v", errOpen)
 	}
+	configurarPoolPadrao(db)
 	return &ConexaoSQL{db: db, driver: "sqlite"}, nil
 }
 
@@ -44,6 +52,7 @@ func met_bd_conectarPostgres(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error
 	if errOpen != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao abrir banco PostgreSQL: %v", errOpen)
 	}
+	configurarPoolPadrao(db)
 	return &ConexaoSQL{db: db, driver: "postgres"}, nil
 }
 
@@ -60,6 +69,7 @@ func met_bd_conectarMysql(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if errOpen != nil {
 		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao abrir banco MySQL: %v", errOpen)
 	}
+	configurarPoolPadrao(db)
 	return &ConexaoSQL{db: db, driver: "mysql"}, nil
 }
 

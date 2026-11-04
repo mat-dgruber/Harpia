@@ -64,6 +64,7 @@ func comandoEmpacotar() *cobra.Command {
 				caminhoMain = filepath.Join(cur, "main.go")
 			}
 
+			var tempGoFile string
 			if entrada != "" {
 				conteudo, err := os.ReadFile(entrada)
 				if err != nil {
@@ -72,7 +73,7 @@ func comandoEmpacotar() *cobra.Command {
 				}
 
 				// Cria o arquivo de embutir temporário
-				tempGoFile := filepath.Join(filepath.Dir(caminhoMain), "z_embedded.go")
+				tempGoFile = filepath.Join(filepath.Dir(caminhoMain), "z_embedded.go")
 				contentGo := fmt.Sprintf(`package main
 
 func init() {
@@ -85,7 +86,11 @@ func init() {
 					fmt.Fprintf(os.Stderr, "erro ao gerar arquivo temporário de build: %v\n", err)
 					os.Exit(1)
 				}
-				defer os.Remove(tempGoFile)
+				defer func() {
+					if tempGoFile != "" {
+						os.Remove(tempGoFile)
+					}
+				}()
 			}
 
 			// Garante que o diretório de destino do build exista
@@ -109,6 +114,9 @@ func init() {
 
 			out, err := buildCmd.CombinedOutput()
 			if err != nil {
+				if tempGoFile != "" {
+					os.Remove(tempGoFile)
+				}
 				fmt.Fprintf(os.Stderr, "erro durante a compilação nativa Go:\n%s\n", string(out))
 				os.Exit(1)
 			}
@@ -127,9 +135,12 @@ func init() {
 							destinoWasmExec := filepath.Join(filepath.Dir(saida), "wasm_exec.js")
 							data, err := os.ReadFile(origemWasmExec)
 							if err == nil {
-								os.WriteFile(destinoWasmExec, data, 0644)
-								fmt.Printf("✓ Carregador 'wasm_exec.js' copiado com sucesso para: %s\n", destinoWasmExec)
-								break
+								if err := os.WriteFile(destinoWasmExec, data, 0644); err != nil {
+									fmt.Fprintf(os.Stderr, "aviso: erro ao copiar wasm_exec.js: %v\n", err)
+								} else {
+									fmt.Printf("✓ Carregador 'wasm_exec.js' copiado com sucesso para: %s\n", destinoWasmExec)
+									break
+								}
 							}
 						}
 					}

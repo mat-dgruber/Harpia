@@ -7,6 +7,8 @@
 package embutidos
 
 import (
+	"sync"
+
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
@@ -93,6 +95,7 @@ func (pr *ObjetoPromiseResult) M__obtem_attributo__(nome string) (hrp.Objeto, er
 }
 
 type ObjetoRoteador struct {
+	mu               sync.RWMutex
 	caminhoAtual     hrp.Objeto
 	rotasCadastradas hrp.Mapa
 }
@@ -111,7 +114,9 @@ func (r *ObjetoRoteador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err != nil {
 				return nil, err
 			}
+			r.mu.Lock()
 			r.rotasCadastradas[string(txt.(hrp.Texto))] = args[1]
+			r.mu.Unlock()
 			return hrp.Nulo, nil
 		}, "Cadastra uma rota no Roteador SPA (caminho, componente)"), nil
 	}
@@ -120,13 +125,18 @@ func (r *ObjetoRoteador) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if err := hrp.VerificaNumeroArgumentos("navegar", false, args, 1, 1); err != nil {
 				return nil, err
 			}
+			r.mu.Lock()
 			r.caminhoAtual = args[0]
+			r.mu.Unlock()
 			return hrp.Nulo, nil
 		}, "Navega para uma URL no SPA sem recarregar a página"), nil
 	}
 	if nome == "obterRota" {
 		return hrp.NewMetodoOuPanic("obterRota", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
-			return r.caminhoAtual, nil
+			r.mu.RLock()
+			c := r.caminhoAtual
+			r.mu.RUnlock()
+			return c, nil
 		}, "Retorna a rota ativa atual"), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe no roteador", nome)
@@ -153,8 +163,11 @@ func (ra *ObjetoRoteadorApp) Tipo() *hrp.Tipo {
 
 func (ra *ObjetoRoteadorApp) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
 	caminhoStr := "/"
-	if ra.roteador.caminhoAtual != nil {
-		if txt, ok := ra.roteador.caminhoAtual.(hrp.Texto); ok {
+	ra.roteador.mu.RLock()
+	caminhoAtual := ra.roteador.caminhoAtual
+	ra.roteador.mu.RUnlock()
+	if caminhoAtual != nil {
+		if txt, ok := caminhoAtual.(hrp.Texto); ok {
 			caminhoStr = string(txt)
 		}
 	}

@@ -5,10 +5,10 @@ package autenticacao
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -76,7 +76,22 @@ func met_criarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 
 	payloadMap := make(map[string]interface{})
 	for k, v := range mapa {
-		payloadMap[k] = fmt.Sprintf("%v", v)
+		switch val := v.(type) {
+		case hrp.Texto:
+			payloadMap[k] = string(val)
+		case hrp.Inteiro:
+			payloadMap[k] = int64(val)
+		case hrp.Decimal:
+			payloadMap[k] = float64(val)
+		case hrp.Booleano:
+			payloadMap[k] = bool(val)
+		default:
+			if conv := hrp.ConverteParaGo(val); conv != nil {
+				payloadMap[k] = conv
+			} else {
+				payloadMap[k] = fmt.Sprintf("%v", val)
+			}
+		}
 	}
 
 	// Adiciona expiração padrão de 24h se não tiver sido especificada no payload.
@@ -117,6 +132,20 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return hrp.Booleano(false), nil
 	}
 
+	// 1) Decodifica partes[0] (header base64url), json.Unmarshal e exige headerMap["alg"] == "HS256"
+	headerBytes, err := base64.RawURLEncoding.DecodeString(partes[0])
+	if err != nil {
+		return hrp.Booleano(false), nil
+	}
+	var headerMap map[string]interface{}
+	if err := json.Unmarshal(headerBytes, &headerMap); err != nil {
+		return hrp.Booleano(false), nil
+	}
+	if alg, ok := headerMap["alg"].(string); !ok || alg != "HS256" {
+		return hrp.Booleano(false), nil
+	}
+
+	// 2) Verifica a assinatura HMAC-SHA256 em tempo constante (hmac.Equal)
 	unsignedToken := fmt.Sprintf("%s.%s", partes[0], partes[1])
 	h := hmac.New(sha256.New, []byte(segredoStr.(hrp.Texto)))
 	h.Write([]byte(unsignedToken))
@@ -126,27 +155,37 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return hrp.Booleano(false), nil
 	}
 
-	// Valida a expiração do token se a claim 'exp' estiver presente no payload
+	// 3) Decodifica partes[1] e json.Unmarshal(payloadBytes, &payloadMap) - retorna falso se der erro
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(partes[1])
 	if err != nil {
 		return hrp.Booleano(false), nil
 	}
 
 	var payloadMap map[string]interface{}
-	if err := json.Unmarshal(payloadBytes, &payloadMap); err == nil {
-		if expVal, ok := payloadMap["exp"]; ok {
-			var expUnix int64
-			switch v := expVal.(type) {
-			case float64:
-				expUnix = int64(v)
-			case int64:
-				expUnix = v
-			case string:
-				fmt.Sscanf(v, "%d", &expUnix)
-			}
-			if expUnix > 0 && time.Now().Unix() > expUnix {
+	if err := json.Unmarshal(payloadBytes, &payloadMap); err != nil {
+		return hrp.Booleano(false), nil
+	}
+
+	// 4) Se 'exp' existir em payloadMap, valida como número (float64) ou string numérica (strconv.ParseInt)
+	// se não for numérico ou se time.Now().Unix() >= expUnix, retorna falso
+	if expVal, ok := payloadMap["exp"]; ok {
+		var expUnix int64
+		switch v := expVal.(type) {
+		case float64:
+			expUnix = int64(v)
+		case int64:
+			expUnix = v
+		case string:
+			parsed, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
 				return hrp.Booleano(false), nil
 			}
+			expUnix = parsed
+		default:
+			return hrp.Booleano(false), nil
+		}
+		if time.Now().Unix() >= expUnix {
+			return hrp.Booleano(false), nil
 		}
 	}
 

@@ -65,7 +65,6 @@ func ArquivoHistorico(escrita bool) (arquivo *os.File) {
 	}
 
 	arquivo, _ = os.Open(caminho)
-	defer arquivo.Close()
 	return
 }
 
@@ -185,14 +184,14 @@ func Inicializa(ctx *hrp.Contexto, version, datetime, commit string) {
 		if cmdLimpo == "escopo" || cmdLimpo == "vars" || cmdLimpo == "simbolos" {
 			temSimbolo := false
 			fmt.Println("Símbolos e variáveis ativos declarados nesta sessão:")
-			for nome, simbolo := range exec.Modulo.Escopo.Simbolos {
-				// Oculta funções internas ou o comando 'sair'
-				if nome == "sair" {
+			simbolos := exec.Modulo.Escopo.ObterSimbolosSeguro()
+			for _, simbolo := range simbolos {
+				if simbolo == nil || simbolo.Nome == "sair" {
 					continue
 				}
 				temSimbolo = true
 				txtVal, _ := hrp.NewTexto(simbolo.Valor)
-				fmt.Printf("  var %s = %s\n", nome, txtVal)
+				fmt.Printf("  var %s = %s\n", simbolo.Nome, txtVal)
 			}
 			if !temSimbolo {
 				fmt.Println("  (Nenhuma variável declarada nesta sessão ainda)")

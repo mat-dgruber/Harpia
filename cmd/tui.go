@@ -5,6 +5,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -179,19 +180,27 @@ func (m *tuiModel) avancarPassoDepurador() {
 	if err != nil {
 		w.Close()
 		os.Stdout = oldStdout
+		r.Close()
 		m.saida += fmt.Sprintf("Erro de Sintaxe na linha %d: %v\n", m.linhaAtiva+1, err)
 		m.depurando = false
 		return
 	}
 
+	var outBuf bytes.Buffer
+	doneRead := make(chan struct{})
+	go func() {
+		_, _ = io.Copy(&outBuf, r)
+		close(doneRead)
+	}()
+
 	_, errExec := m.ctx.AvaliarAst(ast, m.escopo)
 
 	w.Close()
 	os.Stdout = oldStdout
+	<-doneRead
+	r.Close()
 
-	var buf bytes.Buffer
-	buf.ReadFrom(r)
-	saidaTerminal := buf.String()
+	saidaTerminal := outBuf.String()
 	if saidaTerminal != "" {
 		m.saida += saidaTerminal
 	}
@@ -214,7 +223,7 @@ func (m *tuiModel) avancarPassoDepurador() {
 			if tipo == "" {
 				tipo = "Dinamico"
 			}
-			vars = append(vars, fmt.Sprintf("%s (%s) = %v", s.Nome, tipo, s.ObterValor()))
+			vars = append(vars, fmt.Sprintf("%s (%s) = %v", s.Nome, tipo, s.Valor))
 		}
 	}
 	if len(vars) == 0 {
@@ -243,19 +252,27 @@ func (m *tuiModel) executarCodigoTui() {
 	if err != nil {
 		w.Close()
 		os.Stdout = oldStdout
+		r.Close()
 		m.saida = fmt.Sprintf("Erro de Sintaxe:\n%v\n", err)
 		m.variaveis = []string{"-"}
 		return
 	}
 
+	var outBuf bytes.Buffer
+	doneRead := make(chan struct{})
+	go func() {
+		_, _ = io.Copy(&outBuf, r)
+		close(doneRead)
+	}()
+
 	_, errExec := m.ctx.AvaliarAst(ast, m.escopo)
 
 	w.Close()
 	os.Stdout = oldStdout
+	<-doneRead
+	r.Close()
 
-	var buf bytes.Buffer
-	buf.ReadFrom(r)
-	m.saida = buf.String()
+	m.saida = outBuf.String()
 
 	if errExec != nil {
 		m.saida += fmt.Sprintf("\nErro de Execução:\n%v\n", errExec)
@@ -273,7 +290,7 @@ func (m *tuiModel) executarCodigoTui() {
 			if tipo == "" {
 				tipo = "Dinamico"
 			}
-			vars = append(vars, fmt.Sprintf("%s (%s) = %v", s.Nome, tipo, s.ObterValor()))
+			vars = append(vars, fmt.Sprintf("%s (%s) = %v", s.Nome, tipo, s.Valor))
 		}
 	}
 	if len(vars) == 0 {

@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,12 +60,31 @@ func comandoFormatar() *cobra.Command {
 	cmdFormatar := &cobra.Command{
 		Use:           "formatar [arquivo.hrp | diretorio]",
 		Short:         "Formata a indentação e o estilo visual de arquivos Harpia",
-		Args:          cobra.MinimumNArgs(1),
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
+
+			if len(args) == 0 {
+				conteudo, err := io.ReadAll(cmd.InOrStdin())
+				if err != nil {
+					fmt.Fprintf(errOut, "Erro ao ler entrada padrão: %v\n", err)
+					return err
+				}
+				origStr := string(conteudo)
+				formatado := FormatarCodigoHarpia(origStr)
+				if diff {
+					fmt.Fprint(out, GerarUnifiedDiff("<stdin>", origStr, formatado, ui))
+				} else if verificar {
+					if origStr != formatado {
+						return fmt.Errorf("stdin precisa de formatação")
+					}
+				} else {
+					fmt.Fprint(out, formatado)
+				}
+				return nil
+			}
 
 			var arquivos []string
 			for _, arg := range args {
@@ -78,7 +98,17 @@ func comandoFormatar() *cobra.Command {
 				}
 				if info.IsDir() {
 					_ = filepath.Walk(arg, func(path string, f os.FileInfo, err error) error {
-						if err == nil && !f.IsDir() && (strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".pt")) {
+						if err != nil {
+							return nil
+						}
+						if f.IsDir() {
+							nome := f.Name()
+							if nome == ".git" || nome == "node_modules" || nome == "dist" {
+								return filepath.SkipDir
+							}
+							return nil
+						}
+						if strings.HasSuffix(path, ".hrp") || strings.HasSuffix(path, ".pt") {
 							arquivos = append(arquivos, path)
 						}
 						return nil
@@ -156,11 +186,14 @@ func FormatarCodigoHarpia(codigo string) string {
 		}
 		linhaAnteriorVazia = false
 
-		fechamentos := strings.Count(linhaTrimmed, "}") + strings.Count(linhaTrimmed, "]") + strings.Count(linhaTrimmed, ")")
-		aberturas := strings.Count(linhaTrimmed, "{") + strings.Count(linhaTrimmed, "[") + strings.Count(linhaTrimmed, "(")
+		if strings.HasSuffix(linhaTrimmed, "){") {
+			linhaTrimmed = strings.TrimSuffix(linhaTrimmed, "{") + " {"
+		}
+
+		aberturas, fechamentos, comecaFechando := contarDelimitadoresForaDeStrings(linhaTrimmed)
 
 		// Se a linha começar com fechamento, reduz o nível imediatamente
-		if strings.HasPrefix(linhaTrimmed, "}") || strings.HasPrefix(linhaTrimmed, "]") || strings.HasPrefix(linhaTrimmed, ")") {
+		if comecaFechando {
 			nivel = maximo(0, nivel-1)
 		} else if fechamentos > aberturas {
 			nivel = maximo(0, nivel-(fechamentos-aberturas))
@@ -183,6 +216,53 @@ func FormatarCodigoHarpia(codigo string) string {
 		resultado += "\n"
 	}
 	return resultado
+}
+
+// contarDelimitadoresForaDeStrings analisa aberturas e fechamentos ignorando literais de strings e comentários
+func contarDelimitadoresForaDeStrings(linha string) (aberturas int, fechamentos int, comecaFechando bool) {
+	trimmed := strings.TrimSpace(linha)
+	if strings.HasPrefix(trimmed, "}") || strings.HasPrefix(trimmed, "]") || strings.HasPrefix(trimmed, ")") {
+		comecaFechando = true
+	}
+
+	emAspas := byte(0)
+	escape := false
+
+	for i := 0; i < len(linha); i++ {
+		c := linha[i]
+		if emAspas != 0 {
+			if escape {
+				escape = false
+				continue
+			}
+			if c == '\\' {
+				escape = true
+				continue
+			}
+			if c == emAspas {
+				emAspas = 0
+			}
+			continue
+		}
+
+		// Comentários de linha: ignora o restante da linha
+		if c == '#' || (c == '/' && i+1 < len(linha) && linha[i+1] == '/') {
+			break
+		}
+
+		if c == '"' || c == '\'' || c == '`' {
+			emAspas = c
+			continue
+		}
+
+		switch c {
+		case '{', '[', '(':
+			aberturas++
+		case '}', ']', ')':
+			fechamentos++
+		}
+	}
+	return
 }
 
 // maximo é o substituto minimalista para a função nativa `max()` (Go 1.21+),

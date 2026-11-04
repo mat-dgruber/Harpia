@@ -32,20 +32,25 @@ func NewBytes(arg any) (Objeto, error) {
 		return obj, nil
 	}
 
-	if met, _ := ObtemAtributoS(arg.(Objeto), "__bytes__"); met != nil {
-		return Chamar(met, Tupla{})
+	if obj, ok := arg.(Objeto); ok {
+		if met, _ := ObtemAtributoS(obj, "__bytes__"); met != nil {
+			return Chamar(met, Tupla{})
+		}
 	}
 
 	if O, ok := arg.(I__bytes__); ok {
 		return O.M__bytes__()
 	}
 
-	return nil, nil
+	return nil, NewErroF(TipagemErro, "Não foi possível converter '%v' para Bytes", arg)
 }
 
 func init() {
 	// Nova define o construtor do Bytes na VM para chamadas explícitas de scripts.
 	TipoBytes.Nova = func(args Tupla) (Objeto, error) {
+		if len(args) == 0 {
+			return &Bytes{}, nil
+		}
 		return NewBytes(args[0])
 	}
 }

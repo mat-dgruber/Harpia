@@ -6,6 +6,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -365,12 +367,20 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 		// Fecha os pipes e restaura a saída padrão
 		writeP.Close()
 		os.Stdout = oldStdout
+		readP.Close()
 
 		fmt.Printf("⚠️ [Harpia Server] Erro sintático no editor: %v\n", err)
 
 		response.Sucesso = false
 		response.ErroHtml = ansiParaHtml(err.Error())
 	} else {
+		var outBuf bytes.Buffer
+		doneRead := make(chan struct{})
+		go func() {
+			_, _ = io.Copy(&outBuf, readP)
+			close(doneRead)
+		}()
+
 		// Executa o script sob o escopo isolado
 		_, errExec := ctx.AvaliarAst(ast, escopo)
 
@@ -381,10 +391,10 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 		// Fecha a gravação e lê o buffer capturado de Stdout
 		writeP.Close()
 		os.Stdout = oldStdout
+		<-doneRead
+		readP.Close()
 
-		var buf bytes.Buffer
-		buf.ReadFrom(readP)
-		response.Saida = buf.String()
+		response.Saida = outBuf.String()
 
 		if errExec != nil {
 			response.Sucesso = false
@@ -402,7 +412,7 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 				if strings.HasPrefix(simb.Nome, "_") {
 					continue
 				}
-				valStr := fmt.Sprintf("%v", simb.ObterValor())
+				valStr := fmt.Sprintf("%v", simb.Valor)
 				tipoStr := simb.Tipo
 				if tipoStr == "" {
 					tipoStr = "Dinâmico"
@@ -424,7 +434,7 @@ func apiExecutarCodigoPlayground(w http.ResponseWriter, r *http.Request) {
 // ansiParaHtml converte códigos de cores ANSI (emitidos em erros pela VM do Harpia)
 // para representações de tags e classes HTML estilizadas com cores no frontend do playground.
 func ansiParaHtml(ansi string) string {
-	res := ansi
+	res := html.EscapeString(ansi)
 	res = strings.ReplaceAll(res, "\n", "<br/>")
 	res = strings.ReplaceAll(res, " ", "&nbsp;")
 	res = strings.ReplaceAll(res, "\t", "&nbsp;&nbsp;&nbsp;&nbsp;")

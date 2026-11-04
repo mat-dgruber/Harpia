@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 	"github.com/mat-dgruber/Harpia/lexer"
@@ -198,11 +200,8 @@ func (l *Linter) popEscopo() {
 		for varNome, node := range l.Escopo.Declaracoes {
 			// Ignora variáveis que começam com "_" (padrão de descarte de DX) e os globais
 			// Também ignora componentes (funções/variáveis começando com letra maiúscula) para evitar falsos positivos
-			primeiraLetra := ""
-			if len(varNome) > 0 {
-				primeiraLetra = string(varNome[0])
-			}
-			ehComponente := primeiraLetra != "" && primeiraLetra == strings.ToUpper(primeiraLetra) && primeiraLetra != strings.ToLower(primeiraLetra)
+			r, _ := utf8.DecodeRuneInString(varNome)
+			ehComponente := r != utf8.RuneError && unicode.IsUpper(r)
 
 			if !strings.HasPrefix(varNome, "_") && !ehComponente && !l.Escopo.Usadas[varNome] {
 				l.registrarErro(fmt.Sprintf("Variável '%s' foi declarada mas nunca utilizada", varNome), "HRP-0006", 2, node)
@@ -273,8 +272,10 @@ func (l *Linter) Checar(node parser.BaseNode) {
 			if id, ok := chamada.Identificador.(*parser.Identificador); ok {
 				if id.Nome == "sinal" || id.Nome == "sinalDebounce" {
 					if len(n.Nome) > 0 {
-						nomeSetter := "definir" + strings.ToUpper(n.Nome[:1]) + n.Nome[1:]
+						r, size := utf8.DecodeRuneInString(n.Nome)
+						nomeSetter := "definir" + string(unicode.ToUpper(r)) + n.Nome[size:]
 						l.Escopo.Variaveis[nomeSetter] = true
+						l.Escopo.Declaracoes[nomeSetter] = n
 					}
 				}
 			}
@@ -309,8 +310,8 @@ func (l *Linter) Checar(node parser.BaseNode) {
 			l.Escopo.Declaracoes[n.Nome] = n
 
 			// ponytail: Verificação estática de parâmetros JSX
-			primeiraLetra := string(n.Nome[0])
-			ehComponente := primeiraLetra == strings.ToUpper(primeiraLetra) && primeiraLetra != strings.ToLower(primeiraLetra)
+			r, _ := utf8.DecodeRuneInString(n.Nome)
+			ehComponente := r != utf8.RuneError && unicode.IsUpper(r)
 			if ehComponente && len(n.Parametros) > 1 {
 				l.registrarErro(fmt.Sprintf("Componente JSX '%s' deve possuir assinatura de dicionário único (ex: 'funcao %s(propriedades)') para compatibilidade com o formato JSON de renderização do VNode", n.Nome, n.Nome), "HRP-JSX-001", 2, n)
 			}
@@ -837,7 +838,7 @@ func checarArquitetura(arq string, node parser.BaseNode) []LinterError {
 		}
 		caminho := ""
 		if imp.Caminho != nil {
-			caminho = imp.Caminho.Valor
+			caminho = strings.Trim(imp.Caminho.Valor, "\"'\x60")
 		}
 		if !strings.HasPrefix(caminho, "../") && !strings.HasPrefix(caminho, "./") && !strings.HasPrefix(caminho, "/") {
 			continue
