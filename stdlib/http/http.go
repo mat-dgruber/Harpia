@@ -333,7 +333,15 @@ type Servidor struct {
 	// ponytail: capturado do contexto ativo em Nova (não há receptor); correto enquanto a criação
 	// roda dentro do script dono, que é o caso normal.
 	ctx *hrp.Contexto
+	// execSem serializa a execução do script dos handlers (ADR 0002): Mapa/Lista são estruturas
+	// Go sem trava e escrita concorrente corrompe dados ou derruba o processo.
+	// ponytail: 1 handler por vez por servidor; upgrade = coleções thread-safe se houver meta de RPS.
+	execSem chan struct{}
 }
+
+// EsperaMaximaHandler é quanto uma requisição espera o handler anterior terminar antes de
+// responder 503 (também evita travar quando um handler chama o próprio servidor).
+var EsperaMaximaHandler = 5 * time.Second
 
 // TipoServidor define e registra a classe Servidor na VM.
 var TipoServidor = hrp.TipoObjeto.NewTipo("Servidor", "Servidor HTTP assíncrono")
@@ -352,6 +360,7 @@ func init() {
 			middlewares: make([]hrp.Objeto, 0),
 			metricas:    make(map[string]int64),
 			ctx:         hrp.ObterContextoAtivo(),
+			execSem:     make(chan struct{}, 1),
 		}, nil
 	}
 }
@@ -725,7 +734,21 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					return nil
 				}
 
-				if errChain := executarpróximo(0); errChain != nil {
+				select {
+				case s.execSem <- struct{}{}:
+				case <-time.After(EsperaMaximaHandler):
+					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					w.Header().Set("Retry-After", "1")
+					w.WriteHeader(http.StatusServiceUnavailable)
+					w.Write([]byte("Servidor ocupado: os handlers rodam um por vez e o anterior não terminou a tempo (chamar o próprio servidor de dentro de um handler não é suportado)"))
+					return
+				}
+				// defer: um pânico no handler não pode deixar o semáforo preso (503 para sempre)
+				errChain := func() error {
+					defer func() { <-s.execSem }()
+					return executarpróximo(0)
+				}()
+				if errChain != nil {
 					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]: %v\n", req.Method, req.URL.Path, errChain)
 					// ponytail: responde com 500 sem derrubar o servidor para preservar as demais requisições
 					// RFC 9457 / RFC 7807: diretriz Problem Details (application/problem+json) para respostas de erro de API
