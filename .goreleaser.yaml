@@ -20,6 +20,7 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
+    binary: harpia
     goos:
       - linux
       - windows
@@ -27,7 +28,7 @@ builds:
     goarch:
       - amd64
       - arm64
-    ldflags: -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Datetime={{.Date}} -X main.builtBy=goreleaser
+    ldflags: -s -w -X main.Version={{.Version}} -X main.Commit={{.Commit}} -X main.Datetime={{.Date}}
 
 archives:
   - format: tar.gz

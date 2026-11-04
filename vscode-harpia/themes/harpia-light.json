@@ -30,6 +30,6 @@
     { "name": "Parâmetros", "scope": "variable.parameter.harpia", "settings": { "foreground": "#dc8a78", "fontStyle": "italic" } },
     { "name": "Variáveis", "scope": "variable.other.readwrite.harpia", "settings": { "foreground": "#4c4f69" } },
     { "name": "this/super", "scope": "variable.language.self.harpia", "settings": { "foreground": "#ea76cb", "fontStyle": "bold" } },
-    { "name": "Pontuação", "scope": "punctuation.*.harpia", "settings": { "foreground": "#7c7f93" } }
+    { "name": "Pontuação", "scope": "punctuation.definition.harpia, punctuation.separator.harpia, punctuation.terminator.harpia, punctuation.section.harpia", "settings": { "foreground": "#7c7f93" } }
   ]
 }

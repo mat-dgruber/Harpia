@@ -13,6 +13,7 @@
   <a href="Manual.md"><img src="https://img.shields.io/badge/Manual_T%C3%A9cnico-Ver_Especifica%C3%A7%C3%A3o-007ACC.svg" alt="Manual Técnico" /></a>
   <a href="docs/BRAND_GUIDELINES.md"><img src="https://img.shields.io/badge/Diretrizes_de_Marca-Ver_Manual-F2A900.svg" alt="Brand Guidelines" /></a>
   <a href="ROADMAP.md"><img src="https://img.shields.io/badge/Desenvolvimento-Roadmap-D45D34.svg" alt="Roadmap" /></a>
+  <a href="https://harpia-lang.web.app"><img src="https://img.shields.io/badge/Web_Hosting-harpia--lang.web.app-FFCA28.svg?logo=firebase&logoColor=black" alt="Firebase Hosting" /></a>
 </p>
 
 ---

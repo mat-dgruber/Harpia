@@ -78,6 +78,7 @@ __pycache__/
 .remember/
 .claude/
 .gemini/
+.firebase/
 
 # --- Graphify Knowledge Graph ---
 graphify-out/cache/

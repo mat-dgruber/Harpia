@@ -20,7 +20,7 @@
   "Laço Enquanto": {
     "prefix": "enquanto",
     "body": [
-      "enquanto (${1:condicao}) {",
+      "enquanto ${1:condicao} {",
       "\t$0",
       "}"
     ],
@@ -63,7 +63,7 @@
   "Importação de Módulo": {
     "prefix": "importar",
     "body": [
-      "importar { ${1:recursos} } de \"${2:caminho}\""
+      "importar { ${2:item} } de \"${1:modulo}\""
     ],
     "description": "Cria uma instrução de importação"
   },

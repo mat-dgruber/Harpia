@@ -118,7 +118,7 @@
     },
     {
       "name": "Pontuação",
-      "scope": "punctuation.*.harpia",
+      "scope": "punctuation.definition.harpia, punctuation.separator.harpia, punctuation.terminator.harpia, punctuation.section.harpia",
       "settings": { "foreground": "#9399b2" }
     }
   ]

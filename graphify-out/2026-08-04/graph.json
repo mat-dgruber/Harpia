@@ -230,7 +230,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_checar",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "checar.go"
     },
@@ -241,7 +241,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "cmd_checar_init",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "init()"
     },
@@ -252,7 +252,7 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "cmd_escopolinter",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": "escopolinter"
     },
@@ -263,7 +263,7 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "cmd_escopolinter_declarada",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".declarada()"
     },
@@ -274,7 +274,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "cmd_escopolinter_declaradalocal",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".declaradalocal()"
     },
@@ -285,7 +285,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "cmd_escopolinter_marcarcomousada",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".marcarcomousada()"
     },
@@ -296,7 +296,7 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "cmd_escopolinter_isconst",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".isconst()"
     },
@@ -307,7 +307,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "cmd_escopolinter_nocontextoassincrono",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".nocontextoassincrono()"
     },
@@ -318,7 +318,7 @@
       "source_location": "L152",
       "_origin": "ast",
       "id": "cmd_diagnosticrange",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "diagnosticrange"
     },
@@ -340,7 +340,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "cmd_lspdiagnostic",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "lspdiagnostic"
     },
@@ -351,7 +351,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "cmd_lintererror",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "lintererror"
     },
@@ -362,7 +362,7 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "cmd_linter",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": "linter"
     },
@@ -373,7 +373,7 @@
       "source_location": "L185",
       "_origin": "ast",
       "id": "cmd_linter_pushescopo",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".pushescopo()"
     },
@@ -384,7 +384,7 @@
       "source_location": "L195",
       "_origin": "ast",
       "id": "cmd_linter_popescopo",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".popescopo()"
     },
@@ -395,7 +395,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "cmd_linter_registrarerro",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".registrarerro()"
     },
@@ -406,7 +406,7 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "cmd_linter_checar",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".checar()"
     },
@@ -417,7 +417,7 @@
       "source_location": "L614",
       "_origin": "ast",
       "id": "cmd_linter_contemconcatenacaoouvariavel",
-      "community": 182,
+      "community": 101,
       "community_name": ".Checar",
       "norm_label": ".contemconcatenacaoouvariavel()"
     },
@@ -428,7 +428,7 @@
       "source_location": "L636",
       "_origin": "ast",
       "id": "cmd_checar_executarchecagemsilenciosa",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "executarchecagemsilenciosa()"
     },
@@ -439,7 +439,7 @@
       "source_location": "L684",
       "_origin": "ast",
       "id": "cmd_checar_comandochecar",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "comandochecar()"
     },
@@ -450,7 +450,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_checar_go_command",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "command"
     },
@@ -461,7 +461,7 @@
       "source_location": "L817",
       "_origin": "ast",
       "id": "cmd_checar_checararquitetura",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "checararquitetura()"
     },
@@ -527,7 +527,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_cl_util_test",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "cl_util_test.go"
     },
@@ -538,7 +538,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "cmd_cl_util_test_testextraiegerarcssutilitarios",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testextraiegerarcssutilitarios()"
     },
@@ -549,7 +549,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_cl_util_test_go_t",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "t"
     },
@@ -593,7 +593,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_compilar",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "compilar.go"
     },
@@ -604,7 +604,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "cmd_compilar_gerarimportheaderweb",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "gerarimportheaderweb()"
     },
@@ -615,7 +615,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "cmd_opcscompilarweb",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "opcscompilarweb"
     },
@@ -626,7 +626,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "cmd_compilar_compilarparaweb",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "compilarparaweb()"
     },
@@ -648,7 +648,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_compilar_go_command",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "command"
     },
@@ -659,7 +659,7 @@
       "source_location": "L778",
       "_origin": "ast",
       "id": "cmd_compilar_copiararquivo",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "copiararquivo()"
     },
@@ -670,7 +670,7 @@
       "source_location": "L802",
       "_origin": "ast",
       "id": "cmd_compilar_stringsreplaceonce",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "stringsreplaceonce()"
     },
@@ -681,7 +681,7 @@
       "source_location": "L811",
       "_origin": "ast",
       "id": "cmd_compilar_otimizarecopiarassets",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "otimizarecopiarassets()"
     },
@@ -692,7 +692,7 @@
       "source_location": "L895",
       "_origin": "ast",
       "id": "cmd_compilar_gerarwebpsedisponivel",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "gerarwebpsedisponivel()"
     },
@@ -703,7 +703,7 @@
       "source_location": "L908",
       "_origin": "ast",
       "id": "cmd_compilar_otimizarimagemfisica",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "otimizarimagemfisica()"
     },
@@ -714,7 +714,7 @@
       "source_location": "L935",
       "_origin": "ast",
       "id": "cmd_compilar_corrigircaminhoimport",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "corrigircaminhoimport()"
     },
@@ -725,7 +725,7 @@
       "source_location": "L981",
       "_origin": "ast",
       "id": "cmd_compilar_jadeclaradoouimportado",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "jadeclaradoouimportado()"
     },
@@ -736,7 +736,7 @@
       "source_location": "L1018",
       "_origin": "ast",
       "id": "cmd_compilar_importjaexiste",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "importjaexiste()"
     },
@@ -1506,7 +1506,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_css_emitter",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "css_emitter.go"
     },
@@ -1517,7 +1517,7 @@
       "source_location": "L118",
       "_origin": "ast",
       "id": "cmd_css_emitter_chavecanonica",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "chavecanonica()"
     },
@@ -1528,7 +1528,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "cmd_css_emitter_camelparakebab",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "camelparakebab()"
     },
@@ -1539,7 +1539,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "cmd_css_emitter_stripaspas",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "stripaspas()"
     },
@@ -1550,7 +1550,7 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "cmd_css_emitter_processaestilolinha",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "processaestilolinha()"
     },
@@ -1561,7 +1561,7 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "cmd_css_emitter_processablocoestilo",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "processablocoestilo()"
     },
@@ -1572,7 +1572,7 @@
       "source_location": "L255",
       "_origin": "ast",
       "id": "cmd_css_emitter_parsecorpotoken",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "parsecorpotoken()"
     },
@@ -1583,7 +1583,7 @@
       "source_location": "L332",
       "_origin": "ast",
       "id": "cmd_css_emitter_isespaco",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "isespaco()"
     },
@@ -2056,7 +2056,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_formatar",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "formatar.go"
     },
@@ -2067,7 +2067,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "cmd_formatar_gerarunifieddiff",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "gerarunifieddiff()"
     },
@@ -2078,7 +2078,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "cmd_formatar_comandoformatar",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "comandoformatar()"
     },
@@ -2089,7 +2089,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_formatar_go_command",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "command"
     },
@@ -2100,7 +2100,7 @@
       "source_location": "L139",
       "_origin": "ast",
       "id": "cmd_formatar_formatarcodigoharpia",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "formatarcodigoharpia()"
     },
@@ -2111,7 +2111,7 @@
       "source_location": "L191",
       "_origin": "ast",
       "id": "cmd_formatar_maximo",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "maximo()"
     },
@@ -2122,7 +2122,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_formatar_test",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "formatar_test.go"
     },
@@ -2133,7 +2133,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "cmd_formatar_test_testformatarcodigoharpia",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "testformatarcodigoharpia()"
     },
@@ -2144,7 +2144,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_formatar_test_go_t",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "t"
     },
@@ -2155,7 +2155,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "cmd_formatar_test_testgerarunifieddiff",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "testgerarunifieddiff()"
     },
@@ -2760,7 +2760,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "cmd_requestmessage",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "requestmessage"
     },
@@ -2771,7 +2771,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "rawmessage",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "rawmessage"
     },
@@ -2881,7 +2881,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "cmd_entradaastlsp",
-      "community": 213,
+      "community": 192,
       "community_name": "Programa",
       "norm_label": "entradaastlsp"
     },
@@ -2892,7 +2892,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "cmd_lsp_comandolsp",
-      "community": 214,
+      "community": 209,
       "community_name": "comandoLsp",
       "norm_label": "comandolsp()"
     },
@@ -2903,7 +2903,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_lsp_go_command",
-      "community": 214,
+      "community": 209,
       "community_name": "comandoLsp",
       "norm_label": "command"
     },
@@ -2914,7 +2914,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "cmd_lsp_iniciarservidorlsp",
-      "community": 214,
+      "community": 209,
       "community_name": "comandoLsp",
       "norm_label": "iniciarservidorlsp()"
     },
@@ -2925,7 +2925,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "cmd_lsp_lermensagemlsp",
-      "community": 214,
+      "community": 209,
       "community_name": "comandoLsp",
       "norm_label": "lermensagemlsp()"
     },
@@ -2936,7 +2936,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "reader",
-      "community": 214,
+      "community": 209,
       "community_name": "comandoLsp",
       "norm_label": "reader"
     },
@@ -2958,7 +2958,7 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "cmd_lsp_tratarrequisicaolsp",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "tratarrequisicaolsp()"
     },
@@ -2969,7 +2969,7 @@
       "source_location": "L302",
       "_origin": "ast",
       "id": "cmd_lsp_processardiagnosticoslsp",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "processardiagnosticoslsp()"
     },
@@ -3024,7 +3024,7 @@
       "source_location": "L431",
       "_origin": "ast",
       "id": "cmd_location",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "location"
     },
@@ -3134,7 +3134,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_lsp_test",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "lsp_test.go"
     },
@@ -3145,7 +3145,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspinitialize",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspinitialize()"
     },
@@ -3156,7 +3156,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_lsp_test_go_t",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "t"
     },
@@ -3167,7 +3167,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspdiagnosticssyntax",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspdiagnosticssyntax()"
     },
@@ -3178,7 +3178,7 @@
       "source_location": "L76",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspformatting",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspformatting()"
     },
@@ -3189,7 +3189,7 @@
       "source_location": "L117",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspcleanarchlinter",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspcleanarchlinter()"
     },
@@ -3200,7 +3200,7 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspcompletion",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspcompletion()"
     },
@@ -3211,7 +3211,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlsphover",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlsphover()"
     },
@@ -3222,7 +3222,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspdefinition",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspdefinition()"
     },
@@ -3233,7 +3233,7 @@
       "source_location": "L248",
       "_origin": "ast",
       "id": "cmd_lsp_test_testlspsecuritylinter",
-      "community": 163,
+      "community": 97,
       "community_name": "tratarRequisicaoLSP",
       "norm_label": "testlspsecuritylinter()"
     },
@@ -3750,7 +3750,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_playground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "cmd/playground.go"
     },
@@ -3761,7 +3761,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "cmd_execucaoplaygroundrequest",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "execucaoplaygroundrequest"
     },
@@ -3772,7 +3772,7 @@
       "source_location": "L27",
       "_origin": "ast",
       "id": "cmd_variavelescopo",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "variavelescopo"
     },
@@ -3783,7 +3783,7 @@
       "source_location": "L35",
       "_origin": "ast",
       "id": "cmd_execucaoplaygroundresponse",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "execucaoplaygroundresponse"
     },
@@ -3794,7 +3794,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "cmd_playground_comandoplayground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "comandoplayground()"
     },
@@ -3805,7 +3805,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_playground_go_command",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "command"
     },
@@ -3816,7 +3816,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "cmd_playground_iniciarservidorplayground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "iniciarservidorplayground()"
     },
@@ -3827,7 +3827,7 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "cmd_playground_serveinterfaceplayground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "serveinterfaceplayground()"
     },
@@ -3838,7 +3838,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "responsewriter",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "responsewriter"
     },
@@ -3849,7 +3849,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "request",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "request"
     },
@@ -3860,7 +3860,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "cmd_playground_serveruntimeweb",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "serveruntimeweb()"
     },
@@ -3871,7 +3871,7 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "cmd_playground_serveplaygroundjs",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "serveplaygroundjs()"
     },
@@ -3882,7 +3882,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "cmd_playground_serveplaygroundcss",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "serveplaygroundcss()"
     },
@@ -3893,7 +3893,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "cmd_playground_apiexecutarcodigoplayground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "apiexecutarcodigoplayground()"
     },
@@ -3904,7 +3904,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "cmd_playground_ansiparahtml",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "ansiparahtml()"
     },
@@ -3915,7 +3915,7 @@
       "source_location": "L445",
       "_origin": "ast",
       "id": "cmd_playground_apieditorconfig",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "apieditorconfig()"
     },
@@ -3926,7 +3926,7 @@
       "source_location": "L536",
       "_origin": "ast",
       "id": "cmd_playground_apidocsplayground",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "apidocsplayground()"
     },
@@ -3937,7 +3937,7 @@
       "source_location": "L573",
       "_origin": "ast",
       "id": "cmd_playground_serveeditormonacojs",
-      "community": 48,
+      "community": 92,
       "community_name": "cmd/playground.go",
       "norm_label": "serveeditormonacojs()"
     },
@@ -4135,7 +4135,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_servir",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "servir.go"
     },
@@ -4146,7 +4146,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "cmd_servir_comandoservir",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "comandoservir()"
     },
@@ -4157,7 +4157,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_servir_go_command",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "command"
     },
@@ -4245,7 +4245,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_testar",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "testar.go"
     },
@@ -4256,7 +4256,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "cmd_resultadotestejson",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "resultadotestejson"
     },
@@ -4267,7 +4267,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "cmd_suitetestesjson",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "suitetestesjson"
     },
@@ -4278,7 +4278,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "cmd_relatoriotestesjson",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "relatoriotestesjson"
     },
@@ -4289,7 +4289,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "cmd_testar_comandotestar",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "comandotestar()"
     },
@@ -4300,7 +4300,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_testar_go_command",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "command"
     },
@@ -4311,7 +4311,7 @@
       "source_location": "L226",
       "_origin": "ast",
       "id": "cmd_testar_gerarrelatoriocoberturahtml",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "gerarrelatoriocoberturahtml()"
     },
@@ -4322,7 +4322,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_testar_go_writer",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "writer"
     },
@@ -4333,7 +4333,7 @@
       "source_location": "L335",
       "_origin": "ast",
       "id": "cmd_testar_corporporcentagem",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "corporporcentagem()"
     },
@@ -4344,7 +4344,7 @@
       "source_location": "L345",
       "_origin": "ast",
       "id": "cmd_testar_indicadorstatus",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "indicadorstatus()"
     },
@@ -4355,7 +4355,7 @@
       "source_location": "L355",
       "_origin": "ast",
       "id": "cmd_testar_encontrararquivosteste",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "encontrararquivosteste()"
     },
@@ -4366,7 +4366,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_testar_test",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "cmd/testar_test.go"
     },
@@ -4377,7 +4377,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "cmd_testar_test_testcomandotestarcomhtml",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "testcomandotestarcomhtml()"
     },
@@ -4388,7 +4388,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_testar_test_go_t",
-      "community": 47,
+      "community": 99,
       "community_name": "testar.go",
       "norm_label": "t"
     },
@@ -4399,7 +4399,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_transpiler_native",
-      "community": 96,
+      "community": 162,
       "community_name": "TranspilerNative",
       "norm_label": "transpiler_native.go"
     },
@@ -4410,7 +4410,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "cmd_transpilernative",
-      "community": 96,
+      "community": 162,
       "community_name": "TranspilerNative",
       "norm_label": "transpilernative"
     },
@@ -4421,7 +4421,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "cmd_transpilernative_newvar",
-      "community": 96,
+      "community": 162,
       "community_name": "TranspilerNative",
       "norm_label": ".newvar()"
     },
@@ -4432,7 +4432,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "cmd_transpilernative_transpile",
-      "community": 96,
+      "community": 162,
       "community_name": "TranspilerNative",
       "norm_label": ".transpile()"
     },
@@ -4443,7 +4443,7 @@
       "source_location": "L538",
       "_origin": "ast",
       "id": "cmd_transpilernative_generatefullcode",
-      "community": 96,
+      "community": 162,
       "community_name": "TranspilerNative",
       "norm_label": ".generatefullcode()"
     },
@@ -4454,7 +4454,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_transpiler_web",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "transpiler_web.go"
     },
@@ -4465,7 +4465,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "cmd_transpilerweb",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "transpilerweb"
     },
@@ -4476,7 +4476,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "cmd_transpilerweb_transpile",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": ".transpile()"
     },
@@ -4487,7 +4487,7 @@
       "source_location": "L694",
       "_origin": "ast",
       "id": "cmd_transpiler_web_entries",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "entries()"
     },
@@ -4498,7 +4498,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_tui",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "tui.go"
     },
@@ -4531,7 +4531,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "cmd_tui_comandotui",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "comandotui()"
     },
@@ -4542,7 +4542,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_tui_go_command",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "command"
     },
@@ -4553,7 +4553,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "cmd_tui_inicializartuimodel",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "inicializartuimodel()"
     },
@@ -4641,7 +4641,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_tui_test",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "tui_test.go"
     },
@@ -4652,7 +4652,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "cmd_tui_test_testinicializartuimodel",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "testinicializartuimodel()"
     },
@@ -4663,7 +4663,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_tui_test_go_t",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "t"
     },
@@ -4674,7 +4674,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "cmd_tui_test_testtuifocointerativo",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "testtuifocointerativo()"
     },
@@ -4685,7 +4685,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "cmd_tui_test_testtuidebuggersimulation",
-      "community": 209,
+      "community": 141,
       "community_name": "inicializarTuiModel",
       "norm_label": "testtuidebuggersimulation()"
     },
@@ -4696,7 +4696,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "cmd_ui",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "ui"
     },
@@ -4707,7 +4707,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "cmd_ui_isterminal",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": ".isterminal()"
     },
@@ -4718,7 +4718,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "cmd_ui_go_writer",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": "writer"
     },
@@ -4729,7 +4729,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "cmd_ui_colorenabled",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": ".colorenabled()"
     },
@@ -4740,7 +4740,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "cmd_ui_verde",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": ".verde()"
     },
@@ -4751,7 +4751,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "cmd_ui_vermelho",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": ".vermelho()"
     },
@@ -4762,7 +4762,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "cmd_ui_amarelo",
-      "community": 83,
+      "community": 86,
       "community_name": "UI",
       "norm_label": ".amarelo()"
     },
@@ -4806,7 +4806,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "cmd_utilitarios_css",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "utilitarios_css.go"
     },
@@ -4817,7 +4817,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "cmd_utilitarios_css_extraiegerarcssutilitarios",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "extraiegerarcssutilitarios()"
     },
@@ -6062,7 +6062,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "exemplos_modexterno_main",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "modexterno/main.go"
     },
@@ -6073,7 +6073,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "exemplos_modexterno_main_inicializamodulo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "inicializamodulo()"
     },
@@ -6097,7 +6097,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_argumentonomeado",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "argumentonomeado.go"
     },
@@ -6108,7 +6108,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "hrp_argumentonomeadoobj",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "argumentonomeadoobj"
     },
@@ -6119,7 +6119,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "hrp_argumentonomeadoobj_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -6350,7 +6350,7 @@
       "source_location": "L308",
       "_origin": "ast",
       "id": "hrp_aritmetica_neg",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "neg()"
     },
@@ -6361,7 +6361,7 @@
       "source_location": "L322",
       "_origin": "ast",
       "id": "hrp_aritmetica_pos",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "pos()"
     },
@@ -6526,7 +6526,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "hrp_bytes_newbytes",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "newbytes()"
     },
@@ -6691,7 +6691,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_bytes_test",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "bytes_test.go"
     },
@@ -6702,7 +6702,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "hrp_bytes_test_teststringparabytes",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "teststringparabytes()"
     },
@@ -6713,7 +6713,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "hrp_bytes_test_go_t",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "t"
     },
@@ -6724,7 +6724,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "hrp_bytes_test_testconversaoparabytespormetodoimplementado",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "testconversaoparabytespormetodoimplementado()"
     },
@@ -6735,7 +6735,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "hrp_bytes_test_testcriacaodeinstanciavazia",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "testcriacaodeinstanciavazia()"
     },
@@ -6746,7 +6746,7 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "hrp_bytes_test_testconversaopelachamadadoconstrutor",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "testconversaopelachamadadoconstrutor()"
     },
@@ -6768,7 +6768,7 @@
       "source_location": "L136",
       "_origin": "ast",
       "id": "hrp_bytes_test_testconversaodetipos",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "testconversaodetipos()"
     },
@@ -6823,7 +6823,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "hrp_canal_enviar",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".enviar()"
     },
@@ -6845,7 +6845,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "hrp_canal_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -6922,7 +6922,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "hrp_instancia_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -7373,7 +7373,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "hrp_decimal",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "decimal"
     },
@@ -7384,7 +7384,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "hrp_decimal_newdecimal",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "newdecimal()"
     },
@@ -7395,7 +7395,7 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "hrp_decimal_init",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "init()"
     },
@@ -7406,7 +7406,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "hrp_decimal_tipo",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".tipo()"
     },
@@ -7417,7 +7417,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "hrp_decimal_m_texto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__texto__()"
     },
@@ -7450,7 +7450,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "hrp_decimal_m_decimal",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__decimal__()"
     },
@@ -7461,7 +7461,7 @@
       "source_location": "L94",
       "_origin": "ast",
       "id": "hrp_decimal_m_adiciona",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__adiciona__()"
     },
@@ -7472,7 +7472,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "hrp_decimal_m_multiplica",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__multiplica__()"
     },
@@ -7483,7 +7483,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "hrp_decimal_m_subtrai",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__subtrai__()"
     },
@@ -7494,7 +7494,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "hrp_decimal_m_divide",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__divide__()"
     },
@@ -7527,7 +7527,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "hrp_decimal_m_neg",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__neg__()"
     },
@@ -7538,7 +7538,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "hrp_decimal_m_pos",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__pos__()"
     },
@@ -7549,7 +7549,7 @@
       "source_location": "L172",
       "_origin": "ast",
       "id": "hrp_decimal_m_igual",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__igual__()"
     },
@@ -7560,7 +7560,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_erros",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": "erros.go"
     },
@@ -7571,7 +7571,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "hrp_erro",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": "erro"
     },
@@ -7626,7 +7626,7 @@
       "source_location": "L146",
       "_origin": "ast",
       "id": "hrp_erro_adicionarcontexto",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": ".adicionarcontexto()"
     },
@@ -7648,7 +7648,7 @@
       "source_location": "L190",
       "_origin": "ast",
       "id": "hrp_erros_obtercodigoerro",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": "obtercodigoerro()"
     },
@@ -7659,7 +7659,7 @@
       "source_location": "L228",
       "_origin": "ast",
       "id": "hrp_erros_levenshtein",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": "levenshtein()"
     },
@@ -7670,7 +7670,7 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "hrp_erros_obtersugestaoerro",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": "obtersugestaoerro()"
     },
@@ -7681,7 +7681,7 @@
       "source_location": "L332",
       "_origin": "ast",
       "id": "hrp_erro_error",
-      "community": 119,
+      "community": 156,
       "community_name": "Erro",
       "norm_label": ".error()"
     },
@@ -7890,7 +7890,7 @@
       "source_location": "L234",
       "_origin": "ast",
       "id": "hrp_escopo_newvarsimbolo",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": "newvarsimbolo()"
     },
@@ -8110,7 +8110,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "hrp_funcao_newfuncao",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": "newfuncao()"
     },
@@ -8121,7 +8121,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "hrp_funcao_contextoultimoprograma",
-      "community": 213,
+      "community": 192,
       "community_name": "Programa",
       "norm_label": "contextoultimoprograma()"
     },
@@ -8253,7 +8253,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "hrp_funcao_m_chame",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".m__chame__()"
     },
@@ -8264,7 +8264,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_gc",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "gc.go"
     },
@@ -8275,7 +8275,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "hrp_objetogc",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "objetogc"
     },
@@ -8286,7 +8286,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "hrp_gcmixin",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "gcmixin"
     },
@@ -8297,7 +8297,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "hrp_gcmixin_reter",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".reter()"
     },
@@ -8308,7 +8308,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "hrp_gcmixin_liberar",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".liberar()"
     },
@@ -8319,7 +8319,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "hrp_gcmixin_obterrefs",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".obterrefs()"
     },
@@ -8330,7 +8330,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "hrp_gcmixin_obterfilhos",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".obterfilhos()"
     },
@@ -8341,7 +8341,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "hrp_gc_reterobjeto",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "reterobjeto()"
     },
@@ -8352,7 +8352,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "hrp_gc_liberarobjeto",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "liberarobjeto()"
     },
@@ -8363,7 +8363,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "hrp_gc_obteridobjetogc",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "obteridobjetogc()"
     },
@@ -8374,7 +8374,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "hrp_gc_coletarciclos",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "coletarciclos()"
     },
@@ -9287,7 +9287,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_internos",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "internos.go"
     },
@@ -9309,7 +9309,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "hrp_internos_adicionacontextosenaotiver",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "adicionacontextosenaotiver()"
     },
@@ -9320,7 +9320,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "hrp_internos_chamar",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "chamar()"
     },
@@ -9342,7 +9342,7 @@
       "source_location": "L124",
       "_origin": "ast",
       "id": "hrp_internos_obtematributorecursivamente",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "obtematributorecursivamente()"
     },
@@ -9353,7 +9353,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "hrp_internos_obtematributos",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "obtematributos()"
     },
@@ -9364,7 +9364,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "hrp_internos_nao",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "nao()"
     },
@@ -9419,7 +9419,7 @@
       "source_location": "L268",
       "_origin": "ast",
       "id": "hrp_internos_novainstancia",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "novainstancia()"
     },
@@ -9474,7 +9474,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "hrp_interpretador_inicializa",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".inicializa()"
     },
@@ -9496,7 +9496,7 @@
       "source_location": "L219",
       "_origin": "ast",
       "id": "hrp_interpretador_visitedeclvar",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".visitedeclvar()"
     },
@@ -9529,7 +9529,7 @@
       "source_location": "L347",
       "_origin": "ast",
       "id": "hrp_interpretador_visitedeclfuncao",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".visitedeclfuncao()"
     },
@@ -9606,7 +9606,7 @@
       "source_location": "L453",
       "_origin": "ast",
       "id": "hrp_interpretador_visiteopunaria",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".visiteopunaria()"
     },
@@ -9716,7 +9716,7 @@
       "source_location": "L819",
       "_origin": "ast",
       "id": "hrp_interpretador_visiteblocopara",
-      "community": 99,
+      "community": 211,
       "community_name": ".visiteBlocoPara",
       "norm_label": ".visiteblocopara()"
     },
@@ -9782,7 +9782,7 @@
       "source_location": "L949",
       "_origin": "ast",
       "id": "hrp_interpretador_visitenovanode",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": ".visitenovanode()"
     },
@@ -9793,7 +9793,7 @@
       "source_location": "L980",
       "_origin": "ast",
       "id": "hrp_interpretador_visitedeclclasse",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".visitedeclclasse()"
     },
@@ -9870,7 +9870,7 @@
       "source_location": "L1217",
       "_origin": "ast",
       "id": "hrp_interpretador_criarerrononode",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".criarerrononode()"
     },
@@ -9947,7 +9947,7 @@
       "source_location": "L1393",
       "_origin": "ast",
       "id": "hrp_interpretador_visitenoparajsx",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".visitenoparajsx()"
     },
@@ -9958,7 +9958,7 @@
       "source_location": "L1435",
       "_origin": "ast",
       "id": "hrp_interpretador_visitedeclestilo",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": ".visitedeclestilo()"
     },
@@ -10068,7 +10068,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_json_helper",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "json_helper.go"
     },
@@ -10079,7 +10079,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "hrp_json_helper_converteparago",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "converteparago()"
     },
@@ -10090,7 +10090,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "hrp_json_helper_convertedego",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "convertedego()"
     },
@@ -10310,7 +10310,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "hrp_mapa",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "mapa"
     },
@@ -10321,7 +10321,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "hrp_mapa_reter",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".reter()"
     },
@@ -10332,7 +10332,7 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "hrp_mapa_liberar",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".liberar()"
     },
@@ -10343,7 +10343,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "hrp_mapa_obterrefs",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".obterrefs()"
     },
@@ -10354,7 +10354,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "hrp_mapa_obterfilhos",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".obterfilhos()"
     },
@@ -10365,7 +10365,7 @@
       "source_location": "L54",
       "_origin": "ast",
       "id": "hrp_mapa_newmapavazio",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "newmapavazio()"
     },
@@ -10376,7 +10376,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "hrp_mapa_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -10420,7 +10420,7 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "hrp_mapa_m_obtem_item",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_item__()"
     },
@@ -10431,7 +10431,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "hrp_mapa_m_define_item",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__define_item__()"
     },
@@ -10442,7 +10442,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "hrp_mapa_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -10453,7 +10453,7 @@
       "source_location": "L161",
       "_origin": "ast",
       "id": "hrp_mapa_chaves",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".chaves()"
     },
@@ -10464,7 +10464,7 @@
       "source_location": "L176",
       "_origin": "ast",
       "id": "hrp_mapa_valores",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".valores()"
     },
@@ -10475,7 +10475,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "hrp_mapa_atualizar",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".atualizar()"
     },
@@ -10486,7 +10486,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "hrp_mapa_init",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "init()"
     },
@@ -10497,7 +10497,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "hrp_metodo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": "metodo"
     },
@@ -10508,7 +10508,7 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "hrp_metodo_tipo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": ".tipo()"
     },
@@ -10519,7 +10519,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "hrp_metodo_chamar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".chamar()"
     },
@@ -10530,7 +10530,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "hrp_metodo_obtemdoc",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": ".obtemdoc()"
     },
@@ -10541,7 +10541,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "hrp_metodo_m_chame",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__chame__()"
     },
@@ -10563,7 +10563,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "hrp_metodo_newmetodo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": "newmetodo()"
     },
@@ -10574,7 +10574,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "hrp_metodo_newmetodooupanic",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "newmetodooupanic()"
     },
@@ -10585,7 +10585,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "hrp_metodo_newmetodoproxydenativo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": "newmetodoproxydenativo()"
     },
@@ -10750,7 +10750,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "hrp_modulo_obtemglobalsdolinter",
-      "community": 88,
+      "community": 93,
       "community_name": "checar.go",
       "norm_label": "obtemglobalsdolinter()"
     },
@@ -11036,7 +11036,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_rpc",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "rpc.go"
     },
@@ -11047,7 +11047,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "hrp_configdependencias",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "configdependencias"
     },
@@ -11058,7 +11058,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "hrp_rpc_carregarmodulorpc",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "carregarmodulorpc()"
     },
@@ -11069,7 +11069,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_sequencia",
-      "community": 99,
+      "community": 211,
       "community_name": ".visiteBlocoPara",
       "norm_label": "hrp/sequencia.go"
     },
@@ -11080,7 +11080,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "hrp_sequencia_pr\u00f3ximo",
-      "community": 99,
+      "community": 211,
       "community_name": ".visiteBlocoPara",
       "norm_label": "proximo()"
     },
@@ -11091,7 +11091,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "hrp_sequencia_iter",
-      "community": 99,
+      "community": 211,
       "community_name": ".visiteBlocoPara",
       "norm_label": "iter()"
     },
@@ -11102,7 +11102,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "hrp_sequencia_em",
-      "community": 99,
+      "community": 211,
       "community_name": ".visiteBlocoPara",
       "norm_label": "em()"
     },
@@ -11179,7 +11179,7 @@
       "source_location": "L73",
       "_origin": "ast",
       "id": "hrp_texto_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -11289,7 +11289,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "hrp_texto_m_multiplica",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__multiplica__()"
     },
@@ -11355,7 +11355,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_tipagem_estatica",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": "tipagem_estatica.go"
     },
@@ -11366,7 +11366,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "hrp_tipagem_estatica_validartipo",
-      "community": 192,
+      "community": 77,
       "community_name": "NewVarSimbolo",
       "norm_label": "validartipo()"
     },
@@ -11421,7 +11421,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "hrp_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "tipo"
     },
@@ -11432,7 +11432,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "hrp_novafunc",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "novafunc"
     },
@@ -11443,7 +11443,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "hrp_inicializafunc",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "inicializafunc"
     },
@@ -11454,7 +11454,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "hrp_tipo_newtipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".newtipo()"
     },
@@ -11465,7 +11465,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "hrp_tipo_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -11476,7 +11476,7 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "hrp_tipo_obtemdoc",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".obtemdoc()"
     },
@@ -11487,7 +11487,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "hrp_tipo_newtipox",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".newtipox()"
     },
@@ -11498,7 +11498,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "hrp_tipo_obtemmapa",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".obtemmapa()"
     },
@@ -11509,7 +11509,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "hrp_tipo_monta",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".monta()"
     },
@@ -11520,7 +11520,7 @@
       "source_location": "L87",
       "_origin": "ast",
       "id": "hrp_tipo_m_nova_instancia",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__nova_instancia__()"
     },
@@ -11531,7 +11531,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "hrp_tipo_init",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "init()"
     },
@@ -11542,7 +11542,7 @@
       "source_location": "L116",
       "_origin": "ast",
       "id": "hrp_tipo_enfileiramontagemdotipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "enfileiramontagemdotipo()"
     },
@@ -11553,7 +11553,7 @@
       "source_location": "L122",
       "_origin": "ast",
       "id": "hrp_tipo_montaostipos",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "montaostipos()"
     },
@@ -11564,7 +11564,7 @@
       "source_location": "L158",
       "_origin": "ast",
       "id": "hrp_tipo_m_chame",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__chame__()"
     },
@@ -11575,7 +11575,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "hrp_tupla",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "tupla"
     },
@@ -11586,7 +11586,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "hrp_tupla_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -11597,7 +11597,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "hrp_tupla_grepr",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".grepr()"
     },
@@ -11619,7 +11619,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "hrp_tupla_m_texto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__texto__()"
     },
@@ -11641,7 +11641,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "hrp_tupla_obtemitem",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".obtemitem()"
     },
@@ -11652,7 +11652,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "hrp_tupla_defineitem",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".defineitem()"
     },
@@ -11663,7 +11663,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "hrp_tupla_m_obtem_item",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_item__()"
     },
@@ -11674,7 +11674,7 @@
       "source_location": "L84",
       "_origin": "ast",
       "id": "hrp_tupla_m_define_item",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__define_item__()"
     },
@@ -11685,7 +11685,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "hrp_tupla_m_contem",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": ".m__contem__()"
     },
@@ -11696,7 +11696,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "hrp_utils",
-      "community": 162,
+      "community": 165,
       "community_name": "hrp/utils.go",
       "norm_label": "hrp/utils.go"
     },
@@ -11718,7 +11718,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "hrp_utils_verificanumeroargumentos",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "verificanumeroargumentos()"
     },
@@ -11751,7 +11751,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "hrp_funcaocomerro",
-      "community": 162,
+      "community": 165,
       "community_name": "hrp/utils.go",
       "norm_label": "funcaocomerro"
     },
@@ -11762,7 +11762,7 @@
       "source_location": "L126",
       "_origin": "ast",
       "id": "hrp_utils_retornaoupanic",
-      "community": 162,
+      "community": 165,
       "community_name": "hrp/utils.go",
       "norm_label": "retornaoupanic()"
     },
@@ -11773,7 +11773,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "hrp_utils_go_t",
-      "community": 162,
+      "community": 165,
       "community_name": "hrp/utils.go",
       "norm_label": "t"
     },
@@ -12452,7 +12452,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "parser_programa",
-      "community": 213,
+      "community": 192,
       "community_name": "Programa",
       "norm_label": "programa"
     },
@@ -12540,7 +12540,7 @@
       "source_location": "L167",
       "_origin": "ast",
       "id": "parser_declfuncao",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "declfuncao"
     },
@@ -12562,7 +12562,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "parser_declfuncaoparametro",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "declfuncaoparametro"
     },
@@ -12573,7 +12573,7 @@
       "source_location": "L195",
       "_origin": "ast",
       "id": "parser_bloco",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "bloco"
     },
@@ -12606,7 +12606,7 @@
       "source_location": "L214",
       "_origin": "ast",
       "id": "parser_expressaose",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "expressaose"
     },
@@ -12617,7 +12617,7 @@
       "source_location": "L222",
       "_origin": "ast",
       "id": "parser_enquanto",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "enquanto"
     },
@@ -12705,7 +12705,7 @@
       "source_location": "L272",
       "_origin": "ast",
       "id": "parser_blocopara",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "blocopara"
     },
@@ -12826,7 +12826,7 @@
       "source_location": "L356",
       "_origin": "ast",
       "id": "parser_declclasse",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "declclasse"
     },
@@ -12859,7 +12859,7 @@
       "source_location": "L380",
       "_origin": "ast",
       "id": "parser_declteste",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "declteste"
     },
@@ -12870,7 +12870,7 @@
       "source_location": "L407",
       "_origin": "ast",
       "id": "parser_tentecapturefinalmente",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": "tentecapturefinalmente"
     },
@@ -12892,7 +12892,7 @@
       "source_location": "L421",
       "_origin": "ast",
       "id": "parser_programa_isexpr",
-      "community": 213,
+      "community": 192,
       "community_name": "Programa",
       "norm_label": ".isexpr()"
     },
@@ -12947,7 +12947,7 @@
       "source_location": "L426",
       "_origin": "ast",
       "id": "parser_declfuncao_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -12958,7 +12958,7 @@
       "source_location": "L427",
       "_origin": "ast",
       "id": "parser_declfuncaoparametro_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -12969,7 +12969,7 @@
       "source_location": "L428",
       "_origin": "ast",
       "id": "parser_bloco_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13002,7 +13002,7 @@
       "source_location": "L431",
       "_origin": "ast",
       "id": "parser_expressaose_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13013,7 +13013,7 @@
       "source_location": "L432",
       "_origin": "ast",
       "id": "parser_enquanto_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13145,7 +13145,7 @@
       "source_location": "L458",
       "_origin": "ast",
       "id": "parser_blocopara_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13255,7 +13255,7 @@
       "source_location": "L468",
       "_origin": "ast",
       "id": "parser_declclasse_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13288,7 +13288,7 @@
       "source_location": "L471",
       "_origin": "ast",
       "id": "parser_declteste_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13299,7 +13299,7 @@
       "source_location": "L472",
       "_origin": "ast",
       "id": "parser_tentecapturefinalmente_isexpr",
-      "community": 77,
+      "community": 54,
       "community_name": "Bloco",
       "norm_label": ".isexpr()"
     },
@@ -13772,7 +13772,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "parser_parser_newparserfromstring",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "newparserfromstring()"
     },
@@ -13849,7 +13849,7 @@
       "source_location": "L204",
       "_origin": "ast",
       "id": "parser_parser_parse",
-      "community": 213,
+      "community": 192,
       "community_name": "Programa",
       "norm_label": ".parse()"
     },
@@ -13871,7 +13871,7 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "parser_parser_parsedeclaracao",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": ".parsedeclaracao()"
     },
@@ -14399,7 +14399,7 @@
       "source_location": "L2350",
       "_origin": "ast",
       "id": "parser_errosintatico",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": "errosintatico"
     },
@@ -14410,7 +14410,7 @@
       "source_location": "L2367",
       "_origin": "ast",
       "id": "parser_parser_erros",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": ".erros()"
     },
@@ -14432,7 +14432,7 @@
       "source_location": "L2415",
       "_origin": "ast",
       "id": "parser_errosintatico_error",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": ".error()"
     },
@@ -14443,7 +14443,7 @@
       "source_location": "L2479",
       "_origin": "ast",
       "id": "parser_parser_obterdicasintatica",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": "obterdicasintatica()"
     },
@@ -14454,7 +14454,7 @@
       "source_location": "L2510",
       "_origin": "ast",
       "id": "parser_parser_formatarerro",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": ".formatarerro()"
     },
@@ -14465,7 +14465,7 @@
       "source_location": "L2576",
       "_origin": "ast",
       "id": "parser_parser_erro",
-      "community": 211,
+      "community": 163,
       "community_name": ".parseDeclaracao",
       "norm_label": ".erro()"
     },
@@ -14542,7 +14542,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "playground_executor",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": "executor"
     },
@@ -14564,7 +14564,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "playground_executor_executarcodigo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": ".executarcodigo()"
     },
@@ -14575,7 +14575,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "playground_executor_registrarmetodo",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": ".registrarmetodo()"
     },
@@ -14586,7 +14586,7 @@
       "source_location": "L102",
       "_origin": "ast",
       "id": "playground_executor_terminar",
-      "community": 131,
+      "community": 177,
       "community_name": "Metodo",
       "norm_label": ".terminar()"
     },
@@ -14990,7 +14990,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "stdlib_bd_bd_init",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "init()"
     },
@@ -15045,7 +15045,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "bd_conexaomongo_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15089,7 +15089,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "bd_colecaomongo_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15122,7 +15122,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "bd_conexaoredis_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15155,7 +15155,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_bd_sql",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "sql.go"
     },
@@ -15166,7 +15166,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "stdlib_bd_sql_validaridentificadorsql",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "validaridentificadorsql()"
     },
@@ -15177,7 +15177,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "stdlib_bd_sql_validaroperadorsql",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "validaroperadorsql()"
     },
@@ -15188,7 +15188,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "bd_conexaosql",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "conexaosql"
     },
@@ -15199,7 +15199,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_bd_sql_go_db",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "db"
     },
@@ -15210,7 +15210,7 @@
       "source_location": "L53",
       "_origin": "ast",
       "id": "bd_conexaosql_tipo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".tipo()"
     },
@@ -15221,7 +15221,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "bd_conexaosql_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15232,7 +15232,7 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "bd_transacaosql",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "transacaosql"
     },
@@ -15243,7 +15243,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tx",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "tx"
     },
@@ -15254,7 +15254,7 @@
       "source_location": "L207",
       "_origin": "ast",
       "id": "bd_transacaosql_tipo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".tipo()"
     },
@@ -15265,7 +15265,7 @@
       "source_location": "L212",
       "_origin": "ast",
       "id": "bd_transacaosql_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15276,7 +15276,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "bd_querybuilder",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "querybuilder"
     },
@@ -15287,7 +15287,7 @@
       "source_location": "L296",
       "_origin": "ast",
       "id": "bd_querybuilder_tipo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".tipo()"
     },
@@ -15298,7 +15298,7 @@
       "source_location": "L301",
       "_origin": "ast",
       "id": "bd_querybuilder_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15309,7 +15309,7 @@
       "source_location": "L533",
       "_origin": "ast",
       "id": "stdlib_bd_sql_togotype",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "togotype()"
     },
@@ -15320,7 +15320,7 @@
       "source_location": "L551",
       "_origin": "ast",
       "id": "stdlib_bd_sql_toptobject",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "toptobject()"
     },
@@ -15331,7 +15331,7 @@
       "source_location": "L573",
       "_origin": "ast",
       "id": "bd_querybuilder_converterplaceholders",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".converterplaceholders()"
     },
@@ -15342,7 +15342,7 @@
       "source_location": "L591",
       "_origin": "ast",
       "id": "stdlib_bd_sql_validartipocampo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "validartipocampo()"
     },
@@ -15353,7 +15353,7 @@
       "source_location": "L613",
       "_origin": "ast",
       "id": "stdlib_bd_sql_converterargumentosparago",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "converterargumentosparago()"
     },
@@ -15419,7 +15419,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_bd_vetores_vetores",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "vetores.go"
     },
@@ -15430,7 +15430,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "vetores_itemvetorial",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "itemvetorial"
     },
@@ -15441,7 +15441,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "vetores_bancovetorialobj",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "bancovetorialobj"
     },
@@ -15452,7 +15452,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "vetores_bancovetorialobj_tipo",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".tipo()"
     },
@@ -15463,7 +15463,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "vetores_bancovetorialobj_obterfilhos",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": ".obterfilhos()"
     },
@@ -15474,7 +15474,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "stdlib_bd_vetores_vetores_init",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "init()"
     },
@@ -15485,7 +15485,7 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "stdlib_bd_vetores_vetores_calcularsimilaridadecosseno",
-      "community": 43,
+      "community": 120,
       "community_name": "GCMixin",
       "norm_label": "calcularsimilaridadecosseno()"
     },
@@ -15496,7 +15496,7 @@
       "source_location": "L162",
       "_origin": "ast",
       "id": "stdlib_bd_vetores_vetores_met_vetores_criarbanco",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_vetores_criarbanco()"
     },
@@ -15507,7 +15507,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_bd_vetorial",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "vetorial.go"
     },
@@ -15518,7 +15518,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "bd_clientevetorial",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "clientevetorial"
     },
@@ -15529,7 +15529,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_bd_vetorial_go_client",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "client"
     },
@@ -15540,7 +15540,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "bd_clientevetorial_tipo",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": ".tipo()"
     },
@@ -15551,7 +15551,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "bd_clientevetorial_m_obtem_attributo",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15562,7 +15562,7 @@
       "source_location": "L215",
       "_origin": "ast",
       "id": "stdlib_bd_vetorial_met_conectar_qdrant",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_conectar_qdrant()"
     },
@@ -15628,7 +15628,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "colorize_background",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "background"
     },
@@ -15639,7 +15639,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "colorize_background_tipo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".tipo()"
     },
@@ -15683,7 +15683,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_colorize_imprimac",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "imprimac.go"
     },
@@ -15694,7 +15694,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "stdlib_colorize_imprimac_met_color_imprimac",
-      "community": 86,
+      "community": 88,
       "community_name": "ObtemAtributoS",
       "norm_label": "met_color_imprimac()"
     },
@@ -15848,7 +15848,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_email_email",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "email.go"
     },
@@ -15859,7 +15859,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "stdlib_email_email_met_email_enviar",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_email_enviar()"
     },
@@ -15870,7 +15870,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "stdlib_email_email_init",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "init()"
     },
@@ -15881,7 +15881,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_email_email_test",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "email_test.go"
     },
@@ -15892,7 +15892,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "stdlib_email_email_test_testemailenviarsimulacao",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "testemailenviarsimulacao()"
     },
@@ -15903,7 +15903,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_email_email_test_go_t",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "t"
     },
@@ -15914,7 +15914,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_doc",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "embutidos/doc.go"
     },
@@ -15925,7 +15925,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "stdlib_embutidos_doc_met_emb_doc",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_emb_doc()"
     },
@@ -15936,7 +15936,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_embutidos",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "embutidos.go"
     },
@@ -15947,7 +15947,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "stdlib_embutidos_embutidos_registrartipos",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "registrartipos()"
     },
@@ -15958,7 +15958,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstub",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetobrowserstub"
     },
@@ -15969,7 +15969,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstub_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -15980,7 +15980,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstub_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -15991,7 +15991,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstub_m_chame",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__chame__()"
     },
@@ -16002,7 +16002,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstub_m_booleano",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__booleano__()"
     },
@@ -16013,7 +16013,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstubmetodo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetobrowserstubmetodo"
     },
@@ -16024,7 +16024,7 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstubmetodo_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16035,7 +16035,7 @@
       "source_location": "L52",
       "_origin": "ast",
       "id": "embutidos_objetobrowserstubmetodo_m_chame",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__chame__()"
     },
@@ -16046,7 +16046,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "embutidos_objetopromise",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetopromise"
     },
@@ -16057,7 +16057,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "embutidos_objetopromise_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16068,7 +16068,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "embutidos_objetopromise_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16079,7 +16079,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "embutidos_objetopromiseresult",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetopromiseresult"
     },
@@ -16090,7 +16090,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "embutidos_objetopromiseresult_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16101,7 +16101,7 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "embutidos_objetopromiseresult_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16112,7 +16112,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "embutidos_objetoroteador",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetoroteador"
     },
@@ -16123,7 +16123,7 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "embutidos_objetoroteador_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16134,7 +16134,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "embutidos_objetoroteador_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16145,7 +16145,7 @@
       "source_location": "L135",
       "_origin": "ast",
       "id": "embutidos_objetoroteador_m_chame",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__chame__()"
     },
@@ -16156,7 +16156,7 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "embutidos_objetoroteadorapp",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "objetoroteadorapp"
     },
@@ -16167,7 +16167,7 @@
       "source_location": "L150",
       "_origin": "ast",
       "id": "embutidos_objetoroteadorapp_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16178,7 +16178,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "embutidos_objetoroteadorapp_m_chame",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__chame__()"
     },
@@ -16189,7 +16189,7 @@
       "source_location": "L193",
       "_origin": "ast",
       "id": "stdlib_embutidos_embutidos_init",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "init()"
     },
@@ -16222,7 +16222,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_instanciade",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "instanciade.go"
     },
@@ -16233,7 +16233,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "stdlib_embutidos_instanciade_met_emb_instanciade",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_emb_instanciade()"
     },
@@ -16244,7 +16244,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_int",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "int.go"
     },
@@ -16255,7 +16255,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "stdlib_embutidos_int_met_emb_int",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_emb_int()"
     },
@@ -16310,7 +16310,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "embutidos/sequencia.go"
     },
@@ -16321,7 +16321,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "embutidos_sequencianumerica",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "sequencianumerica"
     },
@@ -16332,7 +16332,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "embutidos_sequencianumerica_tipo",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": ".tipo()"
     },
@@ -16343,7 +16343,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "embutidos_sequencianumerica_m_iter",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": ".m__iter__()"
     },
@@ -16354,7 +16354,7 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "embutidos_sequencianumerica_m_pr\u00f3ximo",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": ".m__proximo__()"
     },
@@ -16365,7 +16365,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_met_emb_sequencia",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "met_emb_sequencia()"
     },
@@ -16376,7 +16376,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "sequencia_test.go"
     },
@@ -16387,7 +16387,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test_testsequenciaumargumento",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "testsequenciaumargumento()"
     },
@@ -16398,7 +16398,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test_go_t",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "t"
     },
@@ -16409,7 +16409,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test_testsequenciadoisargumentos",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "testsequenciadoisargumentos()"
     },
@@ -16420,7 +16420,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test_testsequenciatresargumentospassonegativo",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "testsequenciatresargumentospassonegativo()"
     },
@@ -16431,7 +16431,7 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "stdlib_embutidos_sequencia_test_testsequenciapassozero",
-      "community": 89,
+      "community": 5,
       "community_name": "met_emb_sequencia",
       "norm_label": "testsequenciapassozero()"
     },
@@ -16442,7 +16442,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_tamanho",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "tamanho.go"
     },
@@ -16453,7 +16453,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "stdlib_embutidos_tamanho_emb_tamanho_fn",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "emb_tamanho_fn()"
     },
@@ -16464,7 +16464,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_embutidos_texto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "texto.go"
     },
@@ -16475,7 +16475,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "stdlib_embutidos_texto_met_emb_texto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_emb_texto()"
     },
@@ -16497,7 +16497,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "esquema_esquema",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "esquema"
     },
@@ -16508,7 +16508,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "esquema_esquema_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16519,7 +16519,7 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "esquema_esquema_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16607,7 +16607,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "ffi.go"
     },
@@ -16618,7 +16618,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "ffi_biblioteca",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "biblioteca"
     },
@@ -16629,7 +16629,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "ffi_biblioteca_tipo",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -16640,7 +16640,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "ffi_biblioteca_m_obtem_attributo",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16651,7 +16651,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "ffi_funcaoffi",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "funcaoffi"
     },
@@ -16662,7 +16662,7 @@
       "source_location": "L56",
       "_origin": "ast",
       "id": "ffi_funcaoffi_tipo",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -16673,7 +16673,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "ffi_funcaoffi_m_chame",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__chame__()"
     },
@@ -16684,7 +16684,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi_met_ffi_abrir",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "met_ffi_abrir()"
     },
@@ -16695,7 +16695,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi_init",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "init()"
     },
@@ -16706,7 +16706,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi_test",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "ffi_test.go"
     },
@@ -16717,7 +16717,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi_test_testffimocksoma",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "testffimocksoma()"
     },
@@ -16728,7 +16728,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_ffi_ffi_test_go_t",
-      "community": 187,
+      "community": 119,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "t"
     },
@@ -16739,7 +16739,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_fila_fila",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "fila.go"
     },
@@ -16750,7 +16750,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "fila_gerenciadorfila",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "gerenciadorfila"
     },
@@ -16761,7 +16761,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_fila_fila_go_mutex",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "mutex"
     },
@@ -16772,7 +16772,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "stdlib_fila_fila_met_fila_enfileirar",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "met_fila_enfileirar()"
     },
@@ -16783,7 +16783,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "stdlib_fila_fila_met_fila_tamanho",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "met_fila_tamanho()"
     },
@@ -16794,7 +16794,7 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "stdlib_fila_fila_init",
-      "community": 92,
+      "community": 188,
       "community_name": "met_fila_enfileirar",
       "norm_label": "init()"
     },
@@ -16860,7 +16860,7 @@
       "source_location": "L22",
       "_origin": "ast",
       "id": "http_requisicao",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": "requisicao"
     },
@@ -16871,7 +16871,7 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "http_requisicao_tipo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".tipo()"
     },
@@ -16882,7 +16882,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "http_requisicao_m_obtem_attributo",
-      "community": 5,
+      "community": 47,
       "community_name": "Tipo",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -16893,7 +16893,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "http_resposta",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "resposta"
     },
@@ -16904,7 +16904,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "http_resposta_tipo",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -16915,7 +16915,7 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "http_resposta_m_define_atributo",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__define_atributo__()"
     },
@@ -16926,7 +16926,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "http_resposta_m_obtem_attributo",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -17344,7 +17344,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_ia_ia",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "ia.go"
     },
@@ -17355,7 +17355,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "stdlib_ia_ia_init",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "init()"
     },
@@ -17476,7 +17476,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "redeneural.go"
     },
@@ -17487,7 +17487,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_extrairslicefloatia",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "extrairslicefloatia()"
     },
@@ -17498,7 +17498,7 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_floatsliceparalistaia",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "floatsliceparalistaia()"
     },
@@ -17509,7 +17509,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_sigmoide",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_sigmoide()"
     },
@@ -17520,7 +17520,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_derivadasigmoide",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_derivadasigmoide()"
     },
@@ -17531,7 +17531,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_relu",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_relu()"
     },
@@ -17542,7 +17542,7 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_softmax",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_softmax()"
     },
@@ -17553,7 +17553,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_similaridadecosseno",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_similaridadecosseno()"
     },
@@ -17564,7 +17564,7 @@
       "source_location": "L134",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_normalizarminmax",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_normalizarminmax()"
     },
@@ -17575,7 +17575,7 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_met_ia_erroquadraticomedio",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_ia_erroquadraticomedio()"
     },
@@ -17586,7 +17586,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_test",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "redeneural_test.go"
     },
@@ -17597,7 +17597,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_test_testsigmoideesimilaridade",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "testsigmoideesimilaridade()"
     },
@@ -17608,7 +17608,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_ia_redeneural_test_go_t",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "t"
     },
@@ -17619,7 +17619,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_json_json",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "json.go"
     },
@@ -17630,7 +17630,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "stdlib_json_json_converteparahrp",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "converteparahrp()"
     },
@@ -17641,7 +17641,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "stdlib_json_json_met_json_analisar",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "met_json_analisar()"
     },
@@ -17652,7 +17652,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "stdlib_json_json_met_json_serializar",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "met_json_serializar()"
     },
@@ -17663,7 +17663,7 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "stdlib_json_json_init",
-      "community": 97,
+      "community": 96,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "init()"
     },
@@ -17817,7 +17817,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_absoluto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "absoluto.go"
     },
@@ -17828,7 +17828,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "stdlib_matematica_absoluto_met_mat_absoluto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_absoluto()"
     },
@@ -17839,7 +17839,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_exp_log",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "exp_log.go"
     },
@@ -17850,7 +17850,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "stdlib_matematica_exp_log_met_mat_exp",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_exp()"
     },
@@ -17861,7 +17861,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "stdlib_matematica_exp_log_met_mat_log",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_log()"
     },
@@ -17894,7 +17894,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_min_max_aleatorio",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "min_max_aleatorio.go"
     },
@@ -17905,7 +17905,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "stdlib_matematica_min_max_aleatorio_met_mat_max",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_max()"
     },
@@ -17916,7 +17916,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "stdlib_matematica_min_max_aleatorio_met_mat_min",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_min()"
     },
@@ -17927,7 +17927,7 @@
       "source_location": "L43",
       "_origin": "ast",
       "id": "stdlib_matematica_min_max_aleatorio_met_mat_aleatorio",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_aleatorio()"
     },
@@ -17938,7 +17938,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_piso",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "piso.go"
     },
@@ -17949,7 +17949,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "stdlib_matematica_piso_met_mat_piso",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_piso()"
     },
@@ -17960,7 +17960,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_potencia",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "potencia.go"
     },
@@ -17971,7 +17971,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "stdlib_matematica_potencia_met_mat_potencia",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_potencia()"
     },
@@ -17982,7 +17982,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_raiz",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "raiz.go"
     },
@@ -17993,7 +17993,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "stdlib_matematica_raiz_met_mat_raiz",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_raiz()"
     },
@@ -18004,7 +18004,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_teto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "teto.go"
     },
@@ -18015,7 +18015,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "stdlib_matematica_teto_met_mat_teto",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_teto()"
     },
@@ -18026,7 +18026,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matematica_trig",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "trig.go"
     },
@@ -18037,7 +18037,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "stdlib_matematica_trig_met_mat_sen",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_sen()"
     },
@@ -18048,7 +18048,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "stdlib_matematica_trig_met_mat_cos",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_cos()"
     },
@@ -18059,7 +18059,7 @@
       "source_location": "L31",
       "_origin": "ast",
       "id": "stdlib_matematica_trig_met_mat_tanh",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_mat_tanh()"
     },
@@ -18070,7 +18070,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "matriz.go"
     },
@@ -18081,7 +18081,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_init",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "init()"
     },
@@ -18092,7 +18092,7 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_extrairslicefloat",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "extrairslicefloat()"
     },
@@ -18103,7 +18103,7 @@
       "source_location": "L49",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_floatsliceparalista",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "floatsliceparalista()"
     },
@@ -18114,7 +18114,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_produtoescalar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_produtoescalar()"
     },
@@ -18125,7 +18125,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_somarvetores",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_somarvetores()"
     },
@@ -18136,7 +18136,7 @@
       "source_location": "L101",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_subtrairvetores",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_subtrairvetores()"
     },
@@ -18147,7 +18147,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_multiplicarescalar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_multiplicarescalar()"
     },
@@ -18158,7 +18158,7 @@
       "source_location": "L144",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_norma",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_norma()"
     },
@@ -18169,7 +18169,7 @@
       "source_location": "L159",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_criar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_criar()"
     },
@@ -18180,7 +18180,7 @@
       "source_location": "L192",
       "_origin": "ast",
       "id": "stdlib_matriz_matriz_met_matriz_multiplicar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_matriz_multiplicar()"
     },
@@ -18411,7 +18411,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "pdf.go"
     },
@@ -18422,7 +18422,7 @@
       "source_location": "L13",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf_met_pdf_gerardehtml",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "met_pdf_gerardehtml()"
     },
@@ -18433,7 +18433,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf_init",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "init()"
     },
@@ -18444,7 +18444,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf_test",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "pdf_test.go"
     },
@@ -18455,7 +18455,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf_test_testgerardehtml",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "testgerardehtml()"
     },
@@ -18466,7 +18466,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_pdf_pdf_test_go_t",
-      "community": 212,
+      "community": 3,
       "community_name": "met_pdf_gerarDeHtml",
       "norm_label": "t"
     },
@@ -18686,7 +18686,7 @@
       "source_location": "L186",
       "_origin": "ast",
       "id": "resiliencia_retentativa_m_obtem_attributo",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -18752,7 +18752,7 @@
       "source_location": "L278",
       "_origin": "ast",
       "id": "stdlib_resiliencia_resiliencia_met_novo_limite",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_novo_limite()"
     },
@@ -18939,7 +18939,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_sistema_sistema",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "sistema.go"
     },
@@ -18950,7 +18950,7 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "stdlib_sistema_sistema_init",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "init()"
     },
@@ -19258,7 +19258,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "tarefas.go"
     },
@@ -19269,7 +19269,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "tarefas_filaitem",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "filaitem"
     },
@@ -19280,7 +19280,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_met_tarefas_agendar",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "met_tarefas_agendar()"
     },
@@ -19291,7 +19291,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_met_tarefas_enfileirar",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "met_tarefas_enfileirar()"
     },
@@ -19302,7 +19302,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_met_tarefas_processarfila",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "met_tarefas_processarfila()"
     },
@@ -19313,7 +19313,7 @@
       "source_location": "L92",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_init",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "init()"
     },
@@ -19324,7 +19324,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_test",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "tarefas_test.go"
     },
@@ -19335,7 +19335,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_test_testagendartarefa",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "testagendartarefa()"
     },
@@ -19346,7 +19346,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_test_go_t",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "t"
     },
@@ -19357,7 +19357,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "stdlib_tarefas_tarefas_test_testfiladetarefas",
-      "community": 8,
+      "community": 59,
       "community_name": "NewMetodoOuPanic",
       "norm_label": "testfiladetarefas()"
     },
@@ -19368,7 +19368,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "telemetria.go"
     },
@@ -19379,7 +19379,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "telemetria_span",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "span"
     },
@@ -19390,7 +19390,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_go_time",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "time"
     },
@@ -19401,7 +19401,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_go_rwmutex",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "rwmutex"
     },
@@ -19412,7 +19412,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "telemetria_span_tipo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -19423,7 +19423,7 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "telemetria_span_m_obtem_attributo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -19434,7 +19434,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "telemetria_tracer",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "tracer"
     },
@@ -19445,7 +19445,7 @@
       "source_location": "L64",
       "_origin": "ast",
       "id": "telemetria_tracer_tipo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -19456,7 +19456,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "telemetria_tracer_m_obtem_attributo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -19467,7 +19467,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "telemetria_metrica",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "metrica"
     },
@@ -19478,7 +19478,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_go_mutex",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "mutex"
     },
@@ -19489,7 +19489,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "telemetria_metrica_tipo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".tipo()"
     },
@@ -19500,7 +19500,7 @@
       "source_location": "L111",
       "_origin": "ast",
       "id": "telemetria_metrica_m_obtem_attributo",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": ".m__obtem_attributo__()"
     },
@@ -19511,7 +19511,7 @@
       "source_location": "L140",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_met_novo_tracer",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "met_novo_tracer()"
     },
@@ -19522,7 +19522,7 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_met_nova_metrica",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "met_nova_metrica()"
     },
@@ -19533,7 +19533,7 @@
       "source_location": "L170",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_init",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "init()"
     },
@@ -19544,7 +19544,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_test",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "telemetria_test.go"
     },
@@ -19555,7 +19555,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_test_testtracerespan",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "testtracerespan()"
     },
@@ -19566,7 +19566,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_test_go_t",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "t"
     },
@@ -19577,7 +19577,7 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "stdlib_telemetria_telemetria_test_testmetrica",
-      "community": 59,
+      "community": 43,
       "community_name": ".M__obtem_attributo__",
       "norm_label": "testmetrica()"
     },
@@ -19698,7 +19698,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "tensor.go"
     },
@@ -19764,7 +19764,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor_extrairformato",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "extrairformato()"
     },
@@ -19775,7 +19775,7 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor_met_tensor_criar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_tensor_criar()"
     },
@@ -19786,7 +19786,7 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor_met_tensor_redimensionar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_tensor_redimensionar()"
     },
@@ -19797,7 +19797,7 @@
       "source_location": "L131",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor_met_tensor_somar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_tensor_somar()"
     },
@@ -19808,7 +19808,7 @@
       "source_location": "L154",
       "_origin": "ast",
       "id": "stdlib_tensor_tensor_met_tensor_multiplicar",
-      "community": 3,
+      "community": 83,
       "community_name": "Tupla",
       "norm_label": "met_tensor_multiplicar()"
     },
@@ -20941,7 +20941,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_xml_xml",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "xml.go"
     },
@@ -20952,7 +20952,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "xml_xmlnode",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "xmlnode"
     },
@@ -20963,7 +20963,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "name",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "name"
     },
@@ -20974,7 +20974,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "stdlib_xml_xml_parsexmlnode",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "parsexmlnode()"
     },
@@ -20985,7 +20985,7 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "stdlib_xml_xml_met_xml_analisar",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_xml_analisar()"
     },
@@ -20996,7 +20996,7 @@
       "source_location": "L50",
       "_origin": "ast",
       "id": "stdlib_xml_xml_met_xml_serializar",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_xml_serializar()"
     },
@@ -21007,7 +21007,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "stdlib_xml_xml_serializemap",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "serializemap()"
     },
@@ -21018,7 +21018,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "builder",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "builder"
     },
@@ -21029,7 +21029,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "stdlib_xml_xml_init",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "init()"
     },
@@ -21040,7 +21040,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "yaml.go"
     },
@@ -21051,7 +21051,7 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml_converteparago",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "converteparago()"
     },
@@ -21062,7 +21062,7 @@
       "source_location": "L41",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml_converteparahrp",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "converteparahrp()"
     },
@@ -21073,7 +21073,7 @@
       "source_location": "L78",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml_met_yaml_analisar",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_yaml_analisar()"
     },
@@ -21084,7 +21084,7 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml_met_yaml_serializar",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "met_yaml_serializar()"
     },
@@ -21095,7 +21095,7 @@
       "source_location": "L112",
       "_origin": "ast",
       "id": "stdlib_yaml_yaml_init",
-      "community": 153,
+      "community": 8,
       "community_name": "NewMapaVazio",
       "norm_label": "init()"
     },
@@ -21898,7 +21898,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_parser_test_parser_bench_test",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "parser_bench_test.go"
     },
@@ -21909,7 +21909,7 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "tests_parser_test_parser_bench_test_benchmarklexer",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "benchmarklexer()"
     },
@@ -21920,7 +21920,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_parser_test_parser_bench_test_go_b",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "b"
     },
@@ -21931,7 +21931,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "tests_parser_test_parser_bench_test_benchmarkparser",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "benchmarkparser()"
     },
@@ -21942,7 +21942,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_parser_test_parser_fuzz_test",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "parser_fuzz_test.go"
     },
@@ -21953,7 +21953,7 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "tests_parser_test_parser_fuzz_test_fuzzparser",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "fuzzparser()"
     },
@@ -21964,7 +21964,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_parser_test_parser_fuzz_test_go_f",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "f"
     },
@@ -21975,7 +21975,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "parser_test.go"
     },
@@ -21986,7 +21986,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparseestilo",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparseestilo()"
     },
@@ -21997,7 +21997,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_go_t",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "t"
     },
@@ -22008,7 +22008,7 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparsejsx",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparsejsx()"
     },
@@ -22019,7 +22019,7 @@
       "source_location": "L90",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparsedestructuring",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparsedestructuring()"
     },
@@ -22030,7 +22030,7 @@
       "source_location": "L114",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparsecoalescencianula",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparsecoalescencianula()"
     },
@@ -22041,7 +22041,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparseenum",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparseenum()"
     },
@@ -22052,7 +22052,7 @@
       "source_location": "L180",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testparseinterface",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testparseinterface()"
     },
@@ -22063,7 +22063,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testatribucaologicaecoalescente",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testatribucaologicaecoalescente()"
     },
@@ -22074,7 +22074,7 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testnoposicaocoordenadas",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testnoposicaocoordenadas()"
     },
@@ -22085,7 +22085,7 @@
       "source_location": "L261",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testrecuperacaoerrossintaticos",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testrecuperacaoerrossintaticos()"
     },
@@ -22096,7 +22096,7 @@
       "source_location": "L279",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testdesestruturacao",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testdesestruturacao()"
     },
@@ -22107,7 +22107,7 @@
       "source_location": "L302",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testdiagnosticosricos",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testdiagnosticosricos()"
     },
@@ -22118,7 +22118,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testencadeamentoopcionalcompleto",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testencadeamentoopcionalcompleto()"
     },
@@ -22129,7 +22129,7 @@
       "source_location": "L342",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testpatternmatchingescolha",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testpatternmatchingescolha()"
     },
@@ -22140,7 +22140,7 @@
       "source_location": "L370",
       "_origin": "ast",
       "id": "tests_parser_test_parser_test_testastdocstrings",
-      "community": 54,
+      "community": 48,
       "community_name": "NewParserFromString",
       "norm_label": "testastdocstrings()"
     },
@@ -22250,7 +22250,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_ssr_servidor_test",
-      "community": 188,
+      "community": 216,
       "community_name": "TestSSRServidorCompleto",
       "norm_label": "ssr_servidor_test.go"
     },
@@ -22261,7 +22261,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "tests_ssr_servidor_test_testssrservidorcompleto",
-      "community": 188,
+      "community": 216,
       "community_name": "TestSSRServidorCompleto",
       "norm_label": "testssrservidorcompleto()"
     },
@@ -22272,7 +22272,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_ssr_servidor_test_go_t",
-      "community": 188,
+      "community": 216,
       "community_name": "TestSSRServidorCompleto",
       "norm_label": "t"
     },
@@ -22283,7 +22283,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_ssr_test",
-      "community": 177,
+      "community": 213,
       "community_name": "TestSSRBasico",
       "norm_label": "ssr_test.go"
     },
@@ -22294,7 +22294,7 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "tests_ssr_test_testssrbasico",
-      "community": 177,
+      "community": 213,
       "community_name": "TestSSRBasico",
       "norm_label": "testssrbasico()"
     },
@@ -22305,7 +22305,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_ssr_test_go_t",
-      "community": 177,
+      "community": 213,
       "community_name": "TestSSRBasico",
       "norm_label": "t"
     },
@@ -22316,7 +22316,7 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "tests_ssr_test_testssrelementoscustomizados",
-      "community": 177,
+      "community": 213,
       "community_name": "TestSSRBasico",
       "norm_label": "testssrelementoscustomizados()"
     },
@@ -22712,7 +22712,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "vm_opcodes",
-      "community": 216,
+      "community": 214,
       "community_name": "NomeOpcode",
       "norm_label": "opcodes.go"
     },
@@ -22723,7 +22723,7 @@
       "source_location": "L75",
       "_origin": "ast",
       "id": "vm_opcodes_nomeopcode",
-      "community": 216,
+      "community": 214,
       "community_name": "NomeOpcode",
       "norm_label": "nomeopcode()"
     },
@@ -22734,7 +22734,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "vm_opcodes_go_opcode",
-      "community": 216,
+      "community": 214,
       "community_name": "NomeOpcode",
       "norm_label": "opcode"
     },
@@ -22745,7 +22745,7 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "vm_vm",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "vm"
     },
@@ -22756,7 +22756,7 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "vm_tryhandler",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "tryhandler"
     },
@@ -22767,7 +22767,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "vm_frame",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "frame"
     },
@@ -22789,7 +22789,7 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "vm_frame_push",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".push()"
     },
@@ -22800,7 +22800,7 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "vm_frame_pop",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".pop()"
     },
@@ -22811,7 +22811,7 @@
       "source_location": "L79",
       "_origin": "ast",
       "id": "vm_frame_obterprofundidade",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".obterprofundidade()"
     },
@@ -22822,7 +22822,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "vm_perfilinfo",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "perfilinfo"
     },
@@ -22833,7 +22833,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "vm_vm_go_opcode",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "opcode"
     },
@@ -22844,7 +22844,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "vm_vm_go_duration",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": "duration"
     },
@@ -22877,7 +22877,7 @@
       "source_location": "L123",
       "_origin": "ast",
       "id": "vm_vm_registrarmetrica",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".registrarmetrica()"
     },
@@ -22888,7 +22888,7 @@
       "source_location": "L133",
       "_origin": "ast",
       "id": "vm_vm_imprimirperfil",
-      "community": 216,
+      "community": 214,
       "community_name": "NomeOpcode",
       "norm_label": ".imprimirperfil()"
     },
@@ -22899,7 +22899,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "vm_vm_executar",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".executar()"
     },
@@ -22910,7 +22910,7 @@
       "source_location": "L812",
       "_origin": "ast",
       "id": "vm_vm_tratarexcecao",
-      "community": 101,
+      "community": 89,
       "community_name": ".Executar",
       "norm_label": ".tratarexcecao()"
     },
@@ -26749,7 +26749,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "readme_harpia",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\ud83e\udd85 harpia"
     },
@@ -26760,7 +26760,7 @@
       "source_location": "L20",
       "_origin": "ast",
       "id": "readme_o_que_\u00e9_a_harpia",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\ud83d\udcd6 o que e a harpia?"
     },
@@ -26771,7 +26771,7 @@
       "source_location": "L28",
       "_origin": "ast",
       "id": "readme_instala\u00e7\u00e3o_r\u00e1pida",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\ud83d\ude80 instalacao rapida"
     },
@@ -26782,7 +26782,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "readme_linux_macos",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "linux / macos"
     },
@@ -26793,7 +26793,7 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "readme_windows_powershell",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "windows (powershell)"
     },
@@ -26804,7 +26804,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "readme_filosofia_e_conceito_o_m\u00e9todo_ponytail",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\u26a1 filosofia e conceito: o metodo ponytail"
     },
@@ -26815,7 +26815,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "readme_clean_architecture_e_ddd_nativo",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\ud83c\udfd7\ufe0f clean architecture e ddd nativo"
     },
@@ -26826,7 +26826,7 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "readme_caracter\u00edsticas_principais_performance",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\u2728 caracteristicas principais & performance"
     },
@@ -27167,7 +27167,7 @@
       "source_location": "L364",
       "_origin": "ast",
       "id": "readme_documenta\u00e7\u00e3o_guias",
-      "community": 120,
+      "community": 151,
       "community_name": "\ud83e\udd85 Harpia",
       "norm_label": "\ud83d\udcda documentacao & guias"
     },
@@ -27189,7 +27189,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "roadmap_harpia_roadmap_oficial",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83c\udde7\ud83c\uddf7 harpia \u2014 roadmap oficial"
     },
@@ -27200,7 +27200,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "roadmap_filosofia_de_design",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83d\udca1 filosofia de design"
     },
@@ -27211,7 +27211,7 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "roadmap_as_10_decis\u00f5es_fundamentais",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83e\udded as 10 decisoes fundamentais"
     },
@@ -27222,7 +27222,7 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "roadmap_estado_atual_v1_x_produ\u00e7\u00e3o",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83d\udce6 estado atual (v1.x - producao)"
     },
@@ -27530,7 +27530,7 @@
       "source_location": "L286",
       "_origin": "ast",
       "id": "roadmap_fase_4_frontend_sinais_jsx_like_spa_completo",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "\ud83d\udfe0 fase 4 \u2014 frontend + sinais + jsx-like (spa completo)"
     },
@@ -27541,7 +27541,7 @@
       "source_location": "L293",
       "_origin": "ast",
       "id": "roadmap_4_1_transpila\u00e7\u00e3o_de_alta_performance_para_web_compilador_emissor",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.1 \u2014 transpilacao de alta performance para web (compilador & emissor)"
     },
@@ -27552,7 +27552,7 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "roadmap_4_2_estiliza\u00e7\u00e3o_nativa_e_unificada_tr\u00eas_pilares",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.2 \u2014 estilizacao nativa e unificada (tres pilares)"
     },
@@ -27563,7 +27563,7 @@
       "source_location": "L307",
       "_origin": "ast",
       "id": "roadmap_4_3_roteamento_spa_baseado_em_arquivos_file_system_routing",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.3 \u2014 roteamento spa baseado em arquivos (file-system routing)"
     },
@@ -27574,7 +27574,7 @@
       "source_location": "L313",
       "_origin": "ast",
       "id": "roadmap_4_4_metadados_sem\u00e2nticos_nativos_aeo_geo",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.4 \u2014 metadados semanticos nativos (aeo & geo)"
     },
@@ -27585,7 +27585,7 @@
       "source_location": "L319",
       "_origin": "ast",
       "id": "roadmap_4_5_sinais_e_estado_global_nativo",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.5 \u2014 sinais e estado global nativo"
     },
@@ -27596,7 +27596,7 @@
       "source_location": "L326",
       "_origin": "ast",
       "id": "roadmap_4_5_componentes_jsx_like",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.5 \u2014 componentes jsx-like"
     },
@@ -27607,7 +27607,7 @@
       "source_location": "L335",
       "_origin": "ast",
       "id": "roadmap_4_6_virtual_dom_reconcilia\u00e7\u00e3o",
-      "community": 141,
+      "community": 144,
       "community_name": "\ud83d\udfe0 FASE 4 \u2014 Frontend + Sinais + JSX-like (SPA Completo)",
       "norm_label": "4.6 \u2014 virtual dom / reconciliacao"
     },
@@ -27717,7 +27717,7 @@
       "source_location": "L408",
       "_origin": "ast",
       "id": "roadmap_sintaxe_alvo_refer\u00eancia",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "\ud83d\udd24 sintaxe alvo (referencia)"
     },
@@ -27805,7 +27805,7 @@
       "source_location": "L510",
       "_origin": "ast",
       "id": "roadmap_fase_7_lan\u00e7amento_p\u00fablico_e_consolida\u00e7\u00e3o_da_comunidade",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "\ud83c\udf10 fase 7 \u2014 lancamento publico e consolidacao da comunidade"
     },
@@ -27816,7 +27816,7 @@
       "source_location": "L514",
       "_origin": "ast",
       "id": "roadmap_7_1_canais_de_distribui\u00e7\u00e3o_e_instaladores_automatizados",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "7.1 \u2014 canais de distribuicao e instaladores automatizados"
     },
@@ -27827,7 +27827,7 @@
       "source_location": "L520",
       "_origin": "ast",
       "id": "roadmap_7_2_portal_oficial_e_playground_online_harpia_org",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "7.2 \u2014 portal oficial e playground online (`harpia.org`)"
     },
@@ -27838,7 +27838,7 @@
       "source_location": "L526",
       "_origin": "ast",
       "id": "roadmap_7_3_registro_p\u00fablico_de_pacotes_central_de_depend\u00eancias",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "7.3 \u2014 registro publico de pacotes (central de dependencias)"
     },
@@ -27849,7 +27849,7 @@
       "source_location": "L532",
       "_origin": "ast",
       "id": "roadmap_7_4_governan\u00e7a_e_contribui\u00e7\u00e3o_aberta_rfcs_em_pt",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "7.4 \u2014 governanca e contribuicao aberta (rfcs em pt)"
     },
@@ -27860,7 +27860,7 @@
       "source_location": "L538",
       "_origin": "ast",
       "id": "roadmap_7_5_kits_de_sucesso_e_evangelismo_marketing_educacional",
-      "community": 144,
+      "community": 182,
       "community_name": "\ud83c\udf10 FASE 7 \u2014 Lan\u00e7amento P\u00fablico e Consolida\u00e7\u00e3o da Comunidade",
       "norm_label": "7.5 \u2014 kits de sucesso e evangelismo (marketing educacional)"
     },
@@ -27871,7 +27871,7 @@
       "source_location": "L545",
       "_origin": "ast",
       "id": "roadmap_conclus\u00e3o_do_roadmap",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\u2705 conclusao do roadmap"
     },
@@ -27882,7 +27882,7 @@
       "source_location": "L551",
       "_origin": "ast",
       "id": "roadmap_estimativa_de_tempo_solo_part_time_10_15h_semana",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83d\udcc5 estimativa de tempo (solo, part-time ~10\u201315h/semana)"
     },
@@ -27893,7 +27893,7 @@
       "source_location": "L567",
       "_origin": "ast",
       "id": "roadmap_primeiros_passos_imediatos",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83d\ude80 primeiros passos imediatos"
     },
@@ -27904,7 +27904,7 @@
       "source_location": "L608",
       "_origin": "ast",
       "id": "roadmap_melhorias_identificadas_no_parser_e_linguagem_2026_07_28",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "\ud83d\udee0\ufe0f melhorias identificadas no parser e linguagem (2026-07-28)"
     },
@@ -27915,7 +27915,7 @@
       "source_location": "L615",
       "_origin": "ast",
       "id": "roadmap_sum\u00e1rio_executivo",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "sumario executivo"
     },
@@ -28047,7 +28047,7 @@
       "source_location": "L768",
       "_origin": "ast",
       "id": "roadmap_crit\u00e9rios_de_prioriza\u00e7\u00e3o",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "criterios de priorizacao"
     },
@@ -28058,7 +28058,7 @@
       "source_location": "L789",
       "_origin": "ast",
       "id": "roadmap_estimativa_de_esfor\u00e7o_agregado",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "estimativa de esforco agregado"
     },
@@ -28069,7 +28069,7 @@
       "source_location": "L795",
       "_origin": "ast",
       "id": "roadmap_m\u00e9tricas_de_sucesso",
-      "community": 93,
+      "community": 131,
       "community_name": "\ud83c\udde7\ud83c\uddf7 Harpia \u2014 Roadmap Oficial",
       "norm_label": "metricas de sucesso"
     },
@@ -29301,7 +29301,7 @@
       "source_location": "L202",
       "_origin": "ast",
       "id": "docs_brand_guidelines_7_modo_claro_harpia_light",
-      "community": 165,
+      "community": 212,
       "community_name": "7. Modo Claro (\"Harpia Light\")",
       "norm_label": "7. modo claro (\"harpia light\")"
     },
@@ -29312,7 +29312,7 @@
       "source_location": "L206",
       "_origin": "ast",
       "id": "docs_brand_guidelines_7_1_paleta_de_cores_harpia_light",
-      "community": 165,
+      "community": 212,
       "community_name": "7. Modo Claro (\"Harpia Light\")",
       "norm_label": "7.1 paleta de cores \u2014 harpia light"
     },
@@ -29323,7 +29323,7 @@
       "source_location": "L225",
       "_origin": "ast",
       "id": "docs_brand_guidelines_7_2_tema_de_sintaxe_harpia_light",
-      "community": 165,
+      "community": 212,
       "community_name": "7. Modo Claro (\"Harpia Light\")",
       "norm_label": "7.2 tema de sintaxe \u2014 \"harpia light\""
     },
@@ -29334,7 +29334,7 @@
       "source_location": "L239",
       "_origin": "ast",
       "id": "docs_brand_guidelines_7_3_princ\u00edpios_de_aplica\u00e7\u00e3o_do_light_mode",
-      "community": 165,
+      "community": 212,
       "community_name": "7. Modo Claro (\"Harpia Light\")",
       "norm_label": "7.3 principios de aplicacao do light mode"
     },
@@ -31688,7 +31688,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "harpia-brand-examples.md"
     },
@@ -31842,7 +31842,7 @@
       "source_location": "L258",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_m\u00f3dulo_raiz_n\u00facleo_do_sistema",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "modulo: `raiz` \u2014 nucleo do sistema"
     },
@@ -31853,7 +31853,7 @@
       "source_location": "L263",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_fun\u00e7\u00f5es",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "funcoes"
     },
@@ -31864,7 +31864,7 @@
       "source_location": "L265",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_imprimir_mensagem_texto_nada",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "`imprimir(mensagem: texto) -> nada`"
     },
@@ -31875,7 +31875,7 @@
       "source_location": "L283",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_debug_valor_t_t",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "`debug(valor: t) -> t`"
     },
@@ -31886,7 +31886,7 @@
       "source_location": "L298",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_tipos",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "tipos"
     },
@@ -31897,7 +31897,7 @@
       "source_location": "L300",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_resultado_t_e",
-      "community": 155,
+      "community": 187,
       "community_name": "Fun\u00e7\u00f5es",
       "norm_label": "`resultado<t, e>`"
     },
@@ -31908,7 +31908,7 @@
       "source_location": "L551",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_nome_do_reposit\u00f3rio",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "[nome do repositorio]"
     },
@@ -31919,7 +31919,7 @@
       "source_location": "L555",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_quick_start",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "\ud83d\ude80 quick start"
     },
@@ -31930,7 +31930,7 @@
       "source_location": "L561",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_documenta\u00e7\u00e3o",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "\ud83d\udcda documentacao"
     },
@@ -31941,7 +31941,7 @@
       "source_location": "L567",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_contribuindo",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "\ud83e\udd1d contribuindo"
     },
@@ -31952,7 +31952,7 @@
       "source_location": "L572",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_licen\u00e7a",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "\ud83d\udcdc licenca"
     },
@@ -31963,7 +31963,7 @@
       "source_location": "L576",
       "_origin": "ast",
       "id": "docs_harpia_brand_examples_comunidade",
-      "community": 151,
+      "community": 153,
       "community_name": "[Nome do Reposit\u00f3rio]",
       "norm_label": "comunidade"
     },
@@ -34405,7 +34405,7 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "parser_readme_4_arquitetura_e_fluxo",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4. arquitetura e fluxo"
     },
@@ -34416,7 +34416,7 @@
       "source_location": "L46",
       "_origin": "ast",
       "id": "parser_readme_4_1_estrutura_da_ast_ast_nodes_go",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4.1. estrutura da ast (`ast_nodes.go`)"
     },
@@ -34427,7 +34427,7 @@
       "source_location": "L70",
       "_origin": "ast",
       "id": "parser_readme_4_2_o_parser_parser_go",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4.2. o parser (`parser.go`)"
     },
@@ -34438,7 +34438,7 @@
       "source_location": "L107",
       "_origin": "ast",
       "id": "parser_readme_4_3_preced\u00eancia_de_operadores",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4.3. precedencia de operadores"
     },
@@ -34449,7 +34449,7 @@
       "source_location": "L145",
       "_origin": "ast",
       "id": "parser_readme_4_4_recupera\u00e7\u00e3o_de_erros",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4.4. recuperacao de erros"
     },
@@ -34460,7 +34460,7 @@
       "source_location": "L149",
       "_origin": "ast",
       "id": "parser_readme_4_5_renderiza\u00e7\u00e3o_de_erros_errosintatico",
-      "community": 156,
+      "community": 155,
       "community_name": "4. Arquitetura e Fluxo",
       "norm_label": "4.5. renderizacao de erros (`errosintatico`)"
     },
@@ -111304,5 +111304,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "739f833f5df5766ac567805efdc03a47068cdadd"
+  "built_at_commit": "7dca74a1039dbf53037dbed1fb49f0f9a06cb30f"
 }
