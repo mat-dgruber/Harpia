@@ -524,7 +524,7 @@ func TestVMRecursionGuard(t *testing.T) {
 	// Cria uma pilha encadeada de frames artificiais com profundidade de 1001 para disparar o estouro
 	var topo *Frame
 	for i := 0; i < 1002; i++ {
-		topo = NewFrame([]byte{OP_PUSH_CONST, 0, OP_RETORNE}, []hrp.Objeto{hrp.Inteiro(1)}, hrp.NewEscopo(), topo)
+		topo = NewFrame([]byte{OP_PUSH_CONST, 0, 0, OP_RETORNE}, []hrp.Objeto{hrp.Inteiro(1)}, hrp.NewEscopo(), topo)
 	}
 
 	_, errExec := virtualMachine.Executar(topo)
@@ -538,5 +538,144 @@ func TestVMRecursionGuard(t *testing.T) {
 		}
 	} else {
 		t.Errorf("Esperava erro do tipo hrp.Erro estruturado, obteve: %T", errExec)
+	}
+}
+
+func TestVMParaEmContinueEAwaitTopLevel(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	codigo := `
+		var soma = 0;
+		para x em [1, 2, 3, 4] {
+			se x == 2 {
+				continue;
+			}
+			soma = soma + x;
+		}
+		soma;
+	`
+	ast, err := ctx.StringParaAst(codigo, "<teste_loop_continue>")
+	if err != nil {
+		t.Fatalf("Erro ao analisar AST: %v", err)
+	}
+
+	comp := NewCompilador(ctx)
+	prog, err := comp.Compilar(ast)
+	if err != nil {
+		t.Fatalf("Erro ao compilar bytecode: %v", err)
+	}
+
+	escopo := hrp.NewEscopo()
+	virtualMachine := NewVM(ctx)
+	frame := NewFrame(prog.Bytecode, prog.Constantes, escopo, nil, prog.NomesLocais)
+	res, errExec := virtualMachine.Executar(frame)
+	if errExec != nil {
+		t.Fatalf("Erro de execução na VM: %v", errExec)
+	}
+	if res != hrp.Inteiro(8) {
+		t.Errorf("Esperava soma == 8, obteve: %v", res)
+	}
+
+	// Teste de OP_AWAIT com *hrp.Promessa e com valor escalar normal
+	p := hrp.NewPromessa()
+	go func() {
+		p.Resolver(hrp.Texto("promessa_resolvida"))
+	}()
+
+	bytecode := []byte{
+		OP_PUSH_CONST, 0x00, 0x00,
+		OP_AWAIT,
+		OP_PUSH_CONST, 0x00, 0x01,
+		OP_AWAIT,
+		OP_RETORNE,
+	}
+	consts := []hrp.Objeto{p, hrp.Inteiro(42)}
+	frameAwait := NewFrame(bytecode, consts, hrp.NewEscopo(), nil)
+	resAwait, errAwait := virtualMachine.Executar(frameAwait)
+	if errAwait != nil {
+		t.Fatalf("Erro no OP_AWAIT: %v", errAwait)
+	}
+	if resAwait != hrp.Inteiro(42) {
+		t.Errorf("Esperava 42 no topo após await escalar, obteve: %v", resAwait)
+	}
+}
+
+func TestVMR3Compilador(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+
+	comp := NewCompilador(ctx)
+
+	// 1. internarConstante não entra em pânico com tipos não comparáveis
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("internarConstante entrou em pânico com tipo não comparável: %v", r)
+		}
+	}()
+
+	tupla := hrp.Tupla{hrp.Inteiro(1), hrp.Inteiro(2)}
+	idx1 := comp.internarConstante(tupla)
+	idx2 := comp.internarConstante(tupla)
+	if int(idx1) >= len(comp.Constantes) || int(idx2) >= len(comp.Constantes) {
+		t.Errorf("Índice de constante inválido")
+	}
+
+	mapa := hrp.Mapa{"a": hrp.Inteiro(10)}
+	idxM := comp.internarConstante(mapa)
+	if int(idxM) >= len(comp.Constantes) {
+		t.Errorf("Índice de mapa inválido")
+	}
+
+	// 2. DeclFuncao preserva Padroes e TiposParametros e não deixa lixo na pilha
+	codigo := `
+		funcao somarComPadrao(a: Inteiro, b: Inteiro = 5): Inteiro {
+			retorne a + b;
+		}
+	`
+	ast, err := ctx.StringParaAst(codigo, "<teste_decl_funcao_r3>")
+	if err != nil {
+		t.Fatalf("Erro ao analisar AST: %v", err)
+	}
+
+	compFn := NewCompilador(ctx)
+	progFn, err := compFn.Compilar(ast)
+	if err != nil {
+		t.Fatalf("Erro ao compilar: %v", err)
+	}
+
+	var fnObj *hrp.Funcao
+	for _, c := range progFn.Constantes {
+		if f, ok := c.(*hrp.Funcao); ok && f.Nome == "somarComPadrao" {
+			fnObj = f
+			break
+		}
+	}
+	if fnObj == nil {
+		t.Fatalf("Função somarComPadrao não encontrada no pool de constantes")
+	}
+
+	padroes := Padroes(fnObj)
+	if padroes == nil || padroes["b"] == nil {
+		t.Errorf("Esperava parâmetro 'b' com valor padrão preservado em Padroes")
+	}
+
+	tipos := TiposParametros(fnObj)
+	if tipos == nil || tipos["a"] != "Inteiro" || tipos["b"] != "Inteiro" {
+		t.Errorf("Esperava TiposParametros preservados, obteve: %v", tipos)
+	}
+
+	escopo := hrp.NewEscopo()
+	virtualMachine := NewVM(ctx)
+	frame := NewFrame(progFn.Bytecode, progFn.Constantes, escopo, nil, progFn.NomesLocais)
+	res, errExec := virtualMachine.Executar(frame)
+	if errExec != nil {
+		t.Fatalf("Erro ao executar declaração de função: %v", errExec)
+	}
+	if res != hrp.Nulo {
+		t.Errorf("DeclFuncao como instrução não deve deixar valor no topo da pilha, obteve: %v", res)
+	}
+	if len(frame.Pilha) != 0 {
+		t.Errorf("Pilha da VM deve estar vazia após DeclFuncao, mas contém %d itens", len(frame.Pilha))
 	}
 }

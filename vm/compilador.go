@@ -3,23 +3,31 @@ package vm
 import (
 	"encoding/binary"
 	"fmt"
+	"unsafe"
 
 	"github.com/mat-dgruber/Harpia/compartilhado"
 	"github.com/mat-dgruber/Harpia/hrp"
+	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
 // ProgramaCompilado agrupa o pool de constantes extraídas e o bytecode plano gerado para execução na VM.
 type ProgramaCompilado struct {
-	Constantes  []hrp.Objeto
-	Bytecode    []byte
-	NomesLocais map[uint16]string
+	Constantes       []hrp.Objeto
+	Bytecode         []byte
+	NomesLocais      map[uint16]string
+	ConstantesLocais map[uint16]bool
+	Posicoes         map[parser.BaseNode]*lexer.Token
+	MapaTokens       map[int]*lexer.Token
+	Arquivo          string
+	Codigo           string
 }
 
 // SimboloLocal mapeia o identificador local para seu slot numérico no frame da VM.
 type SimboloLocal struct {
-	Nome string
-	Slot uint16
+	Nome      string
+	Slot      uint16
+	Constante bool
 }
 
 // EscopoCompilador armazena os símbolos locais resolvidos estaticamente em tempo de compilação.
@@ -29,21 +37,32 @@ type EscopoCompilador struct {
 }
 
 func (e *EscopoCompilador) ResolverLocal(nome string) (uint16, bool) {
-	if e == nil {
-		return 0, false
-	}
-	for i := len(e.Locais) - 1; i >= 0; i-- {
-		if e.Locais[i].Nome == nome {
-			return e.Locais[i].Slot, true
-		}
-	}
-	if e.Pai != nil {
-		return e.Pai.ResolverLocal(nome)
+	if simb, ok := e.ResolverSimboloLocal(nome); ok {
+		return simb.Slot, true
 	}
 	return 0, false
 }
 
+func (e *EscopoCompilador) ResolverSimboloLocal(nome string) (SimboloLocal, bool) {
+	if e == nil {
+		return SimboloLocal{}, false
+	}
+	for i := len(e.Locais) - 1; i >= 0; i-- {
+		if e.Locais[i].Nome == nome {
+			return e.Locais[i], true
+		}
+	}
+	if e.Pai != nil {
+		return e.Pai.ResolverSimboloLocal(nome)
+	}
+	return SimboloLocal{}, false
+}
+
 func (e *EscopoCompilador) AdicionarLocal(nome string) uint16 {
+	return e.AdicionarSimboloLocal(nome, false)
+}
+
+func (e *EscopoCompilador) AdicionarSimboloLocal(nome string, constante bool) uint16 {
 	if e == nil {
 		return 0
 	}
@@ -51,7 +70,7 @@ func (e *EscopoCompilador) AdicionarLocal(nome string) uint16 {
 	if e.Pai != nil {
 		slot += uint16(e.Pai.TotalLocais())
 	}
-	e.Locais = append(e.Locais, SimboloLocal{Nome: nome, Slot: slot})
+	e.Locais = append(e.Locais, SimboloLocal{Nome: nome, Slot: slot, Constante: constante})
 	return slot
 }
 
@@ -70,17 +89,24 @@ func (e *EscopoCompilador) TotalLocais() int {
 type LoopFrame struct {
 	EnderecoInicio uint16
 	PulosPare      []int
+	PulosContinue  []int
 }
 
 // Compilador realiza a tradução de passagem única (single-pass) da AST do Harpia para bytecode.
 type Compilador struct {
-	Constantes  []hrp.Objeto
-	Bytecode    []byte
-	Escopo      *EscopoCompilador
-	Contexto    *hrp.Contexto
-	NomesLocais map[uint16]string
-	LoopStack   []LoopFrame
-	constMap    map[string]uint16
+	Constantes       []hrp.Objeto
+	Bytecode         []byte
+	Escopo           *EscopoCompilador
+	Contexto         *hrp.Contexto
+	NomesLocais      map[uint16]string
+	ConstantesLocais map[uint16]bool
+	LoopStack        []LoopFrame
+	constMap         map[string]uint16
+	Posicoes         map[parser.BaseNode]*lexer.Token
+	MapaTokens       map[int]*lexer.Token
+	tokenAtual       *lexer.Token
+	Arquivo          string
+	Codigo           string
 }
 
 // NewCompilador inicializa uma nova instância ativa do compilador de bytecode.
@@ -90,22 +116,34 @@ func NewCompilador(ctx ...*hrp.Contexto) *Compilador {
 		cCtx = ctx[0]
 	}
 	return &Compilador{
-		Constantes:  make([]hrp.Objeto, 0),
-		Bytecode:    make([]byte, 0),
-		Escopo:      &EscopoCompilador{Locais: make([]SimboloLocal, 0)},
-		Contexto:    cCtx,
-		NomesLocais: make(map[uint16]string),
-		LoopStack:   make([]LoopFrame, 0),
-		constMap:    make(map[string]uint16),
+		Constantes:       make([]hrp.Objeto, 0),
+		Bytecode:         make([]byte, 0),
+		Escopo:           &EscopoCompilador{Locais: make([]SimboloLocal, 0)},
+		Contexto:         cCtx,
+		NomesLocais:      make(map[uint16]string),
+		ConstantesLocais: make(map[uint16]bool),
+		LoopStack:        make([]LoopFrame, 0),
+		constMap:         make(map[string]uint16),
+		MapaTokens:       make(map[int]*lexer.Token),
 	}
 }
 
 func (c *Compilador) adicionarLocal(nome string) uint16 {
-	slot := c.Escopo.AdicionarLocal(nome)
+	return c.adicionarSimboloLocal(nome, false)
+}
+
+func (c *Compilador) adicionarSimboloLocal(nome string, constante bool) uint16 {
+	slot := c.Escopo.AdicionarSimboloLocal(nome, constante)
 	if c.NomesLocais == nil {
 		c.NomesLocais = make(map[uint16]string)
 	}
 	c.NomesLocais[slot] = nome
+	if constante {
+		if c.ConstantesLocais == nil {
+			c.ConstantesLocais = make(map[uint16]bool)
+		}
+		c.ConstantesLocais[slot] = true
+	}
 	return slot
 }
 
@@ -116,9 +154,14 @@ func (c *Compilador) Compilar(node parser.BaseNode) (*ProgramaCompilado, error) 
 	}
 
 	return &ProgramaCompilado{
-		Constantes:  c.Constantes,
-		Bytecode:    c.Bytecode,
-		NomesLocais: c.NomesLocais,
+		Constantes:       c.Constantes,
+		Bytecode:         c.Bytecode,
+		NomesLocais:      c.NomesLocais,
+		ConstantesLocais: c.ConstantesLocais,
+		Posicoes:         c.Posicoes,
+		MapaTokens:       c.MapaTokens,
+		Arquivo:          c.Arquivo,
+		Codigo:           c.Codigo,
 	}, nil
 }
 
@@ -130,9 +173,17 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 	if node == nil {
 		return nil
 	}
+	if c.Posicoes != nil {
+		if tok := c.Posicoes[node]; tok != nil {
+			c.tokenAtual = tok
+		}
+	}
 
 	switch n := node.(type) {
 	case *parser.Programa:
+		c.Posicoes = n.Posicoes
+		c.Arquivo = n.Arquivo
+		c.Codigo = n.Codigo
 		for _, decl := range n.Declaracoes {
 			if err := c.visite(decl); err != nil {
 				return err
@@ -192,6 +243,13 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		}
 
 	case *parser.DeclVar:
+		if n.Constante && n.Inicializador == nil {
+			return hrp.NewErroF(hrp.SintaxeErro, "Constante '%s' deve ser inicializada na declaração", n.Nome)
+		}
+		if simb, ok := c.Escopo.ResolverSimboloLocal(n.Nome); ok && simb.Constante {
+			return hrp.NewErroF(hrp.TipagemErro, "A constante '%s' já existe", n.Nome)
+		}
+
 		if n.Inicializador != nil {
 			if err := c.visite(n.Inicializador); err != nil {
 				return err
@@ -200,7 +258,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			c.emitirConstante(OP_PUSH_CONST, hrp.Nulo)
 		}
 
-		slot := c.adicionarLocal(n.Nome)
+		slot := c.adicionarSimboloLocal(n.Nome, n.Constante)
 		c.emitirU16(OP_ARMAZENAR_LOCAL, slot)
 		c.emitir(OP_POP)
 
@@ -212,7 +270,11 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 
 		switch obj := n.Objeto.(type) {
 		case *parser.Identificador:
-			slot, okLoc := c.Escopo.ResolverLocal(obj.Nome)
+			simb, okLoc := c.Escopo.ResolverSimboloLocal(obj.Nome)
+			if okLoc && simb.Constante {
+				return hrp.NewErroF(hrp.TipagemErro, "Você não pode reatribuir valor a '%s', pois é uma constante", obj.Nome)
+			}
+			slot := simb.Slot
 			if n.Operador != "=" {
 				if okLoc {
 					c.emitirU16(OP_CARREGAR_LOCAL, slot)
@@ -334,8 +396,9 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 				return err
 			}
 
-			offsetFim := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPulo:], offsetFim)
+			if err := c.remendarPulo(idxPulo, len(c.Bytecode)); err != nil {
+				return err
+			}
 
 		} else if n.Operador == "ou" {
 			// ponytail: compilador de 'ou' (OR lógico com curto-circuito)
@@ -349,16 +412,18 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			c.emitir(OP_JMP, 0, 0)
 			idxPuloFim := len(c.Bytecode) - 2
 
-			offsetFalsy := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetFalsy)
+			if err := c.remendarPulo(idxPuloFalso, len(c.Bytecode)); err != nil {
+				return err
+			}
 
 			c.emitir(OP_POP)
 			if err := c.visite(n.Dir); err != nil {
 				return err
 			}
 
-			offsetFim := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFim:], offsetFim)
+			if err := c.remendarPulo(idxPuloFim, len(c.Bytecode)); err != nil {
+				return err
+			}
 
 		} else {
 			if err := c.visite(n.Esq); err != nil {
@@ -392,8 +457,9 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			idxPuloSe := len(c.Bytecode) - 2
 
 			// Remenda o salto do JMP_FALSO para o início do bloco senao
-			offsetSenao := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetSenao)
+			if err := c.remendarPulo(idxPuloFalso, len(c.Bytecode)); err != nil {
+				return err
+			}
 
 			// Compila bloco do senao
 			if err := c.visite(n.Alternativa); err != nil {
@@ -401,12 +467,14 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			}
 
 			// Remenda o salto do fim do bloco se para o final total da condicional
-			offsetFim := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPuloSe:], offsetFim)
+			if err := c.remendarPulo(idxPuloSe, len(c.Bytecode)); err != nil {
+				return err
+			}
 		} else {
 			// Remenda o salto do JMP_FALSO direto para o final total da condicional
-			offsetFim := uint16(len(c.Bytecode))
-			binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetFim)
+			if err := c.remendarPulo(idxPuloFalso, len(c.Bytecode)); err != nil {
+				return err
+			}
 		}
 
 	case *parser.Enquanto:
@@ -429,10 +497,22 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		// Salta de volta para reavaliar a condição do loop
 		c.emitir(OP_JMP, byte(enderecoInicio>>8), byte(enderecoInicio))
 
+		// Remenda os pulos continue para o endereço de início (reavaliação da condição)
+		if err := c.remendarPulosContinue(int(enderecoInicio)); err != nil {
+			c.popLoopContext()
+			return err
+		}
+
 		// Remenda o salto falso e quaisquer pulos pare para o final do loop
-		offsetFim := uint16(len(c.Bytecode))
-		binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetFim)
-		c.remendarPulosPare()
+		offsetFim := len(c.Bytecode)
+		if err := c.remendarPulo(idxPuloFalso, offsetFim); err != nil {
+			c.popLoopContext()
+			return err
+		}
+		if err := c.remendarPulosPare(); err != nil {
+			c.popLoopContext()
+			return err
+		}
 		c.popLoopContext()
 
 	case *parser.BlocoPara:
@@ -477,6 +557,13 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			return err
 		}
 
+		// Remenda os pulos continue exatamente para o ponto de incremento (idx = idx + 1)
+		offsetIncremento := len(c.Bytecode)
+		if err := c.remendarPulosContinue(offsetIncremento); err != nil {
+			c.popLoopContext()
+			return err
+		}
+
 		// Incrementa idx: idx = idx + 1
 		c.emitirU16(OP_CARREGAR_LOCAL, idxSlot)
 		c.emitirConstante(OP_PUSH_CONST, hrp.Inteiro(1))
@@ -486,9 +573,15 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 
 		c.emitir(OP_JMP, byte(enderecoInicio>>8), byte(enderecoInicio))
 
-		offsetFim := uint16(len(c.Bytecode))
-		binary.BigEndian.PutUint16(c.Bytecode[idxPuloFalso:], offsetFim)
-		c.remendarPulosPare()
+		offsetFim := len(c.Bytecode)
+		if err := c.remendarPulo(idxPuloFalso, offsetFim); err != nil {
+			c.popLoopContext()
+			return err
+		}
+		if err := c.remendarPulosPare(); err != nil {
+			c.popLoopContext()
+			return err
+		}
 		c.popLoopContext()
 
 	case *parser.PareNode:
@@ -503,9 +596,9 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		if len(c.LoopStack) == 0 {
 			return fmt.Errorf("instrução 'continue' fora de um laço de repetição")
 		}
+		c.emitir(OP_JMP, 0, 0)
 		topoIdx := len(c.LoopStack) - 1
-		inicio := c.LoopStack[topoIdx].EnderecoInicio
-		c.emitir(OP_JMP, byte(inicio>>8), byte(inicio))
+		c.LoopStack[topoIdx].PulosContinue = append(c.LoopStack[topoIdx].PulosContinue, len(c.Bytecode)-2)
 
 	case *parser.RetorneNode:
 		if n.Expressao != nil {
@@ -587,12 +680,32 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		funcao.DefinirArgs(nomes)
 		funcao.Assincrono = n.Assincrono
 
+		fnInt := (*funcaoInternal)(unsafe.Pointer(funcao))
+		if fnInt.defaults == nil {
+			fnInt.defaults = make(map[string]parser.BaseNode)
+		}
+		if fnInt.tiposParams == nil {
+			fnInt.tiposParams = make(map[string]string)
+		}
+		for _, param := range n.Parametros {
+			if param.Padrao != nil {
+				fnInt.defaults[param.Nome] = param.Padrao
+			}
+			if param.Tipo != "" {
+				fnInt.tiposParams[param.Nome] = param.Tipo
+			}
+		}
+		if n.TipoRetorno != "" {
+			fnInt.tipoRetorno = n.TipoRetorno
+		}
+
 		idxFuncao := c.internarConstante(funcao)
 		c.emitirU16(OP_PUSH_CONST, idxFuncao)
 
 		if n.Nome != "" {
 			idxNome := c.internarConstante(hrp.Texto(n.Nome))
 			c.emitirU16(OP_ARMAZENAR_GLOBAL, idxNome)
+			c.emitir(OP_POP)
 		}
 
 	case *parser.AguardeNode:
@@ -671,8 +784,10 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			return err
 		}
 
-		offset := uint16(len(c.Bytecode) - (idxPulo + 2))
-		binary.BigEndian.PutUint16(c.Bytecode[idxPulo:], offset)
+		offset := len(c.Bytecode) - (idxPulo + 2)
+		if err := c.remendarPulo(idxPulo, offset); err != nil {
+			return err
+		}
 
 	case *parser.AcessoMembroOpcional:
 		if err := c.visite(n.Objeto); err != nil {
@@ -795,12 +910,18 @@ func (c *Compilador) emitirOpBinaria(operador string) error {
 
 // emitir anexa o opcode e seus operandos de byte no buffer.
 func (c *Compilador) emitir(op Opcode, ops ...byte) {
+	if c.tokenAtual != nil && c.MapaTokens != nil {
+		c.MapaTokens[len(c.Bytecode)] = c.tokenAtual
+	}
 	c.Bytecode = append(c.Bytecode, op)
 	c.Bytecode = append(c.Bytecode, ops...)
 }
 
 // emitirU16 anexa o opcode e seu operando u16 BigEndian no buffer.
 func (c *Compilador) emitirU16(op Opcode, operand uint16) {
+	if c.tokenAtual != nil && c.MapaTokens != nil {
+		c.MapaTokens[len(c.Bytecode)] = c.tokenAtual
+	}
 	c.Bytecode = append(c.Bytecode, op, byte(operand>>8), byte(operand))
 }
 
@@ -811,10 +932,28 @@ func (c *Compilador) emitirConstante(op Opcode, val hrp.Objeto) uint16 {
 	return idx
 }
 
+type funcaoInternal struct {
+	Nome         string
+	Doc          hrp.Texto
+	args         []string
+	defaults     map[string]parser.BaseNode
+	corpo        *parser.Bloco
+	contexto     *hrp.Contexto
+	escopo       *hrp.Escopo
+	declArquivo  string
+	declCodigo   string
+	declPosicoes map[parser.BaseNode]*lexer.Token
+	Estatico     bool
+	tiposParams  map[string]string
+	tipoRetorno  string
+	Assincrono   bool
+}
+
 func (c *Compilador) pushLoopContext(enderecoInicio uint16) {
 	c.LoopStack = append(c.LoopStack, LoopFrame{
 		EnderecoInicio: enderecoInicio,
 		PulosPare:      make([]int, 0),
+		PulosContinue:  make([]int, 0),
 	})
 }
 
@@ -824,65 +963,92 @@ func (c *Compilador) popLoopContext() {
 	}
 }
 
-func (c *Compilador) remendarPulosPare() {
+func (c *Compilador) remendarPulo(idxPulo int, destino int) error {
+	if destino > 0xFFFF || destino < 0 {
+		return fmt.Errorf("salto excede limite uint16 (offset: %d)", destino)
+	}
+	binary.BigEndian.PutUint16(c.Bytecode[idxPulo:], uint16(destino))
+	return nil
+}
+
+func (c *Compilador) remendarPulosPare() error {
 	if len(c.LoopStack) == 0 {
-		return
+		return nil
 	}
 	topoIdx := len(c.LoopStack) - 1
-	offsetFim := uint16(len(c.Bytecode))
+	offsetFim := len(c.Bytecode)
 	for _, ip := range c.LoopStack[topoIdx].PulosPare {
-		binary.BigEndian.PutUint16(c.Bytecode[ip:], offsetFim)
+		if err := c.remendarPulo(ip, offsetFim); err != nil {
+			return err
+		}
 	}
+	return nil
+}
+
+func (c *Compilador) remendarPulosContinue(destino int) error {
+	if len(c.LoopStack) == 0 {
+		return nil
+	}
+	topoIdx := len(c.LoopStack) - 1
+	for _, ip := range c.LoopStack[topoIdx].PulosContinue {
+		if err := c.remendarPulo(ip, destino); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // internarConstante busca se o objeto já existe no pool de constantes.
 // Se existir, retorna seu índice u16; senão, adiciona-o ao pool e retorna o novo índice.
 func (c *Compilador) internarConstante(val hrp.Objeto) uint16 {
-	if c.constMap == nil {
-		c.constMap = make(map[string]uint16)
-	}
+	switch v := val.(type) {
+	case hrp.Inteiro, hrp.Decimal, hrp.Texto, hrp.Booleano:
+		if c.constMap == nil {
+			c.constMap = make(map[string]uint16)
+		}
 
-	chave := fmt.Sprintf("%T:%v", val, val)
-	if idx, ok := c.constMap[chave]; ok {
-		return idx
-	}
-
-	for i, constVal := range c.Constantes {
-		if constVal == val {
-			idx := uint16(i)
-			c.constMap[chave] = idx
+		chave := fmt.Sprintf("%T:%v", v, v)
+		if idx, ok := c.constMap[chave]; ok {
 			return idx
 		}
-		switch v1 := constVal.(type) {
-		case hrp.Texto:
-			if v2, ok := val.(hrp.Texto); ok && v1 == v2 {
-				idx := uint16(i)
-				c.constMap[chave] = idx
-				return idx
-			}
-		case hrp.Inteiro:
-			if v2, ok := val.(hrp.Inteiro); ok && v1 == v2 {
-				idx := uint16(i)
-				c.constMap[chave] = idx
-				return idx
-			}
-		case hrp.Decimal:
-			if v2, ok := val.(hrp.Decimal); ok && v1 == v2 {
-				idx := uint16(i)
-				c.constMap[chave] = idx
-				return idx
-			}
-		case hrp.Booleano:
-			if v2, ok := val.(hrp.Booleano); ok && v1 == v2 {
-				idx := uint16(i)
-				c.constMap[chave] = idx
-				return idx
+
+		for i, constVal := range c.Constantes {
+			switch cv := constVal.(type) {
+			case hrp.Inteiro, hrp.Decimal, hrp.Texto, hrp.Booleano:
+				if cv == v {
+					idx := uint16(i)
+					c.constMap[chave] = idx
+					return idx
+				}
 			}
 		}
-	}
 
-	idx := uint16(len(c.Constantes))
-	c.Constantes = append(c.Constantes, val)
-	c.constMap[chave] = idx
-	return idx
+		idx := uint16(len(c.Constantes))
+		c.Constantes = append(c.Constantes, val)
+		c.constMap[chave] = idx
+		return idx
+	default:
+		// Para tipos compostos (Tupla, Mapa, *Funcao, etc.), faz append direto sem ==
+		idx := uint16(len(c.Constantes))
+		c.Constantes = append(c.Constantes, val)
+		return idx
+	}
+}
+
+// Padroes retorna os nós padrão de parâmetros de uma função.
+func Padroes(fn *hrp.Funcao) map[string]parser.BaseNode {
+	if fn == nil {
+		return nil
+	}
+	fnInt := (*funcaoInternal)(unsafe.Pointer(fn))
+	return fnInt.defaults
+}
+
+// TiposParametros retorna os tipos de parâmetros de uma função.
+func TiposParametros(fn *hrp.Funcao) map[string]string {
+	if fn == nil {
+		return nil
+	}
+	fnInt := (*funcaoInternal)(unsafe.Pointer(fn))
+	return fnInt.tiposParams
 }

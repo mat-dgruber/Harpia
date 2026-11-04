@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mat-dgruber/Harpia/hrp"
+	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
 )
 
@@ -19,6 +20,13 @@ var poolPilha = sync.Pool{
 	},
 }
 
+// poolLocais gerencia a reutilização de fatias de variáveis locais de tamanho padrão (256 slots).
+var poolLocais = sync.Pool{
+	New: func() interface{} {
+		return make([]hrp.Objeto, 256)
+	},
+}
+
 // TryHandler armazena os contextos de desvio para exceções.
 type TryHandler struct {
 	CatchIP   int
@@ -28,15 +36,21 @@ type TryHandler struct {
 
 // Frame representa um contexto isolado de execução de função ou módulo na pilha de chamadas da VM.
 type Frame struct {
-	Pai         *Frame
-	Bytecode    []byte
-	IP          int               // Instrução corrente (Instruction Pointer)
-	Consts      []hrp.Objeto      // Referência ao pool de constantes do programa compilado
-	Pilha       []hrp.Objeto      // Pilha de operandos local
-	Locais      []hrp.Objeto      // Slots de variáveis locais O(1)
-	Escopo      *hrp.Escopo       // Tabela local de símbolos e fechamento léxico / globais
-	TryStack    []TryHandler      // Pilha de handlers de tente/capture
-	NomesLocais map[uint16]string // Mapeamento estático opcional de slot u16 para nome da variável
+	Pai              *Frame
+	Profundidade     int // Profundidade do frame na pilha de chamadas (O(1))
+	Bytecode         []byte
+	IP               int               // Instrução corrente (Instruction Pointer)
+	Consts           []hrp.Objeto      // Referência ao pool de constantes do programa compilado
+	Pilha            []hrp.Objeto      // Pilha de operandos local
+	Locais           []hrp.Objeto      // Slots de variáveis locais O(1)
+	Escopo           *hrp.Escopo       // Tabela local de símbolos e fechamento léxico / globais
+	TryStack         []TryHandler      // Pilha de handlers de tente/capture
+	NomesLocais      map[uint16]string // Mapeamento estático opcional de slot u16 para nome da variável
+	ConstantesLocais map[uint16]bool   // Conjunto de slots que representam constantes locais imutáveis
+	MapaTokens       map[int]*lexer.Token
+	Arquivo          string
+	Codigo           string
+	UltimoIP         int
 }
 
 // NewFrame cria um frame isolado apontando para as constantes e escopo fornecidos.
@@ -46,16 +60,42 @@ func NewFrame(bytecode []byte, consts []hrp.Objeto, escopo *hrp.Escopo, pai *Fra
 		nl = nomesLocais[0]
 	}
 	pilha := poolPilha.Get().([]hrp.Objeto)
-	return &Frame{
-		Pai:         pai,
-		Bytecode:    bytecode,
-		IP:          0,
-		Consts:      consts,
-		Pilha:       pilha[:0],
-		Locais:      make([]hrp.Objeto, 0),
-		Escopo:      escopo,
-		NomesLocais: nl,
+	prof := 1
+	if pai != nil {
+		prof = pai.Profundidade + 1
 	}
+
+	var locais []hrp.Objeto
+	if raw := poolLocais.Get(); raw != nil {
+		locais = raw.([]hrp.Objeto)
+		if cap(locais) >= 256 {
+			locais = locais[:256]
+			for i := range locais {
+				locais[i] = nil
+			}
+		} else {
+			locais = make([]hrp.Objeto, 0, 256)
+		}
+	} else {
+		locais = make([]hrp.Objeto, 0, 256)
+	}
+
+	return &Frame{
+		Pai:          pai,
+		Profundidade: prof,
+		Bytecode:     bytecode,
+		IP:           0,
+		Consts:       consts,
+		Pilha:        pilha[:0],
+		Locais:       locais[:0],
+		Escopo:       escopo,
+		NomesLocais:  nl,
+	}
+}
+
+// NovoFrame é um alias conveniente para NewFrame.
+func NovoFrame(bytecode []byte, consts []hrp.Objeto, escopo *hrp.Escopo, pai *Frame, nomesLocais ...map[uint16]string) *Frame {
+	return NewFrame(bytecode, consts, escopo, pai, nomesLocais...)
 }
 
 // push adiciona o elemento e incrementa suas referências.
@@ -75,8 +115,14 @@ func (f *Frame) pop() hrp.Objeto {
 	return val
 }
 
-// ObterProfundidade calcula recursivamente a profundidade do frame corrente.
+// ObterProfundidade calcula a profundidade do frame corrente em O(1).
 func (f *Frame) ObterProfundidade() int {
+	if f == nil {
+		return 0
+	}
+	if f.Profundidade > 0 {
+		return f.Profundidade
+	}
 	profundidade := 0
 	curr := f
 	for curr != nil {
@@ -116,6 +162,10 @@ func init() {
 		}
 		virtualMachine := NewVM(ctx)
 		frame := NewFrame(prog.Bytecode, prog.Constantes, escopo, nil, prog.NomesLocais)
+		frame.ConstantesLocais = prog.ConstantesLocais
+		frame.MapaTokens = prog.MapaTokens
+		frame.Arquivo = prog.Arquivo
+		frame.Codigo = prog.Codigo
 		return virtualMachine.Executar(frame)
 	})
 }
@@ -164,13 +214,24 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 		}
 		poolPilha.Put(frame.Pilha[:0])
 
+		if cap(frame.Locais) >= 256 {
+			fatiaLocais := frame.Locais[:cap(frame.Locais)]
+			for i := range fatiaLocais {
+				fatiaLocais[i] = nil
+			}
+			poolLocais.Put(fatiaLocais[:256])
+		}
+
 		// Limpeza de escopo: realiza a varredura cíclica e libera as referências retidas pelo escopo local
+		// PERF-01: só executa ColetarCiclos quando frame.Pai == nil (retorno do frame raiz)
 		if frame.Escopo != nil {
-			hrp.ColetarCiclos(frame.Escopo)
+			if frame.Pai == nil {
+				hrp.ColetarCiclos(frame.Escopo)
+			}
 
 			for _, simb := range frame.Escopo.ObterSimbolosSeguro() {
 				if simb != nil {
-					hrp.LiberarObjeto(simb.ObterValor())
+					hrp.LiberarObjeto(simb.Valor)
 				}
 			}
 		}
@@ -180,8 +241,12 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 	codeLen := len(code)
 
 	for frame.IP < codeLen {
+		frame.UltimoIP = frame.IP
 		op := code[frame.IP]
-		inicio := time.Now()
+		var inicio time.Time
+		if v.Perfil {
+			inicio = time.Now()
+		}
 		frame.IP++
 
 		switch op {
@@ -513,14 +578,26 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 			frame.IP += 2
 			val := frame.pop()
 			if int(slot) >= len(frame.Locais) {
-				novosLocais := make([]hrp.Objeto, slot+1, (slot+1)*2)
-				copy(novosLocais, frame.Locais)
-				frame.Locais = novosLocais
+				if int(slot) < cap(frame.Locais) {
+					antigoLen := len(frame.Locais)
+					frame.Locais = frame.Locais[:slot+1]
+					for i := antigoLen; i < int(slot); i++ {
+						frame.Locais[i] = nil
+					}
+				} else {
+					novosLocais := make([]hrp.Objeto, slot+1, (slot+1)*2)
+					copy(novosLocais, frame.Locais)
+					frame.Locais = novosLocais
+				}
 			}
 			frame.Locais[slot] = val
 			if frame.Escopo != nil && frame.NomesLocais != nil {
 				if nome, ok := frame.NomesLocais[slot]; ok {
-					frame.Escopo.DefinirSimbolo(hrp.NewVarSimbolo(nome, val))
+					if frame.ConstantesLocais != nil && frame.ConstantesLocais[slot] {
+						frame.Escopo.DefinirSimbolo(hrp.NewConstSimbolo(nome, val))
+					} else {
+						frame.Escopo.DefinirSimbolo(hrp.NewVarSimbolo(nome, val))
+					}
 				}
 			}
 			frame.push(val)
@@ -542,7 +619,7 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 					break
 				}
 			}
-			resExc, errExc := v.tratarExcecao(frame, hrp.NewErroF(hrp.NomeErro, "Variável '%s' não declarada", nomeStr))
+			resExc, errExc := v.tratarExcecao(frame, hrp.NewErroF(hrp.NomeErro, "'%s' não foi encontrado no escopo atual", nomeStr))
 			if errExc != nil {
 				return nil, errExc
 			}
@@ -558,6 +635,16 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 			if frame.Escopo != nil {
 				err := frame.Escopo.RedefinirValor(nomeStr, val)
 				if err != nil {
+					if simb, errSimb := frame.Escopo.ObterSimbolo(nomeStr); errSimb == nil && simb.Constante {
+						resExc, errExc := v.tratarExcecao(frame, err)
+						if errExc != nil {
+							return nil, errExc
+						}
+						if resExc != nil {
+							return resExc, nil
+						}
+						continue
+					}
 					simbolo := hrp.NewVarSimbolo(nomeStr, val)
 					if errDef := frame.Escopo.DefinirSimbolo(simbolo); errDef != nil {
 						resExc, errExc := v.tratarExcecao(frame, errDef)
@@ -582,9 +669,12 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 		case OP_CHAMAR:
 			aridade := int(code[frame.IP])
 			frame.IP++
-			args := make([]hrp.Objeto, aridade)
-			for i := aridade - 1; i >= 0; i-- {
-				args[i] = frame.pop()
+			var args []hrp.Objeto
+			if aridade > 0 {
+				args = make([]hrp.Objeto, aridade)
+				for i := aridade - 1; i >= 0; i-- {
+					args[i] = frame.pop()
+				}
 			}
 			fnObj := frame.pop()
 			if fn, ok := fnObj.(*hrp.Funcao); ok {
@@ -595,7 +685,22 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 					fn.DefinirEscopo(frame.Escopo)
 				}
 			}
-			res, err := hrp.Chamar(fnObj, hrp.Tupla(args))
+			var res hrp.Objeto
+			var err error
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						if e, ok := r.(*hrp.Erro); ok {
+							err = e
+						} else if e, ok := r.(error); ok {
+							err = hrp.NewErro(hrp.RuntimeErro, hrp.Texto(e.Error()))
+						} else {
+							err = hrp.NewErroF(hrp.RuntimeErro, "%v", r)
+						}
+					}
+				}()
+				res, err = hrp.Chamar(fnObj, hrp.Tupla(args))
+			}()
 			for _, arg := range args {
 				hrp.LiberarObjeto(arg)
 			}
@@ -611,6 +716,34 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 				continue
 			}
 			frame.push(res)
+
+		case OP_AWAIT:
+			val := frame.pop()
+			if prom, ok := val.(*hrp.Promessa); ok {
+				ch := make(chan struct{})
+				var res hrp.Objeto
+				var resErr error
+				prom.Registre(func(o hrp.Objeto, err error) {
+					res = o
+					resErr = err
+					close(ch)
+				})
+				<-ch
+				hrp.LiberarObjeto(val)
+				if resErr != nil {
+					resExc, errExc := v.tratarExcecao(frame, resErr)
+					if errExc != nil {
+						return nil, errExc
+					}
+					if resExc != nil {
+						return resExc, nil
+					}
+					continue
+				}
+				frame.push(res)
+			} else {
+				frame.push(val)
+			}
 
 		case OP_RETORNE:
 			if len(frame.Pilha) > 0 {
@@ -644,12 +777,12 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 		case OP_CRIAR_MAPA:
 			qtdPares := binary.BigEndian.Uint16(code[frame.IP:])
 			frame.IP += 2
-			mapa := make(hrp.Mapa)
-			var pares [][2]hrp.Objeto
-			for i := 0; i < int(qtdPares); i++ {
+			mapa := make(hrp.Mapa, qtdPares)
+			pares := make([][2]hrp.Objeto, qtdPares)
+			for i := int(qtdPares) - 1; i >= 0; i-- {
 				val := frame.pop()
 				chave := frame.pop()
-				pares = append([][2]hrp.Objeto{{chave, val}}, pares...)
+				pares[i] = [2]hrp.Objeto{chave, val}
 			}
 			for _, par := range pares {
 				var chaveStr string
@@ -809,7 +942,67 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 	return hrp.Nulo, nil
 }
 
+func (v *VM) enriquecerErro(frame *Frame, err error) error {
+	if err == nil {
+		return nil
+	}
+	hrpErr, ok := err.(*hrp.Erro)
+	if !ok {
+		return err
+	}
+	if hrpErr.Linha == -1 && frame != nil && frame.MapaTokens != nil {
+		tok := frame.MapaTokens[frame.UltimoIP]
+		if tok == nil {
+			maiorOffset := -1
+			for offset, t := range frame.MapaTokens {
+				if offset <= frame.UltimoIP && offset > maiorOffset {
+					maiorOffset = offset
+					tok = t
+				}
+			}
+		}
+		if tok != nil {
+			hrpErr.Token = tok
+			if tok.Inicio.Linha > 0 {
+				hrpErr.Linha = tok.Inicio.Linha - 1
+				hrpErr.Coluna = tok.Inicio.Coluna
+			}
+		}
+	}
+	if frame != nil {
+		if hrpErr.Arquivo == "" || hrpErr.Arquivo == "<desconhecido>" {
+			if frame.Arquivo != "" {
+				hrpErr.Arquivo = frame.Arquivo
+			} else if v.Contexto != nil {
+				arq, _ := v.Contexto.ObterArquivoCodigo()
+				hrpErr.Arquivo = arq
+			}
+		}
+		if hrpErr.Codigo == "" {
+			if frame.Codigo != "" {
+				hrpErr.Codigo = frame.Codigo
+			} else if v.Contexto != nil {
+				_, cod := v.Contexto.ObterArquivoCodigo()
+				hrpErr.Codigo = cod
+			}
+		}
+	} else if v.Contexto != nil {
+		arq, cod := v.Contexto.ObterArquivoCodigo()
+		if hrpErr.Arquivo == "" || hrpErr.Arquivo == "<desconhecido>" {
+			hrpErr.Arquivo = arq
+		}
+		if hrpErr.Codigo == "" {
+			hrpErr.Codigo = cod
+		}
+	}
+	if v.Contexto != nil {
+		hrpErr.AdicionarContexto(v.Contexto)
+	}
+	return hrpErr
+}
+
 func (v *VM) tratarExcecao(frame *Frame, err error) (hrp.Objeto, error) {
+	errEnriquecido := v.enriquecerErro(frame, err)
 	if len(frame.TryStack) > 0 {
 		handler := frame.TryStack[len(frame.TryStack)-1]
 		frame.TryStack = frame.TryStack[:len(frame.TryStack)-1]
@@ -820,10 +1013,19 @@ func (v *VM) tratarExcecao(frame *Frame, err error) (hrp.Objeto, error) {
 		}
 
 		// Empilha o erro capturado e pula para o catch IP
-		erroObjeto := hrp.NewErroF(hrp.RuntimeErro, "%v", err)
+		// CORE-10: Se o erro já for *hrp.Erro, preserva-o integralmente
+		var erroObjeto hrp.Objeto
+		if hrpErr, ok := errEnriquecido.(*hrp.Erro); ok {
+			erroObjeto = hrpErr
+		} else {
+			erroObjeto = hrp.NewErroF(hrp.RuntimeErro, "%v", errEnriquecido)
+		}
+		if hrpErr, ok := erroObjeto.(*hrp.Erro); ok && v.Contexto != nil {
+			hrpErr.AdicionarContexto(v.Contexto)
+		}
 		frame.push(erroObjeto)
 		frame.IP = handler.CatchIP
 		return nil, nil
 	}
-	return nil, err
+	return nil, errEnriquecido
 }
