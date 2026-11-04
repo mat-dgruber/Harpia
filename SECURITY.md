@@ -25,7 +25,7 @@ O relato fica visível apenas para você e para o mantenedor até a divulgação
 
 ### O que incluir no relato
 
-- Versão do Harpia (`harpia versao`) ou commit usado.
+- Versão do Harpia (`harpia versao`) ou o hash do commit usado. Em binários antigos, que mostram `dev`, informe a tag da release baixada.
 - Sistema operacional e arquitetura (ex.: macOS 15 arm64, Ubuntu 24.04 x86_64, Windows 11).
 - Componente afetado (CLI, VM, stdlib, playground, `harpia servir`, `harpia instalar`, LSP, extensão VS Code).
 - Passos para reproduzir, incluindo comandos e flags usados.
@@ -55,10 +55,12 @@ Você receberá atualizações pelo próprio advisory do GitHub ao longo do proc
 
 ## Escopo
 
+> **Nota de versão.** O modo `harpia executar --sandbox` e o bind exclusivo em `127.0.0.1` do playground e do `harpia servir` chegam na **v1.1.0**. Até `v1.0.2`, esses servidores escutam em todas as interfaces e não existe modo sandbox para scripts. Nessas versões, não rode código não confiável e use o playground/`servir` apenas em redes confiáveis.
+
 ### Dentro do escopo
 
-- Bypass do sandbox (`harpia executar --sandbox`, `BloquearArquivos`/`BloquearRede`): qualquer forma de um script em sandbox ler ou escrever arquivos, acessar a rede ou executar processos.
-- Execução remota de código no playground web ou no `harpia servir` **na configuração padrão** (escutando em `127.0.0.1`), incluindo ataques vindos de páginas web abertas no navegador (CSRF, DNS rebinding e afins).
+- Bypass do sandbox (a partir da v1.1.0: `harpia executar --sandbox`, `BloquearArquivos`/`BloquearRede`): qualquer forma de um script em sandbox ler ou escrever arquivos, acessar a rede, ler variáveis de ambiente ou executar processos.
+- Execução remota de código no playground web ou no `harpia servir` **na configuração padrão** (a partir da v1.1.0, escutando só em `127.0.0.1`), incluindo ataques vindos de páginas web abertas no navegador (CSRF, DNS rebinding e afins).
 - Path traversal ou zip slip no gerenciador de pacotes (`harpia instalar`), permitindo escrever fora do diretório de destino.
 - Injeção de SQL pelo QueryBuilder da stdlib (`bd`) quando usado conforme a documentação.
 - Falhas criptográficas na stdlib (`cripto`, `autenticacao`): validação incorreta de JWT, aceitação de `alg: none`, comparações que vazam tempo, aleatoriedade fraca.
@@ -70,7 +72,7 @@ Você receberá atualizações pelo próprio advisory do GitHub ao longo do proc
 
 - **Scripts executados sem `--sandbox` lendo arquivos, rodando processos ou acessando a rede.** Isso é o comportamento esperado de uma linguagem de programação, assim como rodar um script Python ou Node.js. Rodar código não confiável sem sandbox equivale a executá-lo diretamente na sua máquina.
 - Negação de serviço causada por scripts do próprio usuário (laços infinitos, consumo de memória, recursão profunda).
-- Playground, `harpia servir` ou outras ferramentas de desenvolvimento expostas de propósito na rede (por exemplo, com `--host 0.0.0.0`). Essas ferramentas não foram feitas para produção; expô-las é responsabilidade de quem as configura.
+- Playground, `harpia servir` ou outras ferramentas de desenvolvimento expostas de propósito na rede (por exemplo, com `harpia servir --host 0.0.0.0`, a partir da v1.1.0). Essas ferramentas não foram feitas para produção; expô-las é responsabilidade de quem as configura.
 - Vulnerabilidades em dependências sem um caminho comprovadamente alcançável a partir do Harpia. Relatos apenas com saída de scanners automáticos, sem prova de impacto, também ficam fora.
 - Problemas que exigem acesso prévio à máquina ou à conta do usuário.
 
@@ -78,7 +80,7 @@ Em caso de dúvida se algo está no escopo, reporte mesmo assim pelo canal priva
 
 ## Boas práticas para quem usa o Harpia
 
-- **Rode código não confiável com sandbox:** `harpia executar --sandbox script.hrp`. Sem a flag, o script tem as mesmas permissões que o seu usuário.
-- **Não exponha o playground nem o `harpia servir` na rede.** Mantenha o padrão `127.0.0.1` e use um servidor de produção adequado para publicar aplicações.
+- **Rode código não confiável com sandbox:** `harpia executar --sandbox script.hrp` (v1.1.0 ou mais recente). Sem a flag, o script tem as mesmas permissões que o seu usuário. Em versões anteriores, não execute código não confiável.
+- **Não exponha o playground nem o `harpia servir` na rede.** A partir da v1.1.0, o padrão é `127.0.0.1`: mantenha-o. Em versões anteriores, use-os só em redes confiáveis. Para publicar aplicações, use um servidor de produção adequado.
 - **Fixe suas dependências:** versione o lockfile (`harpia.lock`) e confira os hashes `sha256` dos pacotes antes de atualizar.
 - **Mantenha o Harpia atualizado** na versão 1.x mais recente para receber as correções de segurança.
