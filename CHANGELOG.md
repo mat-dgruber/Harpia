@@ -37,6 +37,23 @@ Rodada de correções do review geral de segurança e arquitetura (`docs/ai/repo
 - `email.enviar`: `MAIL FROM:<<nil>>`, vários destinatários num único `RCPT`, assunto UTF-8 corrompido.
 - Build web terminava com sucesso mesmo com erro de sintaxe em rota ou layout.
 - Instalação via `curl ... | bash` do README dava 404 e só funcionava com o código-fonte: agora baixa a última release e confere o SHA-256.
+- Escapes em textos (`\n`, `\t`, `\"`, `\\`, `\{`) não eram decodificados.
+- `1 == 1.0` era assimétrico e `Decimal` não aceitava `<`, `<=`, `>`, `>=`.
+- `imprimir(tipo(x))` mostrava a struct Go em vez do nome do tipo.
+- Pânico numa função nativa derrubava o processo: agora vira `RuntimeErro` capturável. `extende`, `pop` e `junta` com argumentos comuns não quebram mais.
+- `retentativa.executar` devolve o resultado da função; `esquema.criar` aceita tipos em minúsculas.
+- `mapa.chaves()`, `valores()` e `atualizar()` falhavam ("recebeu Modulo"); `"chave" em mapa` não funcionava.
+- `imprimir([1, 2])` mostrava `1 2` e o repr de `[[1, 2]]` saía achatado.
+- `app.obter(rota, middleware, handler)` respondia 500: middlewares por rota agora recebem `(req, res, proximo)`.
+- `para ... em` na VM quebrava sobre Mapa, `sequencia()` e Texto.
+- Frontend: toda string interpolada aparecia com aspas sobrando; `\` em texto JSX gerava JS inválido; o runtime web lançava `TypeError` em todo elemento com `href`/`src` e não renderizava o componente.
+- Comentário no fim da linha (`var x = 1 # nota`) quebrava a sintaxe.
+- `assegura(cond, "msg")` com parênteses perdia a mensagem.
+- `sinal` no backend ignorava o definidor.
+- `harpia checar` acusava "já declarada" em variáveis com nome de módulo (`bd`, `tarefas`, `doc`).
+
+### Adicionado
+- Pipe `|>` pode continuar na linha seguinte.
 
 ### Adicionado
 - `onde(col, "==", v)` como sinônimo de `"="`; encadeamento fluente com o ponto no início da linha.
