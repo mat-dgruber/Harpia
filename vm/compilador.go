@@ -516,10 +516,13 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		c.popLoopContext()
 
 	case *parser.BlocoPara:
-		// Compila o iterável
+		// Compila materializar(iterável): o laço abaixo percorre por índice, então Mapa,
+		// sequencia() e Texto passam antes pelo protocolo __iter__ (paridade com o AST).
+		c.emitirConstante(OP_PUSH_CONST, metodoMaterializar)
 		if err := c.visite(n.Iterador); err != nil {
 			return err
 		}
+		c.emitir(OP_CHAMAR, 1)
 		iterSlot := c.adicionarLocal("__iter_" + n.Identificador)
 		c.emitirU16(OP_ARMAZENAR_LOCAL, iterSlot)
 		c.emitir(OP_POP)
@@ -1034,6 +1037,10 @@ func (c *Compilador) internarConstante(val hrp.Objeto) uint16 {
 		return idx
 	}
 }
+
+var metodoMaterializar = hrp.NewMetodoOuPanic("__materializar__", func(_ hrp.Objeto, a hrp.Tupla) (hrp.Objeto, error) {
+	return hrp.Materializar(a[0])
+}, "Converte o iterável do laço para em uma coleção indexável.")
 
 // Padroes retorna os nós padrão de parâmetros de uma função.
 func Padroes(fn *hrp.Funcao) map[string]parser.BaseNode {

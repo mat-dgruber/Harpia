@@ -171,3 +171,23 @@ func TestEscapesEmTextoLiteral(t *testing.T) {
 		}
 	}
 }
+
+// O laço para-em da VM percorre por índice; Mapa, sequencia() e Texto precisam funcionar igual ao AST.
+func TestParaEmIteraveisNaoIndexados(t *testing.T) {
+	casos := map[string]hrp.Objeto{
+		"var r = 0\npara i em sequencia(4) { r = r + i }":                hrp.Inteiro(6),
+		"var r = \"\"\npara c em \"abc\" { r = c + r }":                  hrp.Texto("cba"),
+		"var r = 0\npara par em {\"a\": 1, \"b\": 2} { r = r + par[1] }": hrp.Inteiro(3),
+		"var r = 0\npara x em [1, 2, 3] { r = r + x }":                   hrp.Inteiro(6),
+	}
+	for codigo, esperado := range casos {
+		v, err := valorGlobal(t, codigo, "r")
+		if err != nil {
+			t.Errorf("%s: %v", codigo, err)
+			continue
+		}
+		if v != esperado {
+			t.Errorf("%s: esperava %v, veio %v", codigo, esperado, v)
+		}
+	}
+}
