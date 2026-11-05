@@ -67,3 +67,13 @@ func TestResolveModuloEmPastaComPontoSo(t *testing.T) {
 		t.Fatalf("esperava %q, veio %q (%v)", alvo, got, err)
 	}
 }
+
+// M32: imprimir(tipo(x)) de um tipo nativo mostrava a struct do Go.
+func TestTipoViraTextoPeloNome(t *testing.T) {
+	for _, tp := range []*Tipo{NewTipo("DataHora", "doc"), TipoInteiro, TipoTexto} {
+		got, err := NewTexto(tp)
+		if err != nil || got != Texto(tp.Nome) {
+			t.Errorf("NewTexto(tipo %s) = %v (%v)", tp.Nome, got, err)
+		}
+	}
+}
