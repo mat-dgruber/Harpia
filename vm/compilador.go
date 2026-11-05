@@ -212,7 +212,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		c.emitirConstante(OP_PUSH_CONST, hrp.Decimal(val))
 
 	case *parser.TextoLiteral:
-		textoLimpo := n.Valor[1 : len(n.Valor)-1]
+		textoLimpo := hrp.DecodificarTextoLiteral(n.Valor)
 		c.emitirConstante(OP_PUSH_CONST, hrp.Texto(textoLimpo))
 
 	case *parser.ConstanteLiteral:
@@ -345,7 +345,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			} else if txt, ok := obj.Membro.(*parser.TextoLiteral); ok {
 				nomeMembro = txt.Valor
 				if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-					nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+					nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 				}
 			} else {
 				return fmt.Errorf("nome do membro deve ser identificador ou texto")
@@ -624,7 +624,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 					return nil
 				}
 			case *parser.TextoLiteral:
-				textoLimpo := exp.Valor[1 : len(exp.Valor)-1]
+				textoLimpo := hrp.DecodificarTextoLiteral(exp.Valor)
 				idx := c.internarConstante(hrp.Texto(textoLimpo))
 				c.emitirU16(OP_RETORNE_CONST, idx)
 				return nil
@@ -731,7 +731,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			} else if txt, ok := par.Chave.(*parser.TextoLiteral); ok {
 				textoLimpo := txt.Valor
 				if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-					textoLimpo = txt.Valor[1 : len(txt.Valor)-1]
+					textoLimpo = hrp.DecodificarTextoLiteral(txt.Valor)
 				}
 				c.emitirConstante(OP_PUSH_CONST, hrp.Texto(textoLimpo))
 			} else {
@@ -765,7 +765,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		} else if txt, ok := n.Membro.(*parser.TextoLiteral); ok {
 			nomeMembro = txt.Valor
 			if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-				nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+				nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 			}
 		} else {
 			return fmt.Errorf("nome do membro deve ser identificador ou texto")
@@ -799,7 +799,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		} else if txt, ok := n.Membro.(*parser.TextoLiteral); ok {
 			nomeMembro = txt.Valor
 			if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-				nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+				nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 			}
 		} else {
 			return fmt.Errorf("nome do membro opcional deve ser identificador ou texto")

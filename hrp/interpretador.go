@@ -414,11 +414,7 @@ func (i *Interpretador) visiteChamadaFuncao(node *parser.ChamadaFuncao) (Objeto,
 }
 
 func (i *Interpretador) visiteTextoLiteral(node *parser.TextoLiteral) (Objeto, error) {
-	runes := []rune(node.Valor)
-	if len(runes) >= 2 {
-		return Texto(string(runes[1 : len(runes)-1])), nil
-	}
-	return Texto(""), nil
+	return Texto(DecodificarTextoLiteral(node.Valor)), nil
 }
 
 // visiteInteiroLiteral converte o lexema numérico em um Inteiro nativo da VM.

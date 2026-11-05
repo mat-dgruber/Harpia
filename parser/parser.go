@@ -1717,10 +1717,16 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 					break
 				}
 				idxOpen += i
+				// '\{' é chave literal: a barra não entra no texto anterior (senão viraria '\"' no fim)
+				escapada := idxOpen > 0 && strContent[idxOpen-1] == '\\'
+				fimTexto := idxOpen
+				if escapada {
+					fimTexto--
+				}
 
 				// Adiciona a parte de texto antes de '{'
-				if idxOpen > i {
-					part := strContent[i:idxOpen]
+				if fimTexto > i {
+					part := strContent[i:fimTexto]
 					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
 				}
 
@@ -1733,8 +1739,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				idxClose += idxOpen
 
 				// Se a chave for escapada com \, ignora interpolação e trata como texto
-				if idxOpen > 0 && strContent[idxOpen-1] == '\\' {
-					part := strContent[i : idxClose+1]
+				if escapada {
+					part := strContent[idxOpen : idxClose+1]
 					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
 					i = idxClose + 1
 					continue

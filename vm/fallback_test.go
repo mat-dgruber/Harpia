@@ -146,3 +146,28 @@ func TestRecursaoInfinitaViraErroDePilha(t *testing.T) {
 		t.Fatalf("processo filho falhou: %v\n%.2000s", err, out)
 	}
 }
+
+// M30: sequências de escape em strings eram mantidas literalmente ("\n" imprimia barra+n),
+// tanto na VM quanto no interpretador.
+func TestEscapesEmTextoLiteral(t *testing.T) {
+	casos := map[string]string{
+		`var r = "a\nb"`:          "a\nb",
+		`var r = "a\tb"`:          "a\tb",
+		`var r = "aspas \"x\""`:   `aspas "x"`,
+		`var r = "barra \\ fim"`:  `barra \ fim`,
+		`var r = 'simples \'x\''`: `simples 'x'`,
+		`var r = "chave \{x\}"`:   "chave {x}",
+		`var r = "regex \d+"`:     `regex \d+`,
+		"var r = `bruta \\n`":     `bruta \n`,
+	}
+	for codigo, esperado := range casos {
+		v, err := valorGlobal(t, codigo, "r")
+		if err != nil {
+			t.Errorf("%s: %v", codigo, err)
+			continue
+		}
+		if v != hrp.Texto(esperado) {
+			t.Errorf("%s: esperava %q, veio %q", codigo, esperado, v)
+		}
+	}
+}
