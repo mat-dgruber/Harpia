@@ -212,3 +212,11 @@ func TestAsseguraComParentesesMantemMensagem(t *testing.T) {
 		t.Fatalf("esperava a mensagem, veio %v (%v)", v, err)
 	}
 }
+
+// Pipe em várias linhas: a linha que começa com |> continua a expressão anterior.
+func TestPipeEmVariasLinhas(t *testing.T) {
+	v, err := valorGlobal(t, "funcao dobro(x) { retorne x * 2 }\nvar r = 3\n    |> dobro\n\n    |> dobro", "r")
+	if err != nil || v != hrp.Inteiro(12) {
+		t.Fatalf("esperava 12, veio %v (%v)", v, err)
+	}
+}

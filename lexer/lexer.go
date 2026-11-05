@@ -303,6 +303,21 @@ func (l *Lexer) ignorarEspacos() {
 // inicial nem retorna TokenComentarioDoc — comentários de linha são
 // puramente descartáveis, sem semântica que precise ser preservada na
 // sequência de tokens.
+// proximaLinhaEhPipe olha (sem consumir) se o próximo conteúdo, pulando espaços e linhas
+// vazias, começa com |>.
+func (l *Lexer) proximaLinhaEhPipe() bool {
+	for i := l.offset; i < len(l.fonte); i++ {
+		switch l.fonte[i] {
+		case ' ', '\t', '\r', '\n':
+			continue
+		case '|':
+			return i+1 < len(l.fonte) && l.fonte[i+1] == '>'
+		}
+		return false
+	}
+	return false
+}
+
 func (l *Lexer) ignorarComentario() {
 	// Para antes do '\n': ele vira TokenNovaLinha e encerra a instrução. Consumi-lo
 	// colava `var x = 1 # nota` na linha seguinte (erro de sintaxe).
@@ -791,6 +806,10 @@ func (l *Lexer) PróximoToken() *Token {
 	switch ch {
 	case '\n':
 		l.avancar()
+		// Linha seguinte começando com |> continua a expressão (pipe em várias linhas).
+		if l.proximaLinhaEhPipe() {
+			return l.PróximoToken()
+		}
 		return newToken(TokenNovaLinha, "\n", inicio, l.posicaoAtual())
 
 	case '=':
