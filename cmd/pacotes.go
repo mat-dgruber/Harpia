@@ -10,10 +10,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
 )
 
@@ -79,12 +83,12 @@ func comandoInstalar() *cobra.Command {
 
 				if !strings.HasPrefix(urlInstalar, "http://") && !strings.HasPrefix(urlInstalar, "https://") {
 					fmt.Printf("Buscando pacote '%s' na versão '%s' no registro remoto...\n", nome, urlOuVersao)
-					resolved, err := obterUrlDoRegistro(nome, urlOuVersao)
+					_, resolved, sha, err := obterPacoteDoRegistro(nome, urlOuVersao)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Erro ao resolver pacote: %v\n", err)
 						os.Exit(1)
 					}
-					urlInstalar = resolved
+					urlInstalar, shaEsperado = resolved, sha
 				}
 
 				fmt.Printf("Instalando pacote '%s' de %s...\n", nome, urlInstalar)
@@ -99,7 +103,10 @@ func comandoInstalar() *cobra.Command {
 					URL:    urlInstalar,
 					SHA256: hashCalculado,
 				}
-				salvarLockfile(caminhoLock, lock)
+				if err := salvarLockfile(caminhoLock, lock); err != nil {
+					fmt.Fprintf(os.Stderr, "Erro ao salvar lockfile: %v\n", err)
+					os.Exit(1)
+				}
 				return
 			}
 
@@ -115,13 +122,12 @@ func comandoInstalar() *cobra.Command {
 					versaoRegistrada = lockInfo.Versao
 				} else {
 					fmt.Printf("Buscando pacote '%s' no registro remoto...\n", nome)
-					urlPacote, err := obterUrlDoRegistro(nome, "")
+					versao, urlPacote, sha, err := obterPacoteDoRegistro(nome, "")
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "Erro ao resolver pacote: %v\n", err)
 						os.Exit(1)
 					}
-					urlInstalar = urlPacote
-					versaoRegistrada = urlPacote
+					urlInstalar, shaEsperado, versaoRegistrada = urlPacote, sha, versao
 				}
 
 				hashCalculado, err := baixarEExtrairPacote(nome, urlInstalar, shaEsperado)
@@ -135,7 +141,10 @@ func comandoInstalar() *cobra.Command {
 					URL:    urlInstalar,
 					SHA256: hashCalculado,
 				}
-				salvarLockfile(caminhoLock, lock)
+				if err := salvarLockfile(caminhoLock, lock); err != nil {
+					fmt.Fprintf(os.Stderr, "Erro ao salvar lockfile: %v\n", err)
+					os.Exit(1)
+				}
 				return
 			}
 
@@ -177,15 +186,18 @@ func comandoInstalar() *cobra.Command {
 
 			canalResultados := make(chan resInstalacao, len(manifesto.Dependencias))
 			for nome, urlOuVersao := range manifesto.Dependencias {
-				go func(n, uv string) {
+				// lido aqui, e não na goroutine: o laço abaixo escreve em lock.Pacotes ao mesmo tempo
+				lockInfo, emLock := lock.Pacotes[nome]
+				go func(n, uv string, lockInfo PacoteLockInfo, emLock bool) {
 					urlInstalar := uv
 					shaEsperado := ""
 
-					if lockInfo, emLock := lock.Pacotes[n]; emLock && lockInfo.URL != "" {
+					if emLock && lockInfo.URL != "" {
 						urlInstalar = lockInfo.URL
 						shaEsperado = lockInfo.SHA256
 					} else if !strings.HasPrefix(uv, "http://") && !strings.HasPrefix(uv, "https://") {
-						resolved, err := obterUrlDoRegistro(n, uv)
+						_, resolved, sha, err := obterPacoteDoRegistro(n, uv)
+						shaEsperado = sha
 						if err != nil {
 							canalResultados <- resInstalacao{err: fmt.Errorf("falha ao resolver '%s' na versão '%s': %v", n, uv, err)}
 							return
@@ -206,7 +218,7 @@ func comandoInstalar() *cobra.Command {
 						sha256: hashCalculado,
 						err:    nil,
 					}
-				}(nome, urlOuVersao)
+				}(nome, urlOuVersao, lockInfo, emLock)
 			}
 
 			erros := 0
@@ -231,6 +243,7 @@ func comandoInstalar() *cobra.Command {
 
 			if err := salvarLockfile(caminhoLock, lock); err != nil {
 				fmt.Fprintf(os.Stderr, "Erro ao salvar lockfile: %v\n", err)
+				os.Exit(1)
 			}
 
 			fmt.Println("✅ Todas as dependências foram instaladas com sucesso em ./pt_modulos/")
@@ -279,13 +292,50 @@ func parseManifesto(conteudo []byte) (*PacoteManifest, error) {
 	return &manifest, nil
 }
 
-// baixarEExtrairPacote baixa síncronamente o arquivo comprimido (.zip) da dependência,
-// calcula e valida a integridade via checksum SHA-256 se fornecido, descompacta e extrai seus
-// arquivos na pasta local './pt_modulos/', aplicando validação contra Zip Slip.
-func baixarEExtrairPacote(nome, url string, sha256Esperado string) (string, error) {
-	// ponytail: relatórios textuais dinâmicos de progresso para DX amigável
-	fmt.Printf("  ➔ [%s] Baixando dependência de %s...\n", nome, url)
-	resp, err := http.Get(url)
+// Limites e cliente do gerenciador de pacotes (variáveis para os testes ajustarem).
+var (
+	clientePacotes                  = &http.Client{Timeout: 60 * time.Second}
+	limiteDownloadPacote      int64 = 100 << 20 // 100 MB por arquivo .zip
+	limiteDescompressaoPacote int64 = 500 << 20 // 500 MB descomprimidos (zip bomb)
+	rxNomePacote                    = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9._-]*$`)
+)
+
+// validarNomePacote impede que o nome da dependência (vindo do manifesto ou da linha de comando)
+// tire a instalação de pt_modulos: "../../.ssh" escreveria fora do projeto.
+func validarNomePacote(nome string) error {
+	if !rxNomePacote.MatchString(nome) || strings.Contains(nome, "..") {
+		return fmt.Errorf("nome de pacote inválido: %q (use letras, números, '.', '_' e '-')", nome)
+	}
+	return nil
+}
+
+// urlDownloadPermitida exige https (evita MITM), exceto em loopback (espelhos locais e testes).
+func urlDownloadPermitida(bruta string) error {
+	u, err := url.Parse(bruta)
+	if err != nil {
+		return fmt.Errorf("URL de pacote inválida: %v", err)
+	}
+	if u.Scheme == "https" {
+		return nil
+	}
+	if u.Scheme == "http" && hostLocal(u.Host) {
+		return nil
+	}
+	return fmt.Errorf("URL de pacote precisa usar https: %s", bruta)
+}
+
+// baixarEExtrairPacote baixa o .zip da dependência, valida o SHA-256 quando informado e extrai
+// em ./pt_modulos/<nome>, com proteção contra zip slip, zip bomb e bits setuid.
+func baixarEExtrairPacote(nome, urlPacote string, sha256Esperado string) (string, error) {
+	if err := validarNomePacote(nome); err != nil {
+		return "", err
+	}
+	if err := urlDownloadPermitida(urlPacote); err != nil {
+		return "", err
+	}
+
+	fmt.Printf("  ➔ [%s] Baixando dependência de %s...\n", nome, urlPacote)
+	resp, err := clientePacotes.Get(urlPacote)
 	if err != nil {
 		return "", err
 	}
@@ -295,9 +345,12 @@ func baixarEExtrairPacote(nome, url string, sha256Esperado string) (string, erro
 		return "", fmt.Errorf("status HTTP inválido: %s", resp.Status)
 	}
 
-	corpo, err := io.ReadAll(resp.Body)
+	corpo, err := io.ReadAll(io.LimitReader(resp.Body, limiteDownloadPacote+1))
 	if err != nil {
 		return "", err
+	}
+	if int64(len(corpo)) > limiteDownloadPacote {
+		return "", fmt.Errorf("pacote %s excede o limite de download de %d MB", nome, limiteDownloadPacote>>20)
 	}
 
 	hashObtido := calcularSHA256(corpo)
@@ -312,114 +365,154 @@ func baixarEExtrairPacote(nome, url string, sha256Esperado string) (string, erro
 	}
 
 	pastaDest := filepath.Join("pt_modulos", nome)
-	err = os.MkdirAll(pastaDest, 0755)
-	if err != nil {
+	if err := os.MkdirAll(pastaDest, 0755); err != nil {
 		return "", err
 	}
+	pastaLimpa := filepath.Clean(pastaDest)
 
+	restante := limiteDescompressaoPacote
 	for _, arquivo := range reader.File {
 		caminhoFisico := filepath.Join(pastaDest, arquivo.Name)
 
-		// ponytail: impede a vulnerabilidade crítica de Zip Slip (path traversal)
+		// impede zip slip (path traversal pelos nomes das entradas)
 		caminhoLimpo := filepath.Clean(caminhoFisico)
-		pastaLimpa := filepath.Clean(pastaDest)
 		if caminhoLimpo != pastaLimpa && !strings.HasPrefix(caminhoLimpo, pastaLimpa+string(filepath.Separator)) {
 			return "", fmt.Errorf("caminho de arquivo ilegal detectado no pacote ZIP: %s", arquivo.Name)
 		}
 
 		if arquivo.FileInfo().IsDir() {
-			os.MkdirAll(caminhoFisico, 0755)
+			if err := os.MkdirAll(caminhoFisico, 0755); err != nil {
+				return "", err
+			}
 			continue
 		}
-
 		if err := os.MkdirAll(filepath.Dir(caminhoFisico), 0755); err != nil {
 			return "", err
+		}
+
+		// nunca preserva setuid/setgid/sticky: só 0644, ou 0755 se o dono podia executar
+		modo := os.FileMode(0644)
+		if arquivo.Mode()&0100 != 0 {
+			modo = 0755
 		}
 
 		origem, err := arquivo.Open()
 		if err != nil {
 			return "", err
 		}
-
-		destino, err := os.OpenFile(caminhoFisico, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, arquivo.Mode())
+		destino, err := os.OpenFile(caminhoFisico, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, modo)
 		if err != nil {
 			origem.Close()
 			return "", err
 		}
-
-		_, err = io.Copy(destino, origem)
+		// conta o descomprimido de verdade (o tamanho declarado no zip pode mentir)
+		n, err := io.Copy(destino, io.LimitReader(origem, restante+1))
 		origem.Close()
 		destino.Close()
 		if err != nil {
 			return "", err
 		}
+		if restante -= n; restante < 0 {
+			_ = os.RemoveAll(pastaDest)
+			return "", fmt.Errorf("pacote %s excede o limite de descompressão de %d MB (possível zip bomb)", nome, limiteDescompressaoPacote>>20)
+		}
+		_ = os.Chmod(caminhoFisico, modo) // umask/arquivo existente: garante o modo final
 	}
 
 	fmt.Printf("  ✓ [%s] Instalado com sucesso em ./pt_modulos/\n", nome)
 	return hashObtido, nil
 }
 
-// ponytail: URL oficial contendo os metadados centralizados do índice de pacotes
-var URL_REGISTRO_CENTRAL = "https://raw.githubusercontent.com/Harpia/registro/main/pacotes.json"
+// registroPadrao é o índice oficial, num repositório do próprio projeto (a org GitHub "Harpia"
+// pertence a terceiros). HARPIA_REGISTRO troca o índice (espelho ou registro privado).
+const registroPadrao = "https://raw.githubusercontent.com/mat-dgruber/harpia-pacotes/main/pacotes.json"
 
-// RegistroRemoto descreve a árvore e os metadados das dependências retornadas
-// pelo endpoint centralizado de pacotes oficiais do Harpia.
+// URL_REGISTRO_CENTRAL mantém compatibilidade: vale quando HARPIA_REGISTRO não está definido.
+var URL_REGISTRO_CENTRAL = registroPadrao
+
+func urlDoRegistro() string {
+	if v := os.Getenv("HARPIA_REGISTRO"); v != "" {
+		return v
+	}
+	return URL_REGISTRO_CENTRAL
+}
+
+// RegistroRemoto descreve o índice de pacotes (pacotes.json).
 type RegistroRemoto struct {
 	Pacotes map[string]struct {
 		Versoes map[string]struct {
-			URL string `json:"url"`
+			URL    string `json:"url"`
+			SHA256 string `json:"sha256"`
 		} `json:"versoes"`
 	} `json:"pacotes"`
 }
 
-// obterUrlDoRegistro faz uma requisição HTTP GET ao registro central remoto, localiza
-// o pacote solicitado e resolve a URL do zip correspondente à versão pedida ou à mais recente.
-func obterUrlDoRegistro(nome, versaoRestricao string) (string, error) {
-	resp, err := http.Get(URL_REGISTRO_CENTRAL)
+// urlPermitidaNoRegistro: no índice oficial, só releases do próprio projeto; um índice
+// customizado (HARPIA_REGISTRO) é responsabilidade de quem o configurou.
+func urlPermitidaNoRegistro(urlPacote, registro string) bool {
+	if registro != registroPadrao {
+		return true
+	}
+	return strings.HasPrefix(urlPacote, "https://github.com/mat-dgruber/")
+}
+
+// obterPacoteDoRegistro resolve nome + restrição de versão ("", "ultimo", exata ou prefixo como
+// "1" / "1.2") para a versão, a URL e o sha256 do índice. A escolha usa a maior versão semver
+// (antes dependia da ordem aleatória de um map).
+func obterPacoteDoRegistro(nome, versaoRestricao string) (string, string, string, error) {
+	registro := urlDoRegistro()
+	resp, err := clientePacotes.Get(registro)
 	if err != nil {
-		return "", fmt.Errorf("falha ao se comunicar com o registro remoto de pacotes: %v", err)
+		return "", "", "", fmt.Errorf("falha ao se comunicar com o registro de pacotes: %v", err)
 	}
 	defer resp.Body.Close()
-
+	if resp.StatusCode == http.StatusNotFound {
+		return "", "", "", fmt.Errorf("registro de pacotes indisponível (%s); instale por URL direta", registro)
+	}
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("falha no registro remoto (status %s)", resp.Status)
+		return "", "", "", fmt.Errorf("falha no registro de pacotes (status %s)", resp.Status)
 	}
 
 	var reg RegistroRemoto
-	if err := json.NewDecoder(resp.Body).Decode(&reg); err != nil {
-		return "", fmt.Errorf("registro remoto retornou dados inválidos: %v", err)
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 10<<20)).Decode(&reg); err != nil {
+		return "", "", "", fmt.Errorf("registro de pacotes retornou dados inválidos: %v", err)
 	}
-
 	pacote, existe := reg.Pacotes[nome]
 	if !existe {
-		return "", fmt.Errorf("pacote '%s' não encontrado no registro central", nome)
+		return "", "", "", fmt.Errorf("pacote '%s' não encontrado no registro", nome)
 	}
 
-	// Se nenhuma versão foi solicitada ou pediu "ultimo"/"latest", pega a última versão declarada
-	if versaoRestricao == "" || versaoRestricao == "latest" || versaoRestricao == "ultimo" {
-		var ultimaURL string
-		for _, v := range pacote.Versoes {
-			ultimaURL = v.URL
+	var escolhida *semver.Version
+	var escolhidaTexto string
+	for versao := range pacote.Versoes {
+		casa := versaoRestricao == "" || versaoRestricao == "latest" || versaoRestricao == "ultimo" ||
+			versao == versaoRestricao || strings.HasPrefix(versao, versaoRestricao+".")
+		if !casa {
+			continue
 		}
-		if ultimaURL == "" {
-			return "", fmt.Errorf("pacote '%s' não tem nenhuma versão disponível no registro", nome)
+		v, errV := semver.NewVersion(versao)
+		if errV != nil {
+			continue
 		}
-		return ultimaURL, nil
+		if escolhida == nil || v.GreaterThan(escolhida) {
+			escolhida, escolhidaTexto = v, versao
+		}
+	}
+	if escolhida == nil {
+		if versaoRestricao == "" || versaoRestricao == "latest" || versaoRestricao == "ultimo" {
+			return "", "", "", fmt.Errorf("pacote '%s' não tem nenhuma versão disponível no registro", nome)
+		}
+		return "", "", "", fmt.Errorf("versão '%s' do pacote '%s' não está registrada", versaoRestricao, nome)
 	}
 
-	// Busca a versão exata que foi solicitada
-	v, existe := pacote.Versoes[versaoRestricao]
-	if !existe {
-		// ponytail: fallback simples para busca parcial se não achar exata
-		for versao, dados := range pacote.Versoes {
-			if strings.HasPrefix(versao, versaoRestricao) {
-				return dados.URL, nil
-			}
-		}
-		return "", fmt.Errorf("versão '%s' do pacote '%s' não está registrada", versaoRestricao, nome)
+	dados := pacote.Versoes[escolhidaTexto]
+	if dados.SHA256 == "" {
+		return "", "", "", fmt.Errorf("o registro não informa sha256 para %s@%s: instalação recusada", nome, escolhidaTexto)
 	}
-
-	return v.URL, nil
+	if !urlPermitidaNoRegistro(dados.URL, registro) {
+		return "", "", "", fmt.Errorf("URL de %s@%s fora das releases do projeto: %s", nome, escolhidaTexto, dados.URL)
+	}
+	return escolhidaTexto, dados.URL, dados.SHA256, nil
 }
 
 // salvarDependenciaNoManifesto atualiza ou cria o manifesto pacote.json gravando de
@@ -516,22 +609,21 @@ func comandoPacote() *cobra.Command {
 					versaoRegistrada = lockInfo.Versao
 				} else {
 					cmd.Printf("Buscando pacote '%s' no registro remoto...\n", nome)
-					urlPacote, err := obterUrlDoRegistro(nome, "")
+					versao, urlPacote, sha, err := obterPacoteDoRegistro(nome, "")
 					if err != nil {
 						cmd.PrintErrf("Erro ao resolver pacote: %v\n", err)
 						return
 					}
-					urlInstalar = urlPacote
-					versaoRegistrada = urlPacote
+					urlInstalar, shaEsperado, versaoRegistrada = urlPacote, sha, versao
 				}
 			} else if !strings.HasPrefix(versaoOuUrl, "http://") && !strings.HasPrefix(versaoOuUrl, "https://") {
 				cmd.Printf("Buscando pacote '%s' na versão '%s' no registro remoto...\n", nome, versaoOuUrl)
-				resolved, err := obterUrlDoRegistro(nome, versaoOuUrl)
+				_, resolved, sha, err := obterPacoteDoRegistro(nome, versaoOuUrl)
 				if err != nil {
 					cmd.PrintErrf("Erro ao resolver pacote: %v\n", err)
 					return
 				}
-				urlInstalar = resolved
+				urlInstalar, shaEsperado = resolved, sha
 			}
 
 			hashCalculado, err := baixarEExtrairPacote(nome, urlInstalar, shaEsperado)

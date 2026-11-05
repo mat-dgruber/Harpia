@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -113,63 +114,36 @@ func TestBaixarEExtrairPacote(t *testing.T) {
 	}
 }
 
-// TestObterUrlDoRegistro assevera a correta resolução de URLs do registro de pacotes remoto
+// TestObterUrlDoRegistro assevera a resolução de versões no índice de pacotes.
 func TestObterUrlDoRegistro(t *testing.T) {
-	// JSON de registro simulado
 	regJson := `{
 		"pacotes": {
 			"banco-dados": {
 				"versoes": {
-					"1.0.0": {
-						"url": "http://exemplo.com/banco-1.0.0.zip"
-					},
-					"1.1.0": {
-						"url": "http://exemplo.com/banco-1.1.0.zip"
-					}
+					"1.0.0": {"url": "https://github.com/mat-dgruber/banco/releases/download/v1.0.0/banco.zip", "sha256": "aaa"},
+					"1.1.0": {"url": "https://github.com/mat-dgruber/banco/releases/download/v1.1.0/banco.zip", "sha256": "bbb"}
 				}
 			}
 		}
 	}`
-
-	// Inicia servidor mock para entregar o índice de pacotes
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(regJson))
 	}))
 	defer server.Close()
+	t.Setenv("HARPIA_REGISTRO", server.URL)
 
-	// Redireciona temporariamente a URL de registro para o servidor mock
-	antigoURL := URL_REGISTRO_CENTRAL
-	URL_REGISTRO_CENTRAL = server.URL
-	defer func() { URL_REGISTRO_CENTRAL = antigoURL }()
-
-	// 1. Testa resolução de versão exata
-	urlResolvida, err := obterUrlDoRegistro("banco-dados", "1.0.0")
-	if err != nil {
-		t.Fatalf("Erro ao obter URL: %v", err)
+	versao, urlResolvida, sha, err := obterPacoteDoRegistro("banco-dados", "1.0.0")
+	if err != nil || versao != "1.0.0" || sha != "aaa" || !strings.HasSuffix(urlResolvida, "v1.0.0/banco.zip") {
+		t.Fatalf("versão exata: %s %s %s (%v)", versao, urlResolvida, sha, err)
 	}
-	if urlResolvida != "http://exemplo.com/banco-1.0.0.zip" {
-		t.Errorf("URL resolvida incorreta para 1.0.0. Obtido: %s", urlResolvida)
+	if versao, _, _, err := obterPacoteDoRegistro("banco-dados", ""); err != nil || versao != "1.1.0" {
+		t.Fatalf("última versão deveria ser 1.1.0, veio %s (%v)", versao, err)
 	}
-
-	// 2. Testa resolução sem versão informada (deve pegar a última estável disponível no map)
-	urlUltimo, err := obterUrlDoRegistro("banco-dados", "")
-	if err != nil {
-		t.Fatalf("Erro ao obter última versão: %v", err)
-	}
-	if urlUltimo != "http://exemplo.com/banco-1.1.0.zip" && urlUltimo != "http://exemplo.com/banco-1.0.0.zip" {
-		t.Errorf("URL resolvida inesperada para 'ultimo'. Obtido: %s", urlUltimo)
-	}
-
-	// 3. Testa erro de pacote inexistente
-	_, err = obterUrlDoRegistro("pacote-fantasma", "1.0.0")
-	if err == nil {
+	if _, _, _, err := obterPacoteDoRegistro("pacote-fantasma", "1.0.0"); err == nil {
 		t.Errorf("Esperava erro ao buscar pacote fantasma")
 	}
-
-	// 4. Testa erro de versão inexistente
-	_, err = obterUrlDoRegistro("banco-dados", "9.9.9")
-	if err == nil {
+	if _, _, _, err := obterPacoteDoRegistro("banco-dados", "9.9.9"); err == nil {
 		t.Errorf("Esperava erro ao buscar versão inexistente")
 	}
 }
