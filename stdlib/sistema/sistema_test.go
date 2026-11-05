@@ -35,7 +35,11 @@ func harpiaCompilado(t *testing.T) string {
 		if err != nil {
 			binErr = err
 			t.Logf("%s", out)
+			return
 		}
+		// Aquece o binário: no macOS a 1ª execução de um binário recém-linkado passa pela
+		// verificação de segurança do sistema e pode levar mais que o tempo limite testado.
+		_ = exec.Command(binPath, "versao").Run()
 	})
 	if binErr != nil {
 		t.Fatalf("falha ao compilar o CLI: %v", binErr)

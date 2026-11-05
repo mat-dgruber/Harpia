@@ -192,7 +192,7 @@ func TestVerificacaoIntegridadeSHA256(t *testing.T) {
 	defer os.Chdir(oldWd)
 
 	// 1. Deve falhar com HRP-LOCK-001 se SHA-256 for divergente
-	hashRetornado, err := baixarEExtrairPacote("pkg_test", server.URL, "0000000000000000000000000000000000000000000000000000000000000000")
+	_, err = baixarEExtrairPacote("pkg_test", server.URL, "0000000000000000000000000000000000000000000000000000000000000000")
 	if err == nil {
 		t.Fatalf("Esperava erro de integridade HRP-LOCK-001, mas a instalacao teve sucesso")
 	}
@@ -201,7 +201,7 @@ func TestVerificacaoIntegridadeSHA256(t *testing.T) {
 	}
 
 	// 2. Deve ter sucesso com hash correto
-	hashRetornado, err = baixarEExtrairPacote("pkg_test", server.URL, hashCorreto)
+	hashRetornado, err := baixarEExtrairPacote("pkg_test", server.URL, hashCorreto)
 	if err != nil {
 		t.Fatalf("Erro inesperado com hash correto: %v", err)
 	}
