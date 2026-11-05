@@ -51,3 +51,19 @@ func TestNewContextoParaleloSemCorrida(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+// M15: importar "mod" dentro de uma pasta cujo nome contém ".so" (ex.: proj.solar) funciona.
+func TestResolveModuloEmPastaComPontoSo(t *testing.T) {
+	base := filepath.Join(t.TempDir(), "proj.solar")
+	if err := os.MkdirAll(base, 0755); err != nil {
+		t.Fatal(err)
+	}
+	alvo := filepath.Join(base, "mod.hrp")
+	if err := os.WriteFile(alvo, []byte("var x = 1"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := ResolveArquivohrp("mod", nil, base)
+	if err != nil || got != alvo {
+		t.Fatalf("esperava %q, veio %q (%v)", alvo, got, err)
+	}
+}
