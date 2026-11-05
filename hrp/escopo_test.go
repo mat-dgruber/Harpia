@@ -90,3 +90,34 @@ func TestPanicoEmMetodoNativoViraErro(t *testing.T) {
 		t.Fatalf("esperava RuntimeErro com a causa do pânico, veio %v", err)
 	}
 }
+
+// mapa.chaves()/valores()/atualizar() precisam receber o próprio mapa como self.
+func TestMetodosDeMapaVinculamInstancia(t *testing.T) {
+	ctx := NewContexto(OpcsContexto{})
+	defer ctx.Terminar()
+	mod, err := ExecutarString(ctx, `var dados = {"a": 1}
+dados.atualizar({"b": 2})
+var n = tamanho(dados.chaves()) + tamanho(dados.valores())`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, _ := mod.Escopo.ObterValor("n"); n != Inteiro(4) {
+		t.Fatalf("esperava 4, veio %v", n)
+	}
+}
+
+func TestOperadorEmComMapaUsaChaves(t *testing.T) {
+	ctx := NewContexto(OpcsContexto{})
+	defer ctx.Terminar()
+	mod, err := ExecutarString(ctx, `var m = {"a": 1}
+var sim = "a" em m
+var nao = "b" em m`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sim, _ := mod.Escopo.ObterValor("sim")
+	nao, _ := mod.Escopo.ObterValor("nao")
+	if sim != Verdadeiro || nao != Falso {
+		t.Fatalf("esperava Verdadeiro/Falso, veio %v/%v", sim, nao)
+	}
+}

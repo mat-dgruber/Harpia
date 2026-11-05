@@ -39,5 +39,5 @@ func Em(a, b Objeto) (Objeto, error) {
 		return res, nil
 	}
 
-	return nil, NewErroF(TipagemErro, "O tipo '%s' não aceita a operação de pertinência 'em' (método __contem__ não implementado)", b.Tipo().Nome)
+	return nil, NewErroF(TipagemErro, "O tipo '%s' não aceita a operação de pertinência 'em' (método __contem__ não implementado)", a.Tipo().Nome)
 }
