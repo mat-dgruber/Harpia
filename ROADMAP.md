@@ -805,3 +805,15 @@ _Roadmap de melhorias do compilador adicionado em 2026-07-28 após construção 
 ---
 
 _Roadmap atualizado em 2026-07-27. Revisitar e atualizar após conclusão de cada fase._
+
+---
+
+## Pendências do Review Max (2026-11-04)
+
+Itens adiados de propósito (YAGNI) durante as correções do review; ver `docs/ai/plans/2026-11-04-correcoes-review-max.md`.
+
+- **`harpia atualizar` automático:** hoje só informa a nova versão e o link da release. Auto-update exige download + verificação de checksum/assinatura do binário.
+- **QueryBuilder:** `.contar()`, `tx.tabela(...)` e `tx.reverter(...)` (a documentação já usa `consultar("SELECT COUNT(*) ...")` e `tx.executar`).
+- **FFI nativo:** `ffi.abrir`/`obterFuncao` existem, mas a chamada nativa ainda não (erro explícito).
+- **Linter (`checar`):** nomes de módulos da stdlib (`bd`, `logs`...) contam como globais declaradas (falso positivo).
+- **Manual.md:** revisar exemplos com APIs que não existem (ex.: `de "bd" importe Conectar`).
