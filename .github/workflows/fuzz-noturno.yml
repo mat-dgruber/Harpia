@@ -1,0 +1,35 @@
+name: Fuzz noturno do parser
+
+# O corpus semente de FuzzParser já roda em todo PR (go test ./parser). Aqui o fuzz explora
+# entradas novas por mais tempo; uma falha não bloqueia PRs e deixa a entrada como artefato.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-parser:
+    name: FuzzParser (5 min)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Fuzz
+        run: go test -run='^$' -fuzz=FuzzParser -fuzztime=5m ./parser
+
+      - name: Guardar entrada que falhou
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-parser-falha
+          path: parser/testdata/fuzz/

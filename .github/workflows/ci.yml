@@ -43,3 +43,20 @@ jobs:
 
       - name: Executar Testes Unitários
         run: go test ./... -v
+
+  seguranca:
+    name: Vulnerabilidades (govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      # Falha o PR se houver vulnerabilidade ALCANÇÁVEL pelo código (stdlib ou dependências).
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
