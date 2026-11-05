@@ -412,6 +412,24 @@ func init() {
 	}
 }
 
+// encadearRota compõe middlewares de rota com o handler: cada middleware recebe
+// (req, res, proximo) e só segue adiante se chamar proximo().
+func encadearRota(mws hrp.Tupla, final hrp.Objeto) hrp.Objeto {
+	return hrp.NewMetodoOuPanic("rota", func(_ hrp.Objeto, a hrp.Tupla) (hrp.Objeto, error) {
+		var passo func(i int) (hrp.Objeto, error)
+		passo = func(i int) (hrp.Objeto, error) {
+			if i == len(mws) {
+				return hrp.Chamar(final, a)
+			}
+			proximo := hrp.NewMetodoOuPanic("proximo", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+				return passo(i + 1)
+			}, "Segue para o próximo middleware ou para o handler da rota.")
+			return hrp.Chamar(mws[i], append(a[:len(a):len(a)], proximo))
+		}
+		return passo(0)
+	}, "Rota com middlewares encadeados.")
+}
+
 // registrarRota anexa de forma thread-safe uma rota lógica com seu respectivo handler e metadados na tabela de rotas.
 func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto, metaObj hrp.Objeto) {
 	s.mu.Lock()
@@ -472,18 +490,25 @@ func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto, metaOb
 func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	criadorRota := func(metodoHTTP string) hrp.Objeto {
 		return hrp.NewMetodoOuPanic(strings.ToLower(metodoHTTP), func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos(strings.ToLower(metodoHTTP), false, args, 2, 3); err != nil {
-				return nil, err
+			// app.obter(rota, [middlewares...], handler, metadados?): o Mapa final é metadados;
+			// funções antes do handler são middlewares de rota (req, res, proximo).
+			if len(args) < 2 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "%s() espera (rota, handler)", strings.ToLower(metodoHTTP))
 			}
 			rota, err := hrp.NewTexto(args[0])
 			if err != nil {
 				return nil, err
 			}
+			resto := args[1:]
 			var meta hrp.Objeto = hrp.Nulo
-			if len(args) == 3 {
-				meta = args[2]
+			if _, ehMapa := resto[len(resto)-1].(hrp.Mapa); ehMapa && len(resto) > 1 {
+				meta, resto = resto[len(resto)-1], resto[:len(resto)-1]
 			}
-			s.registrarRota(metodoHTTP, string(rota.(hrp.Texto)), args[1], meta)
+			handler := resto[len(resto)-1]
+			if mws := resto[:len(resto)-1]; len(mws) > 0 {
+				handler = encadearRota(mws, handler)
+			}
+			s.registrarRota(metodoHTTP, string(rota.(hrp.Texto)), handler, meta)
 			return hrp.Nulo, nil
 		}, fmt.Sprintf("Registra uma rota para requisições %s.", metodoHTTP))
 	}
