@@ -55,3 +55,16 @@ Além disso, `cmd/` (cerca de 16 mil linhas) concentra estágios do compilador (
 - **Spike:** ter 20 programas golden cobrindo aritmética (incluindo overflow), texto, coleções, laços, exceções, classes e módulos, e medir quantos divergem entre os motores hoje.
 - Se mais de 20% divergirem, priorizar A e corrigir; reavaliar B depois.
 - Esta ADR passa a **Aprovada** quando a opção for escolhida após o spike.
+
+## 4. Evidências adicionais (2026-11-05)
+
+Validar os exemplos do portal contra o binário (cerca de 150 blocos de código) encontrou mais divergências entre motores, todas corrigidas com teste de regressão:
+
+| Sintoma | Motor | Commit |
+| :-- | :-- | :-- |
+| `para x em` quebrava sobre Mapa, `sequencia()` e Texto (o laço percorria por índice) | VM | `b2504ea` |
+| Toda string interpolada aparecia com aspas sobrando; `\` em texto JSX gerava JS inválido | Web | `007bfcb` |
+| `TypeError` em todo elemento com `href`/`src`: o componente não renderizava | Runtime web | `0f6ad47` |
+| O definidor de `sinal` era um stub vazio | AST/VM (SSR) | `6caa526` |
+
+Nenhum deles aparecia na suíte Go, porque ela testa cada motor isoladamente. Isso reforça a opção **A**: os próprios exemplos do portal e do Manual servem de semente para `tests/paridade/`.
