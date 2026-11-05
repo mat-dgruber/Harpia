@@ -688,7 +688,7 @@ function atualizarAtributos(el, velhosProps, novosProps) {
     if (!chave || typeof chave !== "string") continue;
     const nomeLimpo = chave.trim();
     if (!nomeLimpo || nomeLimpo === "children" || nomeLimpo === "key" || nomeLimpo === "ref") continue;
-    const valor = novosProps[chave];
+    let valor = novosProps[chave]; // let: href/src são reescritos por urlSegura abaixo
     const velhoValor = velhosProps[chave];
 
     if (valor !== velhoValor) {

@@ -143,6 +143,10 @@ func TestRuntimeWebBlindagemECicloDeVida(t *testing.T) {
 
 	for nome, conteudo := range arquivos {
 		t.Run(nome, func(t *testing.T) {
+			// atualizarAtributos reatribui valor (urlSegura) em href/src: const derrubava todo componente com link.
+			if strings.Contains(conteudo, "const valor = novosProps[chave]") {
+				t.Errorf("[%s] 'valor' em atualizarAtributos precisa ser let", nome)
+			}
 			// 1. armazem usa Object.create(null) e Object.hasOwn(objeto, chave), sem const sinais = {}
 			if strings.Contains(conteudo, "const sinais = {}") {
 				t.Errorf("[%s] armazem não deve usar 'const sinais = {}'", nome)
