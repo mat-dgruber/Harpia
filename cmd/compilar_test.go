@@ -557,3 +557,30 @@ func TestComandoCompilarAliasConstruir(t *testing.T) {
 		t.Errorf("comando compilar deve ter o alias 'construir', aliases atuais: %v", cmd.Aliases)
 	}
 }
+
+// Uma rota ou layout com erro de sintaxe deve falhar o build (antes só ia para o stderr e o
+// build terminava com sucesso, publicando o app sem a página).
+func TestCompilarFalhaComErroDeSintaxeNaRota(t *testing.T) {
+	for _, arquivo := range []string{"quebrada.hrp", "layout.hrp"} {
+		t.Run(arquivo, func(t *testing.T) {
+			dir := t.TempDir()
+			rotas := filepath.Join(dir, "web", "rotas")
+			if err := os.MkdirAll(rotas, 0755); err != nil {
+				t.Fatal(err)
+			}
+			entrada := filepath.Join(dir, "main.hrp")
+			os.WriteFile(entrada, []byte("var principal = \"app\"\n"), 0644)
+			os.WriteFile(filepath.Join(rotas, "index.hrp"), []byte("retorne <h1>Início</h1>\n"), 0644)
+			os.WriteFile(filepath.Join(rotas, arquivo), []byte("funcao f(\n"), 0644)
+
+			antigo, _ := os.Getwd()
+			os.Chdir(dir)
+			defer os.Chdir(antigo)
+			c := comandoCompilar()
+			c.SetArgs([]string{"--entrada", entrada, "--saida", filepath.Join(dir, "dist"), "--pular-linter"})
+			if err := c.Execute(); err == nil || !strings.Contains(err.Error(), arquivo) {
+				t.Fatalf("esperava erro citando %s, veio %v", arquivo, err)
+			}
+		})
+	}
+}
