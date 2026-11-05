@@ -98,6 +98,7 @@ func NewLexer(entrada string) *Lexer {
 
 	if l.ch == '#' && l.peek() == '!' {
 		l.ignorarComentario()
+		l.avancar() // o shebang não gera TokenNovaLinha
 	}
 
 	return l
@@ -303,10 +304,11 @@ func (l *Lexer) ignorarEspacos() {
 // puramente descartáveis, sem semântica que precise ser preservada na
 // sequência de tokens.
 func (l *Lexer) ignorarComentario() {
+	// Para antes do '\n': ele vira TokenNovaLinha e encerra a instrução. Consumi-lo
+	// colava `var x = 1 # nota` na linha seguinte (erro de sintaxe).
 	for l.ch != '\n' && !l.fimDeArquivo() {
 		l.avancar()
 	}
-	l.avancar()
 }
 
 // ignorarComentarioBloco pula todos os caracteres até encontrar a sequência de fechamento de comentário de bloco '*/'

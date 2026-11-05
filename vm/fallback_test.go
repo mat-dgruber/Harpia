@@ -191,3 +191,16 @@ func TestParaEmIteraveisNaoIndexados(t *testing.T) {
 		}
 	}
 }
+
+// Comentário no fim da linha não pode engolir o '\n' que termina a instrução.
+func TestComentarioNoFimDaLinha(t *testing.T) {
+	for _, codigo := range []string{
+		"var r = 1 # nota\nr = r + 1",
+		"var r = 1 // nota\nr = r + 1",
+	} {
+		v, err := valorGlobal(t, codigo, "r")
+		if err != nil || v != hrp.Inteiro(2) {
+			t.Errorf("%q: esperava 2, veio %v (%v)", codigo, v, err)
+		}
+	}
+}
