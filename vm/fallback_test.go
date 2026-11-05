@@ -204,3 +204,11 @@ func TestComentarioNoFimDaLinha(t *testing.T) {
 		}
 	}
 }
+
+// assegura(cond, "msg") com parênteses precisa levar a mensagem para o erro.
+func TestAsseguraComParentesesMantemMensagem(t *testing.T) {
+	v, err := valorGlobal(t, "var r = \"\"\ntente { assegura(1 == 2, \"idade inválida\") } capture (falha) { r = falha.mensagem }", "r")
+	if err != nil || v != hrp.Texto("idade inválida") {
+		t.Fatalf("esperava a mensagem, veio %v (%v)", v, err)
+	}
+}

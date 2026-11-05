@@ -355,6 +355,10 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 				return nil, err
 			}
 		}
+		// assegura(cond, "msg") chega como uma Tupla (cond, msg): separa as duas partes.
+		if t, ok := condicao.(*TuplaLiteral); ok && mensagem == nil && len(t.Elementos) == 2 {
+			condicao, mensagem = t.Elementos[0], t.Elementos[1]
+		}
 		return &AsseguraNode{Condicao: condicao, Mensagem: mensagem}, nil
 	case lexer.TokenPara:
 		return p.parseBlocoPara()
