@@ -326,15 +326,15 @@ function activate(context) {
             descricao: 'Verifica se uma condição de teste é verdadeira. Dispara erro de falha de teste se for falsa.',
             exemplo: '```harpia\nassegura(valor == Verdadeiro)\n```'
         },
-        'importar': {
-            titulo: 'Importação (`importar`)',
-            descricao: 'Importa dependências, classes ou bibliotecas padrão para o arquivo atual.',
-            exemplo: '```harpia\nimportar { Matematica } de "matematica"\n```'
+        'importe': {
+            titulo: 'Importação (`de ... importe`)',
+            descricao: 'Importa dependências, classes ou bibliotecas padrão para o arquivo atual: `de "modulo" importe a, b`.',
+            exemplo: '```harpia\nde "matematica" importe Matematica\n```'
         },
         'de': {
             titulo: 'Origem de Importação (`de`)',
             descricao: 'Indica de qual módulo ou arquivo local/remoto um recurso está sendo importado.',
-            exemplo: '```harpia\nimportar { sinal } de "web"\n```'
+            exemplo: '```harpia\nde "web" importe sinal\n```'
         },
         'sinal': {
             titulo: 'Sinal Reativo (`sinal`)',
@@ -527,10 +527,10 @@ function activate(context) {
                     });
                 }
 
-                // 2. Sugerir funções de um módulo nativo quando o usuário estiver dentro de 'importar { ... } de "modulo"'
-                const matchImport = document.lineAt(position.line).text.match(/importar\s*\{([^}]*)\}\s*de\s*["']([^"']+)["']/);
+                // 2. Sugerir funções de um módulo nativo quando o usuário estiver em 'de "modulo" importe ...'
+                const matchImport = document.lineAt(position.line).text.match(/^\s*de\s*["']([^"']+)["']\s*importe\b/);
                 if (matchImport) {
-                    const nomeModulo = matchImport[2];
+                    const nomeModulo = matchImport[1];
                     const funcoesModulo = modulosNativos[nomeModulo];
                     if (funcoesModulo) {
                         return funcoesModulo.map(func => {

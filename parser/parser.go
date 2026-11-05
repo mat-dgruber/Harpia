@@ -1701,8 +1701,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		if strings.Contains(val, "{") && strings.Contains(val, "}") && len(val) >= 2 {
 			strContent := val[1 : len(val)-1]
 
-			// Se a string contiver trechos de código com importação/exportação (ex: "importar { x } de 'y'"), trata como texto literal
-			if strings.Contains(strContent, "importar ") || strings.Contains(strContent, "exportar ") {
+			// Se a string contiver trechos de código com importação/exportação (ex: "de 'y' importe x"), trata como texto literal
+			if strings.Contains(strContent, "importe ") || strings.Contains(strContent, "importar ") || strings.Contains(strContent, "exportar ") {
 				return &TextoLiteral{Valor: token.Valor}, nil
 			}
 			templateNode := &TemplateLiteral{}

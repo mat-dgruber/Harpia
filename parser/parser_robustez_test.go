@@ -50,7 +50,7 @@ func FuzzParser(f *testing.F) {
 		"<div classe=\"x\">{a}</div>",
 		"tente { } capture (e) { }",
 		"a |> b",
-		"importar { a } de \"b\"",
+		"de \"b\" importe a",
 		"classe A { construtor() {} }",
 	} {
 		f.Add(s)
