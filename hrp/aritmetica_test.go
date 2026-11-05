@@ -213,3 +213,35 @@ func BenchmarkAdicionaInteiro(b *testing.B) {
 		_, _ = Adiciona(Inteiro(12345), Inteiro(678))
 	}
 }
+
+// M31: Decimal não tinha <, <=, >, >= e a igualdade entre Inteiro e Decimal era assimétrica
+// (1 == 1.0 dava Falso, 1.0 == 1 dava Verdadeiro).
+func TestComparacoesNumericasMistas(t *testing.T) {
+	type op func(a, b Objeto) (Objeto, error)
+	casos := []struct {
+		nome string
+		f    op
+		a, b Objeto
+		want Booleano
+	}{
+		{"0.5<1.0", MenorQue, Decimal(0.5), Decimal(1.0), true},
+		{"1<2.5", MenorQue, Inteiro(1), Decimal(2.5), true},
+		{"2.5>1", MaiorQue, Decimal(2.5), Inteiro(1), true},
+		{"2.0>=2.0", MaiorOuIgual, Decimal(2.0), Decimal(2.0), true},
+		{"2<=1.5", MenorOuIgual, Inteiro(2), Decimal(1.5), false},
+		{"1==1.0", Igual, Inteiro(1), Decimal(1.0), true},
+		{"1.0==1", Igual, Decimal(1.0), Inteiro(1), true},
+		{"1!=1.0", Diferente, Inteiro(1), Decimal(1.0), false},
+		{"3<4", MenorQue, Inteiro(3), Inteiro(4), true},
+		{"maxint", MenorQue, Inteiro(math.MaxInt64 - 1), Inteiro(math.MaxInt64), true},
+	}
+	for _, c := range casos {
+		got, err := c.f(c.a, c.b)
+		if err != nil || got != c.want {
+			t.Errorf("%s = %v (%v), esperava %v", c.nome, got, err, c.want)
+		}
+	}
+	if _, err := MenorQue(Texto("a"), Inteiro(1)); err == nil {
+		t.Error("'a' < 1 deveria continuar sendo erro de tipo")
+	}
+}

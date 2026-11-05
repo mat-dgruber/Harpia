@@ -235,8 +235,50 @@ func Mod(a, b Objeto) (Objeto, error) {
 	return nil, NewErroF(TipagemErro, "A operação '%%' não é suportada entre os tipos '%s' e '%s'", a.Tipo().Nome, b.Tipo().Nome)
 }
 
+// compararNumeros compara dois números (Inteiro/Decimal, em qualquer combinação).
+// ok=false se algum dos dois não for número, e então vale o protocolo de métodos do tipo.
+// Inteiro x Inteiro compara como int64 (sem perder precisão perto de MaxInt64).
+func compararNumeros(a, b Objeto) (cmp int, ok bool) {
+	if ai, aInt := a.(Inteiro); aInt {
+		if bi, bInt := b.(Inteiro); bInt {
+			switch {
+			case ai < bi:
+				return -1, true
+			case ai > bi:
+				return 1, true
+			}
+			return 0, true
+		}
+	}
+	x, okA := numeroComoFloat(a)
+	y, okB := numeroComoFloat(b)
+	if !okA || !okB {
+		return 0, false
+	}
+	switch {
+	case x < y:
+		return -1, true
+	case x > y:
+		return 1, true
+	}
+	return 0, true
+}
+
+func numeroComoFloat(o Objeto) (float64, bool) {
+	switch v := o.(type) {
+	case Inteiro:
+		return float64(v), true
+	case Decimal:
+		return float64(v), true
+	}
+	return 0, false
+}
+
 // MenorQue compara se o objeto 'a' é estritamente menor que 'b' (<).
 func MenorQue(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c < 0)
+	}
 	if A, ok := a.(I__menor_que__); ok {
 		res, err := A.M__menor_que__(b)
 
@@ -252,6 +294,9 @@ func MenorQue(a, b Objeto) (Objeto, error) {
 
 // MenorOuIgual compara se 'a' é menor ou igual a 'b' (<=).
 func MenorOuIgual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c <= 0)
+	}
 	if A, ok := a.(I__menor_ou_igual__); ok {
 		res, err := A.M__menor_ou_igual__(b)
 
@@ -267,6 +312,9 @@ func MenorOuIgual(a, b Objeto) (Objeto, error) {
 
 // Igual compara a igualdade de valores semânticos de dois objetos (==).
 func Igual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c == 0)
+	}
 	_, aIsNulo := a.(_Nulo)
 	_, bIsNulo := b.(_Nulo)
 	if aIsNulo || bIsNulo {
@@ -288,6 +336,9 @@ func Igual(a, b Objeto) (Objeto, error) {
 
 // Diferente compara a desigualdade de valores lógicos de dois objetos (!=).
 func Diferente(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c != 0)
+	}
 	_, aIsNulo := a.(_Nulo)
 	_, bIsNulo := b.(_Nulo)
 	if aIsNulo || bIsNulo {
@@ -319,6 +370,9 @@ func Diferente(a, b Objeto) (Objeto, error) {
 
 // MaiorQue compara se 'a' é estritamente maior que 'b' (>).
 func MaiorQue(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c > 0)
+	}
 	if A, ok := a.(I__maior_que__); ok {
 		res, err := A.M__maior_que__(b)
 
@@ -334,6 +388,9 @@ func MaiorQue(a, b Objeto) (Objeto, error) {
 
 // MaiorOuIgual compara se 'a' é maior ou igual a 'b' (>=).
 func MaiorOuIgual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c >= 0)
+	}
 	if A, ok := a.(I__maior_ou_igual__); ok {
 		res, err := A.M__maior_ou_igual__(b)
 
