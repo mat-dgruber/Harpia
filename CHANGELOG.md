@@ -36,6 +36,7 @@ Rodada de correções do review geral de segurança e arquitetura (`docs/ai/repo
 - `harpia versao` sempre mostrava `dev`; `atualizar` escolhia a tag errada e anunciava uma atualização que não fazia.
 - `email.enviar`: `MAIL FROM:<<nil>>`, vários destinatários num único `RCPT`, assunto UTF-8 corrompido.
 - Build web terminava com sucesso mesmo com erro de sintaxe em rota ou layout.
+- Instalação via `curl ... | bash` do README dava 404 e só funcionava com o código-fonte: agora baixa a última release e confere o SHA-256.
 
 ### Adicionado
 - `onde(col, "==", v)` como sinônimo de `"="`; encadeamento fluente com o ponto no início da linha.
