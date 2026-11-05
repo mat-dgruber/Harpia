@@ -220,3 +220,11 @@ func TestPipeEmVariasLinhas(t *testing.T) {
 		t.Fatalf("esperava 12, veio %v (%v)", v, err)
 	}
 }
+
+// No backend, o definidor do sinal precisa guardar o valor (antes era um stub vazio).
+func TestSinalNoBackendGuardaValor(t *testing.T) {
+	v, err := valorGlobal(t, "var [n, definirN] = sinal(1)\ndefinirN(5)\ndefinirN(funcao(x) { retorne x + 1 })\nvar r = n()", "r")
+	if err != nil || v != hrp.Inteiro(6) {
+		t.Fatalf("esperava 6, veio %v (%v)", v, err)
+	}
+}
