@@ -2011,6 +2011,12 @@ func (p *Parser) parseAtRule() (*DeclEstilo, error) {
 }
 
 // parseJSX analisa um elemento JSX ou uma tag de controle (se/para)
+// textoJSX embrulha texto de JSX num literal: o texto é literal (como no React), então a
+// barra invertida é escapada; senão "escape: \" fecharia a string no JS gerado.
+func textoJSX(s string) *TextoLiteral {
+	return &TextoLiteral{Valor: "\"" + strings.ReplaceAll(s, `\`, `\\`) + "\""}
+}
+
 func (p *Parser) parseJSX() (BaseNode, error) {
 	if err := p.consome("<"); err != nil {
 		return nil, err
@@ -2148,7 +2154,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			if temEspacoFim {
 				textoUnido = textoUnido + " "
 			}
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + textoUnido + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(textoUnido))
 		}
 	}
 
@@ -2236,7 +2242,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 		}
 		txtTrim := strings.TrimSpace(textoLivre.String())
 		if len(txtTrim) > 0 {
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(txtTrim))
 		}
 	}
 
@@ -2341,7 +2347,7 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 		}
 		txtTrim := strings.TrimSpace(textoLivre.String())
 		if len(txtTrim) > 0 {
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(txtTrim))
 		}
 	}
 

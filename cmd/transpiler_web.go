@@ -470,7 +470,12 @@ func (t *TranspilerWeb) Transpile(node parser.BaseNode) string {
 		for _, part := range n.Partes {
 			switch p := part.(type) {
 			case *parser.TextoLiteral:
-				val := strings.ReplaceAll(p.Valor, "`", "\\`")
+				val := p.Valor
+				// O parser embrulha cada pedaço em aspas ("Olá, "); sem tirá-las o JS mostrava as aspas.
+				if len(val) >= 2 && (val[0] == '"' || val[0] == '\'' || val[0] == '`') && val[len(val)-1] == val[0] {
+					val = val[1 : len(val)-1]
+				}
+				val = strings.ReplaceAll(val, "`", "\\`")
 				val = strings.ReplaceAll(val, "${", "\\${")
 				parts = append(parts, val)
 			case *parser.TemplateExpr:

@@ -584,3 +584,36 @@ func TestCompilarFalhaComErroDeSintaxeNaRota(t *testing.T) {
 		})
 	}
 }
+
+// Pedaços de texto de uma interpolação não podem levar as aspas do literal para o JS.
+func TestTranspileWebInterpolacaoSemAspasSobrando(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	casos := map[string]string{
+		`var msg = "Olá, {nome}!"`: "let msg = `Olá, ${nome}!`;",
+		"var cod = `a \\{x\\} b`":  "let cod = `a {x\\} b`;",
+		`var s = "{a} e {b + 1}"`:  "let s = `${a} e ${(b + 1)}`;",
+	}
+	for codigo, esperado := range casos {
+		ast, err := ctx.StringParaAst(codigo, "<teste>")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if js := (&TranspilerWeb{}).Transpile(ast); !strings.Contains(js, esperado) {
+			t.Errorf("%s: esperava %s, veio %s", codigo, esperado, js)
+		}
+	}
+}
+
+// Texto de JSX é literal: barra invertida não pode escapar a aspa de fechamento no JS.
+func TestTranspileWebTextoJSXComBarra(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	ast, err := ctx.StringParaAst("exportar funcao P() {\n    retorne <p>escape: \\</p>\n}", "<teste>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if js := (&TranspilerWeb{}).Transpile(ast); !strings.Contains(js, `"escape: \\"`) {
+		t.Errorf("esperava o texto com a barra escapada, veio %s", js)
+	}
+}
