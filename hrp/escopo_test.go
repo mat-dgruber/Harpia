@@ -3,6 +3,7 @@ package hrp
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -75,5 +76,17 @@ func TestTipoViraTextoPeloNome(t *testing.T) {
 		if err != nil || got != Texto(tp.Nome) {
 			t.Errorf("NewTexto(tipo %s) = %v (%v)", tp.Nome, got, err)
 		}
+	}
+}
+
+// Um pânico dentro de função nativa vira RuntimeErro (antes derrubava o processo).
+func TestPanicoEmMetodoNativoViraErro(t *testing.T) {
+	m := NewMetodoOuPanic("quebra", func(_ Objeto, _ Tupla) (Objeto, error) {
+		var x Objeto = Inteiro(1)
+		return x.(Tupla), nil // conversão inválida: pânico
+	}, "")
+	_, err := m.Chamar(nil, Tupla{})
+	if err == nil || !strings.Contains(err.Error(), "interface conversion") {
+		t.Fatalf("esperava RuntimeErro com a causa do pânico, veio %v", err)
 	}
 }

@@ -286,6 +286,15 @@ func init() {
 		if !ok {
 			return nil, NewErroF(TipagemErro, "O argumento de 'junta' deve ser uma Tupla")
 		}
+		// junta(["a", "b"]) e junta(("a", "b")) juntam os itens da coleção; junta("a", "b") também funciona
+		if len(tupla) == 1 {
+			switch c := tupla[0].(type) {
+			case *Lista:
+				tupla = c.Itens
+			case Tupla:
+				tupla = c
+			}
+		}
 
 		var sb strings.Builder
 		sep := string(inst.(Texto))
