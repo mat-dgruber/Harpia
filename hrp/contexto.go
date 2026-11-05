@@ -3,6 +3,7 @@ package hrp
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -122,8 +123,6 @@ func DefinirContextoAtivo(ctx *Contexto) {
 	contextoAtivo = ctx
 }
 
-var ContextoAtivo *Contexto
-
 // NewContexto aloca um novo contexto orquestrador da VM, inicializando o cache de módulos
 // e pré-carregando de forma global e compulsória o módulo nativo de embutidos.
 func NewContexto(opcs OpcsContexto) *Contexto {
@@ -196,7 +195,7 @@ func carregarArquivoEnv(dir string) {
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			// Ignorado de forma silenciosa e segura
+			fmt.Fprintf(os.Stderr, "aviso: falha ao ler %s: %v\n", caminho, err)
 		}
 		f.Close()
 	}

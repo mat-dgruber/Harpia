@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Texto representa o tipo de dado textual (string) nativo do Harpia.
@@ -303,7 +306,7 @@ func init() {
 	}, `concatena o iterável recebido com o texto da instancia`)
 
 	TipoTexto.Mapa["titulo"] = NewMetodoOuPanic("titulo", func(inst Objeto) (Objeto, error) {
-		titularizado := strings.Title(strings.ToLower(string(inst.(Texto))))
+		titularizado := cases.Title(language.BrazilianPortuguese).String(strings.ToLower(string(inst.(Texto))))
 		return Texto(titularizado), nil
 	}, "retorna uma cópia do texto com a primeira letra da frase em maiúsculo")
 

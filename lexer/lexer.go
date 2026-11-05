@@ -691,11 +691,6 @@ func (l *Lexer) lerStringBruta() *Token {
 	return newToken(TokenErro, "string raw não terminada", inicio, fim)
 }
 
-// lerTextoRaw mantido para retrocompatibilidade.
-func (l *Lexer) lerTextoRaw() *Token {
-	return l.lerStringBruta()
-}
-
 // SnapshotLex captura o estado completo do cursor léxico para permitir rollback.
 //
 // Estrutura por valor (sem ponteiros) usada em conjunto com Estado() e

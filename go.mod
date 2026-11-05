@@ -19,6 +19,7 @@ require (
 	go.mongodb.org/mongo-driver v1.17.9
 	golang.org/x/crypto v0.58.0
 	golang.org/x/sys v0.49.0
+	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -57,7 +58,6 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/text v0.43.0 // indirect
 	modernc.org/libc v1.37.6 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
 	modernc.org/memory v1.7.2 // indirect

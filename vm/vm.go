@@ -181,7 +181,7 @@ func (v *VM) registrarMetrica(op Opcode, duracao time.Duration) {
 }
 
 func (v *VM) ImprimirPerfil() {
-	if v.Metricas == nil || len(v.Metricas) == 0 {
+	if len(v.Metricas) == 0 {
 		return
 	}
 	fmt.Println("\n📊 RELATÓRIO DE PERFILAMENTO DA VM (PROFILER)")

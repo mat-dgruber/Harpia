@@ -635,9 +635,7 @@ func (q *QueryBuilder) inserir(args hrp.Tupla) (hrp.Objeto, error) {
 
 	var callArgs hrp.Tupla
 	callArgs = append(callArgs, hrp.Texto(query))
-	for _, arg := range valueArgs {
-		callArgs = append(callArgs, arg)
-	}
+	callArgs = append(callArgs, valueArgs...)
 
 	executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
 	if err != nil {
@@ -689,9 +687,7 @@ func (q *QueryBuilder) atualizar(args hrp.Tupla) (hrp.Objeto, error) {
 
 	var callArgs hrp.Tupla
 	callArgs = append(callArgs, hrp.Texto(query))
-	for _, arg := range valueArgs {
-		callArgs = append(callArgs, arg)
-	}
+	callArgs = append(callArgs, valueArgs...)
 	for _, arg := range q.args {
 		callArgs = append(callArgs, arg)
 	}
