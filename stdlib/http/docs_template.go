@@ -731,7 +731,7 @@ const htmlDocsTemplate = `<!DOCTYPE html>
             return 'Erro de sintaxe no JSON' + onde + '.';
         }
 
-        let token = localStorage.getItem('harpia_console_token') || '';
+        let token = sessionStorage.getItem('harpia_console_token') || '';
         atualizarUIAuth();
 
         function abrirModalAuth() {
@@ -750,9 +750,9 @@ const htmlDocsTemplate = `<!DOCTYPE html>
         function salvarAuth() {
             token = document.getElementById('input-token').value.trim();
             if (token) {
-                localStorage.setItem('harpia_console_token', token);
+                sessionStorage.setItem('harpia_console_token', token);
             } else {
-                localStorage.removeItem('harpia_console_token');
+                sessionStorage.removeItem('harpia_console_token');
             }
             atualizarUIAuth();
             fecharModalAuth();
@@ -1559,10 +1559,10 @@ const htmlDocsTemplate = `<!DOCTYPE html>
 
         // ===== HISTÓRICO =====
         function carregarHistorico() {
-            try { return JSON.parse(localStorage.getItem('harpia_historico') || '[]'); } catch { return []; }
+            try { return JSON.parse(sessionStorage.getItem('harpia_historico') || '[]'); } catch { return []; }
         }
         function salvarHistoricoLS(hist) {
-            localStorage.setItem('harpia_historico', JSON.stringify(hist.slice(-20)));
+            sessionStorage.setItem('harpia_historico', JSON.stringify(hist.slice(-20)));
         }
         function renderizarHistorico() {
             const hist = carregarHistorico();
@@ -1609,7 +1609,7 @@ const htmlDocsTemplate = `<!DOCTYPE html>
             });
         }
         function limparHistorico() {
-            localStorage.removeItem('harpia_historico');
+            sessionStorage.removeItem('harpia_historico');
             renderizarHistorico();
         }
         renderizarHistorico();
