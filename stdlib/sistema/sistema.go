@@ -19,6 +19,9 @@ import (
 	"github.com/mat-dgruber/Harpia/hrp"
 )
 
+// TempoLimiteExecutar é o tempo máximo padrão de sistema.executar (ajustável por {tempoLimite}).
+var TempoLimiteExecutar = 60 * time.Second
+
 // TempoLimiteExecucaoIsolada é o tempo máximo de executarCodigoHarpia.
 var TempoLimiteExecucaoIsolada = 10 * time.Second
 
@@ -118,7 +121,7 @@ func init() {
 			return nil, err
 		}
 
-		if err := hrp.VerificaNumeroArgumentos("executar", false, args, 1, 2); err != nil {
+		if err := hrp.VerificaNumeroArgumentos("executar", false, args, 1, 3); err != nil {
 			return nil, err
 		}
 		cmdStr, ok := args[0].(hrp.Texto)
@@ -148,17 +151,53 @@ func init() {
 			}
 		}
 
-		cmd := exec.Command(string(cmdStr), cmdArgs...)
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-		_ = cmd.Run() // ignorar código de saída; retornar saída mesmo em erro
+		// opções: {tempoLimite: segundos}; padrão TempoLimiteExecutar
+		limite := TempoLimiteExecutar
+		if len(args) == 3 {
+			opcoes, ok := args[2].(hrp.Mapa)
+			if !ok {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "O terceiro argumento de 'executar' deve ser um Mapa de opções, ex.: {tempoLimite: 30}")
+			}
+			if v, ok := opcoes["tempoLimite"]; ok {
+				seg, ok := v.(hrp.Inteiro)
+				if !ok || seg <= 0 {
+					return nil, hrp.NewErroF(hrp.ValorErro, "'tempoLimite' deve ser um Inteiro positivo (segundos)")
+				}
+				limite = time.Duration(seg) * time.Second
+			}
+		}
+
+		ctxExec, cancel := context.WithTimeout(context.Background(), limite)
+		defer cancel()
+		cmd := exec.CommandContext(ctxExec, string(cmdStr), cmdArgs...)
+		stdout := &bufferLimitado{limite: limiteSaidaIsolada}
+		stderr := &bufferLimitado{limite: limiteSaidaIsolada}
+		cmd.Stdout = stdout
+		cmd.Stderr = stderr
+		errRun := cmd.Run()
+
+		// codigo: código de saída do processo; -1 quando nem chegou a rodar ou foi interrompido
+		codigo := 0
+		erroTexto := stderr.String()
+		if errRun != nil {
+			codigo = -1
+			if saida, ok := errRun.(*exec.ExitError); ok && saida.ExitCode() >= 0 {
+				codigo = saida.ExitCode()
+			} else if erroTexto == "" {
+				erroTexto = errRun.Error()
+			}
+		}
+		if ctxExec.Err() == context.DeadlineExceeded {
+			codigo = -1
+			erroTexto += fmt.Sprintf("\nTempo limite de %v excedido: o processo foi interrompido.", limite)
+		}
 
 		return hrp.Mapa{
-			"saida": hrp.Texto(stdout.String()),
-			"erro":  hrp.Texto(stderr.String()),
+			"saida":  hrp.Texto(stdout.String()),
+			"erro":   hrp.Texto(erroTexto),
+			"codigo": hrp.Inteiro(codigo),
 		}, nil
-	}, "executa um comando do sistema operacional e retorna {saida, erro}")
+	}, "executa um comando (com {tempoLimite} opcional) e retorna {saida, erro, codigo}")
 
 	// executarCodigoHarpia grava o código em um arquivo temporário e executa o interpretador Harpia nativo,
 	// retornando {saida, erro} com o stdout/stderr reais da execução.

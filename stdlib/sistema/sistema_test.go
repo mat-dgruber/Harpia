@@ -118,3 +118,39 @@ func TestBufferLimitadoTrunca(t *testing.T) {
 		t.Fatalf("esperava truncar em 4 bytes: %q", b.String())
 	}
 }
+
+func chamarExecutar(t *testing.T, args ...hrp.Objeto) hrp.Mapa {
+	t.Helper()
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	mod, err := hrp.ExecutarString(ctx, "de \"sistema\" importe executar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn, _ := mod.Escopo.ObterValor("executar")
+	res, err := hrp.Chamar(fn, hrp.Tupla(args))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res.(hrp.Mapa)
+}
+
+// M14: executar devolve o código de saída e respeita tempo limite.
+func TestExecutarDevolveCodigoETempoLimite(t *testing.T) {
+	ok := chamarExecutar(t, hrp.Texto("sh"), hrp.Tupla{hrp.Texto("-c"), hrp.Texto("exit 3")})
+	if ok["codigo"] != hrp.Inteiro(3) {
+		t.Fatalf("esperava codigo 3, veio %v", ok["codigo"])
+	}
+	inicio := time.Now()
+	lento := chamarExecutar(t, hrp.Texto("sleep"), hrp.Tupla{hrp.Texto("30")}, hrp.Mapa{"tempoLimite": hrp.Inteiro(1)})
+	if d := time.Since(inicio); d > 5*time.Second {
+		t.Fatalf("tempoLimite ignorado: %v", d)
+	}
+	if !strings.Contains(string(lento["erro"].(hrp.Texto)), "Tempo limite") {
+		t.Fatalf("esperava aviso de tempo limite, veio %v", lento["erro"])
+	}
+	inexistente := chamarExecutar(t, hrp.Texto("comando-que-nao-existe-xyz"))
+	if inexistente["codigo"] != hrp.Inteiro(-1) || inexistente["erro"] == hrp.Texto("") {
+		t.Fatalf("comando inexistente deveria dar codigo -1 e erro, veio %v", inexistente)
+	}
+}
