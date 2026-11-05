@@ -1601,6 +1601,14 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 
 Loop:
 	for {
+		// Quebra de linha seguida de '.' ou '?.' continua a expressão (encadeamento fluente):
+		//   bd.tabela("u")
+		//       .onde("id", "==", 1)
+		// Uma linha que começa com '.' nunca é uma instrução válida, então não há ambiguidade.
+		for p.token.Tipo == lexer.TokenNovaLinha && p.próximoToken != nil &&
+			(p.próximoToken.Tipo == lexer.TokenPonto || p.próximoToken.Tipo == lexer.TokenPontoInterrogacao) {
+			p.avancar()
+		}
 		switch p.token.Tipo {
 		case lexer.TokenPonto, lexer.TokenPontoInterrogacao:
 			ehOpcional := p.token.Tipo == lexer.TokenPontoInterrogacao

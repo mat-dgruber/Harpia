@@ -83,3 +83,15 @@ func TestFechaChavesTerminaInstrucao(t *testing.T) {
 		}
 	}
 }
+
+// Encadeamento fluente com o ponto no começo da linha (estilo do QueryBuilder na documentação).
+func TestEncadeamentoComPontoNoInicioDaLinha(t *testing.T) {
+	src := "var r = bd.tabela(\"u\")\n    .onde(\"id\", \"==\", 1)\n    .obterUm()\nimprimir(r)\n"
+	prog, err := NewParserFromString(src, "t.hrp").Parse()
+	if err != nil {
+		t.Fatalf("encadeamento multilinha deveria ser válido: %v", err)
+	}
+	if n := len(prog.Declaracoes); n != 2 {
+		t.Fatalf("esperava 2 instruções (var + imprimir), veio %d", n)
+	}
+}
