@@ -65,6 +65,24 @@ func NewTexto(arg any) (Objeto, error) {
 	return Texto(fmt.Sprintf("%v", arg)), nil
 }
 
+// JuntaTextos converte cada item em Texto e une com sep. Chamadores Go (repr de coleções,
+// imprimir) usam esta função direto: o método de script `junta` espalha um único argumento
+// Lista/Tupla, o que quebraria `imprimir([1, 2])` e o repr de `[[1, 2]]`.
+func JuntaTextos(sep string, itens Tupla) (Objeto, error) {
+	var sb strings.Builder
+	for i, arg := range itens {
+		texto, err := NewTexto(arg)
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 {
+			sb.WriteString(sep)
+		}
+		sb.WriteString(string(texto.(Texto)))
+	}
+	return Texto(sb.String()), nil
+}
+
 func init() {
 	// Nova define o construtor do Texto na VM para chamadas explícitas de scripts.
 	TipoTexto.Nova = func(args Tupla) (Objeto, error) {
@@ -296,22 +314,7 @@ func init() {
 			}
 		}
 
-		var sb strings.Builder
-		sep := string(inst.(Texto))
-
-		for i, arg := range tupla {
-			texto, err := NewTexto(arg)
-			if err != nil {
-				return nil, err
-			}
-
-			sb.WriteString(string(texto.(Texto)))
-			if i != len(tupla)-1 {
-				sb.WriteString(sep)
-			}
-		}
-
-		return Texto(sb.String()), nil
+		return JuntaTextos(string(inst.(Texto)), tupla)
 	}, `concatena o iterável recebido com o texto da instancia`)
 
 	TipoTexto.Mapa["titulo"] = NewMetodoOuPanic("titulo", func(inst Objeto) (Objeto, error) {

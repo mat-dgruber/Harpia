@@ -21,12 +21,7 @@ func (t Tupla) Tipo() *Tipo {
 
 // GRepr é um gerador auxiliar de formatação de coleções textuais em colchetes ou parênteses.
 func (t Tupla) GRepr(inicio, fim string) (Objeto, error) {
-	junta, err := ObtemAtributoS(Texto(","), "junta")
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := Chamar(junta, t)
+	res, err := JuntaTextos(",", t)
 	if err != nil {
 		return nil, err
 	}

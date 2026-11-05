@@ -81,3 +81,19 @@ func TestListaExtendePopEJuntaRobustos(t *testing.T) {
 		}
 	}
 }
+
+// O repr de coleções aninhadas não pode ser afetado pelo espalhamento do método `junta`.
+func TestReprDeColecoesAninhadas(t *testing.T) {
+	for _, c := range []struct {
+		obj  hrp.Objeto
+		quer string
+	}{
+		{&hrp.Lista{Itens: hrp.Tupla{&hrp.Lista{Itens: hrp.Tupla{hrp.Inteiro(1), hrp.Inteiro(2)}}}}, "[[1,2]]"},
+		{hrp.Tupla{hrp.Tupla{hrp.Inteiro(1)}}, "((1))"},
+	} {
+		got, err := hrp.NewTexto(c.obj)
+		if err != nil || string(got.(hrp.Texto)) != c.quer {
+			t.Errorf("repr = %v (%v), queria %s", got, err, c.quer)
+		}
+	}
+}
