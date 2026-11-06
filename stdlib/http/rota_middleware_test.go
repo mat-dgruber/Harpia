@@ -53,3 +53,17 @@ func TestRespostaEnviarTextoPuro(t *testing.T) {
 		t.Fatalf("corpo=%v tipo=%v", r.Corpo, tipo)
 	}
 }
+
+// Middleware anexa dados à requisição; campos nativos continuam somente leitura.
+func TestRequisicaoAceitaAtributosDeMiddleware(t *testing.T) {
+	r := &Requisicao{Metodo: hrp.Texto("GET")}
+	if err := r.M__define_atributo__("usuario", hrp.Texto("ada")); err != nil {
+		t.Fatal(err)
+	}
+	if v, err := r.M__obtem_attributo__("usuario"); err != nil || v != hrp.Texto("ada") {
+		t.Fatalf("usuario = %v (%v)", v, err)
+	}
+	if err := r.M__define_atributo__("metodo", hrp.Texto("POST")); err == nil {
+		t.Fatal("metodo deveria ser somente leitura")
+	}
+}

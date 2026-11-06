@@ -29,6 +29,7 @@ type Requisicao struct {
 	Parametros hrp.Mapa
 	Query      hrp.Mapa   // Parâmetros de consulta (query string) parsed
 	CorpoJson  hrp.Objeto // Body deserializado para Mapas/Listas do Harpia de forma automática
+	Extras     hrp.Mapa   // Dados que middlewares anexam (req.usuario = ...) para o handler
 }
 
 // TipoRequisicao mapeia e cria a classe Requisicao na VM.
@@ -60,7 +61,24 @@ func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		}
 		return hrp.Nulo, nil
 	}
+	if v, ok := r.Extras[nome]; ok {
+		return v, nil
+	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Requisicao", nome)
+}
+
+// M__define_atributo__ deixa middlewares anexarem dados (req.usuario = dados) sem
+// sobrescrever os campos da própria requisição.
+func (r *Requisicao) M__define_atributo__(nome string, valor hrp.Objeto) error {
+	switch nome {
+	case "metodo", "caminho", "cabecalho", "corpo", "parametros", "query", "consulta", "corpoJson", "corpo_json":
+		return hrp.NewErroF(hrp.AtributoErro, "o atributo '%s' da requisição é somente leitura", nome)
+	}
+	if r.Extras == nil {
+		r.Extras = hrp.Mapa{}
+	}
+	r.Extras[nome] = valor
+	return nil
 }
 
 // Resposta representa o construtor do payload e cabeçalhos a ser enviado ao cliente HTTP.
