@@ -372,6 +372,11 @@ func baixarEExtrairPacote(nome, urlPacote string, sha256Esperado string) (string
 
 	restante := limiteDescompressaoPacote
 	for _, arquivo := range reader.File {
+		// Recusa explícita de '..' e caminho absoluto: é o sanitizador que o CodeQL (go/zipslip)
+		// reconhece; a checagem de prefixo abaixo continua como segunda barreira.
+		if strings.Contains(arquivo.Name, "..") || filepath.IsAbs(arquivo.Name) {
+			return "", fmt.Errorf("caminho de arquivo ilegal detectado no pacote ZIP: %s", arquivo.Name)
+		}
 		caminhoFisico := filepath.Join(pastaDest, arquivo.Name)
 
 		// impede zip slip (path traversal pelos nomes das entradas)
