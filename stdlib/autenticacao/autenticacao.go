@@ -127,43 +127,50 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, err
 	}
 
-	partes := strings.Split(string(tokenStr.(hrp.Texto)), ".")
+	_, ok := payloadJwtVerificado(string(tokenStr.(hrp.Texto)), string(segredoStr.(hrp.Texto)))
+	return hrp.Booleano(ok), nil
+}
+
+// payloadJwtVerificado confere algoritmo (HS256), assinatura em tempo constante e expiração;
+// só então devolve os dados do token. validarJwt e lerJwt compartilham esta verificação.
+func payloadJwtVerificado(token, segredo string) (map[string]interface{}, bool) {
+	partes := strings.Split(token, ".")
 	if len(partes) != 3 {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 
 	// 1) Decodifica partes[0] (header base64url), json.Unmarshal e exige headerMap["alg"] == "HS256"
 	headerBytes, err := base64.RawURLEncoding.DecodeString(partes[0])
 	if err != nil {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 	var headerMap map[string]interface{}
 	if err := json.Unmarshal(headerBytes, &headerMap); err != nil {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 	if alg, ok := headerMap["alg"].(string); !ok || alg != "HS256" {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 
 	// 2) Verifica a assinatura HMAC-SHA256 em tempo constante (hmac.Equal)
 	unsignedToken := fmt.Sprintf("%s.%s", partes[0], partes[1])
-	h := hmac.New(sha256.New, []byte(segredoStr.(hrp.Texto)))
+	h := hmac.New(sha256.New, []byte(segredo))
 	h.Write([]byte(unsignedToken))
 	expectedSig := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
 
 	if !hmac.Equal([]byte(partes[2]), []byte(expectedSig)) {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 
 	// 3) Decodifica partes[1] e json.Unmarshal(payloadBytes, &payloadMap) - retorna falso se der erro
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(partes[1])
 	if err != nil {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 
 	var payloadMap map[string]interface{}
 	if err := json.Unmarshal(payloadBytes, &payloadMap); err != nil {
-		return hrp.Booleano(false), nil
+		return nil, false
 	}
 
 	// 4) Se 'exp' existir em payloadMap, valida como número (float64) ou string numérica (strconv.ParseInt)
@@ -178,24 +185,45 @@ func met_validarJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		case string:
 			parsed, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
-				return hrp.Booleano(false), nil
+				return nil, false
 			}
 			expUnix = parsed
 		default:
-			return hrp.Booleano(false), nil
+			return nil, false
 		}
 		if time.Now().Unix() >= expUnix {
-			return hrp.Booleano(false), nil
+			return nil, false
 		}
 	}
 
-	return hrp.Booleano(true), nil
+	return payloadMap, true
+}
+
+// met_lerJwt implementa lerJwt(token, segredo): os dados do token se ele for válido, senão Nulo.
+func met_lerJwt(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.VerificaNumeroArgumentos("lerJwt", false, args, 2, 2); err != nil {
+		return nil, err
+	}
+	tokenStr, err := hrp.NewTexto(args[0])
+	if err != nil {
+		return nil, err
+	}
+	segredoStr, err := hrp.NewTexto(args[1])
+	if err != nil {
+		return nil, err
+	}
+	dados, ok := payloadJwtVerificado(string(tokenStr.(hrp.Texto)), string(segredoStr.(hrp.Texto)))
+	if !ok {
+		return hrp.Nulo, nil
+	}
+	return hrp.ConverteDeGo(dados), nil
 }
 
 var _gerarHashSenha = hrp.NewMetodoOuPanic("gerarHashSenha", met_gerarHashSenha, "Gera o hash Bcrypt criptográfico de uma senha.")
 var _verificarSenha = hrp.NewMetodoOuPanic("verificarSenha", met_verificarSenha, "Verifica a senha informada contra o hash Bcrypt de referência.")
 var _criarJwt = hrp.NewMetodoOuPanic("criarJwt", met_criarJwt, "Gera e assina um novo token JWT.")
 var _validarJwt = hrp.NewMetodoOuPanic("validarJwt", met_validarJwt, "Valida a assinatura de um token JWT.")
+var _lerJwt = hrp.NewMetodoOuPanic("lerJwt", met_lerJwt, "Devolve os dados de um token JWT válido, ou Nulo se a assinatura ou a expiração falharem.")
 
 func init() {
 	// Registra o módulo 'autenticacao' no sistema global de módulos do Harpia.
@@ -209,6 +237,7 @@ func init() {
 			_verificarSenha,
 			_criarJwt,
 			_validarJwt,
+			_lerJwt,
 		},
 	})
 }

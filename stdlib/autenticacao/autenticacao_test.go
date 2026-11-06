@@ -243,3 +243,22 @@ func TestJWT_PreservarTiposNativosPayload(t *testing.T) {
 		t.Errorf("esperava que 'nome' fosse string no json, obteve: %T (%v)", payloadMap["nome"], payloadMap["nome"])
 	}
 }
+
+// lerJwt devolve os dados só de um token válido; com o segredo errado, Nulo.
+func TestLerJwtDevolveDadosDeTokenValido(t *testing.T) {
+	segredo := hrp.Texto("segredo-de-teste-com-mais-de-32-bytes!!")
+	token, err := met_criarJwt(nil, hrp.Tupla{hrp.Mapa{"sub": hrp.Texto("ada")}, segredo})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dados, err := met_lerJwt(nil, hrp.Tupla{token, segredo})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m, ok := dados.(hrp.Mapa); !ok || m["sub"] != hrp.Texto("ada") {
+		t.Fatalf("esperava {sub: ada}, veio %v", dados)
+	}
+	if dados, _ := met_lerJwt(nil, hrp.Tupla{token, hrp.Texto("outro-segredo-com-mais-de-32-bytes!!!")}); dados != hrp.Nulo {
+		t.Fatalf("segredo errado deveria dar Nulo, veio %v", dados)
+	}
+}
