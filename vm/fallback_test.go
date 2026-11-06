@@ -228,3 +228,10 @@ func TestSinalNoBackendGuardaValor(t *testing.T) {
 		t.Fatalf("esperava 6, veio %v (%v)", v, err)
 	}
 }
+
+func TestRetorneSemValorDentroDeSe(t *testing.T) {
+	v, err := valorGlobal(t, "var r = 0\nfuncao f() {\n    se Verdadeiro {\n        retorne\n    }\n    r = 1\n}\nf()", "r")
+	if err != nil || v != hrp.Inteiro(0) {
+		t.Fatalf("o código depois do retorne rodou: r=%v (%v)", v, err)
+	}
+}

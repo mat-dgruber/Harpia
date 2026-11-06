@@ -121,3 +121,23 @@ var nao = "b" em m`)
 		t.Fatalf("esperava Verdadeiro/Falso, veio %v/%v", sim, nao)
 	}
 }
+
+// `retorne` sem valor dentro de `se` precisa sair da função.
+func TestRetorneSemValorSaiDaFuncao(t *testing.T) {
+	ctx := NewContexto(OpcsContexto{})
+	defer ctx.Terminar()
+	mod, err := ExecutarString(ctx, `var r = 0
+funcao f() {
+    se Verdadeiro {
+        retorne
+    }
+    r = 1
+}
+f()`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r, _ := mod.Escopo.ObterValor("r"); r != Inteiro(0) {
+		t.Fatalf("o código depois do retorne rodou (r=%v)", r)
+	}
+}

@@ -846,6 +846,11 @@ func (i *Interpretador) visiteRetorneNode(node *parser.RetorneNode) (Objeto, err
 	if err != nil {
 		return nil, err
 	}
+	if valor == nil {
+		// `retorne` sem valor: os blocos só param quando ValorRetorno != nil, então nil
+		// deixava a função seguir executando depois do retorne.
+		valor = Nulo
+	}
 	i.ValorRetorno = valor
 	return valor, nil
 }
