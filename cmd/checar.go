@@ -96,6 +96,9 @@ func init() {
 	for k, v := range hrp.ObtemGlobalsDoLinter() {
 		globalsLinter[k] = v
 	}
+	for _, nome := range NomesRuntimeWeb {
+		globalsLinter[nome] = true
+	}
 }
 
 type EscopoLinter struct {
