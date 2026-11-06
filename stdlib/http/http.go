@@ -176,6 +176,26 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			return hrp.Nulo, nil
 		}, "Envia uma resposta de erro JSON com status e mensagem (ex: res.erro_json(404, \"Não encontrado\"))"), nil
 
+	case "enviar":
+		// res.enviar(texto, tipo?) responde texto puro (padrão text/plain), sem cache: métricas, CSV, HTML.
+		return hrp.NewMetodoOuPanic("enviar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("enviar", false, args, 1, 2); err != nil {
+				return nil, err
+			}
+			conteudo, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			var tipoMime hrp.Objeto = hrp.Texto("text/plain; charset=utf-8")
+			if len(args) == 2 {
+				if tipoMime, err = hrp.NewTexto(args[1]); err != nil {
+					return nil, err
+				}
+			}
+			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), tipoMime)
+			r.Corpo = conteudo.(hrp.Texto)
+			return hrp.Nulo, nil
+		}, "Envia texto puro com o Content-Type informado (padrão text/plain; charset=utf-8)."), nil
 	case "enviar_midia", "enviar_imagem":
 		// Envia um payload de mídia binária, definindo Content-Type e Cache-Control adequados.
 		return hrp.NewMetodoOuPanic("enviar_midia", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {

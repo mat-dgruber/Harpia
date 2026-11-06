@@ -38,3 +38,18 @@ func TestEncadearRotaPassaProximo(t *testing.T) {
 		t.Fatalf("middleware sem proximo() deveria barrar o handler; veio %v", ordem)
 	}
 }
+
+func TestRespostaEnviarTextoPuro(t *testing.T) {
+	r := &Resposta{Cabecalho: hrp.NewMapaVazio()}
+	enviar, err := r.M__obtem_attributo__("enviar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := hrp.Chamar(enviar, hrp.Tupla{hrp.Texto("ok 1")}); err != nil {
+		t.Fatal(err)
+	}
+	tipo, _ := r.Cabecalho.M__obtem_item__(hrp.Texto("Content-Type"))
+	if r.Corpo != hrp.Texto("ok 1") || tipo != hrp.Texto("text/plain; charset=utf-8") {
+		t.Fatalf("corpo=%v tipo=%v", r.Corpo, tipo)
+	}
+}
