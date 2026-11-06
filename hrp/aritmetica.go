@@ -1,5 +1,82 @@
 package hrp
 
+import "math"
+
+// multiplicaInteiroSeguro multiplica dois Inteiro e informa se houve overflow de 64 bits.
+func multiplicaInteiroSeguro(a, b Inteiro) (Inteiro, bool) {
+	if a == 0 || b == 0 {
+		return 0, true
+	}
+	r := a * b
+	if r/b != a || (a == -1 && b == math.MinInt64) || (b == -1 && a == math.MinInt64) {
+		return 0, false
+	}
+	return r, true
+}
+
+// erroOverflowInteiro padroniza o erro de estouro de 64 bits das operações de Inteiro.
+func erroOverflowInteiro(op string, a, b Inteiro) error {
+	return NewErroF(ErroDeLimite, "O resultado de %d %s %d excede o limite de Inteiro (64 bits)", a, op, b)
+}
+
+// somaInteiroSegura soma e informa overflow: há estouro quando os dois operandos têm o mesmo
+// sinal e o resultado tem sinal diferente.
+func somaInteiroSegura(a, b Inteiro) (Inteiro, bool) {
+	r := a + b
+	return r, (r^a)&(r^b) >= 0
+}
+
+// subtraiInteiroSegura subtrai e informa overflow: há estouro quando os operandos têm sinais
+// diferentes e o resultado não tem o sinal de a.
+func subtraiInteiroSegura(a, b Inteiro) (Inteiro, bool) {
+	r := a - b
+	return r, (a^b)&(a^r) >= 0
+}
+
+// Potencia implementa o operador '**'.
+// Inteiro ** Inteiro (expoente >= 0) devolve Inteiro, com erro em overflow em vez de dar a volta;
+// expoente negativo ou operando Decimal usa math.Pow e devolve Decimal.
+func Potencia(a, b Objeto) (Objeto, error) {
+	base, baseInt := a.(Inteiro)
+	exp, expInt := b.(Inteiro)
+	if baseInt && expInt && exp >= 0 {
+		res := Inteiro(1)
+		for e := exp; e > 0; e >>= 1 {
+			var ok bool
+			if e&1 == 1 {
+				if res, ok = multiplicaInteiroSeguro(res, base); !ok {
+					return nil, NewErroF(ErroDeLimite, "O resultado de %d ** %d excede o limite de Inteiro (64 bits)", a, b)
+				}
+			}
+			if e > 1 {
+				if base, ok = multiplicaInteiroSeguro(base, base); !ok {
+					return nil, NewErroF(ErroDeLimite, "O resultado de %d ** %d excede o limite de Inteiro (64 bits)", a, b)
+				}
+			}
+		}
+		return res, nil
+	}
+
+	_, aNum := a.(Decimal)
+	_, bNum := b.(Decimal)
+	if (!baseInt && !aNum) || (!expInt && !bNum) {
+		return nil, NewErroF(TipagemErro, "A operação '**' não é suportada entre os tipos '%s' e '%s'", a.Tipo().Nome, b.Tipo().Nome)
+	}
+	x, err := NewDecimal(a)
+	if err != nil {
+		return nil, err
+	}
+	y, err := NewDecimal(b)
+	if err != nil {
+		return nil, err
+	}
+	r := math.Pow(float64(x.(Decimal)), float64(y.(Decimal)))
+	if math.IsNaN(r) {
+		return nil, NewErroF(ValorErro, "%v ** %v não tem resultado real", a, b)
+	}
+	return Decimal(r), nil
+}
+
 // Adiciona realiza a soma aritmética polimórfica ou concatenação de dois objetos.
 // Verifica se o membro da esquerda 'a' satisfaz o protocolo 'I__adiciona__' e delega a ele.
 func Adiciona(a, b Objeto) (Objeto, error) {
@@ -158,8 +235,50 @@ func Mod(a, b Objeto) (Objeto, error) {
 	return nil, NewErroF(TipagemErro, "A operação '%%' não é suportada entre os tipos '%s' e '%s'", a.Tipo().Nome, b.Tipo().Nome)
 }
 
+// compararNumeros compara dois números (Inteiro/Decimal, em qualquer combinação).
+// ok=false se algum dos dois não for número, e então vale o protocolo de métodos do tipo.
+// Inteiro x Inteiro compara como int64 (sem perder precisão perto de MaxInt64).
+func compararNumeros(a, b Objeto) (cmp int, ok bool) {
+	if ai, aInt := a.(Inteiro); aInt {
+		if bi, bInt := b.(Inteiro); bInt {
+			switch {
+			case ai < bi:
+				return -1, true
+			case ai > bi:
+				return 1, true
+			}
+			return 0, true
+		}
+	}
+	x, okA := numeroComoFloat(a)
+	y, okB := numeroComoFloat(b)
+	if !okA || !okB {
+		return 0, false
+	}
+	switch {
+	case x < y:
+		return -1, true
+	case x > y:
+		return 1, true
+	}
+	return 0, true
+}
+
+func numeroComoFloat(o Objeto) (float64, bool) {
+	switch v := o.(type) {
+	case Inteiro:
+		return float64(v), true
+	case Decimal:
+		return float64(v), true
+	}
+	return 0, false
+}
+
 // MenorQue compara se o objeto 'a' é estritamente menor que 'b' (<).
 func MenorQue(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c < 0)
+	}
 	if A, ok := a.(I__menor_que__); ok {
 		res, err := A.M__menor_que__(b)
 
@@ -175,6 +294,9 @@ func MenorQue(a, b Objeto) (Objeto, error) {
 
 // MenorOuIgual compara se 'a' é menor ou igual a 'b' (<=).
 func MenorOuIgual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c <= 0)
+	}
 	if A, ok := a.(I__menor_ou_igual__); ok {
 		res, err := A.M__menor_ou_igual__(b)
 
@@ -190,6 +312,9 @@ func MenorOuIgual(a, b Objeto) (Objeto, error) {
 
 // Igual compara a igualdade de valores semânticos de dois objetos (==).
 func Igual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c == 0)
+	}
 	_, aIsNulo := a.(_Nulo)
 	_, bIsNulo := b.(_Nulo)
 	if aIsNulo || bIsNulo {
@@ -211,6 +336,9 @@ func Igual(a, b Objeto) (Objeto, error) {
 
 // Diferente compara a desigualdade de valores lógicos de dois objetos (!=).
 func Diferente(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c != 0)
+	}
 	_, aIsNulo := a.(_Nulo)
 	_, bIsNulo := b.(_Nulo)
 	if aIsNulo || bIsNulo {
@@ -242,6 +370,9 @@ func Diferente(a, b Objeto) (Objeto, error) {
 
 // MaiorQue compara se 'a' é estritamente maior que 'b' (>).
 func MaiorQue(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c > 0)
+	}
 	if A, ok := a.(I__maior_que__); ok {
 		res, err := A.M__maior_que__(b)
 
@@ -257,6 +388,9 @@ func MaiorQue(a, b Objeto) (Objeto, error) {
 
 // MaiorOuIgual compara se 'a' é maior ou igual a 'b' (>=).
 func MaiorOuIgual(a, b Objeto) (Objeto, error) {
+	if c, ok := compararNumeros(a, b); ok {
+		return NewBooleano(c >= 0)
+	}
 	if A, ok := a.(I__maior_ou_igual__); ok {
 		res, err := A.M__maior_ou_igual__(b)
 

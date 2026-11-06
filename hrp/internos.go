@@ -77,7 +77,11 @@ func Chamar(obj Objeto, args Objeto) (Objeto, error) {
 	if fn, ok := obj.(*Funcao); ok && fn.Assincrono {
 		prom := NewPromessa()
 		if fn.contexto != nil {
-			fn.contexto.AdicionarTrabalho()
+			// Contexto já encerrado: rejeita em vez de chamar Done() sem Add() (pânico fatal no defer).
+			if err := fn.contexto.AdicionarTrabalho(); err != nil {
+				prom.Rejeitar(err)
+				return prom, nil
+			}
 		}
 		go func() {
 			defer func() {

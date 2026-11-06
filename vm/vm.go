@@ -181,7 +181,7 @@ func (v *VM) registrarMetrica(op Opcode, duracao time.Duration) {
 }
 
 func (v *VM) ImprimirPerfil() {
-	if v.Metricas == nil || len(v.Metricas) == 0 {
+	if len(v.Metricas) == 0 {
 		return
 	}
 	fmt.Println("\n📊 RELATÓRIO DE PERFILAMENTO DA VM (PROFILER)")
@@ -545,6 +545,12 @@ func (v *VM) Executar(frame *Frame) (hrp.Objeto, error) {
 
 		case OP_JMP:
 			destino := binary.BigEndian.Uint16(code[frame.IP:])
+			if int(destino) < frame.IP {
+				// salto para trás = iteração de laço: respeita o cancelamento do contexto
+				if err := v.Contexto.VerificarCancelamento(); err != nil {
+					return nil, err
+				}
+			}
 			frame.IP = int(destino)
 
 		case OP_JMP_FALSO:

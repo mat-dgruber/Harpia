@@ -127,6 +127,16 @@ func (m Mapa) M__iter__() (Objeto, error) {
 	return NewIterador(entradas)
 }
 
+// M__contem__ implementa `chave em mapa`: pertinência pelas chaves (como Python/JS).
+func (m Mapa) M__contem__(obj Objeto) (Objeto, error) {
+	chave, ok := obj.(Texto)
+	if !ok {
+		return Falso, nil
+	}
+	_, existe := m[string(chave)]
+	return NewBooleano(existe)
+}
+
 // M__tamanho__ retorna a quantidade total de chaves registradas no dicionário.
 func (m Mapa) M__tamanho__() (Objeto, error) {
 	return NewInteiro(len(m))
@@ -172,7 +182,8 @@ func (m Mapa) M__obtem_attributo__(nome string) (Objeto, error) {
 		return val, nil
 	}
 	if met, ok := TipoMapa.Mapa[nome]; ok {
-		return met, nil
+		// Vincula o mapa como self; sem o proxy o método recebia o Modulo (mapa.chaves() falhava).
+		return NewMetodoProxy(m, met), nil
 	}
 	return Nulo, nil
 }

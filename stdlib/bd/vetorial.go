@@ -224,7 +224,10 @@ func (c *ClienteVetorial) M__obtem_attributo__(nome string) (hrp.Objeto, error) 
 }
 
 // met_conectar_qdrant inicia e configura o cliente do Qdrant com timeouts configurados.
-func met_conectar_qdrant(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+func met_conectar_qdrant(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectar_qdrant", false, args, 2, 2); err != nil {
 		return nil, err
 	}

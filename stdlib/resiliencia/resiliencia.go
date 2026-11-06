@@ -226,14 +226,18 @@ func (r *Retentativa) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				return nil, hrp.NewErroF(hrp.TipagemErro, "executar esperava 1 argumento (função)")
 			}
 			fn := args[0]
+			var resultado hrp.Objeto = hrp.Nulo
 			err := r.Executar(func() error {
-				_, errExec := hrp.Chamar(fn, hrp.Tupla{})
+				res, errExec := hrp.Chamar(fn, hrp.Tupla{})
+				if errExec == nil && res != nil {
+					resultado = res
+				}
 				return errExec
 			})
 			if err != nil {
 				return nil, err
 			}
-			return hrp.Verdadeiro, nil
+			return resultado, nil // devolve o resultado da função (antes sempre Verdadeiro)
 		}, "Executa uma função com política de retentativa e backoff exponencial."), nil
 	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Retentativa", nome)

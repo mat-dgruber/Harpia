@@ -56,28 +56,18 @@ func ResolveArquivohrp(caminhoArqOuMod string, bases []string, curDir string) (s
 		stat, err = os.Stat(caminho)
 		if err == nil && stat.IsDir() {
 			ca := path.Join(caminho, "inicio.hrp")
-			_, err = os.Stat(ca)
-			if err != nil {
-				ca = path.Join(caminho, "inicio.hrp")
-				_, err = os.Stat(ca)
-			}
-
-			if err == nil {
+			if _, err = os.Stat(ca); err == nil {
 				caminho = ca
 			}
 		}
 
 		if filepath.Ext(caminho) == "" && os.IsNotExist(err) {
-			caminho += ".so"
-			_, err = os.Stat(caminho)
-
-			if err != nil {
-				caminho = strings.Replace(caminho, filepath.Ext(caminho), ".hrp", 1)
+			semExt := caminho
+			caminho = semExt + ".so"
+			if _, err = os.Stat(caminho); err != nil {
+				// TrimSuffix, não Replace: "proj.solar/mod" virava "proj.hrplar/mod.so"
+				caminho = semExt + ".hrp"
 				_, err = os.Stat(caminho)
-				if err != nil {
-					caminho = strings.Replace(caminho, filepath.Ext(caminho), ".hrp", 1)
-					_, err = os.Stat(caminho)
-				}
 			}
 		}
 

@@ -1,23 +1,24 @@
 package cmd
 
 import (
-	"archive/tar"
-	"archive/zip"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/spf13/cobra"
 )
 
+// urlTagsAtualizar é a API de tags consultada por 'harpia atualizar' (variável para testes).
+var urlTagsAtualizar = "https://api.github.com/repos/mat-dgruber/Harpia/tags"
+
+// obterUltimaVersaoURL devolve a maior versão semver entre as tags (a API não ordena por versão:
+// tags[0] podia ser v1.9.0 com v1.10.0 publicada). Tags que não são semver são ignoradas.
 func obterUltimaVersaoURL(urlAPI string) (string, error) {
-	resp, err := http.Get(urlAPI)
+	cliente := &http.Client{Timeout: 15 * time.Second}
+	resp, err := cliente.Get(urlAPI)
 	if err != nil {
 		return "", fmt.Errorf("erro de conexao com API: %w", err)
 	}
@@ -30,123 +31,24 @@ func obterUltimaVersaoURL(urlAPI string) (string, error) {
 	var tags []struct {
 		Name string `json:"name"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 5<<20)).Decode(&tags); err != nil {
 		return "", fmt.Errorf("erro ao decodificar JSON de versoes: %w", err)
 	}
 
-	if len(tags) == 0 {
-		return "", fmt.Errorf("nenhuma tag/versao encontrada")
-	}
-
-	return strings.TrimPrefix(tags[0].Name, "v"), nil
-}
-
-func extrairZipNativo(zipPath, destDir string) error {
-	r, err := zip.OpenReader(zipPath)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	cleanDest := filepath.Clean(destDir)
-	prefixoDest := cleanDest + string(os.PathSeparator)
-
-	for _, f := range r.File {
-		if strings.Contains(f.Name, "..") {
-			return fmt.Errorf("caminho invalido no zip: %s", f.Name)
-		}
-		cleanPath := filepath.Clean(filepath.Join(cleanDest, f.Name))
-		if cleanPath != cleanDest && !strings.HasPrefix(cleanPath, prefixoDest) {
-			return fmt.Errorf("caminho invalido no zip: %s", f.Name)
-		}
-		fpath := cleanPath
-
-		if f.FileInfo().IsDir() {
-			os.MkdirAll(fpath, os.ModePerm)
+	var maior *semver.Version
+	for _, tag := range tags {
+		v, err := semver.NewVersion(tag.Name)
+		if err != nil {
 			continue
 		}
-
-		if err := os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
-			return err
-		}
-
-		outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-
-		rc, err := f.Open()
-		if err != nil {
-			outFile.Close()
-			return err
-		}
-
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			return err
+		if maior == nil || v.GreaterThan(maior) {
+			maior = v
 		}
 	}
-	return nil
-}
-
-func extrairTarGzNativo(tarGzPath, destDir string) error {
-	f, err := os.Open(tarGzPath)
-	if err != nil {
-		return err
+	if maior == nil {
+		return "", fmt.Errorf("nenhuma tag/versao encontrada")
 	}
-	defer f.Close()
-
-	gzr, err := gzip.NewReader(f)
-	if err != nil {
-		return err
-	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
-	cleanDest := filepath.Clean(destDir)
-	prefixoDest := cleanDest + string(os.PathSeparator)
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		if strings.Contains(header.Name, "..") {
-			return fmt.Errorf("caminho invalido no tar.gz: %s", header.Name)
-		}
-		cleanPath := filepath.Clean(filepath.Join(cleanDest, header.Name))
-		if cleanPath != cleanDest && !strings.HasPrefix(cleanPath, prefixoDest) {
-			return fmt.Errorf("caminho invalido no tar.gz: %s", header.Name)
-		}
-		fpath := cleanPath
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(fpath, 0755); err != nil {
-				return err
-			}
-		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(fpath), 0755); err != nil {
-				return err
-			}
-			outFile, err := os.OpenFile(fpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, header.FileInfo().Mode())
-			if err != nil {
-				return err
-			}
-			if _, err := io.Copy(outFile, tr); err != nil {
-				outFile.Close()
-				return err
-			}
-			outFile.Close()
-		}
-	}
-	return nil
+	return maior.String(), nil
 }
 
 func comandoAtualizar() *cobra.Command {
@@ -162,8 +64,7 @@ func comandoAtualizar() *cobra.Command {
 			out := cmd.OutOrStdout()
 			errOut := cmd.ErrOrStderr()
 
-			urlAPI := "https://api.github.com/repos/mat-dgruber/Harpia/tags"
-			remota, err := obterUltimaVersaoURL(urlAPI)
+			remota, err := obterUltimaVersaoURL(urlTagsAtualizar)
 			if err != nil {
 				fmt.Fprintf(errOut, "Erro ao verificar atualizações: %v\n", err)
 				return err
@@ -183,7 +84,9 @@ func comandoAtualizar() *cobra.Command {
 				return nil
 			}
 
-			fmt.Fprintln(out, "Iniciando atualização automatizada...")
+			// ponytail: sem auto-update (exigiria download + verificação de checksum/assinatura).
+			// Em vez de anunciar uma atualização que não acontece, aponta a release.
+			fmt.Fprintf(out, "Baixe a nova versão em https://github.com/mat-dgruber/Harpia/releases/tag/v%s\n", remota)
 			return nil
 		},
 	}

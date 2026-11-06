@@ -39,5 +39,31 @@ func Em(a, b Objeto) (Objeto, error) {
 		return res, nil
 	}
 
-	return nil, NewErroF(TipagemErro, "O tipo '%s' não aceita a operação de pertinência 'em' (método __contem__ não implementado)", b.Tipo().Nome)
+	return nil, NewErroF(TipagemErro, "O tipo '%s' não aceita a operação de pertinência 'em' (método __contem__ não implementado)", a.Tipo().Nome)
+}
+
+// Materializar devolve um iterável indexável para o laço `para ... em` da VM, que percorre
+// por índice: Lista e Tupla passam direto (a Lista segue viva durante o laço); os demais
+// (Mapa, SequenciaNumerica, Texto, Bytes) são consumidos via __iter__ numa Tupla.
+// ponytail: materializa tudo; iteradores infinitos/preguiçosos pediriam um opcode de iteração.
+func Materializar(obj Objeto) (Objeto, error) {
+	switch obj.(type) {
+	case *Lista, Tupla:
+		return obj, nil
+	}
+	it, err := Iter(obj)
+	if err != nil {
+		return nil, err
+	}
+	itens := Tupla{}
+	for {
+		item, err := próximo(it)
+		if err != nil {
+			if e, ok := err.(*Erro); ok && e.Tipo() == FimIteracao {
+				return itens, nil
+			}
+			return nil, err
+		}
+		itens = append(itens, item)
+	}
 }

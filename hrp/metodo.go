@@ -25,7 +25,14 @@ func (o *Metodo) Tipo() *Tipo {
 //   - `func(inst Objeto, args Tupla) (Objeto, error)`: Assinatura padrão para métodos variádicos dinâmicos.
 //   - `func(Objeto) (Objeto, error)`: Assinatura estrita sem parâmetros. Lança erro se argumentos forem passados.
 //   - `func(Objeto, Objeto) (Objeto, error)`: Assinatura de um único parâmetro.
-func (m *Metodo) Chamar(inst Objeto, args Tupla) (Objeto, error) {
+func (m *Metodo) Chamar(inst Objeto, args Tupla) (res Objeto, err error) {
+	// Rede de segurança: um pânico numa função nativa (ex.: conversão de tipo sem checagem)
+	// vira RuntimeErro capturável pelo script, em vez de derrubar o processo inteiro.
+	defer func() {
+		if r := recover(); r != nil {
+			res, err = nil, NewErroF(RuntimeErro, "%v", r)
+		}
+	}()
 	switch f := m.chamavel.(type) {
 	case func(inst Objeto, args Tupla) (Objeto, error):
 		return f(inst, args)

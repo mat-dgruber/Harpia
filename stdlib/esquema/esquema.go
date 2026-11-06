@@ -4,6 +4,7 @@ package esquema
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/mat-dgruber/Harpia/hrp"
 )
@@ -61,7 +62,8 @@ func (e *Esquema) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					tipoObtido = val.Tipo().Nome
 				}
 
-				if tipoEsperado != tipoObtido {
+				// "inteiro" e "Inteiro" valem igual (o schema de bd.tabela usa minúsculas)
+				if !strings.EqualFold(tipoEsperado, tipoObtido) {
 					retLista := &hrp.Lista{Itens: []hrp.Objeto{hrp.Nulo, hrp.Texto(fmt.Sprintf("Campo '%s' deve ser do tipo %s, obteve %s", chave, tipoEsperado, tipoObtido))}}
 					return retLista, nil
 				}

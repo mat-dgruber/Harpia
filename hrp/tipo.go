@@ -164,3 +164,9 @@ var _ Objeto = (*Tipo)(nil)
 var _ I_ObtemMapa = (*Tipo)(nil)
 var _ I__nova_instancia__ = (*Tipo)(nil)
 var _ I__chame__ = (*Tipo)(nil)
+
+// M__texto__ representa o tipo pelo nome: imprimir(tipo(x)) mostra "DataHora", e não a
+// struct interna do Go.
+func (t *Tipo) M__texto__() (Objeto, error) {
+	return Texto(t.Nome), nil
+}

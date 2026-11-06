@@ -11,10 +11,8 @@ import (
 // met_pdf_gerarDeHtml implementa 'gerarDeHtml(htmlConteudo, caminhoSaida)' em nível de script Harpia.
 // Compila e traduz uma folha ou bloco HTML com regras de layout diretamente em um documento estruturado PDF.
 func met_pdf_gerarDeHtml(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-	if ctx := hrp.ObterContextoAtivo(); ctx != nil {
-		if err := ctx.VerificarPermissaoArquivos(); err != nil {
-			return nil, err
-		}
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoArquivos); err != nil {
+		return nil, err
 	}
 
 	if err := hrp.VerificaNumeroArgumentos("gerarDeHtml", false, args, 2, 2); err != nil {

@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -9,6 +8,8 @@ import (
 )
 
 func TestProbesLivezAndReadyz(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{}) // o sandbox nega I/O sem contexto
+	defer ctx.Terminar()
 	obj, err := TipoServidor.Nova(nil)
 	if err != nil {
 		t.Fatalf("erro ao criar Servidor: %v", err)
@@ -51,16 +52,7 @@ func TestProbesLivezAndReadyz(t *testing.T) {
 		t.Fatalf("esperado 200 em /readyz disponivel, obtido %d", resReadyOk.Status)
 	}
 
-	// 3. Probe /readyz com infraestrutura indisponivel deve responder 503 sem expor erro interno
-	srv.msgsErrosUltimo = fmt.Errorf("falha de conexao com banco sqlite")
-	resReadyFail := &Resposta{Status: http.StatusOK, Cabecalho: hrp.NewMapaVazio()}
-	if _, err := hrp.Chamar(readyzHandler, hrp.Tupla{&Requisicao{}, resReadyFail}); err != nil {
-		t.Fatalf("erro ao chamar /readyz indisponivel: %v", err)
-	}
-	if int(resReadyFail.Status) != http.StatusServiceUnavailable {
-		t.Fatalf("esperado 503 em /readyz indisponivel, obtido %d", resReadyFail.Status)
-	}
-	if string(resReadyFail.Corpo) != `{"status":"not_ready"}` {
-		t.Fatalf("corpo inesperado em /readyz 503: %s", resReadyFail.Corpo)
-	}
+	// O antigo passo 3 (503 depois de qualquer erro de handler) era o bug M1 do review:
+	// ver TestReadyzContinuaProntoDepoisDeErro em endurecimento_test.go.
+
 }

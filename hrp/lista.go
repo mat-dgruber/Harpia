@@ -133,7 +133,14 @@ func init() {
 			return nil, err
 		}
 
-		inst.(*Lista).Itens = append(inst.(*Lista).Itens, (args[0].(Tupla))...)
+		switch outro := args[0].(type) {
+		case *Lista:
+			inst.(*Lista).Itens = append(inst.(*Lista).Itens, outro.Itens...)
+		case Tupla:
+			inst.(*Lista).Itens = append(inst.(*Lista).Itens, outro...)
+		default:
+			return nil, NewErroF(TipagemErro, "extende espera uma Lista ou Tupla, não '%s'", args[0].Tipo().Nome)
+		}
 		return nil, nil
 	}, "Adiciona os elementos da lista recebida ao fim da lista atual")
 
@@ -159,7 +166,11 @@ func init() {
 		idx := Inteiro(0)
 
 		if len(args) == 1 {
-			idx = args[0].(Inteiro)
+			i, ok := args[0].(Inteiro)
+			if !ok {
+				return nil, NewErroF(TipagemErro, "pop espera um índice Inteiro, não '%s'", args[0].Tipo().Nome)
+			}
+			idx = i
 		}
 
 		return inst.(*Lista).Pop(idx)

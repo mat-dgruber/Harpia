@@ -15,13 +15,7 @@ import (
 // tem privilégios adequados no sandbox de segurança do Harpia para tocar em recursos físicos de arquivo.
 // Ele impede que o código execute ataques do tipo Path Traversal se o sandbox estiver travado.
 func verificarPermissao(inst hrp.Objeto) error {
-	if modulo, ok := inst.(*hrp.Modulo); ok && modulo != nil && modulo.Contexto != nil {
-		return modulo.Contexto.VerificarPermissaoArquivos()
-	}
-	if ctx := hrp.ObterContextoAtivo(); ctx != nil {
-		return ctx.VerificarPermissaoArquivos()
-	}
-	return nil
+	return hrp.ExigirPermissao(inst, hrp.RecursoArquivos)
 }
 
 // met_arq_ler implementa a função 'ler(caminho)' em nível de script Harpia.

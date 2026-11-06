@@ -152,7 +152,15 @@ func somar(x, y) {
 # o resultado (20) é passado como primeiro argumento para somar(5) -> somar(20, 5)
 var resultado = 10 |> duplicar |> somar(5)
 imprimir(resultado) # Saída: 25
+
+# Cadeias longas podem continuar na linha seguinte, começando com |>
+var total = 10
+    |> duplicar
+    |> somar(5)
+imprimir(total) # Saída: 25
 ```
+
+Métodos de Texto e de coleções (`maiusculas`, `dividir`...) não entram direto no pipe: embrulhe-os numa função (`funcao gritar(t) { retorne t.maiusculas() }`).
 
 ### 6. Servidor de Redes Assíncrono TCP Não-Bloqueante Completo
 
@@ -264,7 +272,7 @@ Permite encadear transformações e chamadas consecutivas de dados de forma alta
 
 - **Sintaxe**: `valor |> funcao_ou_metodo` ou `valor |> funcao(argumentoExtra)`.
 - **Algoritmo de Injeção**:
-  - Se o membro da direita for um identificador de função simples (ex: `texto |> maiusculo`), a VM avalia e executa a chamada simples passando o operando esquerdo como o único argumento: `maiusculo(texto)`.
+  - Se o membro da direita for um identificador de função simples (ex: `texto |> gritar`), a VM avalia e executa a chamada simples passando o operando esquerdo como o único argumento: `gritar(texto)`.
   - Se o membro da direita for uma chamada parametrizada contendo argumentos extras (ex: `10 |> somar(5)`), o interpretador intercepta a chamada sintática, realiza o append do operando esquerdo na primeira posição da lista de argumentos e executa: `somar(10, 5)`.
 - **Prevenção de Efeitos Colaterais**: O operando esquerdo é avaliado uma única vez de forma garantida antes da injeção, prevenindo execuções duplicadas e vazamento de estados (conforme validado nos testes em `pipe_test.go`).
 
@@ -351,23 +359,25 @@ Sintaxe declarativa de anotação de meta-programação em funções e classes:
   ```
 - **Mecânica AST**: O token `@` (`TokenArroba`) gera nós `Decorador`, contendo o identificador `Nome`, a lista de expressões em `Argumentos` e a declaração alvo `Alvo`. Suporta encadeamento de múltiplos decoradores sobre a mesma instrução.
 
-### 2.5. Operador Spread / Rest (`...args`)
+### 2.5. Operador Spread / Rest (`...args`) — planejado
 
-Espalhamento e agregação de coleções e parâmetros:
+> **Estado atual (v1.1.0):** o nó `NoSpread` existe no AST, mas o parser ainda não aceita `...` em parâmetros, listas, mapas ou chamadas (é erro de sintaxe). Até lá, use as alternativas abaixo.
 
-- **Funções Variádicas**: `funcao soma(...numeros) { ... }`
-- **Espalhamento em Listas**: `var lista = [1, ...outros, 2]`
-- **Mesclagem em Mapas**: `var configuracao = { ...padrao, ativo: Verdadeiro }`
-- **Mecânica AST**: O token `...` (`TokenTresPontos`) encapsula expressões em nós `NoSpread`, desempacotados dinamicamente pela VM e pelo transpiler web.
+| Intenção | Hoje |
+| :-- | :-- |
+| Juntar listas (`[...a, ...b]`) | `var c = []` + `c.extende(a)` + `c.extende(b)` |
+| Mesclar mapas (`{...padrao, x: 1}`) | `config.atualizar(padrao, Verdadeiro)` (mantém as chaves já existentes) |
+| Função variádica (`funcao f(...xs)`) | receba uma Lista: `funcao soma(numeros) { ... }` e chame `soma([1, 2, 3])` |
 
 ### 2.6. Resolução de Imports Curtos da Stdlib
 
 Inclusão de bibliotecas virtuais e nativas da stdlib sem necessidade do prefixo relativo `./`:
 
 ```harpia
-de "sinais" importe sinal, efeito
 de "matematica" importe PI, raiz
-de "web" importe renderizar
+de "json" importe analisar, serializar
+
+# sinal, efeito, derivado e armazem são globais: não precisam de importação
 ```
 
 A VM (`hrp/importe.go`) e o Transpiler Web (`cmd/transpiler_web.go`) interceptam especificadores curtos de stdlib e os vinculam diretamente aos módulos embutidos correspondentes.
@@ -394,6 +404,33 @@ tente {
 - **Garantia do Finalmente**: O bloco `finalmente` é protegido com mecanismos de `defer` no runtime do Go. Ele é executado de forma garantida, mesmo que ocorram erros dentro do bloco de captura ou que exceções não tratadas se propaguem subindo na pilha de execução.
 - **Sobrescrita do Erro Original pelo `finalmente`**: Se o bloco `finalmente` lançar uma exceção, essa exceção substitui o erro original (semântica Python/Java), refletindo em tracebacks. Use `tente { ... } capture (erro) { ... } finalmente { ... }` com cuidado ao manipular recursos propensos a falhar.
 - **Bloco `finalmente` Opcional**: Apenas `tente { ... } capture (erro) { ... }` (sem `finalmente`) e `tente { ... } finalmente { ... }` (propagação sem captura — exigem reabertura para tratar) também são sintaxes válidas.
+- **Nome do erro**: qualquer identificador que não seja palavra-chave. `e` é o operador lógico, então `capture (e)` é erro de sintaxe; use `capture (erro)` ou `capture (falha)`.
+- **Sinalizando erros**: ainda não há palavra-chave para lançar exceções (`lance` está planejado). Use `assegura(condicao, "mensagem")`, que lança `ErroDeAsseguracao` com a mensagem quando a condição é falsa:
+
+```harpia
+funcao validarIdade(idade) {
+    assegura(idade >= 0 e idade <= 150, "Idade deve ser entre 0 e 150")
+    retorne idade
+}
+
+tente {
+    validarIdade(-5)
+} capture (erro) {
+    imprimir(tipo(erro), erro.mensagem)  # ErroDeAsseguracao Idade deve ser entre 0 e 150
+}
+```
+
+#### Pattern matching com `escolha`
+
+Cada `caso` compara o valor; `caso _` captura qualquer outro (o equivalente a `default`). Um caso aceita um único valor por enquanto (`caso "a", "b"` ainda não é suportado):
+
+```harpia
+escolha dia {
+    caso "sábado" { imprimir("Descanso!") }
+    caso "domingo" { imprimir("Descanso!") }
+    caso _ { imprimir("Dia útil") }
+}
+```
 
 ### 4. Plugins e Extensões Dinâmicas Go (`.so`)
 
@@ -1019,7 +1056,7 @@ O compilador transborda recursos modernos para renderização declarativa na Web
 #### 4. Operadores, Decoradores e Expressões Modernas
 
 - **`Decorador`**: Modela a sintaxe de anotações e decoradores (`@depreciado`, `@rota("/api")`) sobre funções ou classes, armazenando o identificador `Nome`, a lista de expressões em `Argumentos`, e o nó da declaração decorada `Alvo`.
-- **`NoSpread`**: Operador spread/rest (`...args`) para aceitar argumentos variádicos em funções, assim como realizar o espalhamento elegante de elementos em listas (`[1, ...outros]`) e pares em mapas (`{ ...padrao, chave: "valor" }`).
+- **`NoSpread`** (planejado, ainda sem suporte no parser): Operador spread/rest (`...args`) para aceitar argumentos variádicos em funções, assim como realizar o espalhamento elegante de elementos em listas (`[1, ...outros]`) e pares em mapas (`{ ...padrao, chave: "valor" }`).
 - **`OpTernaria`**: Representa desvios de expressão condensados (ex: `condicao ? entao : senao`). Mapeia os nós de `Condicao`, `Entao` e `Senao`.
 - **`OpCoalescenciaNula`**: Representa a operação de fallback automático para nulos (ex: `valor ?? "padrao"`). Armazena o nó esquerdo (`Esq`) e o nó direito (`Dir`).
 - **`AcessoMembroOpcional`**: Representa a navegação segura contra referências nulas (ex: `usuario?.endereco?.rua`). Armazena o `Objeto` base e o nó `Membro` a ser acessado.

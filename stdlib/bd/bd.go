@@ -23,6 +23,9 @@ func configurarPoolPadrao(db *sql.DB) {
 // met_bd_conectarSqlite abre conexão com o banco SQLite em modo arquivo local de forma embarcada.
 // Excelente para ambientes de desenvolvimento local ou armazenamento embarcado de baixo overhead.
 func met_bd_conectarSqlite(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoArquivos); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectarSqlite", false, args, 1, 1); err != nil {
 		return nil, err
 	}
@@ -41,6 +44,9 @@ func met_bd_conectarSqlite(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) 
 // met_bd_conectarPostgres abre conexão ativa TCP/IP com um cluster PostgreSQL externo.
 // Suporta pooling nativo e strings de conexão no formato padrão DSN ou URL.
 func met_bd_conectarPostgres(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectarPostgres", false, args, 1, 1); err != nil {
 		return nil, err
 	}
@@ -58,6 +64,9 @@ func met_bd_conectarPostgres(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error
 
 // met_bd_conectarMysql inicia uma sessão com servidores remotos ou locais MySQL utilizando DSN típico.
 func met_bd_conectarMysql(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectarMysql", false, args, 1, 1); err != nil {
 		return nil, err
 	}
@@ -75,6 +84,9 @@ func met_bd_conectarMysql(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 
 // met_bd_conectarMongo abre um pool de conexões com bancos de dados de documentos MongoDB.
 func met_bd_conectarMongo(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectarMongo", false, args, 1, 1); err != nil {
 		return nil, err
 	}
@@ -91,6 +103,9 @@ func met_bd_conectarMongo(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 
 // met_bd_conectarRedis inicializa uma conexão com servidores Redis de armazenamento e cache chave-valor ultra-rápido.
 func met_bd_conectarRedis(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("conectarRedis", false, args, 1, 1); err != nil {
 		return nil, err
 	}

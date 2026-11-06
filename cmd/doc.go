@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // DocElement representa um elemento documentado extraído do código
@@ -170,7 +172,7 @@ func gerarDocMarkdown(arquivo string, elementos []DocElement) string {
 	sb.WriteString("Esta documentação foi gerada automaticamente a partir dos comentários especiais `///` do código-fonte.\n\n---\n\n")
 
 	for _, el := range elementos {
-		sb.WriteString(fmt.Sprintf("## 🏷️ %s `%s`\n\n", strings.Title(el.Tipo), el.Nome))
+		sb.WriteString(fmt.Sprintf("## 🏷️ %s `%s`\n\n", cases.Title(language.BrazilianPortuguese).String(el.Tipo), el.Nome))
 		sb.WriteString(fmt.Sprintf("```Harpia\n%s\n```\n\n", el.Assinatura))
 		sb.WriteString("### Descrição\n")
 		for _, desc := range el.Descricao {

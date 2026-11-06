@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -225,8 +224,4 @@ func imprimirSaida(dados []map[string]interface{}, formato string) {
 		}
 		fmt.Println("---")
 	}
-}
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
 }

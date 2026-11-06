@@ -20,6 +20,9 @@ func TestAPIExecutarCodigoPlayground(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// formato do editor real: mesma origem em localhost e corpo JSON
+	req.Host = "localhost:8090"
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(apiExecutarCodigoPlayground)

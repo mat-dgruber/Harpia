@@ -414,11 +414,7 @@ func (i *Interpretador) visiteChamadaFuncao(node *parser.ChamadaFuncao) (Objeto,
 }
 
 func (i *Interpretador) visiteTextoLiteral(node *parser.TextoLiteral) (Objeto, error) {
-	runes := []rune(node.Valor)
-	if len(runes) >= 2 {
-		return Texto(string(runes[1 : len(runes)-1])), nil
-	}
-	return Texto(""), nil
+	return Texto(DecodificarTextoLiteral(node.Valor)), nil
 }
 
 // visiteInteiroLiteral converte o lexema numérico em um Inteiro nativo da VM.
@@ -534,6 +530,9 @@ func (i *Interpretador) visiteOpBinaria(node *parser.OpBinaria) (Objeto, error) 
 		return val, i.anotarErro(node, err)
 	case "%":
 		val, err := Mod(esquerda, direita)
+		return val, i.anotarErro(node, err)
+	case "**":
+		val, err := Potencia(esquerda, direita)
 		return val, i.anotarErro(node, err)
 	case "<":
 		val, err := MenorQue(esquerda, direita)
@@ -854,6 +853,9 @@ func (i *Interpretador) visiteRetorneNode(node *parser.RetorneNode) (Objeto, err
 // visiteEnquanto roda o laço condicional em Go. Intercepta erros estruturados 'ErroContinue' e 'ErroPare'.
 func (i *Interpretador) visiteEnquanto(node *parser.Enquanto) (Objeto, error) {
 	for {
+		if err := i.Contexto.VerificarCancelamento(); err != nil {
+			return nil, err
+		}
 		condicao, err := i.visite(node.Condicao)
 		if err != nil {
 			return nil, err
@@ -939,6 +941,9 @@ func (i *Interpretador) visiteBlocoPara(node *parser.BlocoPara) (Objeto, error) 
 	}
 
 	for {
+		if err = i.Contexto.VerificarCancelamento(); err != nil {
+			return nil, err
+		}
 		if item, err = próximo(iterador); err != nil {
 			if objErr, ok := err.(*Erro); ok {
 				if objErr.Tipo() == FimIteracao {

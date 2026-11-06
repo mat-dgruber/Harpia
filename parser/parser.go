@@ -149,8 +149,9 @@ func (p *Parser) consome(token string) error {
 			p.avancar()
 			return nil
 		}
-		// Separador implícito: quebra de linha ou fim de arquivo satisfazem a instrução
-		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFimDeArquivo {
+		// Separador implícito: quebra de linha, fim de arquivo ou '}' (fim do bloco, não consumido)
+		// satisfazem a instrução, como em Go/JS: `se x { a = 1 }` é válido.
+		if p.token.Tipo == lexer.TokenNovaLinha || p.token.Tipo == lexer.TokenFimDeArquivo || p.token.Tipo == lexer.TokenFechaChaves {
 			return nil
 		}
 		return p.errof("era esperado o token ';' ou uma nova linha, mas no lugar foi encontrado '%v'", p.token.Valor)
@@ -353,6 +354,10 @@ func (p *Parser) parseDeclaracaoInterno() (BaseNode, error) {
 			if mensagem, err = p.parseExpressao(); err != nil {
 				return nil, err
 			}
+		}
+		// assegura(cond, "msg") chega como uma Tupla (cond, msg): separa as duas partes.
+		if t, ok := condicao.(*TuplaLiteral); ok && mensagem == nil && len(t.Elementos) == 2 {
+			condicao, mensagem = t.Elementos[0], t.Elementos[1]
 		}
 		return &AsseguraNode{Condicao: condicao, Mensagem: mensagem}, nil
 	case lexer.TokenPara:
@@ -606,6 +611,9 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 		if p.token.Tipo == lexer.TokenFechaParenteses {
 			break
 		}
+		if p.token.Tipo == lexer.TokenFimDeArquivo {
+			return nil, p.errof("era esperado ')' para fechar a lista de parâmetros da função '%s'", funcao.Nome)
+		}
 
 		params, err := p.parseDeclFuncaoParametro()
 
@@ -621,6 +629,8 @@ func (p *Parser) parseFuncao() (*DeclFuncao, error) {
 
 		if p.token.Tipo == lexer.TokenVirgula {
 			p.avancar()
+		} else if p.token.Tipo != lexer.TokenFechaParenteses {
+			return nil, p.errof("esperava ',' ou ')' na lista de parâmetros, mas recebi '%s'", p.token.Valor)
 		}
 
 		for p.token.Tipo == lexer.TokenNovaLinha {
@@ -1378,7 +1388,7 @@ func (p *Parser) parseConjuncao() (BaseNode, error) {
 // parseInversao resolve o operador lógico de negação unária 'nao'.
 func (p *Parser) parseInversao() (BaseNode, error) {
 	if p.token.Tipo == lexer.TokenBoolNao {
-		p.consome("nao")
+		p.avancar() // ponytail: TokenBoolNao cobre "nao" e "!"; consumir por tipo, não por valor
 		operacao, err := p.parseInversao()
 
 		if err != nil {
@@ -1595,6 +1605,14 @@ func (p *Parser) parsePrimario() (BaseNode, error) {
 
 Loop:
 	for {
+		// Quebra de linha seguida de '.' ou '?.' continua a expressão (encadeamento fluente):
+		//   bd.tabela("u")
+		//       .onde("id", "==", 1)
+		// Uma linha que começa com '.' nunca é uma instrução válida, então não há ambiguidade.
+		for p.token.Tipo == lexer.TokenNovaLinha && p.próximoToken != nil &&
+			(p.próximoToken.Tipo == lexer.TokenPonto || p.próximoToken.Tipo == lexer.TokenPontoInterrogacao) {
+			p.avancar()
+		}
 		switch p.token.Tipo {
 		case lexer.TokenPonto, lexer.TokenPontoInterrogacao:
 			ehOpcional := p.token.Tipo == lexer.TokenPontoInterrogacao
@@ -1687,8 +1705,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 		if strings.Contains(val, "{") && strings.Contains(val, "}") && len(val) >= 2 {
 			strContent := val[1 : len(val)-1]
 
-			// Se a string contiver trechos de código com importação/exportação (ex: "importar { x } de 'y'"), trata como texto literal
-			if strings.Contains(strContent, "importar ") || strings.Contains(strContent, "exportar ") {
+			// Se a string contiver trechos de código com importação/exportação (ex: "de 'y' importe x"), trata como texto literal
+			if strings.Contains(strContent, "importe ") || strings.Contains(strContent, "importar ") || strings.Contains(strContent, "exportar ") {
 				return &TextoLiteral{Valor: token.Valor}, nil
 			}
 			templateNode := &TemplateLiteral{}
@@ -1703,10 +1721,16 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 					break
 				}
 				idxOpen += i
+				// '\{' é chave literal: a barra não entra no texto anterior (senão viraria '\"' no fim)
+				escapada := idxOpen > 0 && strContent[idxOpen-1] == '\\'
+				fimTexto := idxOpen
+				if escapada {
+					fimTexto--
+				}
 
 				// Adiciona a parte de texto antes de '{'
-				if idxOpen > i {
-					part := strContent[i:idxOpen]
+				if fimTexto > i {
+					part := strContent[i:fimTexto]
 					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
 				}
 
@@ -1719,8 +1743,8 @@ func (p *Parser) parseAtomo() (BaseNode, error) {
 				idxClose += idxOpen
 
 				// Se a chave for escapada com \, ignora interpolação e trata como texto
-				if idxOpen > 0 && strContent[idxOpen-1] == '\\' {
-					part := strContent[i : idxClose+1]
+				if escapada {
+					part := strContent[idxOpen : idxClose+1]
 					templateNode.Partes = append(templateNode.Partes, &TextoLiteral{Valor: "\"" + part + "\""})
 					i = idxClose + 1
 					continue
@@ -1991,6 +2015,12 @@ func (p *Parser) parseAtRule() (*DeclEstilo, error) {
 }
 
 // parseJSX analisa um elemento JSX ou uma tag de controle (se/para)
+// textoJSX embrulha texto de JSX num literal: o texto é literal (como no React), então a
+// barra invertida é escapada; senão "escape: \" fecharia a string no JS gerado.
+func textoJSX(s string) *TextoLiteral {
+	return &TextoLiteral{Valor: "\"" + strings.ReplaceAll(s, `\`, `\\`) + "\""}
+}
+
 func (p *Parser) parseJSX() (BaseNode, error) {
 	if err := p.consome("<"); err != nil {
 		return nil, err
@@ -2128,7 +2158,7 @@ func (p *Parser) parseJSX() (BaseNode, error) {
 			if temEspacoFim {
 				textoUnido = textoUnido + " "
 			}
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + textoUnido + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(textoUnido))
 		}
 	}
 
@@ -2216,7 +2246,7 @@ func (p *Parser) parseSeJSX() (*NoSeJSX, error) {
 		}
 		txtTrim := strings.TrimSpace(textoLivre.String())
 		if len(txtTrim) > 0 {
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(txtTrim))
 		}
 	}
 
@@ -2321,7 +2351,7 @@ func (p *Parser) parseParaJSX() (*NoParaJSX, error) {
 		}
 		txtTrim := strings.TrimSpace(textoLivre.String())
 		if len(txtTrim) > 0 {
-			node.Filhos = append(node.Filhos, &TextoLiteral{Valor: "\"" + txtTrim + "\""})
+			node.Filhos = append(node.Filhos, textoJSX(txtTrim))
 		}
 	}
 

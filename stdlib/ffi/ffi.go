@@ -3,7 +3,6 @@
 package ffi
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/mat-dgruber/Harpia/hrp"
@@ -60,36 +59,23 @@ func (f *FuncaoFFI) Tipo() *hrp.Tipo {
 	return TipoFuncaoFFI
 }
 
-// M__chame__ torna a função FFI chamável diretamente pelo interpretador do Harpia.
-// Como FFI real requer mapeamentos específicos de registradores da arquitetura (System V ABI, Windows x64, etc.),
-// implementamos uma simulação robusta (Mock amigável) caso a biblioteca física de teste esteja ausente em tempo de execução,
-// prevenindo pânicos indesejados.
+// M__chame__ torna a função FFI chamável pelo interpretador.
+// A chamada nativa real (ABI System V / Windows x64 via cgo ou dlopen) ainda não existe: em vez de
+// fingir sucesso devolvendo Nulo, a chamada falha com erro explícito.
+// ponytail: implementar com purego/dlopen quando houver demanda; até lá, erro honesto.
 func (f *FuncaoFFI) M__chame__(args hrp.Tupla) (hrp.Objeto, error) {
 	info, err := os.Stat(f.Biblioteca.Caminho)
 	if err != nil || info.IsDir() {
-		// Mock amigável para testes e DX quando rodando em ambientes sem a biblioteca C física compilada
-		if f.Nome == "soma" {
-			if len(args) == 2 {
-				a, errA := hrp.NewDecimal(args[0])
-				if errA != nil {
-					return nil, errA
-				}
-				b, errB := hrp.NewDecimal(args[1])
-				if errB != nil {
-					return nil, errB
-				}
-				return hrp.Decimal(float64(a.(hrp.Decimal)) + float64(b.(hrp.Decimal))), nil
-			}
-		}
-		return nil, fmt.Errorf("biblioteca dinâmica '%s' não pôde ser carregada ou não existe", f.Biblioteca.Caminho)
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "biblioteca dinâmica '%s' não pôde ser carregada ou não existe", f.Biblioteca.Caminho)
 	}
-
-	// Execução real da chamada FFI dinâmica (stub padrão para CGO/dll hooks)
-	return hrp.Nulo, nil
+	return nil, hrp.NewErroF(hrp.ErroDeSistema, "chamada FFI nativa para '%s' ainda não implementada nesta versão do Harpia", f.Nome)
 }
 
 // met_ffi_abrir implementa 'abrir(caminhoBiblioteca)' para iniciar o ciclo FFI.
 func met_ffi_abrir(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoArquivos); err != nil {
+		return nil, err
+	}
 	if err := hrp.VerificaNumeroArgumentos("abrir", false, args, 1, 1); err != nil {
 		return nil, err
 	}
