@@ -185,3 +185,37 @@ func TestGerarCPF(t *testing.T) {
 		}
 	}
 }
+
+// Nomes de módulos e embutidos (bd, tarefas, doc) podem ser usados como variáveis do usuário.
+func TestLinterPermiteVariavelComNomeDeModulo(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	ast, err := ctx.StringParaAst("var bd = 1\nvar tarefas = [bd]\nimprimir(tarefas)", "<teste>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	linter := &Linter{}
+	linter.Checar(ast)
+	for _, e := range linter.Erros {
+		if e.Severity == 1 || e.Code == "HRP-0002" {
+			t.Errorf("não esperava erro/aviso de declaração, veio %s (%s)", e.Message, e.Code)
+		}
+	}
+}
+
+// Exports do runtime web importados automaticamente (navegar, Link...) não são "não encontrados".
+func TestLinterConheceExportsDoRuntimeWeb(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	ast, err := ctx.StringParaAst("exportar funcao Ir() {\n    navegar(\"/x\")\n    retorne <Link href=\"/\">Início</Link>\n}", "<teste>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	linter := &Linter{}
+	linter.Checar(ast)
+	for _, e := range linter.Erros {
+		if e.Severity == 1 {
+			t.Errorf("erro inesperado: %s", e.Message)
+		}
+	}
+}

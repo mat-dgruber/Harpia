@@ -162,7 +162,7 @@ O Harpia mapeia as seguintes propriedades comuns escritas em português diretame
 
 ## 📦 Importações e Resolução de Módulos no Navegador
 
-Ao compilar com `--alvo=web`, todas as declarações de importação sem prefixo relativo (bare module specifiers como `de "arquivos" importe ...` ou `importar { ... } de "seguranca"`) são redirecionadas automaticamente pelo transpiler para o `./runtime-web.js` relativo à estrutura de diretórios do projeto.
+Ao compilar com `--alvo=web`, todas as declarações de importação sem prefixo relativo (bare module specifiers como `de "arquivos" importe ...` ou `de "seguranca" importe ...`) são redirecionadas automaticamente pelo transpiler para o `./runtime-web.js` relativo à estrutura de diretórios do projeto.
 
 Isso garante duas coisas:
 1. **Padrão ES Modules Nativo dos Navegadores**: Navegadores rejeitam bare module specifiers (`import { x } from "modulo"`) emitindo `Uncaught TypeError: Failed to resolve module specifier`. Ao resolver todas as importações para caminhos relativos (ex: `./runtime-web.js`), o código funciona sem necessitar de bundlers adicionais.

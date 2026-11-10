@@ -20,10 +20,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NomesRuntimeWeb são os exports do runtime web importados em todo módulo transpilado;
+// o linter (checar) os trata como globais.
+var NomesRuntimeWeb = []string{"h", "sinal", "sinalDebounce", "sinalPersistente", "efeito", "derivado", "armazem", "montar", "navegar", "roteador", "usarFormulario", "usarConsulta", "usarTema", "usarArrastar", "usarNotificacao", "NotificacaoToast", "Portal", "BarraDeProgresso", "Link", "Aguardar", "Escolha", "Caso", "Padrao", "recurso", "requisitar", "sanitizarHtml", "sanitizarSqlArgumento", "Animado", "mola", "escalonar", "animar", "linhaTempo", "aoMontar", "aoDesmontar", "criarNo", "criarRef", "hidratar", "lote", "moduloRemoto", "semRastreio", "untrack", "usarAtraso", "usarCabecalho", "usarIntervalo", "usarTransicao", "batch", "desmontarVNo", "injetar", "ler", "preguicoso", "reconciliar", "Animacao", "BarreiraDeErro", "CabecalhoPagina", "Fragment", "Fragmento", "FronteiraDeErro", "GradeDeDados", "ImagemWeb", "ListaVirtual", "Provedor", "Suspense", "__HARPIA_DEVTOOLS__", "devTools", "existe", "escrever", "conectarMongo", "conectarMysql", "conectarPostgres", "conectarQdrant", "conectarRedis", "conectarSqlite"}
+
 func GerarImportHeaderWeb(relPath string) string {
 	depth := strings.Count(relPath, "/")
 	prefix := "./" + strings.Repeat("../", depth)
-	return "import { h, sinal, sinalDebounce, sinalPersistente, efeito, derivado, armazem, montar, navegar, roteador, usarFormulario, usarConsulta, usarTema, usarArrastar, usarNotificacao, NotificacaoToast, Portal, BarraDeProgresso, Link, Aguardar, Escolha, Caso, Padrao, recurso, requisitar, sanitizarHtml, sanitizarSqlArgumento, Animado, mola, escalonar, animar, linhaTempo, aoMontar, aoDesmontar, criarNo, criarRef, hidratar, lote, moduloRemoto, semRastreio, untrack, usarAtraso, usarCabecalho, usarIntervalo, usarTransicao, batch, desmontarVNo, injetar, ler, preguicoso, reconciliar, Animacao, BarreiraDeErro, CabecalhoPagina, Fragment, Fragmento, FronteiraDeErro, GradeDeDados, ImagemWeb, ListaVirtual, Provedor, Suspense, __HARPIA_DEVTOOLS__, devTools, existe, escrever, conectarMongo, conectarMysql, conectarPostgres, conectarQdrant, conectarRedis, conectarSqlite } from '" + prefix + "runtime-web.js';\n\n"
+	return "import { " + strings.Join(NomesRuntimeWeb, ", ") + " } from '" + prefix + "runtime-web.js';\n\n"
 }
 
 // OpcsCompilarWeb agrupa as opções para a função compilarParaWeb.
@@ -129,6 +133,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 		Nome    string
 	}
 	var rotas []RotaInfo
+	var errosRotas []string // erros de sintaxe em rotas/layout: falham o build (antes só iam ao stderr)
 
 	if rotasDir != "" {
 		err = filepath.Walk(rotasDir, func(path string, info os.FileInfo, err error) error {
@@ -143,8 +148,14 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 
 			if filepath.Base(path) == "layout.hrp" {
 				conteudoLayout, err := os.ReadFile(path)
+				if err != nil {
+					errosRotas = append(errosRotas, fmt.Sprintf("%s: %v", path, err))
+				}
 				if err == nil {
 					layoutAst, err := parser.NewParserFromString(string(conteudoLayout), path).Parse()
+					if err != nil {
+						errosRotas = append(errosRotas, fmt.Sprintf("%s: %v", path, err))
+					}
 					if err == nil {
 						layoutJs := transpiler.Transpile(layoutAst)
 						// ponytail: extrai imports e constantes de estilo para o topo do bundle
@@ -180,7 +191,7 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			}
 			routeAst, err := parser.NewParserFromString(string(conteudoRota), path).Parse()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Erro de sintaxe na rota %s: %v\n", path, err)
+				errosRotas = append(errosRotas, fmt.Sprintf("%s: %v", path, err))
 				return nil
 			}
 			routeJs := transpiler.Transpile(routeAst)
@@ -296,6 +307,12 @@ func compilarParaWeb(opts OpcsCompilarWeb) error {
 			rotas = append(rotas, RotaInfo{Caminho: paramRoutePath, Nome: cleanCompName})
 			return nil
 		})
+		if err != nil {
+			return fmt.Errorf("erro ao percorrer as rotas em %s: %w", rotasDir, err)
+		}
+		if len(errosRotas) > 0 {
+			return fmt.Errorf("erro de sintaxe em %d arquivo(s) de rota:\n  %s", len(errosRotas), strings.Join(errosRotas, "\n  "))
+		}
 	}
 
 	// ponytail: garante exportação automática de funções raiz principais para novos projetos

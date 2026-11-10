@@ -72,5 +72,6 @@ func main() {
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1) // sem isso, compilar/testar com erro saíam com código 0 e o CI passava
 	}
 }

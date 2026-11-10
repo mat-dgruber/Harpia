@@ -2,10 +2,13 @@ package hrp
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/mat-dgruber/Harpia/lexer"
 	"github.com/mat-dgruber/Harpia/parser"
@@ -43,6 +46,25 @@ type Contexto struct {
 	ResolvendoModulos []string                // Pilha de módulos que estão sendo importados/resolvidos para prevenção de ciclos.
 	LinhasExecutadas  map[string]map[int]bool // ponytail: mapa para rastreamento de linhas cobertas na execução de testes
 	linhasExecMu      sync.Mutex              // mutex para evitar concorrência no mapa de linhas executadas
+	profundidade      atomic.Int32            // chamadas de função em andamento (limite de recursão)
+}
+
+// MaxProfundidadeChamadas limita a recursão: acima disso a chamada lança ErroDePilha em vez de
+// estourar a pilha do Go (fatal error: stack overflow, que derruba o processo sem recover).
+// ponytail: o contador é por contexto e soma goroutines concorrentes (handlers HTTP, assíncronas);
+// o limite é generoso para cobrir isso. Upgrade: profundidade por frame/goroutine se houver falso positivo.
+const MaxProfundidadeChamadas = 2000
+
+// EntrarChamada registra uma chamada de função e devolve a função que a encerra.
+func (c *Contexto) EntrarChamada() (func(), error) {
+	if c == nil {
+		return func() {}, nil
+	}
+	if c.profundidade.Add(1) > MaxProfundidadeChamadas {
+		c.profundidade.Add(-1)
+		return nil, NewErroF(ErroDePilha, "Limite de profundidade de chamadas excedido (%d): provável recursão infinita", MaxProfundidadeChamadas)
+	}
+	return func() { c.profundidade.Add(-1) }, nil
 }
 
 func (c *Contexto) DefinirArquivoCodigo(arquivo, codigo string) {
@@ -87,7 +109,6 @@ func (c *Contexto) ObterPosicaoToken() (*lexer.Token, int, int) {
 var (
 	contextoAtivoMu sync.RWMutex
 	contextoAtivo   *Contexto
-	OnEnvLoaded     []func()
 )
 
 func ObterContextoAtivo() *Contexto {
@@ -101,8 +122,6 @@ func DefinirContextoAtivo(ctx *Contexto) {
 	defer contextoAtivoMu.Unlock()
 	contextoAtivo = ctx
 }
-
-var ContextoAtivo *Contexto
 
 // NewContexto aloca um novo contexto orquestrador da VM, inicializando o cache de módulos
 // e pré-carregando de forma global e compulsória o módulo nativo de embutidos.
@@ -176,14 +195,11 @@ func carregarArquivoEnv(dir string) {
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			// Ignorado de forma silenciosa e segura
+			fmt.Fprintf(os.Stderr, "aviso: falha ao ler %s: %v\n", caminho, err)
 		}
 		f.Close()
 	}
 
-	for _, fn := range OnEnvLoaded {
-		fn()
-	}
 }
 
 // TransformarEmAst localiza um arquivo físico no disco, decodifica sua codificação,
@@ -243,6 +259,10 @@ func (c *Contexto) StringParaAst(codigo string, caminho string) (parser.BaseNode
 	return ast, nil
 }
 
+// ErrNaoSuportadoVM marca construções que o compilador de bytecode ainda não cobre;
+// AvaliarAst usa errors.Is para cair no interpretador AST apenas nesses casos.
+var ErrNaoSuportadoVM = errors.New("construção ainda não suportada na VM de bytecode")
+
 var executadorVM func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)
 
 func DefinirExecutadorVM(exec func(ctx *Contexto, ast parser.BaseNode, escopo *Escopo) (Objeto, error)) {
@@ -261,11 +281,9 @@ func (c *Contexto) AvaliarAst(ast parser.BaseNode, escopo *Escopo) (Objeto, erro
 		if errVM == nil {
 			return resVM, nil
 		}
-		if !strings.Contains(errVM.Error(), "não implementada na VM") &&
-			!strings.Contains(errVM.Error(), "não suportada na VM") &&
-			!strings.Contains(errVM.Error(), "não suportadas na VM") &&
-			!strings.Contains(errVM.Error(), "não é suportada na VM") &&
-			!strings.Contains(errVM.Error(), "não são suportadas na VM") {
+		// Só erros de COMPILAÇÃO carregam o sentinela: um erro de runtime do script nunca
+		// dispara reexecução pelo interpretador (o que duplicaria efeitos colaterais).
+		if !errors.Is(errVM, ErrNaoSuportadoVM) {
 			return nil, errVM
 		}
 	}
@@ -415,6 +433,21 @@ func (c *Contexto) CanalCancelamento() <-chan struct{} {
 	return c.cancelCh
 }
 
+// VerificarCancelamento retorna erro se o contexto foi encerrado (ex.: timeout do playground).
+// Laços do interpretador e saltos para trás da VM chamam isto a cada iteração para que
+// um script em loop infinito pare quando Terminar() é chamado.
+func (c *Contexto) VerificarCancelamento() error {
+	if c == nil || c.cancelCh == nil {
+		return nil
+	}
+	select {
+	case <-c.cancelCh:
+		return NewErroF(RuntimeErro, "Execução cancelada: o contexto foi encerrado")
+	default:
+		return nil
+	}
+}
+
 // Fechado retorna true se o contexto foi marcado como encerrado.
 func (c *Contexto) Fechado() bool {
 	if c == nil {
@@ -423,6 +456,43 @@ func (c *Contexto) Fechado() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.fechado
+}
+
+// Recurso identifica a capacidade sensível que uma função nativa quer usar.
+type Recurso int
+
+const (
+	RecursoArquivos  Recurso = iota // ler/escrever disco (inclui SQLite e FFI)
+	RecursoRede                     // conexões e requisições de rede
+	RecursoProcessos                // subprocessos e variáveis de ambiente (usa a flag BloquearArquivos)
+)
+
+// ContextoDe resolve o contexto dono da chamada: o do módulo receptor (o script que importou
+// a função), com fallback para o contexto ativo global.
+func ContextoDe(inst Objeto) *Contexto {
+	if m, ok := inst.(*Modulo); ok && m != nil && m.Contexto != nil {
+		return m.Contexto
+	}
+	return ObterContextoAtivo()
+}
+
+// ExigirPermissao é o guard único do sandbox. Ele resolve o contexto pelo receptor, e não só pelo
+// ativo global (que outro NewContexto concorrente pode trocar), e nega quando não há contexto
+// nenhum para consultar (fail-closed).
+func ExigirPermissao(inst Objeto, r Recurso) error {
+	return ExigirPermissaoNoContexto(ContextoDe(inst), r)
+}
+
+// ExigirPermissaoNoContexto aplica o guard a um contexto já conhecido (ex.: capturado por um
+// objeto nativo na criação). nil = negado.
+func ExigirPermissaoNoContexto(ctx *Contexto, r Recurso) error {
+	if ctx == nil {
+		return NewErroF(ErroDeSistema, "Acesso Negado: nenhum contexto de execução ativo para autorizar a operação.")
+	}
+	if r == RecursoRede {
+		return ctx.VerificarPermissaoRede()
+	}
+	return ctx.VerificarPermissaoArquivos()
 }
 
 // VerificarPermissaoArquivos valida se o contexto possui a flag de permissão para ler ou escrever arquivos.

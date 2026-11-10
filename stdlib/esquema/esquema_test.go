@@ -81,3 +81,17 @@ func stringsContains(s, substr string) bool {
 	}
 	return false
 }
+
+func TestEsquemaAceitaNomeDeTipoMinusculo(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	mod, err := hrp.ExecutarString(ctx, `de "esquema" importe criar
+var r = criar({"nome": "texto", "idade": "inteiro"}).analisar({"nome": "Ada", "idade": 36})`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, _ := mod.Escopo.ObterValor("r")
+	if l, ok := r.(*hrp.Lista); !ok || l.Itens[1] != hrp.Nulo {
+		t.Fatalf("esperava [dados, Nulo] para tipos em minúsculas, veio %v", r)
+	}
+}

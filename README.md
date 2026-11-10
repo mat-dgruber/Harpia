@@ -33,7 +33,7 @@ Instale o compilador Harpia em segundos no seu sistema operacional executando o 
 ### Linux / macOS
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mat-dgruber/Harpia/main/Harpia/instalar.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mat-dgruber/Harpia/main/instalar.sh | bash
 ```
 
 ### Windows (PowerShell)

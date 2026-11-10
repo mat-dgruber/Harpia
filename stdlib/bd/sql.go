@@ -26,8 +26,13 @@ func validarIdentificadorSQL(id string) error {
 }
 
 var operadoresSegurosSQL = map[string]bool{
-	"=": true, "!=": true, "<>": true, "<": true, ">": true, "<=": true, ">=": true,
+	"=": true, "==": true, "!=": true, "<>": true, "<": true, ">": true, "<=": true, ">=": true,
 	"LIKE": true, "like": true, "NOT LIKE": true, "not like": true, "IS": true, "is": true, "IS NOT": true, "is not": true,
+}
+
+// ehInsert informa se a query é um INSERT (para decidir se LastInsertId é significativo).
+func ehInsert(query string) bool {
+	return strings.HasPrefix(strings.ToUpper(strings.TrimSpace(query)), "INSERT")
 }
 
 func validarOperadorSQL(op string) error {
@@ -84,11 +89,40 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if errExec != nil {
 				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL: %v", errExec)
 			}
-			if lastID, errID := resExec.LastInsertId(); errID == nil && lastID > 0 {
-				return hrp.Inteiro(lastID), nil
+			// LastInsertId só faz sentido em INSERT: no SQLite, um UPDATE devolveria o id do último insert
+			if ehInsert(string(query.(hrp.Texto))) {
+				if lastID, errID := resExec.LastInsertId(); errID == nil && lastID > 0 {
+					return hrp.Inteiro(lastID), nil
+				}
 			}
 			return hrp.Nulo, nil
 		}, "Executa uma query de alteração de dados no banco (INSERT/UPDATE/DELETE)."), nil
+
+	case "executarDetalhado":
+		// Como executar, mas devolve {idInserido, linhasAfetadas} (Nulo quando o driver não informa).
+		return hrp.NewMetodoOuPanic("executarDetalhado", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if len(args) < 1 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "executarDetalhado esperava no mínimo 1 argumento (query)")
+			}
+			query, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			resExec, errExec := c.db.Exec(string(query.(hrp.Texto)), converterArgumentosParaGo(args)...)
+			if errExec != nil {
+				return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao executar query SQL: %v", errExec)
+			}
+			res := hrp.Mapa{"idInserido": hrp.Nulo, "linhasAfetadas": hrp.Nulo}
+			if ehInsert(string(query.(hrp.Texto))) {
+				if id, errID := resExec.LastInsertId(); errID == nil {
+					res["idInserido"] = hrp.Inteiro(id)
+				}
+			}
+			if n, errN := resExec.RowsAffected(); errN == nil {
+				res["linhasAfetadas"] = hrp.Inteiro(n)
+			}
+			return res, nil
+		}, "Executa INSERT/UPDATE/DELETE e devolve {idInserido, linhasAfetadas}."), nil
 
 	case "consultar":
 		// Executa instruções SQL de busca estruturada que retornam linhas (SELECT).
@@ -182,6 +216,13 @@ func (c *ConexaoSQL) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			}
 
 			txObj := &TransacaoSQL{tx: tx, driver: c.driver}
+			// pânico Go no callback: desfaz antes de propagar, senão a conexão fica presa na transação
+			defer func() {
+				if r := recover(); r != nil {
+					_ = tx.Rollback()
+					panic(r)
+				}
+			}()
 			_, errExec := hrp.Chamar(fnCallback, hrp.Tupla{txObj})
 			if errExec != nil {
 				tx.Rollback()
@@ -425,6 +466,9 @@ func (q *QueryBuilder) onde(args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, errVal
 	}
 	novo := q.clone()
+	if opStr == "==" { // sintaxe da linguagem (usada na documentação) mapeada para SQL
+		opStr = "="
+	}
 	novo.condicoes = append(novo.condicoes, fmt.Sprintf("%s %s ?", colStr, opStr))
 	novo.args = append(novo.args, args[2])
 	q.registrarFilho(novo)
@@ -591,9 +635,7 @@ func (q *QueryBuilder) inserir(args hrp.Tupla) (hrp.Objeto, error) {
 
 	var callArgs hrp.Tupla
 	callArgs = append(callArgs, hrp.Texto(query))
-	for _, arg := range valueArgs {
-		callArgs = append(callArgs, arg)
-	}
+	callArgs = append(callArgs, valueArgs...)
 
 	executarMetodo, err := q.conexao.M__obtem_attributo__("executar")
 	if err != nil {
@@ -645,9 +687,7 @@ func (q *QueryBuilder) atualizar(args hrp.Tupla) (hrp.Objeto, error) {
 
 	var callArgs hrp.Tupla
 	callArgs = append(callArgs, hrp.Texto(query))
-	for _, arg := range valueArgs {
-		callArgs = append(callArgs, arg)
-	}
+	callArgs = append(callArgs, valueArgs...)
 	for _, arg := range q.args {
 		callArgs = append(callArgs, arg)
 	}

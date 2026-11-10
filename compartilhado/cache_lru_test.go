@@ -23,7 +23,7 @@ func TestShardedCache_GetPutClear(t *testing.T) {
 	}
 
 	cache.Limpar()
-	val, ok = cache.Obter("teste")
+	_, ok = cache.Obter("teste")
 	if ok {
 		t.Fatalf("esperava miss apos Limpar()")
 	}

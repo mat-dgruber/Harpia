@@ -96,6 +96,9 @@ func init() {
 	for k, v := range hrp.ObtemGlobalsDoLinter() {
 		globalsLinter[k] = v
 	}
+	for _, nome := range NomesRuntimeWeb {
+		globalsLinter[nome] = true
+	}
 }
 
 type EscopoLinter struct {
@@ -234,12 +237,15 @@ func (l *Linter) Checar(node parser.BaseNode) {
 	switch n := node.(type) {
 	case *parser.Programa:
 		l.Posicoes = n.Posicoes
+		// Built-ins e nomes de módulos ficam num escopo acima do programa: o usuário pode
+		// declarar `var bd = ...` (sombreia o nome) sem "já declarada neste escopo".
 		l.pushEscopo()
-		// Hidrata o escopo raiz com built-ins e nomes globais conhecidos
 		for nome := range globalsLinter {
 			l.Escopo.Variaveis[nome] = true
 			l.Escopo.Usadas[nome] = true
 		}
+		defer l.popEscopo()
+		l.pushEscopo()
 
 		// Pre-hoisting de funções no escopo do programa
 		for _, decl := range n.Declaracoes {

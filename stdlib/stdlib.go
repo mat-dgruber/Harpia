@@ -25,12 +25,14 @@ import (
 
 	// Novos módulos da Fase 3
 	_ "github.com/mat-dgruber/Harpia/stdlib/arquivos"
+	_ "github.com/mat-dgruber/Harpia/stdlib/autenticacao"
 	_ "github.com/mat-dgruber/Harpia/stdlib/bd"
 	_ "github.com/mat-dgruber/Harpia/stdlib/bd/vetores"
 	_ "github.com/mat-dgruber/Harpia/stdlib/cripto"
 	_ "github.com/mat-dgruber/Harpia/stdlib/email"
 	_ "github.com/mat-dgruber/Harpia/stdlib/esquema"
 	_ "github.com/mat-dgruber/Harpia/stdlib/ffi"
+	_ "github.com/mat-dgruber/Harpia/stdlib/fila"
 	_ "github.com/mat-dgruber/Harpia/stdlib/http"
 	_ "github.com/mat-dgruber/Harpia/stdlib/ia"
 	_ "github.com/mat-dgruber/Harpia/stdlib/json"
@@ -39,6 +41,7 @@ import (
 	_ "github.com/mat-dgruber/Harpia/stdlib/metricas"
 	_ "github.com/mat-dgruber/Harpia/stdlib/pdf"
 	_ "github.com/mat-dgruber/Harpia/stdlib/resiliencia"
+	_ "github.com/mat-dgruber/Harpia/stdlib/seguranca"
 	_ "github.com/mat-dgruber/Harpia/stdlib/tarefas"
 	_ "github.com/mat-dgruber/Harpia/stdlib/telemetria"
 	_ "github.com/mat-dgruber/Harpia/stdlib/tempo"

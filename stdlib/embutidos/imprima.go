@@ -13,24 +13,15 @@ import (
 // e imprime na saída padrão do terminal (Stdout) acompanhada de uma quebra de linha final ("\n").
 //
 // Mecânica de Concatenação:
-// Ela obtém o método embutido de junta ("junta") de um objeto Texto (" ") e chama-o passando
-// a tupla de argumentos recebidos. Isso delega a lógica de concatenação para as regras otimizadas de strings.
+// Usa hrp.JuntaTextos direto (e não o método de script `junta`, que espalha um único
+// argumento Lista): imprimir([1, 2]) deve mostrar a lista, não "1 2".
 func met_emb_imprima(mod hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	const (
 		final     = hrp.Texto("\n")
 		separador = hrp.Texto(" ")
 	)
 
-	junta, err := hrp.ObtemAtributoS(separador, "junta")
-
-	if err != nil {
-		return nil, err
-	}
-
-	resultado, err := hrp.Chamar(
-		junta,
-		args,
-	)
+	resultado, err := hrp.JuntaTextos(string(separador), args)
 
 	if err != nil {
 		return nil, err

@@ -557,3 +557,63 @@ func TestComandoCompilarAliasConstruir(t *testing.T) {
 		t.Errorf("comando compilar deve ter o alias 'construir', aliases atuais: %v", cmd.Aliases)
 	}
 }
+
+// Uma rota ou layout com erro de sintaxe deve falhar o build (antes só ia para o stderr e o
+// build terminava com sucesso, publicando o app sem a página).
+func TestCompilarFalhaComErroDeSintaxeNaRota(t *testing.T) {
+	for _, arquivo := range []string{"quebrada.hrp", "layout.hrp"} {
+		t.Run(arquivo, func(t *testing.T) {
+			dir := t.TempDir()
+			rotas := filepath.Join(dir, "web", "rotas")
+			if err := os.MkdirAll(rotas, 0755); err != nil {
+				t.Fatal(err)
+			}
+			entrada := filepath.Join(dir, "main.hrp")
+			os.WriteFile(entrada, []byte("var principal = \"app\"\n"), 0644)
+			os.WriteFile(filepath.Join(rotas, "index.hrp"), []byte("retorne <h1>Início</h1>\n"), 0644)
+			os.WriteFile(filepath.Join(rotas, arquivo), []byte("funcao f(\n"), 0644)
+
+			antigo, _ := os.Getwd()
+			os.Chdir(dir)
+			defer os.Chdir(antigo)
+			c := comandoCompilar()
+			c.SetArgs([]string{"--entrada", entrada, "--saida", filepath.Join(dir, "dist"), "--pular-linter"})
+			if err := c.Execute(); err == nil || !strings.Contains(err.Error(), arquivo) {
+				t.Fatalf("esperava erro citando %s, veio %v", arquivo, err)
+			}
+		})
+	}
+}
+
+// Pedaços de texto de uma interpolação não podem levar as aspas do literal para o JS.
+func TestTranspileWebInterpolacaoSemAspasSobrando(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	casos := map[string]string{
+		`var msg = "Olá, {nome}!"`: "let msg = `Olá, ${nome}!`;",
+		"var cod = `a \\{x\\} b`":  "let cod = `a {x\\} b`;",
+		`var s = "{a} e {b + 1}"`:  "let s = `${a} e ${(b + 1)}`;",
+	}
+	for codigo, esperado := range casos {
+		ast, err := ctx.StringParaAst(codigo, "<teste>")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if js := (&TranspilerWeb{}).Transpile(ast); !strings.Contains(js, esperado) {
+			t.Errorf("%s: esperava %s, veio %s", codigo, esperado, js)
+		}
+	}
+}
+
+// Texto de JSX é literal: barra invertida não pode escapar a aspa de fechamento no JS.
+func TestTranspileWebTextoJSXComBarra(t *testing.T) {
+	ctx := hrp.NewContexto(hrp.OpcsContexto{})
+	defer ctx.Terminar()
+	ast, err := ctx.StringParaAst("exportar funcao P() {\n    retorne <p>escape: \\</p>\n}", "<teste>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if js := (&TranspilerWeb{}).Transpile(ast); !strings.Contains(js, `"escape: \\"`) {
+		t.Errorf("esperava o texto com a barra escapada, veio %s", js)
+	}
+}

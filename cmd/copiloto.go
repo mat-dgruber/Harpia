@@ -315,7 +315,6 @@ func detectarFuncoesTexto(linhas [][]byte) []funcaoDetectada {
 			}
 			cabecalho = string(agregado)
 			idxCabecalho = j
-			chaveAbre = bytes.IndexByte(agregado, '{')
 		} else {
 			cabecalho = string(linha)
 		}

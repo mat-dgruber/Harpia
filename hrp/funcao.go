@@ -152,6 +152,16 @@ func (f *Funcao) SetEscopo(esc *Escopo) {
 //  4. Instancia e aciona o Interpretador sobre o bloco da AST correspondente ao corpo da função;
 //  5. Limpa os recursos locais e retorna o Objeto resultante da avaliação ou erros de tempo de execução.
 func (f *Funcao) M__chame__(args Tupla) (Objeto, error) {
+	ctxChamada := f.contexto
+	if ctxChamada == nil {
+		ctxChamada = ObterContextoAtivo()
+	}
+	sair, err := ctxChamada.EntrarChamada()
+	if err != nil {
+		return nil, err
+	}
+	defer sair()
+
 	escopo := f.escopo.NewEscopo()
 	resolvidos := make(map[string]Objeto)
 

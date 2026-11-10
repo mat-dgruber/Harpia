@@ -2,6 +2,7 @@ package hrp
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/mat-dgruber/Harpia/compartilhado"
 )
@@ -124,7 +125,11 @@ func (i Inteiro) M__adiciona__(b Objeto) (Objeto, error) {
 	}
 
 	if bi, ok := b.(Inteiro); ok {
-		return NewInteiro(i + bi)
+		r, ok := somaInteiroSegura(i, bi)
+		if !ok {
+			return nil, erroOverflowInteiro("+", i, bi)
+		}
+		return NewInteiro(r)
 	}
 
 	return NewDecimal(Decimal(i) + b.(Decimal))
@@ -139,7 +144,11 @@ func (i Inteiro) M__multiplica__(b Objeto) (Objeto, error) {
 	}
 
 	if bi, ok := b.(Inteiro); ok {
-		return NewInteiro(i * bi)
+		r, ok := multiplicaInteiroSeguro(i, bi)
+		if !ok {
+			return nil, erroOverflowInteiro("*", i, bi)
+		}
+		return NewInteiro(r)
 	}
 
 	return NewDecimal(Decimal(i) * b.(Decimal))
@@ -154,7 +163,11 @@ func (i Inteiro) M__subtrai__(b Objeto) (Objeto, error) {
 	}
 
 	if bi, ok := b.(Inteiro); ok {
-		return NewInteiro(i - bi)
+		r, ok := subtraiInteiroSegura(i, bi)
+		if !ok {
+			return nil, erroOverflowInteiro("-", i, bi)
+		}
+		return NewInteiro(r)
 	}
 
 	return NewDecimal(Decimal(i) - b.(Decimal))
@@ -186,7 +199,11 @@ func (i Inteiro) M__divide_inteiro__(b Objeto) (Objeto, error) {
 		return nil, err
 	}
 
-	return i / bInt.(Inteiro), nil
+	divisor := bInt.(Inteiro)
+	if i == math.MinInt64 && divisor == -1 { // Go devolve MinInt64 sem pânico: estouro silencioso
+		return nil, erroOverflowInteiro("//", i, divisor)
+	}
+	return i / divisor, nil
 }
 
 // M__mod__ calcula o resto de divisão inteira (módulo) entre os dois termos.
@@ -205,6 +222,9 @@ func (i Inteiro) M__mod__(b Objeto) (Objeto, error) {
 
 // M__neg__ executa a inversão unária de sinal aritmético (ex: 5 ➔ -5).
 func (i Inteiro) M__neg__() (Objeto, error) {
+	if i == math.MinInt64 { // -MinInt64 não cabe em 64 bits
+		return nil, NewErroF(ErroDeLimite, "O resultado de -(%d) excede o limite de Inteiro (64 bits)", i)
+	}
 	return -i, nil
 }
 

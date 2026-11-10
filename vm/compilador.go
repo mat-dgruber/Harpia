@@ -212,7 +212,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		c.emitirConstante(OP_PUSH_CONST, hrp.Decimal(val))
 
 	case *parser.TextoLiteral:
-		textoLimpo := n.Valor[1 : len(n.Valor)-1]
+		textoLimpo := hrp.DecodificarTextoLiteral(n.Valor)
 		c.emitirConstante(OP_PUSH_CONST, hrp.Texto(textoLimpo))
 
 	case *parser.ConstanteLiteral:
@@ -345,7 +345,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			} else if txt, ok := obj.Membro.(*parser.TextoLiteral); ok {
 				nomeMembro = txt.Valor
 				if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-					nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+					nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 				}
 			} else {
 				return fmt.Errorf("nome do membro deve ser identificador ou texto")
@@ -378,7 +378,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			c.emitir(OP_POP)
 
 		default:
-			return fmt.Errorf("compilação de reatribuição para o nó tipo %T ainda não suportada na VM", obj)
+			return fmt.Errorf("%w: reatribuição para o nó tipo %T", hrp.ErrNaoSuportadoVM, obj)
 		}
 
 	case *parser.OpBinaria:
@@ -516,10 +516,13 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		c.popLoopContext()
 
 	case *parser.BlocoPara:
-		// Compila o iterável
+		// Compila materializar(iterável): o laço abaixo percorre por índice, então Mapa,
+		// sequencia() e Texto passam antes pelo protocolo __iter__ (paridade com o AST).
+		c.emitirConstante(OP_PUSH_CONST, metodoMaterializar)
 		if err := c.visite(n.Iterador); err != nil {
 			return err
 		}
+		c.emitir(OP_CHAMAR, 1)
 		iterSlot := c.adicionarLocal("__iter_" + n.Identificador)
 		c.emitirU16(OP_ARMAZENAR_LOCAL, iterSlot)
 		c.emitir(OP_POP)
@@ -624,7 +627,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 					return nil
 				}
 			case *parser.TextoLiteral:
-				textoLimpo := exp.Valor[1 : len(exp.Valor)-1]
+				textoLimpo := hrp.DecodificarTextoLiteral(exp.Valor)
 				idx := c.internarConstante(hrp.Texto(textoLimpo))
 				c.emitirU16(OP_RETORNE_CONST, idx)
 				return nil
@@ -731,7 +734,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 			} else if txt, ok := par.Chave.(*parser.TextoLiteral); ok {
 				textoLimpo := txt.Valor
 				if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-					textoLimpo = txt.Valor[1 : len(txt.Valor)-1]
+					textoLimpo = hrp.DecodificarTextoLiteral(txt.Valor)
 				}
 				c.emitirConstante(OP_PUSH_CONST, hrp.Texto(textoLimpo))
 			} else {
@@ -765,7 +768,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		} else if txt, ok := n.Membro.(*parser.TextoLiteral); ok {
 			nomeMembro = txt.Valor
 			if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-				nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+				nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 			}
 		} else {
 			return fmt.Errorf("nome do membro deve ser identificador ou texto")
@@ -799,7 +802,7 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		} else if txt, ok := n.Membro.(*parser.TextoLiteral); ok {
 			nomeMembro = txt.Valor
 			if len(txt.Valor) >= 2 && txt.Valor[0] == '"' {
-				nomeMembro = txt.Valor[1 : len(txt.Valor)-1]
+				nomeMembro = hrp.DecodificarTextoLiteral(txt.Valor)
 			}
 		} else {
 			return fmt.Errorf("nome do membro opcional deve ser identificador ou texto")
@@ -849,10 +852,10 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		}
 
 	case *parser.DeclVarDestructuring, *parser.DeclDesestruturacao:
-		return fmt.Errorf("desestruturação var [a, b] = ... ainda não é suportada na VM de Bytecode (use transpilação ou interpretador)")
+		return fmt.Errorf("%w: desestruturação var [a, b] = ...", hrp.ErrNaoSuportadoVM)
 
 	case *parser.DeclEnum, *parser.DeclInterface:
-		return fmt.Errorf("enumerações e interfaces ainda não são suportadas na VM de Bytecode (use transpilação ou interpretador)")
+		return fmt.Errorf("%w: enumerações e interfaces", hrp.ErrNaoSuportadoVM)
 
 	case *parser.OpUnaria:
 		if err := c.visite(n.Expressao); err != nil {
@@ -866,11 +869,11 @@ func (c *Compilador) visite(node parser.BaseNode) error {
 		case "nao":
 			c.emitir(OP_NOT)
 		default:
-			return fmt.Errorf("operador unário '%s' não suportado na VM de bytecode", n.Operador)
+			return fmt.Errorf("%w: operador unário '%s'", hrp.ErrNaoSuportadoVM, n.Operador)
 		}
 
 	default:
-		return fmt.Errorf("compilação do nó tipo %T ainda não implementada na VM de bytecode", n)
+		return fmt.Errorf("%w: nó tipo %T", hrp.ErrNaoSuportadoVM, n)
 	}
 
 	return nil
@@ -903,7 +906,7 @@ func (c *Compilador) emitirOpBinaria(operador string) error {
 	case ">=":
 		c.emitir(OP_GTE)
 	default:
-		return fmt.Errorf("operador binário '%s' não suportado na VM de bytecode", operador)
+		return fmt.Errorf("%w: operador binário '%s'", hrp.ErrNaoSuportadoVM, operador)
 	}
 	return nil
 }
@@ -1034,6 +1037,10 @@ func (c *Compilador) internarConstante(val hrp.Objeto) uint16 {
 		return idx
 	}
 }
+
+var metodoMaterializar = hrp.NewMetodoOuPanic("__materializar__", func(_ hrp.Objeto, a hrp.Tupla) (hrp.Objeto, error) {
+	return hrp.Materializar(a[0])
+}, "Converte o iterável do laço para em uma coleção indexável.")
 
 // Padroes retorna os nós padrão de parâmetros de uma função.
 func Padroes(fn *hrp.Funcao) map[string]parser.BaseNode {

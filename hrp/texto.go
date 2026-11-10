@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // Texto representa o tipo de dado textual (string) nativo do Harpia.
@@ -60,6 +63,24 @@ func NewTexto(arg any) (Objeto, error) {
 	}
 
 	return Texto(fmt.Sprintf("%v", arg)), nil
+}
+
+// JuntaTextos converte cada item em Texto e une com sep. Chamadores Go (repr de coleções,
+// imprimir) usam esta função direto: o método de script `junta` espalha um único argumento
+// Lista/Tupla, o que quebraria `imprimir([1, 2])` e o repr de `[[1, 2]]`.
+func JuntaTextos(sep string, itens Tupla) (Objeto, error) {
+	var sb strings.Builder
+	for i, arg := range itens {
+		texto, err := NewTexto(arg)
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 {
+			sb.WriteString(sep)
+		}
+		sb.WriteString(string(texto.(Texto)))
+	}
+	return Texto(sb.String()), nil
 }
 
 func init() {
@@ -283,27 +304,21 @@ func init() {
 		if !ok {
 			return nil, NewErroF(TipagemErro, "O argumento de 'junta' deve ser uma Tupla")
 		}
-
-		var sb strings.Builder
-		sep := string(inst.(Texto))
-
-		for i, arg := range tupla {
-			texto, err := NewTexto(arg)
-			if err != nil {
-				return nil, err
-			}
-
-			sb.WriteString(string(texto.(Texto)))
-			if i != len(tupla)-1 {
-				sb.WriteString(sep)
+		// junta(["a", "b"]) e junta(("a", "b")) juntam os itens da coleção; junta("a", "b") também funciona
+		if len(tupla) == 1 {
+			switch c := tupla[0].(type) {
+			case *Lista:
+				tupla = c.Itens
+			case Tupla:
+				tupla = c
 			}
 		}
 
-		return Texto(sb.String()), nil
+		return JuntaTextos(string(inst.(Texto)), tupla)
 	}, `concatena o iterável recebido com o texto da instancia`)
 
 	TipoTexto.Mapa["titulo"] = NewMetodoOuPanic("titulo", func(inst Objeto) (Objeto, error) {
-		titularizado := strings.Title(strings.ToLower(string(inst.(Texto))))
+		titularizado := cases.Title(language.BrazilianPortuguese).String(strings.ToLower(string(inst.(Texto))))
 		return Texto(titularizado), nil
 	}, "retorna uma cópia do texto com a primeira letra da frase em maiúsculo")
 

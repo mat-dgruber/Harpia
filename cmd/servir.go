@@ -5,9 +5,11 @@ package cmd
 import (
 	"fmt"
 	"html"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +20,7 @@ import (
 // ponytail: comando 'servir' que atua como Dev Server ultra-leve com Hot-Reload automático (SSE).
 func comandoServir() *cobra.Command {
 	var porta int
+	var host string
 	var entrada string
 	var diretorio string
 	var saidaTemp string
@@ -77,7 +80,7 @@ func comandoServir() *cobra.Command {
 				w.Header().Set("Cache-Control", "no-cache, no-transform")
 				w.Header().Set("Connection", "keep-alive")
 				w.Header().Set("X-Accel-Buffering", "no")
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				definirCorsLocal(w, r)
 
 				flusher, ok := w.(http.Flusher)
 				if !ok {
@@ -182,7 +185,7 @@ func comandoServir() *cobra.Command {
 
 				fs := http.FileServer(http.Dir(pAbs))
 				corsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Access-Control-Allow-Origin", "*")
+					definirCorsLocal(w, r)
 					w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
 					if reqHeaders := r.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
 						w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
@@ -191,6 +194,11 @@ func comandoServir() *cobra.Command {
 					}
 					if r.Method == "OPTIONS" {
 						w.WriteHeader(http.StatusOK)
+						return
+					}
+
+					if caminhoTemSegmentoOculto(r.URL.Path) {
+						http.NotFound(w, r) // .env, .git/ e afins nunca são servidos
 						return
 					}
 
@@ -254,7 +262,7 @@ func comandoServir() *cobra.Command {
 				fmt.Fprintln(out, "   Pressione Ctrl+C para encerrar.")
 
 				server := &http.Server{
-					Addr: fmt.Sprintf(":%d", porta),
+					Addr: net.JoinHostPort(host, strconv.Itoa(porta)),
 				}
 
 				go func() {
@@ -408,7 +416,7 @@ func comandoServir() *cobra.Command {
 			http.HandleFunc("/API/playground/executar", apiExecutarCodigoPlayground)
 
 			http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				w.Header().Set("Access-Control-Allow-Origin", "*")
+				definirCorsLocal(w, r)
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
 				if reqHeaders := r.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
 					w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
@@ -418,6 +426,11 @@ func comandoServir() *cobra.Command {
 
 				if r.Method == "OPTIONS" {
 					w.WriteHeader(http.StatusOK)
+					return
+				}
+
+				if caminhoTemSegmentoOculto(r.URL.Path) {
+					http.NotFound(w, r) // .env, .git/ e afins nunca são servidos
 					return
 				}
 
@@ -527,7 +540,7 @@ func comandoServir() *cobra.Command {
 			fmt.Fprintln(out)
 
 			server := &http.Server{
-				Addr: fmt.Sprintf(":%d", porta),
+				Addr: net.JoinHostPort(host, strconv.Itoa(porta)),
 			}
 
 			go func() {
@@ -544,6 +557,7 @@ func comandoServir() *cobra.Command {
 	}
 
 	servir.Flags().IntVarP(&porta, "porta", "p", 3000, "Porta de escuta do Dev Server local")
+	servir.Flags().StringVar(&host, "host", "127.0.0.1", "Interface de escuta (use 0.0.0.0 para expor na rede de propósito)")
 	servir.Flags().StringVarP(&entrada, "entrada", "e", "", "Arquivo .hrp de entrada principal")
 	servir.Flags().StringVarP(&diretorio, "diretorio", "d", "", "Diretório de arquivos estáticos para servir")
 	return servir

@@ -291,10 +291,7 @@ func init() {
 				getter := hrp.NewMetodoOuPanic("getter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
 					return valor, nil
 				}, "")
-				// setter é um stub vazio
-				setter := hrp.NewMetodoOuPanic("setter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
-					return hrp.Nulo, nil
-				}, "")
+				setter := novoDefinidorSinal(&valor)
 				return hrp.Tupla{getter, setter}, nil
 			},
 			"Cria um sinal reativo estático para SSR no backend",
@@ -310,9 +307,7 @@ func init() {
 				getter := hrp.NewMetodoOuPanic("getter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
 					return valor, nil
 				}, "")
-				setter := hrp.NewMetodoOuPanic("setter", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
-					return hrp.Nulo, nil
-				}, "")
+				setter := novoDefinidorSinal(&valor)
 				return hrp.Tupla{getter, setter}, nil
 			},
 			"Cria um sinal reativo persistente (stub SSR)",
@@ -389,4 +384,24 @@ func init() {
 			Metodos:    metodos,
 		},
 	)
+}
+
+// novoDefinidorSinal guarda o novo valor do sinal no backend (aceita valor ou função
+// atualizadora, como no runtime web). Efeitos não reexecutam: o SSR continua estático.
+func novoDefinidorSinal(valor *hrp.Objeto) *hrp.Metodo {
+	return hrp.NewMetodoOuPanic("setter", func(_ hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+		if err := hrp.VerificaNumeroArgumentos("definir", false, args, 1, 1); err != nil {
+			return nil, err
+		}
+		novo := args[0]
+		if _, ehFuncao := novo.(*hrp.Funcao); ehFuncao {
+			res, err := hrp.Chamar(novo, hrp.Tupla{*valor})
+			if err != nil {
+				return nil, err
+			}
+			novo = res
+		}
+		*valor = novo
+		return hrp.Nulo, nil
+	}, "")
 }

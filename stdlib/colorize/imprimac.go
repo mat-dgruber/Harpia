@@ -27,15 +27,8 @@ func met_color_imprimac(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 		return nil, hrp.NewErro(hrp.TipagemErro, hrp.Texto("A função imprimac esperava receber ao menos 1 argumento"))
 	}
 
-	var junta, textoObj hrp.Objeto
-	var err error
-
-	// Obtém o método embutido 'junta' do tipo Texto para concatenar todos os argumentos com espaço.
-	if junta, err = hrp.ObtemAtributoS(hrp.Texto(""), "junta"); err != nil {
-		return nil, err
-	}
-
-	if textoObj, err = hrp.Chamar(junta, args); err != nil {
+	textoObj, err := hrp.JuntaTextos("", args)
+	if err != nil {
 		return nil, err
 	}
 

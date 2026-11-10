@@ -243,7 +243,7 @@ O Harpia foi concebido para ser uma linguagem altamente didática e amigável. P
 
 A integração entre Frontend e Backend no Harpia é simplificada de maneira inédita através do módulo RPC nativo:
 
-- **Módulo de Importação Especial `@backend/`**: No frontend, ao declarar `importar { salvarTarefa } de "@backend/tarefas"`, o runtime intercepta a requisição através de `CarregarModuloRPC`.
+- **Módulo de Importação Especial `@backend/`**: No frontend, ao declarar `de "@backend/tarefas" importe salvarTarefa`, o runtime intercepta a requisição através de `CarregarModuloRPC`.
 - **Compilação e Servidor Automático**: A VM compila o arquivo correspondente no servidor e expõe automaticamente suas funções públicas como endpoints HTTP POST sob demanda.
 - **Tratamento Transparente de CORS**: O servidor HTTP de backend lida de forma autônoma com requisições de preflight (`OPTIONS`), respondendo instantaneamente com `200 OK` e injetando cabeçalhos genéricos de CORS (`Access-Control-Allow-Origin: *`).
 - **Sobrescrita e Precedência de Cabeçalhos**: Caso o desenvolvedor decida customizar as políticas de CORS, ele pode definir o cabeçalho no mapa `res.cabecalho` (ex: `res.cabecalho["Access-Control-Allow-Origin"] = "https://meusite.com"`). Essas configurações personalizadas possuem prioridade e sobrescrevem as automáticas do sistema.

@@ -61,16 +61,16 @@
     "description": "Cria um efeito reativo para frontend"
   },
   "Importação de Módulo": {
-    "prefix": "importar",
+    "prefix": ["importe", "importar"],
     "body": [
-      "importar { ${2:item} } de \"${1:modulo}\""
+      "de \"${1:modulo}\" importe ${2:item}"
     ],
     "description": "Cria uma instrução de importação"
   },
   "Componente Reativo": {
     "prefix": "componente",
     "body": [
-      "importar { h } de \"web\"",
+      "de \"web\" importe h",
       "",
       "exportar funcao ${1:MeuComponente}(props) {",
       "\tretorne (",

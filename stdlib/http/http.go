@@ -5,6 +5,8 @@ package http
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +29,7 @@ type Requisicao struct {
 	Parametros hrp.Mapa
 	Query      hrp.Mapa   // Parâmetros de consulta (query string) parsed
 	CorpoJson  hrp.Objeto // Body deserializado para Mapas/Listas do Harpia de forma automática
+	Extras     hrp.Mapa   // Dados que middlewares anexam (req.usuario = ...) para o handler
 }
 
 // TipoRequisicao mapeia e cria a classe Requisicao na VM.
@@ -58,7 +61,24 @@ func (r *Requisicao) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		}
 		return hrp.Nulo, nil
 	}
+	if v, ok := r.Extras[nome]; ok {
+		return v, nil
+	}
 	return nil, hrp.NewErroF(hrp.AtributoErro, "Atributo '%s' não existe em Requisicao", nome)
+}
+
+// M__define_atributo__ deixa middlewares anexarem dados (req.usuario = dados) sem
+// sobrescrever os campos da própria requisição.
+func (r *Requisicao) M__define_atributo__(nome string, valor hrp.Objeto) error {
+	switch nome {
+	case "metodo", "caminho", "cabecalho", "corpo", "parametros", "query", "consulta", "corpoJson", "corpo_json":
+		return hrp.NewErroF(hrp.AtributoErro, "o atributo '%s' da requisição é somente leitura", nome)
+	}
+	if r.Extras == nil {
+		r.Extras = hrp.Mapa{}
+	}
+	r.Extras[nome] = valor
+	return nil
 }
 
 // Resposta representa o construtor do payload e cabeçalhos a ser enviado ao cliente HTTP.
@@ -174,6 +194,26 @@ func (r *Resposta) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			return hrp.Nulo, nil
 		}, "Envia uma resposta de erro JSON com status e mensagem (ex: res.erro_json(404, \"Não encontrado\"))"), nil
 
+	case "enviar":
+		// res.enviar(texto, tipo?) responde texto puro (padrão text/plain), sem cache: métricas, CSV, HTML.
+		return hrp.NewMetodoOuPanic("enviar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("enviar", false, args, 1, 2); err != nil {
+				return nil, err
+			}
+			conteudo, err := hrp.NewTexto(args[0])
+			if err != nil {
+				return nil, err
+			}
+			var tipoMime hrp.Objeto = hrp.Texto("text/plain; charset=utf-8")
+			if len(args) == 2 {
+				if tipoMime, err = hrp.NewTexto(args[1]); err != nil {
+					return nil, err
+				}
+			}
+			r.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), tipoMime)
+			r.Corpo = conteudo.(hrp.Texto)
+			return hrp.Nulo, nil
+		}, "Envia texto puro com o Content-Type informado (padrão text/plain; charset=utf-8)."), nil
 	case "enviar_midia", "enviar_imagem":
 		// Envia um payload de mídia binária, definindo Content-Type e Cache-Control adequados.
 		return hrp.NewMetodoOuPanic("enviar_midia", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
@@ -322,14 +362,70 @@ func tentarInferirMetaDeComentarios(ctx *hrp.Contexto) *RotaMeta {
 
 // Servidor representa o orquestrador do servidor HTTP nativo assíncrono.
 type Servidor struct {
-	rotas           map[string]map[string]hrp.Objeto // metodo -> rota -> handler
-	rotasMeta       map[string]map[string]*RotaMeta  // metodo -> rota -> metadados
-	middlewares     []hrp.Objeto
-	server          *http.Server
-	mu              sync.RWMutex
-	msgsErrosUltimo error
-	metricas        map[string]int64 // metodo+espaço+rotaPattern -> contagem
+	rotas       map[string]map[string]hrp.Objeto // metodo -> rota -> handler
+	rotasMeta   map[string]map[string]*RotaMeta  // metodo -> rota -> metadados
+	middlewares []hrp.Objeto
+	server      *http.Server
+	mu          sync.RWMutex
+	metricas    map[string]int64 // metodo+espaço+rotaPattern -> contagem
+	// ctx é o contexto do script que criou o servidor; o sandbox é checado nele.
+	// ponytail: capturado do contexto ativo em Nova (não há receptor); correto enquanto a criação
+	// roda dentro do script dono, que é o caso normal.
+	ctx *hrp.Contexto
+	// execSem serializa a execução do script dos handlers (ADR 0002): Mapa/Lista são estruturas
+	// Go sem trava e escrita concorrente corrompe dados ou derruba o processo.
+	// ponytail: 1 handler por vez por servidor; upgrade = coleções thread-safe se houver meta de RPS.
+	execSem chan struct{}
+	// corsOrigens restringe o CORS (app.cors([...])); nil mantém o padrão compatível '*'.
+	corsOrigens []string
+	// ordemRotas guarda a ordem de registro para desempatar rotas de mesma força.
+	ordemRotas map[string]int
 }
+
+// problemaInterno responde 500 em Problem Details (RFC 9457) sem detalhes internos; o detalhe
+// vai só para o log, correlacionado pelo trace_id.
+func problemaInterno(w http.ResponseWriter, detalhe any, metodo, caminho string) {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	traceID := hex.EncodeToString(b)
+	fmt.Fprintf(os.Stderr, "\n❌ Erro interno [%s %s] trace_id=%s: %v\n", metodo, caminho, traceID, detalhe)
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write(fmt.Appendf(nil, `{"type":"about:blank","title":"Erro interno","status":500,"trace_id":"%s"}`, traceID))
+}
+
+// aplicarCors define os cabeçalhos CORS conforme a configuração do servidor.
+func (s *Servidor) aplicarCors(w http.ResponseWriter, req *http.Request) {
+	s.mu.RLock()
+	origens := s.corsOrigens
+	s.mu.RUnlock()
+	if origens == nil {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	} else {
+		origem := req.Header.Get("Origin")
+		permitida := false
+		for _, o := range origens {
+			if o == origem {
+				permitida = true
+				break
+			}
+		}
+		w.Header().Add("Vary", "Origin")
+		if !permitida {
+			return
+		}
+		w.Header().Set("Access-Control-Allow-Origin", origem)
+	}
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+}
+
+// EsperaMaximaHandler é quanto uma requisição espera o handler anterior terminar antes de
+// responder 503 (também evita travar quando um handler chama o próprio servidor).
+var EsperaMaximaHandler = 5 * time.Second
+
+// LimiteRespostaCliente é o tamanho máximo de corpo lido por requisitar (10 MB).
+const LimiteRespostaCliente = 10 << 20
 
 // TipoServidor define e registra a classe Servidor na VM.
 var TipoServidor = hrp.TipoObjeto.NewTipo("Servidor", "Servidor HTTP assíncrono")
@@ -347,8 +443,29 @@ func init() {
 			rotasMeta:   make(map[string]map[string]*RotaMeta),
 			middlewares: make([]hrp.Objeto, 0),
 			metricas:    make(map[string]int64),
+			ctx:         hrp.ObterContextoAtivo(),
+			execSem:     make(chan struct{}, 1),
+			ordemRotas:  make(map[string]int),
 		}, nil
 	}
+}
+
+// encadearRota compõe middlewares de rota com o handler: cada middleware recebe
+// (req, res, proximo) e só segue adiante se chamar proximo().
+func encadearRota(mws hrp.Tupla, final hrp.Objeto) hrp.Objeto {
+	return hrp.NewMetodoOuPanic("rota", func(_ hrp.Objeto, a hrp.Tupla) (hrp.Objeto, error) {
+		var passo func(i int) (hrp.Objeto, error)
+		passo = func(i int) (hrp.Objeto, error) {
+			if i == len(mws) {
+				return hrp.Chamar(final, a)
+			}
+			proximo := hrp.NewMetodoOuPanic("proximo", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+				return passo(i + 1)
+			}, "Segue para o próximo middleware ou para o handler da rota.")
+			return hrp.Chamar(mws[i], append(a[:len(a):len(a)], proximo))
+		}
+		return passo(0)
+	}, "Rota com middlewares encadeados.")
 }
 
 // registrarRota anexa de forma thread-safe uma rota lógica com seu respectivo handler e metadados na tabela de rotas.
@@ -358,6 +475,12 @@ func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto, metaOb
 	if s.rotas[metodo] == nil {
 		s.rotas[metodo] = make(map[string]hrp.Objeto)
 		s.rotasMeta[metodo] = make(map[string]*RotaMeta)
+	}
+	if s.ordemRotas == nil { // Servidor montado sem o construtor (ex.: testes)
+		s.ordemRotas = make(map[string]int)
+	}
+	if _, existe := s.ordemRotas[metodo+" "+rota]; !existe {
+		s.ordemRotas[metodo+" "+rota] = len(s.ordemRotas)
 	}
 	s.rotas[metodo][rota] = handler
 
@@ -405,18 +528,25 @@ func (s *Servidor) registrarRota(metodo, rota string, handler hrp.Objeto, metaOb
 func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	criadorRota := func(metodoHTTP string) hrp.Objeto {
 		return hrp.NewMetodoOuPanic(strings.ToLower(metodoHTTP), func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			if err := hrp.VerificaNumeroArgumentos(strings.ToLower(metodoHTTP), false, args, 2, 3); err != nil {
-				return nil, err
+			// app.obter(rota, [middlewares...], handler, metadados?): o Mapa final é metadados;
+			// funções antes do handler são middlewares de rota (req, res, proximo).
+			if len(args) < 2 {
+				return nil, hrp.NewErroF(hrp.TipagemErro, "%s() espera (rota, handler)", strings.ToLower(metodoHTTP))
 			}
 			rota, err := hrp.NewTexto(args[0])
 			if err != nil {
 				return nil, err
 			}
+			resto := args[1:]
 			var meta hrp.Objeto = hrp.Nulo
-			if len(args) == 3 {
-				meta = args[2]
+			if _, ehMapa := resto[len(resto)-1].(hrp.Mapa); ehMapa && len(resto) > 1 {
+				meta, resto = resto[len(resto)-1], resto[:len(resto)-1]
 			}
-			s.registrarRota(metodoHTTP, string(rota.(hrp.Texto)), args[1], meta)
+			handler := resto[len(resto)-1]
+			if mws := resto[:len(resto)-1]; len(mws) > 0 {
+				handler = encadearRota(mws, handler)
+			}
+			s.registrarRota(metodoHTTP, string(rota.(hrp.Texto)), handler, meta)
 			return hrp.Nulo, nil
 		}, fmt.Sprintf("Registra uma rota para requisições %s.", metodoHTTP))
 	}
@@ -432,6 +562,35 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 		return criadorRota("PUT"), nil
 	case "patch":
 		return criadorRota("PATCH"), nil
+
+	case "cors":
+		// app.cors(["https://app.exemplo"]) restringe o CORS a essas origens (padrão: '*').
+		return hrp.NewMetodoOuPanic("cors", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
+			if err := hrp.VerificaNumeroArgumentos("cors", false, args, 1, 1); err != nil {
+				return nil, err
+			}
+			var itens []hrp.Objeto
+			switch l := args[0].(type) {
+			case *hrp.Lista:
+				itens = l.Itens
+			case hrp.Tupla:
+				itens = l
+			default:
+				return nil, hrp.NewErroF(hrp.TipagemErro, "cors esperava uma Lista de origens (Texto)")
+			}
+			origens := make([]string, 0, len(itens))
+			for _, it := range itens {
+				t, ok := it.(hrp.Texto)
+				if !ok {
+					return nil, hrp.NewErroF(hrp.TipagemErro, "cors: cada origem deve ser Texto")
+				}
+				origens = append(origens, string(t))
+			}
+			s.mu.Lock()
+			s.corsOrigens = origens
+			s.mu.Unlock()
+			return hrp.Nulo, nil
+		}, "Restringe o CORS às origens informadas."), nil
 
 	case "usar":
 		// Enfileira um middleware global no pipeline de execução do servidor.
@@ -469,11 +628,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 	case "escutar":
 		// Ativa e inicia a escuta HTTP na porta TCP indicada.
 		return hrp.NewMetodoOuPanic("escutar", func(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-			ctx := hrp.ObterContextoAtivo()
-			if ctx != nil {
-				if err := ctx.VerificarPermissaoRede(); err != nil {
-					return nil, err
-				}
+			if err := hrp.ExigirPermissaoNoContexto(s.ctx, hrp.RecursoRede); err != nil {
+				return nil, err
 			}
 
 			if err := hrp.VerificaNumeroArgumentos("escutar", false, args, 1, 2); err != nil {
@@ -496,7 +652,11 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			if s.rotas["GET"] == nil {
 				s.rotas["GET"] = make(map[string]hrp.Objeto)
 			}
-			if s.rotas["GET"]["/docs.json"] == nil {
+			if s.execSem == nil { // Servidor montado sem o construtor: sem isso toda requisição daria 503
+				s.execSem = make(chan struct{}, 1)
+			}
+			docsLigado := os.Getenv("HARPIA_DOCS") != "0" // HARPIA_DOCS=0 desliga /docs e /docs.json
+			if docsLigado && s.rotas["GET"]["/docs.json"] == nil {
 				s.rotas["GET"]["/docs.json"] = hrp.NewMetodoOuPanic("docs_json", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
 					if len(handlerArgs) < 2 {
 						return nil, fmt.Errorf("argumentos inválidos no docs_json")
@@ -514,7 +674,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					return hrp.Nulo, nil
 				}, "Retorna as especificações OpenAPI do servidor em formato JSON.")
 			}
-			if s.rotas["GET"]["/docs"] == nil && s.rotas["GET"]["/*"] == nil {
+			if docsLigado && s.rotas["GET"]["/docs"] == nil && s.rotas["GET"]["/*"] == nil {
 				s.rotas["GET"]["/docs"] = hrp.NewMetodoOuPanic("docs_html", func(_ hrp.Objeto, handlerArgs hrp.Tupla) (hrp.Objeto, error) {
 					if len(handlerArgs) < 2 {
 						return nil, fmt.Errorf("argumentos inválidos no docs_html")
@@ -545,14 +705,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					}
 					res := handlerArgs[1].(*Resposta)
 					res.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("application/json"))
-					s.mu.RLock()
-					ultimoErro := s.msgsErrosUltimo
-					s.mu.RUnlock()
-					if ultimoErro != nil {
-						res.Status = http.StatusServiceUnavailable
-						res.Corpo = hrp.Texto(`{"status":"not_ready"}`)
-						return hrp.Nulo, nil
-					}
+					// ponytail: pronto = processo escutando; um 500 de um handler não tira o pod de rotação.
+					// Upgrade: checar dependências reais (ex.: ping do banco) quando houver.
 					res.Status = http.StatusOK
 					res.Corpo = hrp.Texto(`{"status":"ready"}`)
 					return hrp.Nulo, nil
@@ -564,9 +718,7 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 			mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 				defer func() {
 					if r := recover(); r != nil {
-						fmt.Fprintf(os.Stderr, "\n🔥 Erro interno no Servidor HTTP (Pânico):\n  ➔ %v\n%s\n\n", r, debug.Stack())
-						w.WriteHeader(http.StatusInternalServerError)
-						w.Write(fmt.Appendf(nil, "Erro interno do servidor (Pânico): %v", r))
+						problemaInterno(w, fmt.Sprintf("pânico: %v\n%s", r, debug.Stack()), req.Method, req.URL.Path)
 					}
 				}()
 
@@ -576,14 +728,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				w.Header().Set("X-XSS-Protection", "1; mode=block")
 				w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-				// ponytail: suporte transparente a CORS por padrão (preflight OPTIONS e todas as respostas de API/erro)
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
-				if reqHeaders := req.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
-					w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
-				} else {
-					w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-				}
+				// CORS: '*' por padrão (compatível); restrito às origens de app.cors([...]) quando configurado
+				s.aplicarCors(w, req)
 
 				if req.Method == "OPTIONS" {
 					w.WriteHeader(http.StatusOK)
@@ -605,7 +751,8 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 					match, parsedParams := matchRoute(rotaPattern, req.URL.Path)
 					if match {
 						forca := calcularForcaRota(rotaPattern)
-						if forca > melhorForca {
+						// empate de força: vence a rota registrada primeiro (o map não tem ordem)
+						if forca > melhorForca || (forca == melhorForca && s.ordemRotas[req.Method+" "+rotaPattern] < s.ordemRotas[req.Method+" "+melhorRotaPattern]) {
 							melhorForca = forca
 							handler = h
 							params = parsedParams
@@ -616,7 +763,6 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 				s.mu.RUnlock()
 
 				if handler == nil {
-					fmt.Fprintf(os.Stderr, "[DEBUG] 404 para %s %s\n", req.Method, req.URL.Path)
 					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Rota não encontrada"))
 					return
@@ -707,42 +853,46 @@ func (s *Servidor) M__obtem_attributo__(nome string) (hrp.Objeto, error) {
 						return hrp.Nulo, nil
 					}, "Avança para o próximo middleware ou handler")
 
-					// Tenta chamar o middleware com (req, res, próximo)
-					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj, próximoCb})
-					if errMw != nil {
-						// Se o erro foi por falta de argumento (middleware declarou só 2 params req, res), chama com 2 params e avança
-						if strings.Contains(errMw.Error(), "esperava no máximo 2 argumentos") {
-							_, errMw2 := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj})
-							if errMw2 != nil {
-								return errMw2
-							}
-							return executarpróximo(idx + 1)
+					// Middleware declarado com 2 parâmetros (req, res) roda e avança sozinho; os demais
+					// recebem (req, res, próximo). Decide pela aridade, não pelo texto de um erro.
+					if fn, ok := mw.(*hrp.Funcao); ok && len(fn.Args()) == 2 {
+						if _, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj}); errMw != nil {
+							return errMw
 						}
-						return errMw
+						return executarpróximo(idx + 1)
 					}
-					return nil
+					_, errMw := hrp.Chamar(mw, hrp.Tupla{reqObj, resObj, próximoCb})
+					return errMw
 				}
 
-				if errChain := executarpróximo(0); errChain != nil {
-					fmt.Fprintf(os.Stderr, "\n❌ Erro durante a requisição [%s %s]: %v\n", req.Method, req.URL.Path, errChain)
-					// ponytail: responde com 500 sem derrubar o servidor para preservar as demais requisições
-					// RFC 9457 / RFC 7807: diretriz Problem Details (application/problem+json) para respostas de erro de API
-					resObj.Status = hrp.Inteiro(http.StatusInternalServerError)
-					resObj.Cabecalho.M__define_item__(hrp.Texto("Content-Type"), hrp.Texto("text/plain; charset=utf-8"))
-					resObj.Corpo = hrp.Texto(fmt.Sprintf("Erro interno: %v", errChain))
-					s.mu.Lock()
-					s.msgsErrosUltimo = errChain
-					s.mu.Unlock()
+				select {
+				case s.execSem <- struct{}{}:
+				case <-time.After(EsperaMaximaHandler):
+					w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+					w.Header().Set("Retry-After", "1")
+					w.WriteHeader(http.StatusServiceUnavailable)
+					w.Write([]byte("Servidor ocupado: os handlers rodam um por vez e o anterior não terminou a tempo (chamar o próprio servidor de dentro de um handler não é suportado)"))
+					return
+				}
+				// defer: um pânico no handler não pode deixar o semáforo preso (503 para sempre)
+				errChain := func() error {
+					defer func() { <-s.execSem }()
+					return executarpróximo(0)
+				}()
+				if errChain != nil {
+					// 500 sem derrubar o servidor e sem vazar o erro (SQL, caminhos, stack) ao cliente
+					problemaInterno(w, errChain, req.Method, req.URL.Path)
+					return
 				}
 
-				// ponytail: adiciona cabeçalhos CORS por padrão nas respostas normais
-				w.Header().Set("Access-Control-Allow-Origin", "*")
-				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, PUT, PATCH")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-				// Escreve cabeçalhos de resposta
+				// Escreve cabeçalhos de resposta (valores não-Texto são convertidos, ex.: Inteiro)
 				for k, v := range resObj.Cabecalho {
-					w.Header().Set(k, string(v.(hrp.Texto)))
+					vTexto, errConv := hrp.NewTexto(v)
+					if errConv != nil {
+						fmt.Fprintf(os.Stderr, "⚠️ cabeçalho '%s' ignorado: %v\n", k, errConv)
+						continue
+					}
+					w.Header().Set(k, string(vTexto.(hrp.Texto)))
 				}
 
 				w.WriteHeader(int(resObj.Status))
@@ -864,11 +1014,8 @@ func matchRoute(pattern, path string) (bool, map[string]string) {
 
 // met_http_requisitar realiza uma requisição HTTP do lado do cliente.
 func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
-	ctx := hrp.ObterContextoAtivo()
-	if ctx != nil {
-		if err := ctx.VerificarPermissaoRede(); err != nil {
-			return nil, err
-		}
+	if err := hrp.ExigirPermissao(inst, hrp.RecursoRede); err != nil {
+		return nil, err
 	}
 
 	if err := hrp.VerificaNumeroArgumentos("requisitar", false, args, 2, 4); err != nil {
@@ -902,7 +1049,10 @@ func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	if len(args) >= 4 && args[3] != hrp.Nulo {
 		if cabeçalhos, ok := args[3].(hrp.Mapa); ok {
 			for k, v := range cabeçalhos {
-				vTexto, _ := hrp.NewTexto(v)
+				vTexto, errConv := hrp.NewTexto(v)
+				if errConv != nil {
+					return nil, errConv
+				}
 				req.Header.Set(k, string(vTexto.(hrp.Texto)))
 			}
 		}
@@ -918,7 +1068,13 @@ func met_http_requisitar(inst hrp.Objeto, args hrp.Tupla) (hrp.Objeto, error) {
 	}
 	defer res.Body.Close()
 
-	bodyBytes, _ := io.ReadAll(res.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(res.Body, LimiteRespostaCliente+1))
+	if err != nil {
+		return nil, hrp.NewErroF(hrp.ErroDeSistema, "Erro ao ler a resposta HTTP: %v", err)
+	}
+	if len(bodyBytes) > LimiteRespostaCliente {
+		return nil, hrp.NewErroF(hrp.ErroDeLimite, "Resposta HTTP excede o limite de %d MB", LimiteRespostaCliente>>20)
+	}
 	resHeaders := hrp.NewMapaVazio()
 	for k, vals := range res.Header {
 		resHeaders.M__define_item__(hrp.Texto(k), hrp.Texto(strings.Join(vals, ", ")))

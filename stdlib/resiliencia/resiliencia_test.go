@@ -4,6 +4,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/mat-dgruber/Harpia/hrp"
 )
 
 func TestDisjuntorAbreAposLimiteFalhas(t *testing.T) {
@@ -158,5 +160,22 @@ func TestDisjuntorMeioAbertoApenasUmaSondaConcorrente(t *testing.T) {
 	// Segunda chamada concorrente em meio_aberto DEVE ser bloqueada
 	if d.Permitir() {
 		t.Fatal("segunda sonda em meio_aberto concorrente não deveria ser permitida")
+	}
+}
+
+func TestRetentativaDevolveResultadoDaFuncao(t *testing.T) {
+	r := &Retentativa{Tentativas: 3, BaseEsperaMs: 1, FatorBackoff: 1}
+	executar, _ := r.M__obtem_attributo__("executar")
+	tentativas := 0
+	fn := hrp.NewMetodoOuPanic("fn", func(_ hrp.Objeto, _ hrp.Tupla) (hrp.Objeto, error) {
+		tentativas++
+		if tentativas < 2 {
+			return nil, hrp.NewErroF(hrp.ValorErro, "falha temporária")
+		}
+		return hrp.Texto("ok"), nil
+	}, "")
+	res, err := hrp.Chamar(executar, hrp.Tupla{fn})
+	if err != nil || res != hrp.Texto("ok") || tentativas != 2 {
+		t.Fatalf("esperava 'ok' na 2ª tentativa, veio %v (%v), tentativas=%d", res, err, tentativas)
 	}
 }
